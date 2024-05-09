@@ -1,7 +1,65 @@
 stages:
   - hello
+  - linting-formatting
 
 hello:
   stage: hello
   script:
     - echo "Hello World"
+
+mega_linter:
+  stage: linting-formatting
+  # You can override MegaLinter flavor used to have faster performances
+  # More info at https://github.com/oxsecurity/megalinter#flavors
+  image:
+    name: oxsecurity/megalinter:${IMAGE_TAG}
+    entrypoint: [""]
+  variables:
+    # All available variables are described in documentation
+    # https://github.com/oxsecurity/megalinter#configuration
+    ### MegaLinter variables
+    DEFAULT_WORKSPACE: "${CI_PROJECT_DIR}"
+    DEFAULT_BRANCH: "${CI_DEFAULT_BRANCH}"
+    # Your mega linter config file if any
+    MEGALINTER_CONFIG: ".mega-linter.yml"
+    # Directory in which every report is filed
+    REPORT_OUTPUT_FOLDER: "megalinter-reports"
+    # Posts Mega-Linter results summary in the comments of the related merge request (if existing)
+    # https://oxsecurity.github.io/megalinter/latest/reporters/GitlabCommentReporter/
+    GITLAB_COMMENT_REPORTER: "true"
+    # Activate the SARIF reporter
+    SARIF_REPORTER: "true"
+    ### Custom variables
+    # End folder where reports are held
+    CONVERTED_OUTPUT_FOLDER: "converted.report"
+    # Image tag of the MegaLinter image used in this job
+    IMAGE_TAG: "v6.20.0"
+    # Version tag of the sarif-codeclimate package to convert sarif reports
+    # https://www.npmjs.com/package/sarif-codeclimate
+    SARIF_CODECLIMATE_VERSION: "2.1.2"
+  script:
+    - FAILED=false
+    - |
+      if /entrypoint.sh true; then
+        echo -e "\e[32mMegaLinter haven't found any issue!"
+      else
+        echo -e "\e[31mMegaLinter found some issues. Check this job log and the artifact reports."
+        FAILED=true
+      fi
+
+    - mkdir ${CI_PROJECT_DIR}/${CONVERTED_OUTPUT_FOLDER}
+    - cp ${CI_PROJECT_DIR}/${REPORT_OUTPUT_FOLDER}/megalinter-report.sarif ${CI_PROJECT_DIR}/${CONVERTED_OUTPUT_FOLDER}
+    - cd ${CI_PROJECT_DIR}/${CONVERTED_OUTPUT_FOLDER}
+    - npx -y sarif-codeclimate@${SARIF_CODECLIMATE_VERSION} -i megalinter-report.sarif -o code-climate.json
+    - if [ "$FAILED" = true ]; then
+    -   exit 1
+    - fi
+  artifacts:
+    when: always
+    paths:
+      - ${CI_PROJECT_DIR}/${REPORT_OUTPUT_FOLDER}
+      - ${CI_PROJECT_DIR}/${CONVERTED_OUTPUT_FOLDER}
+    expire_in: 1 week
+    reports:
+      codequality: "${CI_PROJECT_DIR}/${CONVERTED_OUTPUT_FOLDER}/code-climate.json"
+  allow_failure: true
