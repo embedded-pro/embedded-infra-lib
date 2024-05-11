@@ -14,9 +14,14 @@ namespace hal
         host.Close(pipe);
     }
 
-    void UsbPipe::SubmitUsbRequestBlock(UsbHostLinkLayer::Direction direction, UsbEndPointType type, UsbHostLinkLayer::Pid token, infra::ByteRange buffer, bool ping)
+    void UsbPipe::SubmitOutputUsbRequestBlock(UsbEndPointType type, UsbHostLinkLayer::Pid token, infra::ConstByteRange buffer, bool ping)
     {
-        host.SubmitUsbRequestBlock(pipe, direction, type, token, buffer, ping);
+        host.SubmitOutputUsbRequestBlock(pipe, type, token, buffer, ping);
+    }
+
+    void UsbPipe::SubmitInputUsbRequestBlock(UsbEndPointType type, UsbHostLinkLayer::Pid token, infra::ByteRange buffer, bool ping)
+    {
+        host.SubmitInputUsbRequestBlock(pipe, type, token, buffer, ping);
     }
 
     UsbHostLinkLayer::UsbRequestBlockState UsbPipe::RequestBlockState()
