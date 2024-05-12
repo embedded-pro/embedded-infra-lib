@@ -43,7 +43,6 @@ target_sources(hal.interfaces PRIVATE
     Spi.cpp
     Spi.hpp
     UsbCustomHid.hpp
-    UsbLinkLayer.cpp
     UsbLinkLayer.hpp
     $<$<BOOL:${EMIL_HOST_BUILD}>:FileSystem.cpp>
     $<$<BOOL:${EMIL_HOST_BUILD}>:FileSystem.hpp>
