@@ -95,8 +95,6 @@ namespace hal
             : infra::SingleObserver<UsbHostLinkLayerObserver, UsbHostLinkLayer>(linkLayer)
         {}
 
-        ~UsbHostLinkLayerObserver() = default;
-
     public:
         virtual void Connected() = 0;
         virtual void Disconnected() = 0;
@@ -105,24 +103,28 @@ namespace hal
         virtual void StartOfFrame() = 0;
     };
 
+    class UsbRequestBlockStateObserver
+        : public infra::SingleObserver<UsbRequestBlockStateObserver, UsbHostLinkLayer>
+    {
+    protected:
+        UsbRequestBlockStateObserver(UsbHostLinkLayer& linkLayer)
+            : infra::SingleObserver<UsbRequestBlockStateObserver, UsbHostLinkLayer>(linkLayer)
+        {}
+
+    public:
+        virtual void Done() = 0;
+        virtual void Error() = 0;
+        virtual void Stall() = 0;
+    };
+
     class UsbHostLinkLayer
         : public infra::Subject<UsbHostLinkLayerObserver>
+        , public infra::Subject<UsbRequestBlockStateObserver>
     {
     public:
         UsbHostLinkLayer() = default;
         UsbHostLinkLayer(const UsbHostLinkLayer& other) = delete;
         UsbHostLinkLayer& operator=(const UsbHostLinkLayer& other) = delete;
-
-        enum struct UsbRequestBlockState : uint8_t
-        {
-            idle,
-            done,
-            notReady,
-            notYet,
-            error,
-            stall,
-            invalid,
-        };
 
         enum struct Pid : uint8_t
         {
@@ -139,31 +141,9 @@ namespace hal
         virtual void Close(uint8_t pipe) = 0;
         virtual void SubmitOutputUsbRequestBlock(uint8_t pipe, UsbEndPointType type, Pid token, infra::ConstByteRange buffer, bool ping) = 0;
         virtual void SubmitInputUsbRequestBlock(uint8_t pipe, UsbEndPointType type, Pid token, infra::ByteRange buffer, bool ping) = 0;
-        virtual UsbRequestBlockState RequestBlockState(uint8_t pipe) = 0;
         virtual uint32_t LastTransferSize(uint8_t pipe) = 0;
         virtual void SetToggle(uint8_t pipe, bool toggle) = 0;
         virtual bool Toggle(uint8_t pipe) = 0;
-
-    protected:
-        ~UsbHostLinkLayer() = default;
-    };
-
-    class UsbPipe
-    {
-    public:
-        UsbPipe(UsbHostLinkLayer& host, uint8_t pipe, uint8_t endPoint, uint8_t address, UsbSpeed speed, UsbEndPointType type, uint16_t maxPacketSize);
-        ~UsbPipe();
-
-        void SubmitOutputUsbRequestBlock(UsbEndPointType type, UsbHostLinkLayer::Pid token, infra::ConstByteRange buffer, bool ping);
-        void SubmitInputUsbRequestBlock(UsbEndPointType type, UsbHostLinkLayer::Pid token, infra::ByteRange buffer, bool ping);
-        UsbHostLinkLayer::UsbRequestBlockState RequestBlockState();
-        uint32_t LastTransferSize();
-        void SetToggle(bool toggle);
-        bool Toggle();
-
-    private:
-        UsbHostLinkLayer& host;
-        uint8_t pipe;
     };
 }
 
