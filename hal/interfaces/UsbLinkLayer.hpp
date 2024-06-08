@@ -2,6 +2,7 @@
 #define HAL_USB_LINK_LAYER_HPP
 
 #include "infra/util/ByteRange.hpp"
+#include "infra/util/Function.hpp"
 #include "infra/util/Observer.hpp"
 #include <cstdint>
 
@@ -90,12 +91,9 @@ namespace hal
     class UsbHostLinkLayerObserver
         : public infra::SingleObserver<UsbHostLinkLayerObserver, UsbHostLinkLayer>
     {
-    protected:
-        UsbHostLinkLayerObserver(UsbHostLinkLayer& linkLayer)
-            : infra::SingleObserver<UsbHostLinkLayerObserver, UsbHostLinkLayer>(linkLayer)
-        {}
-
     public:
+        using infra::SingleObserver<UsbHostLinkLayerObserver, UsbHostLinkLayer>::SingleObserver;
+
         virtual void Connected() = 0;
         virtual void Disconnected() = 0;
         virtual void PortEnabled() = 0;
@@ -103,23 +101,8 @@ namespace hal
         virtual void StartOfFrame() = 0;
     };
 
-    class UsbRequestBlockStateObserver
-        : public infra::SingleObserver<UsbRequestBlockStateObserver, UsbHostLinkLayer>
-    {
-    protected:
-        UsbRequestBlockStateObserver(UsbHostLinkLayer& linkLayer)
-            : infra::SingleObserver<UsbRequestBlockStateObserver, UsbHostLinkLayer>(linkLayer)
-        {}
-
-    public:
-        virtual void Done() = 0;
-        virtual void Error() = 0;
-        virtual void Stall() = 0;
-    };
-
     class UsbHostLinkLayer
         : public infra::Subject<UsbHostLinkLayerObserver>
-        , public infra::Subject<UsbRequestBlockStateObserver>
     {
     public:
         UsbHostLinkLayer() = default;
@@ -129,8 +112,20 @@ namespace hal
         enum struct Pid : uint8_t
         {
             setup,
-            data,
-            invalid,
+            data
+        };
+
+        enum struct Direction : uint8_t
+        {
+            in,
+            out
+        };
+
+        enum class UsbRequestBlockState : uint8_t
+        {
+            success,
+            error,
+            stall
         };
 
         virtual UsbSpeed Speed() = 0;
@@ -139,8 +134,7 @@ namespace hal
 
         virtual void Open(uint8_t pipe, uint8_t endPoint, uint8_t address, UsbSpeed speed, UsbEndPointType type, uint16_t maxPacketSize) = 0;
         virtual void Close(uint8_t pipe) = 0;
-        virtual void SubmitOutputUsbRequestBlock(uint8_t pipe, UsbEndPointType type, Pid token, infra::ConstByteRange buffer, bool ping) = 0;
-        virtual void SubmitInputUsbRequestBlock(uint8_t pipe, UsbEndPointType type, Pid token, infra::ByteRange buffer, bool ping) = 0;
+        virtual void SubmitUsbRequestBlock(uint8_t pipe, UsbEndPointType type, Direction direction, Pid token, infra::ConstByteRange buffer, bool ping, const infra::Function<void(UsbRequestBlockState)>& onDone) = 0;
         virtual uint32_t LastTransferSize(uint8_t pipe) = 0;
         virtual void SetToggle(uint8_t pipe, bool toggle) = 0;
         virtual bool Toggle(uint8_t pipe) = 0;
