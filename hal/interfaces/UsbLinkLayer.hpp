@@ -125,7 +125,8 @@ namespace hal
         {
             success,
             error,
-            stall
+            stall,
+            notReady
         };
 
         virtual UsbSpeed Speed() = 0;
