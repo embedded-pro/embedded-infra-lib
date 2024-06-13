@@ -135,7 +135,8 @@ namespace hal
 
         virtual void Open(uint8_t pipe, uint8_t endPoint, uint8_t address, UsbSpeed speed, UsbEndPointType type, uint16_t maxPacketSize) = 0;
         virtual void Close(uint8_t pipe) = 0;
-        virtual void SubmitUsbRequestBlock(uint8_t pipe, UsbEndPointType type, Direction direction, Pid token, infra::ConstByteRange buffer, bool ping, const infra::Function<void(UsbRequestBlockState)>& onDone) = 0;
+        virtual void Transmit(uint8_t pipe, UsbEndPointType type, Pid token, infra::ConstByteRange buffer, bool ping, const infra::Function<void(UsbRequestBlockState)>& onDone) = 0;
+        virtual void Receive(uint8_t pipe, UsbEndPointType type, Pid token, bool ping, const infra::Function<void(infra::ConstByteRange, UsbRequestBlockState)>& onDone) = 0;
         virtual uint32_t LastTransferSize(uint8_t pipe) = 0;
         virtual void SetToggle(uint8_t pipe, bool toggle) = 0;
         virtual bool Toggle(uint8_t pipe) = 0;
