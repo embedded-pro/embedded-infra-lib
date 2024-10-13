@@ -56,6 +56,17 @@ namespace application
             std::size_t index;
         };
 
+        class Underscore
+        {
+        public:
+            explicit Underscore(std::size_t index);
+
+            bool operator==(const Underscore& other) const;
+            bool operator!=(const Underscore& other) const;
+
+            std::size_t index;
+        };
+
         class LeftBrace
         {
         public:
@@ -136,7 +147,7 @@ namespace application
             bool value;
         };
 
-        using Token = infra::Variant<End, Error, Comma, Dot, LeftBrace, RightBrace, LeftBracket, RightBracket, String, Integer, Boolean>;
+        using Token = infra::Variant<End, Error, Comma, Dot, Underscore, LeftBrace, RightBrace, LeftBracket, RightBracket, String, Integer, Boolean>;
     }
 
     class ConsoleTokenizer
@@ -175,20 +186,20 @@ namespace application
         : public infra::Subject<ConsoleObserver>
     {
     public:
-        explicit Console(EchoRoot& root);
+        explicit Console(EchoRoot& root, bool stopOnNetworkClose);
 
         void Run();
         services::ConnectionFactory& ConnectionFactory();
         services::NameResolver& NameResolver();
         void DataReceived(infra::StreamReader& reader);
 
-        struct IncompletePacket
+    private:
+        struct Empty
         {};
 
-    private:
         struct MessageTokens
         {
-            using MessageTokenValue = infra::Variant<std::string, int64_t, bool, MessageTokens, std::vector<MessageTokens>>;
+            using MessageTokenValue = infra::Variant<Empty, std::string, int64_t, bool, MessageTokens, std::vector<MessageTokens>>;
 
             std::vector<std::pair<MessageTokenValue, std::size_t>> tokens;
         };
@@ -208,7 +219,7 @@ namespace application
             void ProcessParameterTokens();
             std::pair<MessageTokens::MessageTokenValue, std::size_t> CreateMessageTokenValue();
             MessageTokens::MessageTokenValue ProcessMessage();
-            std::vector<MessageTokens> ProcessArray();
+            Console::MessageTokens ProcessArray();
 
             void EncodeMessage(const EchoMessage& message, const MessageTokens& messageTokens, std::size_t valueIndex, infra::ProtoFormatter& formatter);
             void EncodeField(const EchoField& field, const MessageTokens::MessageTokenValue& value, std::size_t valueIndex, infra::ProtoFormatter& formatter);
@@ -224,7 +235,7 @@ namespace application
         void PrintField(infra::Variant<uint32_t, uint64_t, infra::ProtoLengthDelimited>& fieldData, const EchoField& field, infra::ProtoParser& parser);
         void MethodNotFound(const EchoService& service, uint32_t methodId) const;
         void ServiceNotFound(uint32_t serviceId, uint32_t methodId) const;
-        void RunEventDispatcher();
+        void RunEventDispatcher(bool stopOnNetworkClose);
         void ListInterfaces();
         void ListFields(const EchoMessage& message);
         void Process(const std::string& line) const;
@@ -235,10 +246,13 @@ namespace application
         main_::NetworkAdapter network;
         hal::TimerServiceGeneric timerService{ infra::systemTimerServiceId };
         std::thread eventDispatcherThread;
+        bool started = false;
         bool quit = false;
+        bool stoppedEventDispatcher = false;
         std::mutex mutex;
         std::condition_variable condition;
         bool processDone = false;
+        std::string receivedData;
     };
 
     namespace ConsoleExceptions
@@ -261,11 +275,13 @@ namespace application
         struct MissingParameter
         {
             std::size_t index;
+            std::string missingType;
         };
 
         struct IncorrectType
         {
             std::size_t index;
+            std::string correctType;
         };
     }
 }
