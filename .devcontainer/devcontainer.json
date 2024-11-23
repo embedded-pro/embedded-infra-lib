@@ -6,20 +6,21 @@
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
+  "runArgs": ["--add-host=host.docker.internal:host-gateway", "--privileged"],
   "customizations": {
     "vscode": {
+      "extensions": ["JacquesLucke.gcov-viewer@0.5.0"],
       "settings": {
-        "C_Cpp.autoAddFileAssociations": false,
-        "C_Cpp.intelliSenseEngine": "disabled",
-        "clangd.arguments": [
-          "--query-driver=/opt/**/arm-none-eabi-*",
-          "--compile-commands-dir=${workspaceFolder}/build"
-        ],
-        "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
-        "cmake.statusbar.visibility": "default",
-        "cmake.useProjectStatusView": false,
-        "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"
+        "editor.formatOnSave": true,
+        "files.insertFinalNewline": true,
+        "gcovViewer.buildDirectories": ["${workspaceFolder}/build/Coverage"],
+        "gcovViewer.highlightMissedLines": true
       }
     }
+  },
+  "postCreateCommand": {
+    "submodule.update": "git submodule update --init --recursive",
+    "config.core.autocrlf": "git config --replace-all core.autocrlf false",
+    "config.core.eol": "git config --replace-all core.eol lf"
   }
 }
