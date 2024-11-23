@@ -437,7 +437,13 @@ namespace infra
     typedef Watt::Mul<Second> Joule;
     typedef Joule::Scale<StaticRational<3600, 1000>> KiloWattHour;
 
-    typedef BaseUnit<4> Celsius;
+    typedef BaseUnit<5> Celsius;
+
+    typedef BaseUnit<6>::Scale<StaticRational<0, 100>> Percent;
+
+    typedef BaseUnit<7> Hertz;
+
+    typedef Second::Inverse PulsesPerSecond;
 }
 
 #endif
