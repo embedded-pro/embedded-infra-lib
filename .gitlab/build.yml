@@ -49,7 +49,6 @@ coverage:
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
       when: always
     - when: never
-
 # embedded-build-st:
 #   stage: build
 #   image: gabrielfrasantos/embedded-devcontainer:lastest@sha256:1e1ac37bf82565cf8676100c4380f2a372c6b581e0404ad449b35a9ce93856e5
