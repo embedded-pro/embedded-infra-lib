@@ -3,7 +3,7 @@ syntax = "proto3";
 import "EchoAttributes.proto";
 
 package examples;
-option java_package = "com.philips.emil.protobufEcho";
+option java_package = "com.emil.protobufEcho";
 option java_outer_classname = "ConsoleProto";
 
 message Message

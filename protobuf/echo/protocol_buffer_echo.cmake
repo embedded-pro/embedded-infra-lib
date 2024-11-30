@@ -31,7 +31,7 @@ function(emil_fetch_echo_plugins)
     endif()
 
     FetchContent_Declare(echoplugin
-        URL https://github.com/philips-software/amp-embedded-infra-lib/releases/download/v${emil_version}/emil-${emil_version}-${os_postfix}.zip
+        URL https://github.com/embedded-pro/embedded-infra-lib/releases/download/v${emil_version}/emil-${emil_version}-${os_postfix}.zip
         FIND_PACKAGE_ARGS NAMES emil GLOBAL
     )
     FetchContent_MakeAvailable(echoplugin)
@@ -164,7 +164,7 @@ endfunction()
 function(protocol_buffer_echo_java target input)
     protocol_buffer_echo_generator(${target} ${input})
 
-    cmake_path(SET java_dir "generated/com/philips/emil/protobufEcho")
+    cmake_path(SET java_dir "generated/com/emil/protobufEcho")
     cmake_path(SET generated_dir_echo "${java_dir}")
 
     cmake_path(ABSOLUTE_PATH java_dir BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} NORMALIZE OUTPUT_VARIABLE java_dir)
