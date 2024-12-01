@@ -164,7 +164,7 @@ endfunction()
 function(protocol_buffer_echo_java target input)
     protocol_buffer_echo_generator(${target} ${input})
 
-    cmake_path(SET java_dir "generated/com/philips/emil/protobufEcho")
+    cmake_path(SET java_dir "generated/com/emil/protobufEcho")
     cmake_path(SET generated_dir_echo "${java_dir}")
 
     cmake_path(ABSOLUTE_PATH java_dir BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} NORMALIZE OUTPUT_VARIABLE java_dir)

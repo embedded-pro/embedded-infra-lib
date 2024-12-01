@@ -8,6 +8,8 @@ ignore:
   - .devcontainer
   - .git
   - .github
+  - .gitlab
+  - .gitlab-ci.yml
   - .vscode
   - documents
   - external
