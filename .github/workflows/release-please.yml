@@ -17,7 +17,7 @@ concurrency:
 jobs:
   release_please:
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu]
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -43,10 +43,10 @@ jobs:
     if: ${{ needs.release_please.outputs.releases_created == 'true' }}
     permissions:
       contents: write
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted, ${{ matrix.os }}]
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [Linux, Windows]
     steps:
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:

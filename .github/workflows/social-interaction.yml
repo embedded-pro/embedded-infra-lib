@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   greeting:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu]
     permissions:
       issues: write
       pull-requests: write

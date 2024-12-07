@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   fuzz_batch:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu]
     strategy:
       fail-fast: false
       matrix:

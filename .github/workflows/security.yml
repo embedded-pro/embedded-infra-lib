@@ -14,7 +14,7 @@ permissions: read-all
 jobs:
   analysis:
     name: OSSF Scorecards
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu]
     permissions:
       security-events: write
       id-token: write

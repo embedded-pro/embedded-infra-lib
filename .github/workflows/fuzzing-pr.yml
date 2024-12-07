@@ -12,7 +12,7 @@ jobs:
   fuzz_pr:
     # skip fuzzing for dependabot PRs since dependabot does not have access to secrets
     if: ${{ github.actor != 'dependabot[bot]' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu]
     concurrency:
       group: ${{ github.ref }}-${{ matrix.sanitizer }}-${{ github.workflow }}
       cancel-in-progress: true
