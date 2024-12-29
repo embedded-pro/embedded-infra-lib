@@ -9,6 +9,9 @@ target_link_libraries(hal.interfaces_test_doubles PRIVATE
 )
 
 target_sources(hal.interfaces_test_doubles PRIVATE
+    AdcMultiChannelMock.hpp
+    AdcMultiChannelStub.cpp
+    AdcMultiChannelStub.hpp
     AnalogToDigitalPinImplMock.hpp
     CommunicationConfiguratorMock.hpp
     DigitalToAnalogPinImplMock.hpp
@@ -25,9 +28,6 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     I2cMock.hpp
     I2cRegisterAccessMock.cpp
     I2cRegisterAccessMock.hpp
-    PwmInputMock.hpp
-    PwmMock.hpp
-    QuadratureEncoderMock.hpp
     QuadSpiStub.cpp
     QuadSpiStub.hpp
     RandomDataGeneratorMock.hpp
