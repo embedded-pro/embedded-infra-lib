@@ -26,9 +26,6 @@ namespace hal
             [[nodiscard]] constexpr bool operator==(const Id& other) const;
             [[nodiscard]] constexpr bool operator!=(const Id& other) const;
 
-            bool operator==(const Id& other) const;
-            bool operator!=(const Id& other) const;
-
         private:
             constexpr explicit Id(uint32_t id)
                 : id(id)
