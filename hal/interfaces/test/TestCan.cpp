@@ -63,31 +63,3 @@ TEST(CanTest, test_equality_mixed)
     EXPECT_THAT(id29_1, testing::Ne(id29_0));
     EXPECT_THAT(id29_1, testing::Eq(hal::Can::Id::Create29BitId(1)));
 }
-
-TEST(CanTest, test_equality_mixed)
-{
-    auto id11_0 = hal::Can::Id::Create11BitId(0);
-    auto id11_1 = hal::Can::Id::Create11BitId(1);
-    auto id29_0 = hal::Can::Id::Create29BitId(0);
-    auto id29_1 = hal::Can::Id::Create29BitId(1);
-
-    EXPECT_TRUE(id11_0 == hal::Can::Id::Create11BitId(0));
-    EXPECT_TRUE(id11_0 != id11_1);
-    EXPECT_TRUE(id11_0 != id29_0);
-    EXPECT_TRUE(id11_0 != id29_1);
-
-    EXPECT_TRUE(id11_1 != id11_0);
-    EXPECT_TRUE(id11_1 == hal::Can::Id::Create11BitId(1));
-    EXPECT_TRUE(id11_1 != id29_0);
-    EXPECT_TRUE(id11_1 != id29_1);
-
-    EXPECT_TRUE(id29_0 != id11_0);
-    EXPECT_TRUE(id29_0 != id11_1);
-    EXPECT_TRUE(id29_0 == hal::Can::Id::Create29BitId(0));
-    EXPECT_TRUE(id29_0 != id29_1);
-
-    EXPECT_TRUE(id29_1 != id11_0);
-    EXPECT_TRUE(id29_1 != id11_1);
-    EXPECT_TRUE(id29_1 != id29_0);
-    EXPECT_TRUE(id29_1 == hal::Can::Id::Create29BitId(1));
-}
