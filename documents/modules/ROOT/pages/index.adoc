@@ -1,16 +1,14 @@
-= amp-embedded-infra-lib
+= embedded-infra-lib
 :source-highlighter: highlight.js
 
 == Introduction
 
-amp-embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, https://en.wikipedia.org/wiki/Standard_Template_Library[STL] like, infrastructure for embedded software development. It includes, amongst others; a hardware abstraction layer (HAL), a xref:Echo.adoc[remote procedure call] (RPC) implementation for TCP/IP and xref:Sesame.adoc[Serial communication], a xref:NetworkConnections.adoc[networking layer], a secure upgrade mechanism and several other re-usable utility classes.
+embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, https://en.wikipedia.org/wiki/Standard_Template_Library[STL] like, infrastructure for embedded software development. It includes, amongst others; a hardware abstraction layer (HAL), a xref:Echo.adoc[remote procedure call] (RPC) implementation for TCP/IP and xref:Sesame.adoc[Serial communication], a xref:NetworkConnections.adoc[networking layer], a secure upgrade mechanism and several other re-usable utility classes.
 
-amp-embedded-infra-lib is available as https://philips-software.github.io/[Philips Open Source] under a https://choosealicense.com/licenses/mit/[MIT] license.
-
-https://sonarcloud.io/summary/new_code?id=philips-software_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=ncloc[Lines
-of Code]] https://sonarcloud.io/summary/new_code?id=philips-software_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=coverage[Coverage]] https://sonarcloud.io/summary/new_code?id=philips-software_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=reliability_rating[Reliability
-Rating]] https://sonarcloud.io/summary/new_code?id=philips-software_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=security_rating[Security
-Rating]] https://sonarcloud.io/summary/new_code?id=philips-software_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=sqale_rating[Maintainability
+https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=ncloc[Lines
+of Code]] https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=coverage[Coverage]] https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=reliability_rating[Reliability
+Rating]] https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=security_rating[Security
+Rating]] https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib[image:https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=sqale_rating[Maintainability
 Rating]]
 
 == Overview
@@ -76,7 +74,7 @@ In the next few chapters the contents of the components within `infra` will be d
 
 ==== infra::BoundedString
 
-`infra::BoundedString` is similar to `std::string` except that it can contain a maximum number of characters, and is not zero-terminated by default (see GitHub issue https://github.com/philips-software/embeddedinfralib/issues/37[#37]).
+`infra::BoundedString` is similar to `std::string` except that it can contain a maximum number of characters, and is not zero-terminated by default (see GitHub issue https://github.com/embedded-pro/embeddedinfralib/issues/37[#37]).
 
 [source,cpp]
 ----

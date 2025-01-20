@@ -27,7 +27,6 @@ jobs:
           language: c++
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sanitizer: ${{ matrix.sanitizer }}
-          storage-repo: https://${{ secrets.METRICS_TOKEN }}@github.com/philips-software/amp-embedded-infra-lib-metrics.git
       - name: Run Fuzzers (${{ matrix.sanitizer }})
         uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1
         with:
@@ -35,4 +34,3 @@ jobs:
           fuzz-seconds: 300
           mode: code-change
           sanitizer: ${{ matrix.sanitizer }}
-          storage-repo: https://${{ secrets.METRICS_TOKEN }}@github.com/philips-software/amp-embedded-infra-lib-metrics.git

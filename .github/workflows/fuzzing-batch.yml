@@ -3,8 +3,8 @@ name: Batch Fuzzing
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0/12 * * *" # Every 12th hour.
+  # schedule:
+  #   - cron: "0 0/12 * * *" # Every 12th hour.
 
 permissions:
   contents: read
@@ -29,4 +29,3 @@ jobs:
           fuzz-seconds: 1800
           mode: batch
           sanitizer: ${{ matrix.sanitizer }}
-          storage-repo: https://${{ secrets.METRICS_TOKEN }}@github.com/philips-software/amp-embedded-infra-lib-metrics.git

@@ -3,16 +3,22 @@ name: Validate Pull-Request
 
 on:
   pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  conventional_commit:
+  validate-pr-title:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
-      - uses: Namchee/conventional-pr@497c801eb96ea7484971691e76f254886e3e1f32 # v0.15.5
+      - uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5.5.3
+        id: pr-title
         with:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
+          access_token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           body: false
           issue: false
