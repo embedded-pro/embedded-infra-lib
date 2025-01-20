@@ -1,19 +1,19 @@
-# amp-embedded-infra-lib (EmIL)
+# embedded-infra-lib (EmIL)
 
 <!-- markdownlint-disable -->
 <div align="center">
 
-[![Continuous Integration](https://github.com/philips-software/amp-embedded-infra-lib/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/philips-software/amp-embedded-infra-lib/actions/workflows/ci.yml) [![Linting & Formatting](https://github.com/philips-software/amp-embedded-infra-lib/actions/workflows/linting-formatting.yml/badge.svg)](https://github.com/philips-software/amp-embedded-infra-lib/actions/workflows/linting-formatting.yml) [![Static Analysis](https://github.com/philips-software/amp-embedded-infra-lib/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/philips-software/amp-embedded-infra-lib/actions/workflows/static-analysis.yml)
+[![Continuous Integration](https://github.com/embedded-pro/embedded-infra-lib/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/embedded-pro/embedded-infra-lib/actions/workflows/ci.yml) [![Linting & Formatting](https://github.com/embedded-pro/embedded-infra-lib/actions/workflows/linting-formatting.yml/badge.svg)](https://github.com/embedded-pro/embedded-infra-lib/actions/workflows/linting-formatting.yml) [![Static Analysis](https://github.com/embedded-pro/embedded-infra-lib/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/embedded-pro/embedded-infra-lib/actions/workflows/static-analysis.yml)
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=alert_status)](https://sonarcloud.io/dashboard?id=philips-software_embeddedinfralib) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=coverage)](https://sonarcloud.io/dashboard?id=philips-software_embeddedinfralib) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=philips-software_embeddedinfralib&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=philips-software_embeddedinfralib)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=alert_status)](https://sonarcloud.io/dashboard?id=embedded-pro_embeddedinfralib) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=coverage)](https://sonarcloud.io/dashboard?id=embedded-pro_embeddedinfralib) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://choosealicense.com/licenses/mit/) [![Documentation](https://img.shields.io/website?down_message=offline&label=Documentation&up_message=online&url=https%3A%2F%2Fimg.shields.io%2Fwebsite-up-down-green-red%2Fhttps%2Fphilips-software.github.io%2amp-embedded-infra-lib.svg)](https://philips-software.github.io/amp-embedded-infra-lib/) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/philips-software/amp-embedded-infra-lib/badge)](https://securityscorecards.dev/viewer/?uri=github.com/philips-software/amp-embedded-infra-lib)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://choosealicense.com/licenses/mit/) [![Documentation](https://img.shields.io/website?down_message=offline&label=Documentation&up_message=online&url=https%3A%2F%2Fimg.shields.io%2Fwebsite-up-down-green-red%2Fhttps%2Fembedded-pro.github.io%2embedded-infra-lib.svg)](https://embedded-pro.github.io/embedded-infra-lib/) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/embedded-pro/embedded-infra-lib/badge)](https://securityscorecards.dev/viewer/?uri=github.com/embedded-pro/embedded-infra-lib)
  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6667/badge)](https://bestpractices.coreinfrastructure.org/projects/6667)
 
 </div>
 <!-- markdownlint enable -->
 
-**Description**: amp-embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, STL like, infrastructure for embedded software development.
+**Description**: embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, STL like, infrastructure for embedded software development.
 
 ## Dependencies
 
@@ -49,16 +49,16 @@ Code examples can be found under the [examples](examples) folder.
 
 ## Documentation
 
-Documentation is available on [philips-software.github.io/amp-embedded-infra-lib](https://philips-software.github.io/amp-embedded-infra-lib/).
+Documentation is available on [embedded-pro.github.io/embedded-infra-lib](https://embedded-pro.github.io/embedded-infra-lib/).
 
 ## Contributing
 
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 
-amp-embedded-infra-lib uses semantic versioning and conventional commits.
+embedded-infra-lib uses semantic versioning and conventional commits.
 
-Please refer to our [Contributing](CONTRIBUTING.md) guide when you want to contribute to this project.
+Please refer to our [Contributing](.github/CONTRIBUTING.md) guide when you want to contribute to this project.
 
 ## License
 
-amp-embedded-infra-lib is licensed under the [MIT](https://choosealicense.com/licenses/mit/) license. See [LICENSE file](LICENSE).
+embedded-infra-lib is licensed under the [MIT](https://choosealicense.com/licenses/mit/) license. See [LICENSE file](LICENSE).
