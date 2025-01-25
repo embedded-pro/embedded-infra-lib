@@ -54,6 +54,8 @@ jobs:
         with:
           key: ${{ github.job }}-${{ matrix.os }}
           variant: sccache
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: "host-single-MinSizeRel"
