@@ -8,18 +8,7 @@ namespace hal
     using Hertz = infra::Quantity<infra::Hertz, uint32_t>;
     using Percent = infra::Quantity<infra::Percent, uint8_t>;
 
-    class PwmChannel
-    {
-    public:
-        virtual ~PwmChannel() = default;
-
-        virtual void Start(Percent dutyCycle) = 0;
-        virtual void Stop() = 0;
-        virtual void High() = 0;
-        virtual void Low() = 0;
-    };
-
-    class Pwm
+    class SynchronousPwm
     {
     public:
         virtual void SetBaseFrequency(Hertz baseFrequency) = 0;

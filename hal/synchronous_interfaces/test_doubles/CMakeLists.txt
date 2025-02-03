@@ -12,6 +12,8 @@ target_sources(hal.synchronous_interfaces_test_doubles PRIVATE
     SynchronousFixedRandomDataGenerator.hpp
     SynchronousFlashStub.cpp
     SynchronousFlashStub.hpp
+    SynchronousPwmMock.hpp
+    SynchronousQuadratureEncoderMock.hpp
     SynchronousRandomDataGeneratorMock.hpp
     SynchronousSerialCommunicationMock.cpp
     SynchronousSerialCommunicationMock.hpp
