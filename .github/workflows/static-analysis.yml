@@ -31,6 +31,7 @@ jobs:
         with:
           key: ${{ github.job }}
           max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - name: Build for coverage
         uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:

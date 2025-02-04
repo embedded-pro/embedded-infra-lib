@@ -30,6 +30,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}-ubuntu-latest
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
@@ -59,6 +61,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}-ubuntu-latest
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: "host"
@@ -89,6 +93,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}-clang-msvc
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: "host-ClangMsvc"
@@ -107,6 +113,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}-${{ matrix.os }}
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: "host-single-Debug"
@@ -129,6 +137,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}-ubuntu-latest
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
@@ -155,6 +165,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}-${{ matrix.gcc }}-${{ matrix.configuration }}
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: emil
@@ -180,6 +192,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: "embedded"
@@ -204,6 +218,8 @@ jobs:
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           key: ${{ github.job }}
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: emil
