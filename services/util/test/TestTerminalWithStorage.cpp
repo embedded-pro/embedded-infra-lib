@@ -4,7 +4,7 @@
 
 namespace
 {
-    class TerminalTest
+    class TerminalWithStorageTest
         : public testing::Test
     {
     public:
@@ -13,7 +13,7 @@ namespace
     };
 }
 
-TEST_F(TerminalTest, AddCommand)
+TEST_F(TerminalWithStorageTest, AddCommand)
 {
     terminalCommands.AddCommand({ { "dummy", "d", "Print help menu" }, [](const infra::BoundedConstString&) {} });
 
@@ -23,7 +23,7 @@ TEST_F(TerminalTest, AddCommand)
     EXPECT_EQ(commands[1].info.longName, "dummy");
 }
 
-TEST_F(TerminalTest, InvokeHelp)
+TEST_F(TerminalWithStorageTest, InvokeHelp)
 {
     auto commands = terminalCommands.Commands();
     commands.begin()->function("");
