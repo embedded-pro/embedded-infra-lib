@@ -48,6 +48,7 @@ target_sources(services.util_test PRIVATE
     TestSpiMasterWithChipSelect.cpp
     TestSpiMultipleAccess.cpp
     TestTerminal.cpp
+    TestTerminalWithStorage.cpp
     TestTimeWithLocalization.cpp
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestWritableConfiguration.cpp>
 )
