@@ -6,7 +6,7 @@
 
 namespace hal
 {
-    class QuadratureEncoder
+    class SynchronousQuadratureEncoder
     {
     public:
         enum class MotionDirection : uint8_t
@@ -15,17 +15,9 @@ namespace hal
             reverse,
         };
 
-        virtual ~QuadratureEncoder() = default;
-
-        virtual void Position(uint32_t position) = 0;
-        virtual void Resolution(uint32_t resolution) = 0;
-
         virtual uint32_t Position() = 0;
         virtual uint32_t Resolution() = 0;
-
         virtual MotionDirection Direction() = 0;
-        virtual void Direction(const infra::Function<void(MotionDirection)>& onDirectionChange) = 0;
-
         virtual uint32_t Speed() = 0;
     };
 }
