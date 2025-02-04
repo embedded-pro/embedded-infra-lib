@@ -83,6 +83,8 @@ target_sources(services.util PRIVATE
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp
+    TerminalWithStorage.cpp
+    TerminalWithStorage.hpp
     TimeWithLocalization.cpp
     TimeWithLocalization.hpp
     TracingEchoOnSesame.hpp
