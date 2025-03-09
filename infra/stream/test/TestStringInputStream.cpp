@@ -83,6 +83,28 @@ TEST(StringInputStreamTest, ExtractUint64)
     EXPECT_EQ(0xabcd0123abcd0123, value);
 }
 
+TEST(StringInputStreamTest, ExtractFloat)
+{
+    infra::BoundedString::WithStorage<5> string("1.234");
+    infra::StringInputStream stream(string, infra::softFail);
+
+    float value;
+    stream >> value;
+    EXPECT_NEAR(1.234, value, 1e-5f);
+    EXPECT_FALSE(stream.Failed());
+}
+
+TEST(StringInputStreamTest, ExtractFloatWithOverflow)
+{
+    infra::BoundedString::WithStorage<6> string("1.234 ");
+    infra::StringInputStream stream(string, infra::softFail);
+
+    float value;
+    stream >> value;
+    EXPECT_NEAR(1.234, value, 1e-5f);
+    EXPECT_FALSE(stream.Failed());
+}
+
 TEST(StringInputStreamTest, ExtractHexWithOverflow)
 {
     infra::BoundedString::WithStorage<1> string("");
