@@ -172,7 +172,7 @@ namespace infra
         int32_t div = (integer < 0) ? -1 : 1;
         infra::StreamReader& reader = Reader();
 
-        char c = static_cast<char>(reader.Peek(ErrorPolicy()));
+        auto c = static_cast<char>(reader.Peek(ErrorPolicy()));
         if (c == '.')
         {
             reader.Extract(infra::MakeByteRange(c), ErrorPolicy());
@@ -182,6 +182,10 @@ namespace infra
                 div *= 10;
                 frac = frac * 10 + static_cast<uint8_t>(c - '0');
                 reader.Extract(infra::MakeByteRange(c), ErrorPolicy());
+
+                if (reader.Empty())
+                    break;
+
                 c = static_cast<char>(reader.Peek(ErrorPolicy()));
             }
         }
