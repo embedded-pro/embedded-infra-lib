@@ -2,9 +2,9 @@
 name: Dependency Scanner
 
 on:
-  # pull_request:
-  #   types: [opened, synchronize, reopened]
-  # merge_group:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  merge_group:
 
 permissions:
   contents: read
