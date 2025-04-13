@@ -167,12 +167,22 @@ namespace infra
     TextInputStream& TextInputStream::operator>>(float& v)
     {
         int32_t integer = 0;
+        int32_t div = 1;
+        bool isNegative = false;
+
+        char c = Reader().Peek(ErrorPolicy());
+
+        if (c == '-')
+        {
+            Reader().Extract(infra::MakeByteRange(c), ErrorPolicy());
+            isNegative = true;
+        }
+
         operator>>(integer);
         uint32_t frac = 0;
-        int32_t div = (integer < 0) ? -1 : 1;
         infra::StreamReader& reader = Reader();
 
-        auto c = static_cast<char>(reader.Peek(ErrorPolicy()));
+        c = static_cast<char>(reader.Peek(ErrorPolicy()));
         if (c == '.')
         {
             reader.Extract(infra::MakeByteRange(c), ErrorPolicy());
@@ -193,6 +203,10 @@ namespace infra
         v = static_cast<float>(frac);
         v /= div;
         v += integer;
+
+        if (isNegative)
+            v = -v;
+
         return *this;
     }
 
