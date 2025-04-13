@@ -94,6 +94,39 @@ TEST(StringInputStreamTest, ExtractFloat)
     EXPECT_FALSE(stream.Failed());
 }
 
+TEST(StringInputStreamTest, ExtractNegativeFloat)
+{
+    infra::BoundedString::WithStorage<6> string("-1.234");
+    infra::StringInputStream stream(string, infra::softFail);
+
+    float value;
+    stream >> value;
+    EXPECT_NEAR(-1.234, value, 1e-5f);
+    EXPECT_FALSE(stream.Failed());
+}
+
+TEST(StringInputStreamTest, ExtractFloatBetween0And1)
+{
+    infra::BoundedString::WithStorage<5> string("0.234");
+    infra::StringInputStream stream(string, infra::softFail);
+
+    float value;
+    stream >> value;
+    EXPECT_NEAR(0.234, value, 1e-5f);
+    EXPECT_FALSE(stream.Failed());
+}
+
+TEST(StringInputStreamTest, ExtractNegativeFloatBetween0And1)
+{
+    infra::BoundedString::WithStorage<6> string("-0.234");
+    infra::StringInputStream stream(string, infra::softFail);
+
+    float value;
+    stream >> value;
+    EXPECT_NEAR(-0.234, value, 1e-5f);
+    EXPECT_FALSE(stream.Failed());
+}
+
 TEST(StringInputStreamTest, ExtractFloatWithOverflow)
 {
     infra::BoundedString::WithStorage<6> string("1.234 ");
