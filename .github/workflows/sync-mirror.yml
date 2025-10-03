@@ -7,7 +7,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '0 2 1 * *'
+    - cron: "0 2 1 * *"
   workflow_dispatch: {}
 
 jobs:
@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     # Minimal permissions - sync action will need contents:write via token
     permissions:
-      contents: write  # Required for sync action to create branches/PRs
-      pull-requests: write  # Required to create and manage PRs
-      actions: read  # Required to read action metadata
+      contents: write # Required for sync action to create branches/PRs
+      pull-requests: write # Required to create and manage PRs
+      actions: read # Required to read action metadata
 
     env:
       MIRROR_URL: >
@@ -38,7 +38,7 @@ jobs:
           actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
           # v6.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Setup environment
         run: >
@@ -60,9 +60,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           mirror-username: ${{ secrets.GITLAB_TOKEN_USERNAME }}
           mirror-token: ${{ secrets.GITLAB_TOKEN_PASSWORD }}
-          sync-branch-prefix: 'sync-mirror'
+          sync-branch-prefix: "sync-mirror"
           check-activity: ${{ github.event_name == 'schedule' }}
-          activity-period: '1 month ago'
+          activity-period: "1 month ago"
           force-sync: false
 
       - name: Handle results

@@ -128,10 +128,8 @@ runs:
         echo "Checking for recent activity in mirror repository..."
         # Fetch just the latest commits to check activity
         git fetch mirror ${{ inputs.mirror-branch }} --depth=10
-        
         # Check if there are commits in the specified period
         RECENT_COMMITS=$(git log mirror/${{ inputs.mirror-branch }} --since="${{ inputs.activity-period }}" --oneline | wc -l)
-        
         if [ "$RECENT_COMMITS" -eq 0 ]; then
           echo "No recent commits in mirror repository (since ${{ inputs.activity-period }}). Skipping sync."
           echo "skip-sync=true" >> $GITHUB_OUTPUT
@@ -153,7 +151,6 @@ runs:
         TIMESTAMP=$(date +%Y%m%d-%H%M%S)
         SYNC_BRANCH="${{ inputs.sync-branch-prefix }}-${TIMESTAMP}"
         echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
-        
         # Create and checkout sync branch from current target branch
         git checkout -b "$SYNC_BRANCH" origin/${{ inputs.target-branch }}
 
@@ -206,18 +203,15 @@ runs:
         title: ${{ inputs.pr-title }}
         body: |
           ${{ inputs.pr-body }}
-          
           ## Sync Details
           - **Mirror Repository**: ${{ inputs.mirror-url }}
           - **Mirror Branch**: ${{ inputs.mirror-branch }}
           - **Target Branch**: ${{ inputs.target-branch }}
           - **Sync Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
           ## Changes Summary
           ```
           $(git diff --stat origin/${{ inputs.target-branch }}..HEAD)
           ```
-          
           This PR was automatically created by the sync-mirror action.
 
     - name: Cleanup on no changes
