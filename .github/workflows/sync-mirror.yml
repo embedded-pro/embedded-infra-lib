@@ -61,69 +61,69 @@ jobs:
             
             # Add skipped info to summary
             cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
-	## Mirror Sync Results ℹ️
-	
-	Sync skipped due to no recent activity:
-	
-	- **Mirror URL**: ${{ env.MIRROR_URL }}
-	- **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
-	- **Target Branch**: ${{ env.TARGET_BRANCH }}
-	- **Activity Period**: 1 month ago
-	
-	No commits found in the specified period.
-	EOF
+            ## Mirror Sync Results ℹ️
+            
+            Sync skipped due to no recent activity:
+            
+            - **Mirror URL**: ${{ env.MIRROR_URL }}
+            - **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
+            - **Target Branch**: ${{ env.TARGET_BRANCH }}
+            - **Activity Period**: 1 month ago
+            
+            No commits found in the specified period.
+            EOF
           elif [[ "${{ steps.sync.outputs.changes-detected }}" == "true" ]]; then
             echo "✅ Successfully created PR #${{ steps.sync.outputs.pr-number }}"
             echo "🔗 PR URL: ${{ steps.sync.outputs.pr-url }}"
             
             # Add PR to summary
             cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
-	## Mirror Sync Results ✅
-	
-	Successfully synced changes from mirror repository:
-	
-	- **Mirror URL**: ${{ env.MIRROR_URL }}
-	- **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
-	- **Target Branch**: ${{ env.TARGET_BRANCH }}
-	- **PR Number**: #${{ steps.sync.outputs.pr-number }}
-	- **PR URL**: ${{ steps.sync.outputs.pr-url }}
-	
-	Please review and merge the PR when ready.
-	EOF
+            ## Mirror Sync Results ✅
+            
+            Successfully synced changes from mirror repository:
+            
+            - **Mirror URL**: ${{ env.MIRROR_URL }}
+            - **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
+            - **Target Branch**: ${{ env.TARGET_BRANCH }}
+            - **PR Number**: #${{ steps.sync.outputs.pr-number }}
+            - **PR URL**: ${{ steps.sync.outputs.pr-url }}
+            
+            Please review and merge the PR when ready.
+            EOF
           else
             echo "ℹ️ No changes detected from mirror repository"
             
             # Add no-changes info to summary
             cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
-	## Mirror Sync Results ℹ️
-	
-	No changes detected from mirror repository:
-	
-	- **Mirror URL**: ${{ env.MIRROR_URL }}
-	- **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
-	- **Target Branch**: ${{ env.TARGET_BRANCH }}
-	
-	The mirror repository is up to date with the target branch.
-	EOF
+            ## Mirror Sync Results ℹ️
+            
+            No changes detected from mirror repository:
+            
+            - **Mirror URL**: ${{ env.MIRROR_URL }}
+            - **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
+            - **Target Branch**: ${{ env.TARGET_BRANCH }}
+            
+            The mirror repository is up to date with the target branch.
+            EOF
           fi
 
       - name: Notify on failure
         if: failure()
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
-	## Mirror Sync Failed ❌
-	
-	The mirror sync workflow failed. Possible causes:
-	
-	- **Authentication issues**: Check GITLAB_TOKEN_USERNAME and GITLAB_TOKEN_PASSWORD secrets
-	- **Network issues**: Mirror repository might be unreachable
-	- **Merge conflicts**: Manual resolution may be required
-	- **Permission issues**: Check repository permissions
-	
-	**Mirror Configuration**:
-	- Mirror URL: ${{ env.MIRROR_URL }}
-	- Mirror Branch: ${{ env.MIRROR_BRANCH }}
-	- Target Branch: ${{ env.TARGET_BRANCH }}
-	
-	Please check the workflow logs for more details.
-	EOF
+          ## Mirror Sync Failed ❌
+          
+          The mirror sync workflow failed. Possible causes:
+          
+          - **Authentication issues**: Check GITLAB_TOKEN_USERNAME and GITLAB_TOKEN_PASSWORD secrets
+          - **Network issues**: Mirror repository might be unreachable
+          - **Merge conflicts**: Manual resolution may be required
+          - **Permission issues**: Check repository permissions
+          
+          **Mirror Configuration**:
+          - Mirror URL: ${{ env.MIRROR_URL }}
+          - Mirror Branch: ${{ env.MIRROR_BRANCH }}
+          - Target Branch: ${{ env.TARGET_BRANCH }}
+          
+          Please check the workflow logs for more details.
+          EOF
