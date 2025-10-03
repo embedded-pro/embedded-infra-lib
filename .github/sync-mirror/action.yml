@@ -5,16 +5,7 @@ author: "embedded-pro"
 
 inputs:
   mirror-url:
-    description: "URL of the mirror repository (GitHub, GitLab, Bitbucke    - name: Set outputs
-      shell: bash
-      run: |
-        if [[ -n "${{ steps.create-pr.outputs.pull-request-number }}" ]]; then
-          echo "pr-number=${{ steps.create-pr.outputs.pull-request-number }}" >> $GITHUB_OUTPUT
-          echo "pr-url=${{ steps.create-pr.outputs.pull-request-url }}" >> $GITHUB_OUTPUT
-        fi
-        echo "changes-detected=${{ steps.check-changes.outputs.changes-detected }}" >> $GITHUB_OUTPUT
-        echo "sync-skipped=${{ steps.check-activity.outputs.skip-sync }}" >> $GITHUB_OUTPUT
-        echo "has-conflicts=${{ steps.check-changes.outputs.has-conflicts }}" >> $GITHUB_OUTPUT Git source)"
+    description: "URL of the mirror repository (GitHub, GitLab, Bitbucket, or any Git source)"
     required: true
   mirror-branch:
     description: "Branch to sync from the mirror repository"
@@ -27,13 +18,19 @@ inputs:
   pr-title:
     description: "Title for the pull request"
     required: false
-    default: "🔄 Sync changes from mirror repository"
+    default: "Sync changes from mirror repository"
   pr-body:
     description: "Body text for the pull request"
     required: false
     default: |
       This PR contains changes synced from the mirror repository.
-      
+      **Mirror Details:**
+      - Repository: ${{ inputs.mirror-url }}
+      - Branch: ${{ inputs.mirror-branch }}
+      - Target: ${{ inputs.target-branch }}
+      **Sync Information:**
+      - Triggered by: ${{ github.event_name }}
+      - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       Please review the changes carefully before merging.
   sync-branch-prefix:
     description: "Prefix for the sync branch name"
@@ -64,14 +61,19 @@ inputs:
 outputs:
   pr-number:
     description: "Number of the created pull request"
+    value: ${{ steps.create-pr.outputs.pull-request-number }}
   pr-url:
     description: "URL of the created pull request"
+    value: ${{ steps.create-pr.outputs.pull-request-url }}
   changes-detected:
     description: "Whether changes were detected from the mirror"
+    value: ${{ steps.check-changes.outputs.changes-detected }}
   sync-skipped:
     description: "Whether sync was skipped due to no recent activity"
+    value: ${{ steps.check-activity.outputs.skip-sync }}
   has-conflicts:
-    description: "Whether the merge contains conflicts"
+    description: "Whether the sync resulted in merge conflicts"
+    value: ${{ steps.check-changes.outputs.has-conflicts }}
 
 runs:
   using: "composite"
@@ -162,20 +164,14 @@ runs:
         # Try to merge changes from mirror
         if git merge mirror/${{ inputs.mirror-branch }} --no-edit; then
           echo "Merge successful"
-          echo "MERGE_CONFLICTS=false" >> $GITHUB_ENV
+          echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
         else
-          echo "⚠️ Merge conflicts detected. Creating PR with conflicts for manual resolution."
-          echo "MERGE_CONFLICTS=true" >> $GITHUB_ENV
-          
-          # Show conflict summary
-          echo "Conflicted files:"
-          git status --short | grep "^[UAD][UAD]" || true
-          
-          # Add all files (including conflicted ones) to the index
-          git add -A
-          
-          # Commit the merge with conflicts
-          git commit --no-edit || git commit -m "Merge changes from mirror (with conflicts)"
+          echo "[WARNING] Merge conflicts detected - will create PR for manual resolution"
+          # List conflicting files
+          echo "Files with conflicts:"
+          git diff --name-only --diff-filter=U
+          echo "HAS_CONFLICTS=true" >> $GITHUB_ENV
+          # Don't fail - we'll create a PR with conflicts for manual resolution
         fi
 
     - name: Check for changes
@@ -183,15 +179,20 @@ runs:
       shell: bash
       if: steps.check-activity.outputs.skip-sync != 'true'
       run: |
+        # Check if there are merge conflicts
+        if [[ "${{ env.HAS_CONFLICTS }}" == "true" ]]; then
+          echo "changes-detected=true" >> $GITHUB_OUTPUT
+          echo "has-conflicts=true" >> $GITHUB_OUTPUT
+          echo "[WARNING] Merge conflicts present - PR will need manual resolution"
         # Check if there are any differences between sync branch and target branch
-        if git diff --quiet origin/${{ inputs.target-branch }}..HEAD; then
+        elif git diff --quiet origin/${{ inputs.target-branch }}..HEAD; then
           echo "No changes detected from mirror"
           echo "changes-detected=false" >> $GITHUB_OUTPUT
           echo "has-conflicts=false" >> $GITHUB_OUTPUT
         else
           echo "Changes detected from mirror"
           echo "changes-detected=true" >> $GITHUB_OUTPUT
-          echo "has-conflicts=${{ env.MERGE_CONFLICTS }}" >> $GITHUB_OUTPUT
+          echo "has-conflicts=false" >> $GITHUB_OUTPUT
 
           # Show summary of changes
           echo "Files changed:"
@@ -202,6 +203,13 @@ runs:
       shell: bash
       if: steps.check-activity.outputs.skip-sync != 'true' && steps.check-changes.outputs.changes-detected == 'true'
       run: |
+        # For conflicts, we need to commit the conflicted state
+        if [[ "${{ env.HAS_CONFLICTS }}" == "true" ]]; then
+          echo "[INFO] Creating commit with merge conflicts for manual resolution"
+          # Add all files (including conflicted ones)
+          git add -A
+          git commit -m "Sync from mirror: merge conflicts need resolution" || true
+        fi
         git push origin "$SYNC_BRANCH"
 
     - name: Create Pull Request
@@ -212,23 +220,19 @@ runs:
         token: ${{ inputs.github-token }}
         branch: ${{ env.SYNC_BRANCH }}
         base: ${{ inputs.target-branch }}
-        title: ${{ steps.check-changes.outputs.has-conflicts == 'true' && format('⚠️ {0} (Merge Conflicts)', inputs.pr-title) || inputs.pr-title }}
+        title: ${{ env.HAS_CONFLICTS == 'true' && format('[CONFLICTS] {0}', inputs.pr-title) || inputs.pr-title }}
         body: |
           ${{ inputs.pr-body }}
           
-          ${{ steps.check-changes.outputs.has-conflicts == 'true' && '## ⚠️ Merge Conflicts Detected\n\nThis PR contains merge conflicts that need to be resolved manually before merging.\n\nTo resolve conflicts:\n1. Check out this branch locally\n2. Resolve the conflicts in each affected file\n3. Commit the resolved changes\n4. Push to this branch\n\n' || '' }}
+          ${{ env.HAS_CONFLICTS == 'true' && '## [WARNING] Merge Conflicts Detected\n\nThis PR contains merge conflicts that need to be resolved manually.\nPlease review the conflicting files and resolve the conflicts before merging.\n' || '' }}
           ## Sync Details
           - **Mirror Repository**: ${{ inputs.mirror-url }}
           - **Mirror Branch**: ${{ inputs.mirror-branch }}
           - **Target Branch**: ${{ inputs.target-branch }}
+          - **Has Conflicts**: ${{ env.HAS_CONFLICTS }}
           - **Sync Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          ${{ steps.check-changes.outputs.has-conflicts == 'true' && '- **Status**: ⚠️ Contains merge conflicts' || '- **Status**: ✅ Clean merge' }}
           
-          ## Changes Summary
-          ```
-          $(git diff --stat origin/${{ inputs.target-branch }}..HEAD)
-          ```
-          
+          ${{ env.HAS_CONFLICTS != 'true' && '## Changes Summary\n```\n$(git diff --stat origin/${{ inputs.target-branch }}..HEAD)\n```\n' || '' }}
           This PR was automatically created by the sync-mirror action.
 
     - name: Cleanup on no changes
@@ -243,35 +247,24 @@ runs:
       shell: bash
       if: steps.check-activity.outputs.skip-sync == 'true'
       run: |
-        echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
+        echo "[INFO] Sync skipped due to no recent activity in mirror repository"
         echo "Activity period checked: ${{ inputs.activity-period }}"
-
-    - name: Set outputs
-      shell: bash
-      run: |
-        if [[ -n "${{ steps.create-pr.outputs.pull-request-number }}" ]]; then
-          echo "pr-number=${{ steps.create-pr.outputs.pull-request-number }}" >> $GITHUB_OUTPUT
-          echo "pr-url=${{ steps.create-pr.outputs.pull-request-url }}" >> $GITHUB_OUTPUT
-        fi
-        echo "changes-detected=${{ steps.check-changes.outputs.changes-detected }}" >> $GITHUB_OUTPUT
-        echo "sync-skipped=${{ steps.check-activity.outputs.skip-sync }}" >> $GITHUB_OUTPUT
 
     - name: Summary
       shell: bash
       run: |
         if [[ "${{ steps.check-activity.outputs.skip-sync }}" == "true" ]]; then
-          echo "ℹ️ Sync skipped - no recent activity in mirror repository (since ${{ inputs.activity-period }})"
+          echo "[INFO] Sync skipped - no recent activity in mirror repository (since ${{ inputs.activity-period }})"
         elif [[ "${{ steps.check-changes.outputs.changes-detected }}" == "true" ]]; then
-          if [[ "${{ steps.check-changes.outputs.has-conflicts }}" == "true" ]]; then
-            echo "⚠️ Created PR with merge conflicts from mirror repository"
+          if [[ "${{ env.HAS_CONFLICTS }}" == "true" ]]; then
+            echo "[WARNING] Created PR with merge conflicts - manual resolution required"
             echo "PR Number: ${{ steps.create-pr.outputs.pull-request-number }}"
             echo "PR URL: ${{ steps.create-pr.outputs.pull-request-url }}"
-            echo "⚠️ Manual conflict resolution required before merging"
           else
-            echo "✅ Successfully created PR with clean merge from mirror repository"
+            echo "[SUCCESS] Successfully created PR with changes from mirror repository"
             echo "PR Number: ${{ steps.create-pr.outputs.pull-request-number }}"
             echo "PR URL: ${{ steps.create-pr.outputs.pull-request-url }}"
           fi
         else
-          echo "ℹ️ No changes detected from mirror repository"
+          echo "[INFO] No changes detected from mirror repository"
         fi
