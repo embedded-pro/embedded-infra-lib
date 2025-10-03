@@ -1,0 +1,252 @@
+name: 'Sync Mirror Repository'
+description: 'Pull changes from a mirror repository and create a PR with the changes'
+author: 'embedded-pro'
+
+inputs:
+  mirror-url:
+    description: 'URL of the mirror repository (GitHub, GitLab, Bitbucket, or any Git source)'
+    required: true
+  mirror-branch:
+    description: 'Branch to sync from the mirror repository'
+    required: false
+    default: 'main'
+  target-branch:
+    description: 'Target branch to create PR against'
+    required: false
+    default: 'main'
+  pr-title:
+    description: 'Title for the pull request'
+    required: false
+    default: '🔄 Sync changes from mirror repository'
+  pr-body:
+    description: 'Body text for the pull request'
+    required: false
+    default: |
+      This PR contains changes synced from the mirror repository.
+      
+      **Mirror Details:**
+      - Repository: ${{ inputs.mirror-url }}
+      - Branch: ${{ inputs.mirror-branch }}
+      - Target: ${{ inputs.target-branch }}
+      
+      **Sync Information:**
+      - Triggered by: ${{ github.event_name }}
+      - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      
+      Please review the changes carefully before merging.
+  sync-branch-prefix:
+    description: 'Prefix for the sync branch name'
+    required: false
+    default: 'sync-mirror'
+  github-token:
+    description: 'GitHub token for creating PRs'
+    required: true
+  mirror-username:
+    description: 'Username for mirror repository authentication (if required)'
+    required: false
+  mirror-token:
+    description: 'Token/password for mirror repository authentication (if required)'
+    required: false
+  check-activity:
+    description: 'Whether to check for recent activity before syncing'
+    required: false
+    default: 'false'
+  activity-period:
+    description: 'Period to check for recent activity (e.g., "24 hours ago", "1 week ago")'
+    required: false
+    default: '24 hours ago'
+  force-sync:
+    description: 'Force sync even if no recent activity'
+    required: false
+    default: 'false'
+
+outputs:
+  pr-number:
+    description: 'Number of the created pull request'
+    value: ${{ steps.create-pr.outputs.pull-request-number }}
+  pr-url:
+    description: 'URL of the created pull request'
+    value: ${{ steps.create-pr.outputs.pull-request-url }}
+  changes-detected:
+    description: 'Whether changes were detected from the mirror'
+    value: ${{ steps.check-changes.outputs.changes-detected }}
+  sync-skipped:
+    description: 'Whether sync was skipped due to no recent activity'
+    value: ${{ steps.check-activity.outputs.skip-sync }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ inputs.github-token }}
+        fetch-depth: 0
+
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Setup mirror authentication
+      shell: bash
+      run: |
+        if [[ -n "${{ inputs.mirror-username }}" && -n "${{ inputs.mirror-token }}" ]]; then
+          # Extract the protocol and host from the mirror URL
+          MIRROR_URL="${{ inputs.mirror-url }}"
+          
+          # Handle different URL formats
+          if [[ $MIRROR_URL == https://* ]]; then
+            # HTTPS URL - inject credentials
+            PROTOCOL="https://"
+            URL_WITHOUT_PROTOCOL="${MIRROR_URL#https://}"
+            AUTHENTICATED_URL="${PROTOCOL}${{ inputs.mirror-username }}:${{ inputs.mirror-token }}@${URL_WITHOUT_PROTOCOL}"
+          elif [[ $MIRROR_URL == http://* ]]; then
+            # HTTP URL - inject credentials
+            PROTOCOL="http://"
+            URL_WITHOUT_PROTOCOL="${MIRROR_URL#http://}"
+            AUTHENTICATED_URL="${PROTOCOL}${{ inputs.mirror-username }}:${{ inputs.mirror-token }}@${URL_WITHOUT_PROTOCOL}"
+          else
+            # SSH or other format - use as is
+            AUTHENTICATED_URL="$MIRROR_URL"
+          fi
+          
+          echo "MIRROR_AUTH_URL=$AUTHENTICATED_URL" >> $GITHUB_ENV
+        else
+          echo "MIRROR_AUTH_URL=${{ inputs.mirror-url }}" >> $GITHUB_ENV
+        fi
+
+    - name: Add mirror remote
+      shell: bash
+      run: |
+        git remote add mirror "$MIRROR_AUTH_URL" || git remote set-url mirror "$MIRROR_AUTH_URL"
+
+    - name: Check mirror repository activity
+      id: check-activity
+      shell: bash
+      if: inputs.check-activity == 'true' && inputs.force-sync != 'true'
+      run: |
+        echo "Checking for recent activity in mirror repository..."
+        
+        # Fetch just the latest commits to check activity
+        git fetch mirror ${{ inputs.mirror-branch }} --depth=10
+        
+        # Check if there are commits in the specified period
+        RECENT_COMMITS=$(git log mirror/${{ inputs.mirror-branch }} --since="${{ inputs.activity-period }}" --oneline | wc -l)
+        
+        if [ "$RECENT_COMMITS" -eq 0 ]; then
+          echo "No recent commits in mirror repository (since ${{ inputs.activity-period }}). Skipping sync."
+          echo "skip-sync=true" >> $GITHUB_OUTPUT
+        else
+          echo "Found $RECENT_COMMITS recent commit(s). Proceeding with sync."
+          echo "skip-sync=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Fetch from mirror
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync != 'true'
+      run: |
+        git fetch mirror ${{ inputs.mirror-branch }}
+
+    - name: Create sync branch
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync != 'true'
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        SYNC_BRANCH="${{ inputs.sync-branch-prefix }}-${TIMESTAMP}"
+        echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
+        
+        # Create and checkout sync branch from current target branch
+        git checkout -b "$SYNC_BRANCH" origin/${{ inputs.target-branch }}
+
+    - name: Merge changes from mirror
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync != 'true'
+      run: |
+        # Try to merge changes from mirror
+        if git merge mirror/${{ inputs.mirror-branch }} --no-edit; then
+          echo "Merge successful"
+        else
+          echo "Merge conflicts detected. Manual resolution required."
+          git status
+          echo "MERGE_CONFLICTS=true" >> $GITHUB_ENV
+          exit 1
+        fi
+
+    - name: Check for changes
+      id: check-changes
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync != 'true'
+      run: |
+        # Check if there are any differences between sync branch and target branch
+        if git diff --quiet origin/${{ inputs.target-branch }}..HEAD; then
+          echo "No changes detected from mirror"
+          echo "changes-detected=false" >> $GITHUB_OUTPUT
+        else
+          echo "Changes detected from mirror"
+          echo "changes-detected=true" >> $GITHUB_OUTPUT
+          
+          # Show summary of changes
+          echo "Files changed:"
+          git diff --name-status origin/${{ inputs.target-branch }}..HEAD
+        fi
+
+    - name: Push sync branch
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync != 'true' && steps.check-changes.outputs.changes-detected == 'true'
+      run: |
+        git push origin "$SYNC_BRANCH"
+
+    - name: Create Pull Request
+      id: create-pr
+      if: steps.check-activity.outputs.skip-sync != 'true' && steps.check-changes.outputs.changes-detected == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ inputs.github-token }}
+        branch: ${{ env.SYNC_BRANCH }}
+        base: ${{ inputs.target-branch }}
+        title: ${{ inputs.pr-title }}
+        body: |
+          ${{ inputs.pr-body }}
+          
+          ## Sync Details
+          - **Mirror Repository**: ${{ inputs.mirror-url }}
+          - **Mirror Branch**: ${{ inputs.mirror-branch }}
+          - **Target Branch**: ${{ inputs.target-branch }}
+          - **Sync Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Changes Summary
+          ```
+          $(git diff --stat origin/${{ inputs.target-branch }}..HEAD)
+          ```
+          
+          This PR was automatically created by the sync-mirror action.
+
+    - name: Cleanup on no changes
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync != 'true' && steps.check-changes.outputs.changes-detected == 'false'
+      run: |
+        echo "No changes to sync. Cleaning up sync branch."
+        git checkout ${{ inputs.target-branch }}
+        git branch -D "$SYNC_BRANCH" || true
+
+    - name: Handle skipped sync
+      shell: bash
+      if: steps.check-activity.outputs.skip-sync == 'true'
+      run: |
+        echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
+        echo "Activity period checked: ${{ inputs.activity-period }}"
+
+    - name: Summary
+      shell: bash
+      run: |
+        if [[ "${{ steps.check-activity.outputs.skip-sync }}" == "true" ]]; then
+          echo "ℹ️ Sync skipped - no recent activity in mirror repository (since ${{ inputs.activity-period }})"
+        elif [[ "${{ steps.check-changes.outputs.changes-detected }}" == "true" ]]; then
+          echo "✅ Successfully created PR with changes from mirror repository"
+          echo "PR Number: ${{ steps.create-pr.outputs.pull-request-number }}"
+          echo "PR URL: ${{ steps.create-pr.outputs.pull-request-url }}"
+        else
+          echo "ℹ️ No changes detected from mirror repository"
+        fi
