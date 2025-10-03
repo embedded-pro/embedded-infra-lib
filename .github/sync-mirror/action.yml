@@ -1,3 +1,4 @@
+---
 name: 'Sync Mirror Repository'
 description: 'Pull changes from a mirror repository and create a PR with the changes'
 author: 'embedded-pro'
@@ -95,7 +96,7 @@ runs:
         if [[ -n "${{ inputs.mirror-username }}" && -n "${{ inputs.mirror-token }}" ]]; then
           # Extract the protocol and host from the mirror URL
           MIRROR_URL="${{ inputs.mirror-url }}"
-          
+
           # Handle different URL formats
           if [[ $MIRROR_URL == https://* ]]; then
             # HTTPS URL - inject credentials
@@ -111,7 +112,7 @@ runs:
             # SSH or other format - use as is
             AUTHENTICATED_URL="$MIRROR_URL"
           fi
-          
+
           echo "MIRROR_AUTH_URL=$AUTHENTICATED_URL" >> $GITHUB_ENV
         else
           echo "MIRROR_AUTH_URL=${{ inputs.mirror-url }}" >> $GITHUB_ENV
@@ -186,7 +187,7 @@ runs:
         else
           echo "Changes detected from mirror"
           echo "changes-detected=true" >> $GITHUB_OUTPUT
-          
+
           # Show summary of changes
           echo "Files changed:"
           git diff --name-status origin/${{ inputs.target-branch }}..HEAD
