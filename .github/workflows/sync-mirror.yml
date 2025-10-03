@@ -29,26 +29,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: >
-          actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-          # v4.2.2
-
-      - name: Setup Python
-        uses: >
-          actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
-          # v6.0.0
-        with:
-          python-version: "3.11"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup environment
-        run: >
-          python ./.github/scripts/sync-mirror.py
-          --mirror-url "${{ env.MIRROR_URL }}"
-          --mirror-branch "${{ env.MIRROR_BRANCH }}"
-          --target-branch "${{ env.TARGET_BRANCH }}"
-          --sync-branch-prefix "${{ env.SYNC_BRANCH_PREFIX }}"
-          --activity-period "${{ env.ACTIVITY_PERIOD }}"
-          ${{ github.event_name == 'schedule' && '--is-scheduled' || '' }}
+        run: |
+          echo "🔄 Starting mirror sync process..."
+          echo "📂 Mirror URL: ${{ env.MIRROR_URL }}"
+          echo "🌿 Mirror branch: ${{ env.MIRROR_BRANCH }}"
+          echo "🎯 Target branch: ${{ env.TARGET_BRANCH }}"
+          echo "📅 Scheduled run: ${{ github.event_name == 'schedule' }}"
+          
+          echo "📋 Action inputs:"
+          echo "  - mirror-url: ${{ env.MIRROR_URL }}"
+          echo "  - mirror-branch: ${{ env.MIRROR_BRANCH }}"
+          echo "  - target-branch: ${{ env.TARGET_BRANCH }}"
+          echo "  - sync-branch-prefix: ${{ env.SYNC_BRANCH_PREFIX }}"
+          echo "  - check-activity: ${{ github.event_name == 'schedule' }}"
+          echo "  - activity-period: ${{ env.ACTIVITY_PERIOD }}"
+          
+          echo "🚀 Environment setup completed successfully"
 
       - name: Sync mirror repository
         id: sync
@@ -66,15 +65,70 @@ jobs:
           force-sync: false
 
       - name: Handle results
-        if: steps.sync.conclusion == 'success'
-        run: >
-          python ./.github/scripts/handle-sync-results.py
-          --sync-skipped "${{ steps.sync.outputs.sync-skipped }}"
-          --changes-detected "${{ steps.sync.outputs.changes-detected }}"
-          --pr-number "${{ steps.sync.outputs.pr-number }}"
-          --pr-url "${{ steps.sync.outputs.pr-url }}"
-          --activity-period "${{ env.ACTIVITY_PERIOD }}"
+        if: always() && steps.sync.conclusion != 'skipped'
+        run: |
+          SYNC_SKIPPED="${{ steps.sync.outputs.sync-skipped }}"
+          CHANGES_DETECTED="${{ steps.sync.outputs.changes-detected }}"
+          PR_NUMBER="${{ steps.sync.outputs.pr-number }}"
+          PR_URL="${{ steps.sync.outputs.pr-url }}"
+          
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ## Mirror Sync Results
+          
+          **Configuration:**
+          - Mirror URL: ${{ env.MIRROR_URL }}
+          - Mirror Branch: ${{ env.MIRROR_BRANCH }}
+          - Target Branch: ${{ env.TARGET_BRANCH }}
+          
+          EOF
+          
+          if [ "$SYNC_SKIPPED" = "true" ]; then
+            echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
+            cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ℹ️ Sync skipped due to no recent activity:
+          
+          - **Activity Period**: ${{ env.ACTIVITY_PERIOD }}
+          
+          No commits found in the specified period.
+          EOF
+          elif [ "$CHANGES_DETECTED" = "true" ]; then
+            echo "✅ Successfully created PR #${PR_NUMBER}"
+            echo "🔗 PR URL: ${PR_URL}"
+            cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ✅ Successfully synced changes from mirror repository:
+          
+          - **PR Number**: #${PR_NUMBER}
+          - **PR URL**: ${PR_URL}
+          
+          Please review and merge the PR when ready.
+          EOF
+          else
+            echo "ℹ️ No changes detected from mirror repository"
+            cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ℹ️ No changes detected from mirror repository.
+          
+          The mirror repository is up to date with the target branch.
+          EOF
+          fi
 
       - name: Handle failure
         if: failure()
-        run: python ./.github/scripts/handle-failure.py
+        run: |
+          echo "❌ Mirror sync workflow failed"
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ## Mirror Sync Failed ❌
+          
+          The mirror sync workflow failed. Possible causes:
+          
+          - **Authentication issues**: Check GITLAB_TOKEN_USERNAME and GITLAB_TOKEN_PASSWORD secrets
+          - **Network issues**: Mirror repository might be unreachable
+          - **Merge conflicts**: Manual resolution may be required
+          - **Permission issues**: Check repository permissions
+          
+          **Configuration:**
+          - Mirror URL: ${{ env.MIRROR_URL }}
+          - Mirror Branch: ${{ env.MIRROR_BRANCH }}
+          - Target Branch: ${{ env.TARGET_BRANCH }}
+          
+          Please check the workflow logs for more details.
+          EOF
