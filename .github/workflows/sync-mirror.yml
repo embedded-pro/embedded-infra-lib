@@ -1,23 +1,13 @@
+---
 name: Sync Mirror Repository
 
 on:
   # Run monthly on the 1st day at 2 AM UTC
   schedule:
     - cron: '0 2 1 * *'
-  
+
   # Allow manual triggering
   workflow_dispatch:
-    inputs:
-      target-branch:
-        description: 'Target branch for PR'
-        required: false
-        type: string
-        default: 'main'
-      force-sync:
-        description: 'Force sync even if no recent commits'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   sync-mirror:
@@ -34,12 +24,14 @@ jobs:
           # Use direct GitLab mirror configuration
           MIRROR_URL="https://gitlab.com/embedded-library/mirrors/amp-embedded-infra-lib.git"
           MIRROR_BRANCH="main"
-          TARGET_BRANCH="${{ github.event.inputs.target-branch || 'main' }}"
-          
-          echo "MIRROR_URL=$MIRROR_URL" >> $GITHUB_ENV
-          echo "MIRROR_BRANCH=$MIRROR_BRANCH" >> $GITHUB_ENV
-          echo "TARGET_BRANCH=$TARGET_BRANCH" >> $GITHUB_ENV
-          
+          TARGET_BRANCH="main"
+
+          {
+            echo "MIRROR_URL=$MIRROR_URL"
+            echo "MIRROR_BRANCH=$MIRROR_BRANCH"
+            echo "TARGET_BRANCH=$TARGET_BRANCH"
+          } >> "$GITHUB_ENV"
+
           echo "🔄 Syncing from: $MIRROR_URL"
           echo "📂 Mirror branch: $MIRROR_BRANCH"
           echo "🎯 Target branch: $TARGET_BRANCH"
@@ -56,10 +48,10 @@ jobs:
           mirror-username: ${{ secrets.GITLAB_TOKEN_USERNAME }}
           mirror-token: ${{ secrets.GITLAB_TOKEN_PASSWORD }}
           sync-branch-prefix: 'sync-mirror'
-          # Check activity for scheduled runs, but allow force-sync override
+          # Check activity for scheduled runs
           check-activity: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
           activity-period: '1 month ago'
-          force-sync: ${{ github.event.inputs.force-sync || 'false' }}
+          force-sync: 'false'
 
       - name: Handle sync results
         if: always() && steps.sync.conclusion != 'skipped'
@@ -68,70 +60,70 @@ jobs:
             echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
             
             # Add skipped info to summary
-            cat >> $GITHUB_STEP_SUMMARY << EOF
-            ## Mirror Sync Results ℹ️
-            
-            Sync skipped due to no recent activity:
-            
-            - **Mirror URL**: ${{ env.MIRROR_URL }}
-            - **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
-            - **Target Branch**: ${{ env.TARGET_BRANCH }}
-            - **Activity Period**: 1 month ago
-            
-            No commits found in the specified period. Use force-sync to override.
-            EOF
+            cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
+	## Mirror Sync Results ℹ️
+	
+	Sync skipped due to no recent activity:
+	
+	- **Mirror URL**: ${{ env.MIRROR_URL }}
+	- **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
+	- **Target Branch**: ${{ env.TARGET_BRANCH }}
+	- **Activity Period**: 1 month ago
+	
+	No commits found in the specified period.
+	EOF
           elif [[ "${{ steps.sync.outputs.changes-detected }}" == "true" ]]; then
             echo "✅ Successfully created PR #${{ steps.sync.outputs.pr-number }}"
             echo "🔗 PR URL: ${{ steps.sync.outputs.pr-url }}"
             
             # Add PR to summary
-            cat >> $GITHUB_STEP_SUMMARY << EOF
-            ## Mirror Sync Results ✅
-            
-            Successfully synced changes from mirror repository:
-            
-            - **Mirror URL**: ${{ env.MIRROR_URL }}
-            - **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
-            - **Target Branch**: ${{ env.TARGET_BRANCH }}
-            - **PR Number**: #${{ steps.sync.outputs.pr-number }}
-            - **PR URL**: ${{ steps.sync.outputs.pr-url }}
-            
-            Please review and merge the PR when ready.
-            EOF
+            cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
+	## Mirror Sync Results ✅
+	
+	Successfully synced changes from mirror repository:
+	
+	- **Mirror URL**: ${{ env.MIRROR_URL }}
+	- **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
+	- **Target Branch**: ${{ env.TARGET_BRANCH }}
+	- **PR Number**: #${{ steps.sync.outputs.pr-number }}
+	- **PR URL**: ${{ steps.sync.outputs.pr-url }}
+	
+	Please review and merge the PR when ready.
+	EOF
           else
             echo "ℹ️ No changes detected from mirror repository"
             
             # Add no-changes info to summary
-            cat >> $GITHUB_STEP_SUMMARY << EOF
-            ## Mirror Sync Results ℹ️
-            
-            No changes detected from mirror repository:
-            
-            - **Mirror URL**: ${{ env.MIRROR_URL }}
-            - **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
-            - **Target Branch**: ${{ env.TARGET_BRANCH }}
-            
-            The mirror repository is up to date with the target branch.
-            EOF
+            cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
+	## Mirror Sync Results ℹ️
+	
+	No changes detected from mirror repository:
+	
+	- **Mirror URL**: ${{ env.MIRROR_URL }}
+	- **Mirror Branch**: ${{ env.MIRROR_BRANCH }}
+	- **Target Branch**: ${{ env.TARGET_BRANCH }}
+	
+	The mirror repository is up to date with the target branch.
+	EOF
           fi
 
       - name: Notify on failure
         if: failure()
         run: |
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## Mirror Sync Failed ❌
-          
-          The mirror sync workflow failed. Possible causes:
-          
-          - **Authentication issues**: Check GITLAB_TOKEN_USERNAME and GITLAB_TOKEN_PASSWORD secrets
-          - **Network issues**: Mirror repository might be unreachable
-          - **Merge conflicts**: Manual resolution may be required
-          - **Permission issues**: Check repository permissions
-          
-          **Mirror Configuration**:
-          - Mirror URL: ${{ env.MIRROR_URL }}
-          - Mirror Branch: ${{ env.MIRROR_BRANCH }}
-          - Target Branch: ${{ env.TARGET_BRANCH }}
-          
-          Please check the workflow logs for more details.
-          EOF
+          cat >> "$GITHUB_STEP_SUMMARY" <<-EOF
+	## Mirror Sync Failed ❌
+	
+	The mirror sync workflow failed. Possible causes:
+	
+	- **Authentication issues**: Check GITLAB_TOKEN_USERNAME and GITLAB_TOKEN_PASSWORD secrets
+	- **Network issues**: Mirror repository might be unreachable
+	- **Merge conflicts**: Manual resolution may be required
+	- **Permission issues**: Check repository permissions
+	
+	**Mirror Configuration**:
+	- Mirror URL: ${{ env.MIRROR_URL }}
+	- Mirror Branch: ${{ env.MIRROR_BRANCH }}
+	- Target Branch: ${{ env.TARGET_BRANCH }}
+	
+	Please check the workflow logs for more details.
+	EOF
