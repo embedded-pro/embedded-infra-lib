@@ -72,7 +72,7 @@ jobs:
           PR_NUMBER="${{ steps.sync.outputs.pr-number }}"
           PR_URL="${{ steps.sync.outputs.pr-url }}"
           
-          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Mirror Sync Results
           
           **Configuration:**
@@ -84,7 +84,7 @@ jobs:
           
           if [ "$SYNC_SKIPPED" = "true" ]; then
             echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
-            cat >> $GITHUB_STEP_SUMMARY <<EOF
+            cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ℹ️ Sync skipped due to no recent activity:
           
           - **Activity Period**: ${{ env.ACTIVITY_PERIOD }}
@@ -94,7 +94,7 @@ jobs:
           elif [ "$CHANGES_DETECTED" = "true" ]; then
             echo "✅ Successfully created PR #${PR_NUMBER}"
             echo "🔗 PR URL: ${PR_URL}"
-            cat >> $GITHUB_STEP_SUMMARY <<EOF
+            cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ✅ Successfully synced changes from mirror repository:
           
           - **PR Number**: #${PR_NUMBER}
@@ -104,7 +104,7 @@ jobs:
           EOF
           else
             echo "ℹ️ No changes detected from mirror repository"
-            cat >> $GITHUB_STEP_SUMMARY <<EOF
+            cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ℹ️ No changes detected from mirror repository.
           
           The mirror repository is up to date with the target branch.
@@ -115,7 +115,7 @@ jobs:
         if: failure()
         run: |
           echo "❌ Mirror sync workflow failed"
-          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Mirror Sync Failed ❌
           
           The mirror sync workflow failed. Possible causes:
