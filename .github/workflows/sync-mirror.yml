@@ -1,0 +1,80 @@
+---
+name: Sync Mirror Repository
+
+# Minimal top-level permissions
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 2 1 * *"
+  workflow_dispatch: {}
+
+jobs:
+  sync-mirror:
+    runs-on: ubuntu-latest
+    # Minimal permissions - sync action will need contents:write via token
+    permissions:
+      contents: write # Required for sync action to create branches/PRs
+      pull-requests: write # Required to create and manage PRs
+      actions: read # Required to read action metadata
+
+    env:
+      MIRROR_URL: >
+        https://gitlab.com/embedded-library/mirrors/amp-embedded-infra-lib.git
+      MIRROR_BRANCH: "main"
+      TARGET_BRANCH: "main"
+      SYNC_BRANCH_PREFIX: "sync-mirror"
+      ACTIVITY_PERIOD: "1 month ago"
+
+    steps:
+      - name: Checkout repository
+        uses: >
+          actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+          # v4.2.2
+
+      - name: Setup Python
+        uses: >
+          actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+          # v6.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Setup environment
+        run: >
+          python ./.github/scripts/sync-mirror.py
+          --mirror-url "${{ env.MIRROR_URL }}"
+          --mirror-branch "${{ env.MIRROR_BRANCH }}"
+          --target-branch "${{ env.TARGET_BRANCH }}"
+          --sync-branch-prefix "${{ env.SYNC_BRANCH_PREFIX }}"
+          --activity-period "${{ env.ACTIVITY_PERIOD }}"
+          ${{ github.event_name == 'schedule' && '--is-scheduled' || '' }}
+
+      - name: Sync mirror repository
+        id: sync
+        uses: ./.github/sync-mirror
+        with:
+          mirror-url: ${{ env.MIRROR_URL }}
+          mirror-branch: ${{ env.MIRROR_BRANCH }}
+          target-branch: ${{ env.TARGET_BRANCH }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          mirror-username: ${{ secrets.GITLAB_TOKEN_USERNAME }}
+          mirror-token: ${{ secrets.GITLAB_TOKEN_PASSWORD }}
+          sync-branch-prefix: "sync-mirror"
+          check-activity: ${{ github.event_name == 'schedule' }}
+          activity-period: "1 month ago"
+          force-sync: false
+
+      - name: Handle results
+        if: steps.sync.conclusion == 'success'
+        run: >
+          python ./.github/scripts/handle-sync-results.py
+          --sync-skipped "${{ steps.sync.outputs.sync-skipped }}"
+          --changes-detected "${{ steps.sync.outputs.changes-detected }}"
+          --pr-number "${{ steps.sync.outputs.pr-number }}"
+          --pr-url "${{ steps.sync.outputs.pr-url }}"
+          --activity-period "${{ env.ACTIVITY_PERIOD }}"
+
+      - name: Handle failure
+        if: failure()
+        run: python ./.github/scripts/handle-failure.py
