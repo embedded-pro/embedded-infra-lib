@@ -66,7 +66,7 @@ jobs:
           force-sync: false
 
       - name: Handle results
-        if: always() && steps.sync.conclusion != 'skipped'
+        if: steps.sync.conclusion == 'success'
         run: >
           python ./.github/scripts/handle-sync-results.py
           --sync-skipped "${{ steps.sync.outputs.sync-skipped }}"

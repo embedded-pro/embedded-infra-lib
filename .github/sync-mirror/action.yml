@@ -1,82 +1,79 @@
 ---
-name: 'Sync Mirror Repository'
-description: 'Pull changes from a mirror repository and create a PR with the changes'
-author: 'embedded-pro'
+name: "Sync Mirror Repository"
+description: "Pull changes from a mirror repository and create a PR with the changes"
+author: "embedded-pro"
 
 inputs:
   mirror-url:
-    description: 'URL of the mirror repository (GitHub, GitLab, Bitbucket, or any Git source)'
+    description: "URL of the mirror repository (GitHub, GitLab, Bitbucket, or any Git source)"
     required: true
   mirror-branch:
-    description: 'Branch to sync from the mirror repository'
+    description: "Branch to sync from the mirror repository"
     required: false
-    default: 'main'
+    default: "main"
   target-branch:
-    description: 'Target branch to create PR against'
+    description: "Target branch to create PR against"
     required: false
-    default: 'main'
+    default: "main"
   pr-title:
-    description: 'Title for the pull request'
+    description: "Title for the pull request"
     required: false
-    default: '🔄 Sync changes from mirror repository'
+    default: "🔄 Sync changes from mirror repository"
   pr-body:
-    description: 'Body text for the pull request'
+    description: "Body text for the pull request"
     required: false
     default: |
       This PR contains changes synced from the mirror repository.
-      
       **Mirror Details:**
       - Repository: ${{ inputs.mirror-url }}
       - Branch: ${{ inputs.mirror-branch }}
       - Target: ${{ inputs.target-branch }}
-      
       **Sync Information:**
       - Triggered by: ${{ github.event_name }}
       - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      
       Please review the changes carefully before merging.
   sync-branch-prefix:
-    description: 'Prefix for the sync branch name'
+    description: "Prefix for the sync branch name"
     required: false
-    default: 'sync-mirror'
+    default: "sync-mirror"
   github-token:
-    description: 'GitHub token for creating PRs'
+    description: "GitHub token for creating PRs"
     required: true
   mirror-username:
-    description: 'Username for mirror repository authentication (if required)'
+    description: "Username for mirror repository authentication (if required)"
     required: false
   mirror-token:
-    description: 'Token/password for mirror repository authentication (if required)'
+    description: "Token/password for mirror repository authentication (if required)"
     required: false
   check-activity:
-    description: 'Whether to check for recent activity before syncing'
+    description: "Whether to check for recent activity before syncing"
     required: false
-    default: 'false'
+    default: "false"
   activity-period:
     description: 'Period to check for recent activity (e.g., "24 hours ago", "1 week ago")'
     required: false
-    default: '24 hours ago'
+    default: "24 hours ago"
   force-sync:
-    description: 'Force sync even if no recent activity'
+    description: "Force sync even if no recent activity"
     required: false
-    default: 'false'
+    default: "false"
 
 outputs:
   pr-number:
-    description: 'Number of the created pull request'
+    description: "Number of the created pull request"
     value: ${{ steps.create-pr.outputs.pull-request-number }}
   pr-url:
-    description: 'URL of the created pull request'
+    description: "URL of the created pull request"
     value: ${{ steps.create-pr.outputs.pull-request-url }}
   changes-detected:
-    description: 'Whether changes were detected from the mirror'
+    description: "Whether changes were detected from the mirror"
     value: ${{ steps.check-changes.outputs.changes-detected }}
   sync-skipped:
-    description: 'Whether sync was skipped due to no recent activity'
+    description: "Whether sync was skipped due to no recent activity"
     value: ${{ steps.check-activity.outputs.skip-sync }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -129,7 +126,6 @@ runs:
       if: inputs.check-activity == 'true' && inputs.force-sync != 'true'
       run: |
         echo "Checking for recent activity in mirror repository..."
-        
         # Fetch just the latest commits to check activity
         git fetch mirror ${{ inputs.mirror-branch }} --depth=10
         

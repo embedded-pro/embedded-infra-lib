@@ -17,10 +17,10 @@ For the private GitLab mirror repository, you'll need to set up authentication s
 1. Go to your repository **Settings** → **Secrets and variables** → **Actions**
 2. Add the following repository secrets:
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
+| Secret Name             | Description                    | Example                |
+|-------------------------|--------------------------------|------------------------|
 | `GITLAB_TOKEN_USERNAME` | Username for GitLab repository | `your-gitlab-username` |
-| `GITLAB_TOKEN_PASSWORD` | GitLab Personal Access Token | `glpat-xxxxxxxxxxxx` |
+| `GITLAB_TOKEN_PASSWORD` | GitLab Personal Access Token   | `glpat-xxxxxxxxxxxx`   |
 
 ### 2. GitLab Personal Access Token Setup
 
