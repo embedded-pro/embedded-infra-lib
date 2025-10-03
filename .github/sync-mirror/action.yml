@@ -24,13 +24,7 @@ inputs:
     required: false
     default: |
       This PR contains changes synced from the mirror repository.
-      **Mirror Details:**
-      - Repository: ${{ inputs.mirror-url }}
-      - Branch: ${{ inputs.mirror-branch }}
-      - Target: ${{ inputs.target-branch }}
-      **Sync Information:**
-      - Triggered by: ${{ github.event_name }}
-      - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      
       Please review the changes carefully before merging.
   sync-branch-prefix:
     description: "Prefix for the sync branch name"
@@ -61,16 +55,12 @@ inputs:
 outputs:
   pr-number:
     description: "Number of the created pull request"
-    value: ${{ steps.create-pr.outputs.pull-request-number }}
   pr-url:
     description: "URL of the created pull request"
-    value: ${{ steps.create-pr.outputs.pull-request-url }}
   changes-detected:
     description: "Whether changes were detected from the mirror"
-    value: ${{ steps.check-changes.outputs.changes-detected }}
   sync-skipped:
     description: "Whether sync was skipped due to no recent activity"
-    value: ${{ steps.check-activity.outputs.skip-sync }}
 
 runs:
   using: "composite"
@@ -228,6 +218,16 @@ runs:
       run: |
         echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
         echo "Activity period checked: ${{ inputs.activity-period }}"
+
+    - name: Set outputs
+      shell: bash
+      run: |
+        if [[ -n "${{ steps.create-pr.outputs.pull-request-number }}" ]]; then
+          echo "pr-number=${{ steps.create-pr.outputs.pull-request-number }}" >> $GITHUB_OUTPUT
+          echo "pr-url=${{ steps.create-pr.outputs.pull-request-url }}" >> $GITHUB_OUTPUT
+        fi
+        echo "changes-detected=${{ steps.check-changes.outputs.changes-detected }}" >> $GITHUB_OUTPUT
+        echo "sync-skipped=${{ steps.check-activity.outputs.skip-sync }}" >> $GITHUB_OUTPUT
 
     - name: Summary
       shell: bash
