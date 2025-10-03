@@ -67,6 +67,7 @@ jobs:
         run: |
           SYNC_SKIPPED="${{ steps.sync.outputs.sync-skipped }}"
           CHANGES_DETECTED="${{ steps.sync.outputs.changes-detected }}"
+          HAS_CONFLICTS="${{ steps.sync.outputs.has-conflicts }}"
           PR_NUMBER="${{ steps.sync.outputs.pr-number }}"
           PR_URL="${{ steps.sync.outputs.pr-url }}"
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
@@ -84,14 +85,28 @@ jobs:
           No commits found in the specified period.
           EOF
           elif [ "$CHANGES_DETECTED" = "true" ]; then
-            echo "✅ Successfully created PR #${PR_NUMBER}"
-            echo "🔗 PR URL: ${PR_URL}"
-            cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+            if [ "$HAS_CONFLICTS" = "true" ]; then
+              echo "⚠️ Created PR #${PR_NUMBER} with merge conflicts"
+              echo "🔗 PR URL: ${PR_URL}"
+              cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ⚠️ Synced changes from mirror repository with merge conflicts:
+          - **PR Number**: #${PR_NUMBER}
+          - **PR URL**: ${PR_URL}
+          - **Status**: Contains merge conflicts that need manual resolution
+          
+          **Action Required**: Please review the PR and resolve the conflicts before merging.
+          EOF
+            else
+              echo "✅ Successfully created PR #${PR_NUMBER}"
+              echo "🔗 PR URL: ${PR_URL}"
+              cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ✅ Successfully synced changes from mirror repository:
           - **PR Number**: #${PR_NUMBER}
           - **PR URL**: ${PR_URL}
+          
           Please review and merge the PR when ready.
           EOF
+            fi
           else
             echo "ℹ️ No changes detected from mirror repository"
             cat >> "$GITHUB_STEP_SUMMARY" <<EOF
