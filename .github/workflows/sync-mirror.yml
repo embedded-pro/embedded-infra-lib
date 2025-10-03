@@ -38,7 +38,6 @@ jobs:
           echo "🌿 Mirror branch: ${{ env.MIRROR_BRANCH }}"
           echo "🎯 Target branch: ${{ env.TARGET_BRANCH }}"
           echo "📅 Scheduled run: ${{ github.event_name == 'schedule' }}"
-          
           echo "📋 Action inputs:"
           echo "  - mirror-url: ${{ env.MIRROR_URL }}"
           echo "  - mirror-branch: ${{ env.MIRROR_BRANCH }}"
@@ -46,7 +45,6 @@ jobs:
           echo "  - sync-branch-prefix: ${{ env.SYNC_BRANCH_PREFIX }}"
           echo "  - check-activity: ${{ github.event_name == 'schedule' }}"
           echo "  - activity-period: ${{ env.ACTIVITY_PERIOD }}"
-          
           echo "🚀 Environment setup completed successfully"
 
       - name: Sync mirror repository
@@ -71,24 +69,18 @@ jobs:
           CHANGES_DETECTED="${{ steps.sync.outputs.changes-detected }}"
           PR_NUMBER="${{ steps.sync.outputs.pr-number }}"
           PR_URL="${{ steps.sync.outputs.pr-url }}"
-          
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Mirror Sync Results
-          
           **Configuration:**
           - Mirror URL: ${{ env.MIRROR_URL }}
           - Mirror Branch: ${{ env.MIRROR_BRANCH }}
           - Target Branch: ${{ env.TARGET_BRANCH }}
-          
           EOF
-          
           if [ "$SYNC_SKIPPED" = "true" ]; then
             echo "ℹ️ Sync skipped due to no recent activity in mirror repository"
             cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ℹ️ Sync skipped due to no recent activity:
-          
           - **Activity Period**: ${{ env.ACTIVITY_PERIOD }}
-          
           No commits found in the specified period.
           EOF
           elif [ "$CHANGES_DETECTED" = "true" ]; then
@@ -96,17 +88,14 @@ jobs:
             echo "🔗 PR URL: ${PR_URL}"
             cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ✅ Successfully synced changes from mirror repository:
-          
           - **PR Number**: #${PR_NUMBER}
           - **PR URL**: ${PR_URL}
-          
           Please review and merge the PR when ready.
           EOF
           else
             echo "ℹ️ No changes detected from mirror repository"
             cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ℹ️ No changes detected from mirror repository.
-          
           The mirror repository is up to date with the target branch.
           EOF
           fi
@@ -117,18 +106,14 @@ jobs:
           echo "❌ Mirror sync workflow failed"
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Mirror Sync Failed ❌
-          
           The mirror sync workflow failed. Possible causes:
-          
           - **Authentication issues**: Check GITLAB_TOKEN_USERNAME and GITLAB_TOKEN_PASSWORD secrets
           - **Network issues**: Mirror repository might be unreachable
           - **Merge conflicts**: Manual resolution may be required
           - **Permission issues**: Check repository permissions
-          
           **Configuration:**
           - Mirror URL: ${{ env.MIRROR_URL }}
           - Mirror Branch: ${{ env.MIRROR_BRANCH }}
           - Target Branch: ${{ env.TARGET_BRANCH }}
-          
           Please check the workflow logs for more details.
           EOF
