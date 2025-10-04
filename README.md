@@ -15,6 +15,8 @@
 
 **Description**: embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, STL like, infrastructure for embedded software development.
 
+> **Note**: This repository is a copy of the original [amp-embedded-infra-lib](https://github.com/philips-software/amp-embedded-infra-lib) repository.
+
 ## Dependencies
 
 EmIL requires:
