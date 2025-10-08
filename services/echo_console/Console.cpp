@@ -73,20 +73,6 @@ namespace application
             return false;
         }
 
-        Underscore::Underscore(std::size_t index)
-            : index(index)
-        {}
-
-        bool Underscore::operator==(const Underscore&) const
-        {
-            return true;
-        }
-
-        bool Underscore::operator!=(const Underscore&) const
-        {
-            return false;
-        }
-
         LeftBrace::LeftBrace(std::size_t index)
             : index(index)
         {}
@@ -226,8 +212,6 @@ namespace application
                 return ConsoleToken::Comma(parseIndex++);
             else if (line[parseIndex] == '.')
                 return ConsoleToken::Dot(parseIndex++);
-            else if (line[parseIndex] == '_')
-                return ConsoleToken::Underscore(parseIndex++);
             else if (line[parseIndex] == '{')
                 return ConsoleToken::LeftBrace(parseIndex++);
             else if (line[parseIndex] == '}')
@@ -350,13 +334,28 @@ namespace application
             return ConsoleToken::String(tokenStart, identifier);
     }
 
+    services::EchoPolicy Console::defaultPolicy;
+
     Console::Console(EchoRoot& root, bool stopOnNetworkClose)
         : root(root)
+        , serviceProxyStub(*this)
         , eventDispatcherThread([this, stopOnNetworkClose]()
               {
                   RunEventDispatcher(stopOnNetworkClose);
               })
     {}
+
+    Console::~Console()
+    {
+        if (eventDispatcherThread.joinable())
+        {
+            infra::EventDispatcher::Instance().Schedule([]()
+                {
+                    throw Quit();
+                });
+            eventDispatcherThread.join();
+        }
+    }
 
     void Console::Run()
     {
@@ -381,6 +380,8 @@ namespace application
                     {
                         if (line == "list")
                             ListInterfaces();
+                        else if (line == "help")
+                            Help();
                         else
                             Process(line);
 
@@ -416,16 +417,36 @@ namespace application
         while (!reader.Empty())
             receivedData += infra::ByteRangeAsStdString(reader.ExtractContiguousRange(std::numeric_limits<std::size_t>::max()));
 
-        while (!receivedData.empty())
+        while (!serviceBusy && !receivedData.empty())
         {
             infra::StringInputStream data(receivedData, infra::softFail);
             infra::ProtoParser parser(data >> infra::data);
 
             auto serviceId = static_cast<uint32_t>(parser.GetVarInt());
-            auto [value, methodId] = parser.GetField();
+            auto messageStart = data.Reader().ConstructSaveMarker();
+            auto partialField = parser.GetPartialField().first;
+            auto size = partialField.Is<infra::PartialProtoLengthDelimited>() ? partialField.Get<infra::PartialProtoLengthDelimited>().length : 0;
+            auto partialEnd = data.Reader().ConstructSaveMarker();
+            data.Reader().Rewind(messageStart);
+            infra::ProtoParser fullParser(data >> infra::data);
+            auto [value, methodId] = fullParser.GetField();
 
             if (data.Failed())
                 break;
+
+            Echo::NotifyObservers([this, serviceId, methodId, size, &data, partialEnd](auto& service)
+                {
+                    if (service.AcceptsService(serviceId))
+                    {
+                        auto methodDeserializer = service.StartMethod(serviceId, methodId, size, services::echoErrorPolicyAbort);
+                        data.Reader().Rewind(partialEnd);
+                        infra::SharedOptional<infra::LimitedStreamReaderWithRewinding> reader;
+                        methodDeserializer->MethodContents(reader.Emplace(data.Reader(), size));
+                        assert(reader.Allocatable());
+                        serviceBusy = true;
+                        methodDeserializer->ExecuteMethod();
+                    }
+                });
 
             for (const auto& service : root.services)
                 if (service->serviceId == serviceId)
@@ -448,6 +469,41 @@ namespace application
             ServiceNotFound(serviceId, methodId);
             receivedData.erase(receivedData.begin(), receivedData.begin() + data.Reader().ConstructSaveMarker());
         }
+    }
+
+    void Console::SetPolicy(services::EchoPolicy& policy)
+    {
+        this->policy = &policy;
+    }
+
+    void Console::RequestSend(services::ServiceProxy& serviceProxy)
+    {
+        infra::EventDispatcher::Instance().Schedule([this, &serviceProxy]()
+            {
+                policy->GrantingSend(serviceProxy);
+                auto serializer = serviceProxy.GrantSend(); // GrantSend may result in new requests being made, so execute this whole sequence on the event dispatcher
+                std::vector<uint8_t> data;
+                infra::SharedOptional<infra::StdVectorOutputStreamWriter> writer;
+                auto partlySent = serializer->Serialize(writer.Emplace(data));
+                assert(!partlySent);
+                assert(writer.Allocatable());
+                GetObserver().Send(infra::ByteRangeAsStdString(infra::MakeRange(data)));
+            });
+    }
+
+    void Console::ServiceDone()
+    {
+        serviceBusy = false;
+    }
+
+    void Console::CancelRequestSend(services::ServiceProxy& serviceProxy)
+    {
+        std::abort();
+    }
+
+    services::MethodSerializerFactory& Console::SerializerFactory()
+    {
+        return serializerFactory;
     }
 
     void Console::MethodReceived(const EchoService& service, const EchoMethod& method, infra::ProtoParser&& parser)
@@ -578,12 +634,6 @@ namespace application
                 std::cout << static_cast<int32_t>(fieldData.Get<uint32_t>());
             }
 
-            void VisitOptional(const EchoFieldOptional& field) override
-            {
-                PrintFieldVisitor visitor(fieldData, parser, console);
-                field.type->Accept(visitor);
-            }
-
             void VisitRepeated(const EchoFieldRepeated& field) override
             {
                 PrintFieldVisitor visitor(fieldData, parser, console);
@@ -649,6 +699,80 @@ namespace application
         }
 
         services::GlobalTracer().Trace();
+    }
+
+    void Console::Help()
+    {
+        services::GlobalTracer().Trace() <<
+            R"(Using arguments:
+        1. Every method argument is defined as a single message in proto file. In echo console, this outmost message shall be provided unpacked.
+            Consider the below message and method:
+                message Argument
+                {
+                    int32 value1 = 1;
+                    int32 value2 = 2;
+                }
+
+                rpc Method(Argument)
+
+            The method call in echo console for value1=123 and value2=456 would be:
+                Method 123 456
+
+        2. After the top level message, every nested message needs to provided in square brackets.
+            Consider the below message and method:
+                message NestedArgument
+                {
+                    int32 value = 1;
+                }    
+
+                message TopArgument
+                {
+                    int32 value = 1;
+                    NestedArgument nested = 2;
+                }
+
+                rpc Method(Argument)
+
+            The method call in echo console for value=123 and nested.value=456 would be:
+                Method 123 [456]
+        3. Repeated arguments are provided as a list in square brackets.
+            Consider the below message and method:
+                message Argument
+                {
+                    bytes value = 1;
+                }
+
+                rpc Method(Argument)
+
+            The method call in echo console for value=[1,2,3] would be:
+                Method [1,2,3]
+        4. String arguments are provided in double quotes with special characters escaped.
+            Consider the below message and method:
+                message Argument
+                {
+                    string value = 1;
+                }
+
+                rpc Method(Argument)
+
+            The method call in echo console for value="{ "bool":true }" would be:
+                Method "{ \"bool\":true }"
+        5. Primitive types mapping table:
+            +-----------------+-----------------+-------------------------------------+
+            | Proto Type      | Token Type      | Example Input                       |
+            +-----------------+-----------------+-------------------------------------+
+            | int32, int64    | Integer         | 42, -123, 0xFF                      |
+            | uint32, uint64  | Integer         | 42, 255, 0xFF                       |
+            | fixed32/64      | Integer         | 42, 0xDEADBEEF                      |
+            | sfixed32/64     | Integer         | -42, 123                            |
+            | bool            | Boolean         | true, false                         |
+            | string          | String          | "hello", identifier                 |
+            | bytes           | Array[Integer]  | [1, 2, 3, 255]                      |
+            | enum            | Integer         | 0, 1, 2                             |
+            | repeated        | Array           | [elem1, elem2, elem3]               |
+            | message         | Braced Values   | { field1_val field2_val }           |
+            +-----------------+-----------------+-------------------------------------+
+        )";
     }
 
     void Console::ListFields(const EchoMessage& message)
@@ -737,12 +861,6 @@ namespace application
                 services::GlobalTracer().Continue() << "sfixed32";
             }
 
-            void VisitOptional(const EchoFieldOptional& field) override
-            {
-                ListFieldVisitor visitor(console);
-                field.type->Accept(visitor);
-            }
-
             void VisitRepeated(const EchoFieldRepeated& field) override
             {
                 ListFieldVisitor visitor(console);
@@ -786,6 +904,7 @@ namespace application
                 methodInvocation.EncodeParameters(method.parameter, line.size(), formatter);
             }
 
+            policy->GrantingSend(serviceProxyStub);
             GetObserver().Send(infra::ByteRangeAsStdString(infra::MakeRange(stream.Storage())));
         }
         catch (ConsoleExceptions::SyntaxError& error)
@@ -908,11 +1027,6 @@ namespace application
             MessageTokens::MessageTokenValue operator()(ConsoleToken::Dot value) const
             {
                 throw ConsoleExceptions::SyntaxError{ value.index };
-            }
-
-            MessageTokens::MessageTokenValue operator()(ConsoleToken::Underscore value) const
-            {
-                return Empty{};
             }
 
             MessageTokens::MessageTokenValue operator()(ConsoleToken::LeftBrace) const
@@ -1141,15 +1255,6 @@ namespace application
                     throw ConsoleExceptions::IncorrectType{ valueIndex, "integer" };
 
                 formatter.PutVarIntField(value.Get<int64_t>(), field.number);
-            }
-
-            void VisitOptional(const EchoFieldOptional& field) override
-            {
-                if (!value.Is<Empty>())
-                {
-                    EncodeFieldVisitor visitor(value, valueIndex, formatter, methodInvocation);
-                    field.type->Accept(visitor);
-                }
             }
 
             void VisitRepeated(const EchoFieldRepeated& field) override

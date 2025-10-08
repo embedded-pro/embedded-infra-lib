@@ -10,10 +10,12 @@ namespace services
         : public GapPairing
     {
     public:
-        MOCK_METHOD(void, Pair, ());
+        MOCK_METHOD(void, PairAndBond, ());
         MOCK_METHOD(void, AllowPairing, (bool allow));
         MOCK_METHOD(void, SetSecurityMode, (SecurityMode mode, SecurityLevel level));
         MOCK_METHOD(void, SetIoCapabilities, (IoCapabilities caps));
+        MOCK_METHOD(void, GenerateOutOfBandData, ());
+        MOCK_METHOD(void, SetOutOfBandData, (const GapOutOfBandData& outOfBandData));
         MOCK_METHOD(void, AuthenticateWithPasskey, (uint32_t passkey));
         MOCK_METHOD(void, NumericComparisonConfirm, (bool accept));
     };
