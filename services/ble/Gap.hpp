@@ -3,8 +3,12 @@
 
 #include "hal/interfaces/MacAddress.hpp"
 #include "infra/timer/Timer.hpp"
+#include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Observer.hpp"
+#include "infra/util/Optional.hpp"
+#include "services/ble/Att.hpp"
+#include "infra/util/BoundedVector.hpp"
 
 namespace services
 {
@@ -38,22 +42,16 @@ namespace services
         scanResponse,
     };
 
-    enum class GapAdvertisingEventAddressType : uint8_t
-    {
-        publicDeviceAddress,
-        randomDeviceAddress,
-        publicIdentityAddress,
-        randomIdentityAddress
-    };
-
     enum class GapAdvertisementDataType : uint8_t
     {
         unknownType = 0x00u,
         flags = 0x01u,
+        completeListOf16BitUuids = 0x03u,
         completeListOf128BitUuids = 0x07u,
         shortenedLocalName = 0x08u,
         completeLocalName = 0x09u,
         publicTargetAddress = 0x17u,
+        appearance = 0x19u,
         manufacturerSpecificData = 0xffu
     };
 
@@ -68,15 +66,6 @@ namespace services
         static constexpr uint16_t connectionInitialMaxTxTime = 2120; // (connectionInitialMaxTxOctets + 14) * 8
     };
 
-    struct GapAdvertisingReport
-    {
-        GapAdvertisingEventType eventType;
-        GapAdvertisingEventAddressType addressType;
-        hal::MacAddress address;
-        infra::ConstByteRange data;
-        int8_t rssi;
-    };
-
     struct GapAddress
     {
         hal::MacAddress address;
@@ -88,19 +77,12 @@ namespace services
         }
     };
 
-    class GapAdvertisingDataParser
+    struct GapOutOfBandData
     {
-    public:
-        explicit GapAdvertisingDataParser(infra::ConstByteRange data);
-
-        infra::ConstByteRange LocalName() const;
-        infra::ConstByteRange ManufacturerSpecificData() const;
-
-    private:
-        infra::ConstByteRange data;
-
-    private:
-        infra::ConstByteRange ParserAdvertisingData(GapAdvertisementDataType type) const;
+        hal::MacAddress macAddress;
+        GapDeviceAddressType addressType;
+        infra::ConstByteRange randomData;
+        infra::ConstByteRange confirmData;
     };
 
     class GapPairing;
@@ -126,6 +108,7 @@ namespace services
         virtual void DisplayPasskey(int32_t passkey, bool numericComparison) = 0;
         virtual void PairingSuccessfullyCompleted() = 0;
         virtual void PairingFailed(PairingErrorType error) = 0;
+        virtual void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) = 0;
     };
 
     class GapPairing
@@ -155,13 +138,15 @@ namespace services
             level4,
         };
 
-        virtual void Pair() = 0;
+        // 1. If there is a pre-existing bond, then the connection will be encrypted.
+        // 2. If there is no pre-existing bond, then pairing, encrypting, and bonding (storing the keys) will take place.
+        virtual void PairAndBond() = 0;
 
         virtual void AllowPairing(bool allow) = 0;
-
         virtual void SetSecurityMode(SecurityMode mode, SecurityLevel level) = 0;
         virtual void SetIoCapabilities(IoCapabilities caps) = 0;
-
+        virtual void GenerateOutOfBandData() = 0;
+        virtual void SetOutOfBandData(const GapOutOfBandData& outOfBandData) = 0;
         virtual void AuthenticateWithPasskey(uint32_t passkey) = 0;
         virtual void NumericComparisonConfirm(bool accept) = 0;
     };
@@ -177,12 +162,15 @@ namespace services
         void DisplayPasskey(int32_t passkey, bool numericComparison) override;
         void PairingSuccessfullyCompleted() override;
         void PairingFailed(PairingErrorType error) override;
+        void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) override;
 
         // Implementation of GapPairing
-        void Pair() override;
+        void PairAndBond() override;
         void AllowPairing(bool allow) override;
         void SetSecurityMode(SecurityMode mode, SecurityLevel level) override;
         void SetIoCapabilities(IoCapabilities caps) override;
+        void GenerateOutOfBandData() override;
+        void SetOutOfBandData(const GapOutOfBandData& outOfBandData) override;
         void AuthenticateWithPasskey(uint32_t passkey) override;
         void NumericComparisonConfirm(bool accept) override;
     };
@@ -207,6 +195,7 @@ namespace services
 
         virtual std::size_t GetMaxNumberOfBonds() const = 0;
         virtual std::size_t GetNumberOfBonds() const = 0;
+        virtual bool IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const = 0;
     };
 
     class GapBondingDecorator
@@ -224,6 +213,7 @@ namespace services
         void RemoveOldestBond() override;
         std::size_t GetMaxNumberOfBonds() const override;
         std::size_t GetNumberOfBonds() const override;
+        bool IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const override;
     };
 
     class GapPeripheral;
@@ -266,6 +256,7 @@ namespace services
         virtual infra::ConstByteRange GetScanResponseData() const = 0;
         virtual void Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier) = 0;
         virtual void Standby() = 0;
+        virtual void SetConnectionParameters(const services::GapConnectionParameters& connParam) = 0;
     };
 
     class GapPeripheralDecorator
@@ -288,12 +279,64 @@ namespace services
         infra::ConstByteRange GetScanResponseData() const override;
         void Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier) override;
         void Standby() override;
+        void SetConnectionParameters(const services::GapConnectionParameters& connParam) override;
     };
 
     inline GapPeripheral::AdvertisementFlags operator|(GapPeripheral::AdvertisementFlags lhs, GapPeripheral::AdvertisementFlags rhs)
     {
         return static_cast<GapPeripheral::AdvertisementFlags>(infra::enum_cast(lhs) | infra::enum_cast(rhs));
     }
+
+    class GapAdvertisingDataParser
+    {
+    public:
+        explicit GapAdvertisingDataParser(infra::ConstByteRange data);
+
+        infra::ConstByteRange LocalName() const;
+        infra::Optional<std::pair<uint16_t, infra::ConstByteRange>> ManufacturerSpecificData() const;
+        infra::Optional<GapPeripheral::AdvertisementFlags> Flags() const;
+        infra::MemoryRange<const AttAttribute::Uuid16> CompleteListOf16BitUuids() const;
+        infra::MemoryRange<const AttAttribute::Uuid128> CompleteListOf128BitUuids() const;
+        infra::Optional<uint16_t> Appearance() const;
+
+    private:
+        infra::ConstByteRange data;
+
+    private:
+        infra::ConstByteRange ParserAdvertisingData(GapAdvertisementDataType type) const;
+    };
+
+    class GapAdvertisementFormatter
+    {
+    public:
+        explicit GapAdvertisementFormatter(infra::BoundedVector<uint8_t>& payload);
+
+        void AppendFlags(GapPeripheral::AdvertisementFlags flags);
+        void AppendCompleteLocalName(const infra::BoundedConstString& name);
+        void AppendShortenedLocalName(const infra::BoundedConstString& name);
+        void AppendManufacturerData(uint16_t manufacturerCode, infra::ConstByteRange data);
+        void AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid16> services);
+        void AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services);
+        void AppendPublicTargetAddress(hal::MacAddress address);
+        void AppendAppearance(uint16_t appearance);
+
+        infra::ConstByteRange FormattedAdvertisementData() const;
+        std::size_t RemainingSpaceAvailable() const;
+
+    private:
+        static constexpr std::size_t headerSize = 2;
+
+        infra::BoundedVector<uint8_t>& payload;
+    };
+
+    struct GapAdvertisingReport
+    {
+        GapAdvertisingEventType eventType;
+        GapDeviceAddressType addressType;
+        hal::MacAddress address;
+        infra::BoundedVector<uint8_t>::WithMaxSize<GapPeripheral::maxAdvertisementDataSize> data;
+        int32_t rssi;
+    };
 
     class GapCentral;
 
@@ -317,6 +360,7 @@ namespace services
         virtual void SetAddress(hal::MacAddress macAddress, GapDeviceAddressType addressType) = 0;
         virtual void StartDeviceDiscovery() = 0;
         virtual void StopDeviceDiscovery() = 0;
+        virtual infra::Optional<hal::MacAddress> ResolvePrivateAddress(hal::MacAddress address) const = 0;
     };
 
     class GapCentralDecorator
@@ -337,13 +381,14 @@ namespace services
         void SetAddress(hal::MacAddress macAddress, GapDeviceAddressType addressType) override;
         void StartDeviceDiscovery() override;
         void StopDeviceDiscovery() override;
+        infra::Optional<hal::MacAddress> ResolvePrivateAddress(hal::MacAddress address) const override;
     };
 }
 
 namespace infra
 {
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapAdvertisingEventType& eventType);
-    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapAdvertisingEventAddressType& addressType);
+    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapDeviceAddressType& addressType);
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapState& state);
 }
 

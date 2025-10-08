@@ -5,14 +5,15 @@
 #include "protobuf/echo/test_doubles/EchoMock.hpp"
 #include "protobuf/echo/test_doubles/ServiceStub.hpp"
 #include "services/network/test_doubles/ConnectionMock.hpp"
-#include "services/util/EchoOnSesameSymmetricKey.hpp"
+#include "services/util/EchoPolicySymmetricKey.hpp"
 #include "services/util/test_doubles/SesameMock.hpp"
+#include <numeric>
 
-class EchoOnSesameSymmetricKeyTest
+class EchoPolicySymmetricKeyTest
     : public testing::Test
 {
 public:
-    EchoOnSesameSymmetricKeyTest()
+    EchoPolicySymmetricKeyTest()
     {
         EXPECT_CALL(lower, MaxSendMessageSize()).WillRepeatedly(testing::Return(100));
 
@@ -38,7 +39,7 @@ public:
             })).WillOnce(testing::Invoke([this, iv](infra::ByteRange range)
             {
                 infra::Copy(iv, range);
-            }));
+            })).RetiresOnSaturation();
         // clang-format on
     }
 
@@ -59,16 +60,21 @@ public:
     testing::StrictMock<services::EchoErrorPolicyMock> errorPolicy;
     testing::StrictMock<hal::SynchronousRandomDataGeneratorMock> randomDataGenerator;
     testing::StrictMock<services::SesameMock> lower;
-    std::array<uint8_t, services::SesameSecured::keySize> key{ 1, 2 };
-    std::array<uint8_t, services::SesameSecured::blockSize> iv{ 1, 3 };
-    services::SesameSecured::WithBuffers<64> secured{ lower, services::SesameSecured::KeyMaterial{ key, iv, key, iv } };
-    services::EchoOnSesameSymmetricKey echo{ secured, randomDataGenerator, serializerFactory, errorPolicy };
+    infra::Execute e{ [this]()
+        {
+            ExpectGenerationOfKeyMaterial({ 1, 2 }, { 3, 4 });
+            ExpectGenerationOfKeyMaterial({ 1, 2 }, { 3, 4 });
+        } };
+    sesame_security::SymmetricKeyFile keys{ services::GenerateSymmetricKeys(randomDataGenerator) };
+    services::SesameSecured::WithCryptoMbedTls::WithBuffers<64> secured{ lower, keys };
+    services::EchoOnSesame echo{ secured, serializerFactory, errorPolicy };
+    services::EchoPolicySymmetricKey policy{ echo, echo, secured, randomDataGenerator };
 
     services::ServiceStubProxy serviceProxy{ echo };
     testing::StrictMock<services::ServiceStub> service{ echo };
 };
 
-TEST_F(EchoOnSesameSymmetricKeyTest, send_and_receive)
+TEST_F(EchoPolicySymmetricKeyTest, send_and_receive)
 {
     EXPECT_CALL(lower, RequestSendMessage(testing::_)).WillOnce(testing::Invoke([this]()
         {
@@ -85,7 +91,30 @@ TEST_F(EchoOnSesameSymmetricKeyTest, send_and_receive)
         });
 }
 
-TEST_F(EchoOnSesameSymmetricKeyTest, send_while_initializing)
+TEST_F(EchoPolicySymmetricKeyTest, send_and_receive_large_message)
+{
+    std::array<uint8_t, 64> bytes;
+    std::iota(bytes.begin(), bytes.end(), 1);
+    EXPECT_CALL(lower, RequestSendMessage(testing::_)).WillOnce(testing::Invoke([this, &bytes]()
+        {
+            EXPECT_CALL(lower, RequestSendMessage(testing::_));
+            LoopBackData();
+
+            EXPECT_CALL(service, MethodBytes(testing::_)).WillOnce(testing::Invoke([this, &bytes](const infra::BoundedVector<uint8_t>& value)
+                {
+                    EXPECT_TRUE(infra::ContentsEqual(infra::MakeRange(bytes), infra::MakeRange(value)));
+                    service.MethodDone();
+                }));
+            LoopBackData();
+        }));
+
+    serviceProxy.RequestSend([this, &bytes]()
+        {
+            serviceProxy.MethodBytes(bytes);
+        });
+}
+
+TEST_F(EchoPolicySymmetricKeyTest, send_while_initializing)
 {
     EXPECT_CALL(lower, RequestSendMessage(testing::_));
     lower.GetObserver().Initialized();

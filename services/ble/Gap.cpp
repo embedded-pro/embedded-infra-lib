@@ -1,4 +1,22 @@
 #include "services/ble/Gap.hpp"
+#include "infra/stream/ByteInputStream.hpp"
+#include "infra/util/BoundedString.hpp"
+#include "infra/util/MemoryRange.hpp"
+#include "infra/util/Optional.hpp"
+
+namespace
+{
+    void AddHeader(infra::BoundedVector<uint8_t>& payload, std::size_t length, services::GapAdvertisementDataType type)
+    {
+        payload.push_back(static_cast<uint8_t>(length + 1));
+        payload.push_back(static_cast<uint8_t>(type));
+    }
+
+    void AddData(infra::BoundedVector<uint8_t>& payload, infra::ConstByteRange data)
+    {
+        payload.insert(payload.end(), data.begin(), data.end());
+    }
+}
 
 namespace services
 {
@@ -26,9 +44,17 @@ namespace services
             });
     }
 
-    void GapPairingDecorator::Pair()
+    void GapPairingDecorator::OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData)
     {
-        GapPairingObserver::Subject().Pair();
+        GapPairing::NotifyObservers([outOfBandData](auto& obs)
+            {
+                obs.OutOfBandDataGenerated(outOfBandData);
+            });
+    }
+
+    void GapPairingDecorator::PairAndBond()
+    {
+        GapPairingObserver::Subject().PairAndBond();
     }
 
     void GapPairingDecorator::AllowPairing(bool allow)
@@ -44,6 +70,16 @@ namespace services
     void GapPairingDecorator::SetIoCapabilities(IoCapabilities caps)
     {
         GapPairingObserver::Subject().SetIoCapabilities(caps);
+    }
+
+    void GapPairingDecorator::GenerateOutOfBandData()
+    {
+        GapPairingObserver::Subject().GenerateOutOfBandData();
+    }
+
+    void GapPairingDecorator::SetOutOfBandData(const GapOutOfBandData& outOfBandData)
+    {
+        GapPairingObserver::Subject().SetOutOfBandData(outOfBandData);
     }
 
     void GapPairingDecorator::AuthenticateWithPasskey(uint32_t passkey)
@@ -82,6 +118,11 @@ namespace services
     std::size_t GapBondingDecorator::GetNumberOfBonds() const
     {
         return GapBondingObserver::Subject().GetNumberOfBonds();
+    }
+
+    bool GapBondingDecorator::IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const
+    {
+        return GapBondingObserver::Subject().IsDeviceBonded(address, addressType);
     }
 
     void GapPeripheralDecorator::StateChanged(GapState state)
@@ -132,6 +173,11 @@ namespace services
         GapPeripheralObserver::Subject().Standby();
     }
 
+    void GapPeripheralDecorator::SetConnectionParameters(const services::GapConnectionParameters& connParam)
+    {
+        GapPeripheralObserver::Subject().SetConnectionParameters(connParam);
+    }
+
     void GapCentralDecorator::DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered)
     {
         GapCentralObserver::SubjectType::NotifyObservers([&deviceDiscovered](auto& obs)
@@ -178,6 +224,11 @@ namespace services
         GapCentralObserver::Subject().StopDeviceDiscovery();
     }
 
+    infra::Optional<hal::MacAddress> GapCentralDecorator::ResolvePrivateAddress(hal::MacAddress address) const
+    {
+        return GapCentralObserver::Subject().ResolvePrivateAddress(address);
+    }
+
     GapAdvertisingDataParser::GapAdvertisingDataParser(infra::ConstByteRange data)
         : data(data)
     {}
@@ -192,9 +243,62 @@ namespace services
             return localName;
     }
 
-    infra::ConstByteRange GapAdvertisingDataParser::ManufacturerSpecificData() const
+    infra::Optional<std::pair<uint16_t, infra::ConstByteRange>> GapAdvertisingDataParser::ManufacturerSpecificData() const
     {
-        return ParserAdvertisingData(GapAdvertisementDataType::manufacturerSpecificData);
+        infra::ByteInputStream stream(ParserAdvertisingData(GapAdvertisementDataType::manufacturerSpecificData), infra::softFail);
+        auto manufacturerCode = stream.Extract<uint16_t>();
+        auto manufacturerData = stream.Reader().Remaining();
+
+        if (stream.Failed())
+            return infra::none;
+
+        return infra::MakeOptional(std::make_pair(manufacturerCode, manufacturerData));
+    }
+
+    infra::Optional<GapPeripheral::AdvertisementFlags> GapAdvertisingDataParser::Flags() const
+    {
+        auto flagsData = ParserAdvertisingData(GapAdvertisementDataType::flags);
+
+        if (flagsData.empty())
+            return infra::none;
+
+        if (flagsData.size() != 1)
+            return infra::none;
+
+        return infra::MakeOptional(static_cast<GapPeripheral::AdvertisementFlags>(flagsData[0]));
+    }
+
+    infra::MemoryRange<const AttAttribute::Uuid16> GapAdvertisingDataParser::CompleteListOf16BitUuids() const
+    {
+        auto uuidData = ParserAdvertisingData(GapAdvertisementDataType::completeListOf16BitUuids);
+
+        if (uuidData.size() % sizeof(AttAttribute::Uuid16) != 0)
+            return {};
+
+        return infra::ConstCastMemoryRange<AttAttribute::Uuid16>(infra::ReinterpretCastMemoryRange<const AttAttribute::Uuid16>(uuidData));
+    }
+
+    infra::MemoryRange<const AttAttribute::Uuid128> GapAdvertisingDataParser::CompleteListOf128BitUuids() const
+    {
+        auto uuidData = ParserAdvertisingData(GapAdvertisementDataType::completeListOf128BitUuids);
+
+        if (uuidData.size() % sizeof(AttAttribute::Uuid128) != 0)
+            return {};
+
+        return infra::ConstCastMemoryRange<AttAttribute::Uuid128>(infra::ReinterpretCastMemoryRange<const AttAttribute::Uuid128>(uuidData));
+    }
+
+    infra::Optional<uint16_t> GapAdvertisingDataParser::Appearance() const
+    {
+        auto appearanceData = ParserAdvertisingData(GapAdvertisementDataType::appearance);
+
+        infra::ByteInputStream stream(appearanceData, infra::softFail);
+        auto appearance = stream.Extract<uint16_t>();
+
+        if (stream.Failed())
+            return infra::none;
+
+        return infra::MakeOptional(appearance);
     }
 
     infra::ConstByteRange GapAdvertisingDataParser::ParserAdvertisingData(GapAdvertisementDataType type) const
@@ -222,6 +326,90 @@ namespace services
 
         return infra::ConstByteRange();
     }
+
+    GapAdvertisementFormatter::GapAdvertisementFormatter(infra::BoundedVector<uint8_t>& payload)
+        : payload(payload)
+    {}
+
+    void GapAdvertisementFormatter::AppendFlags(GapPeripheral::AdvertisementFlags flags)
+    {
+        really_assert(headerSize + sizeof(flags) <= RemainingSpaceAvailable());
+
+        auto flagsByte = static_cast<uint8_t>(flags);
+        AddHeader(payload, sizeof(flags), GapAdvertisementDataType::flags);
+        AddData(payload, infra::MakeRangeFromSingleObject(flagsByte));
+    }
+
+    void GapAdvertisementFormatter::AppendCompleteLocalName(const infra::BoundedConstString& name)
+    {
+        really_assert(name.size() + headerSize <= RemainingSpaceAvailable() && name.size() > 0);
+
+        AddHeader(payload, name.size(), GapAdvertisementDataType::completeLocalName);
+        AddData(payload, infra::StringAsByteRange(name));
+    }
+
+    void GapAdvertisementFormatter::AppendShortenedLocalName(const infra::BoundedConstString& name)
+    {
+        really_assert(name.size() + headerSize <= RemainingSpaceAvailable() && name.size() > 0);
+
+        AddHeader(payload, name.size(), GapAdvertisementDataType::shortenedLocalName);
+        AddData(payload, infra::StringAsByteRange(name));
+    }
+
+    void GapAdvertisementFormatter::AppendManufacturerData(uint16_t manufacturerCode, infra::ConstByteRange data)
+    {
+        really_assert(data.size() + headerSize + sizeof(manufacturerCode) <= RemainingSpaceAvailable());
+
+        AddHeader(payload, data.size() + sizeof(manufacturerCode), GapAdvertisementDataType::manufacturerSpecificData);
+        AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(manufacturerCode)));
+        AddData(payload, data);
+    }
+
+    void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid16> services)
+    {
+        really_assert(services.size() * sizeof(AttAttribute::Uuid16) + headerSize <= RemainingSpaceAvailable() && !services.empty());
+
+        AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid16), GapAdvertisementDataType::completeListOf16BitUuids);
+
+        for (const auto& service : services)
+            AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(service)));
+    }
+
+    void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services)
+    {
+        really_assert(services.size() * sizeof(AttAttribute::Uuid128) + headerSize <= RemainingSpaceAvailable() && !services.empty());
+
+        AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid128), GapAdvertisementDataType::completeListOf128BitUuids);
+
+        for (auto& service : services)
+            AddData(payload, infra::ReinterpretCastMemoryRange<uint8_t>(infra::MakeRangeFromSingleObject(service)));
+    }
+
+    void GapAdvertisementFormatter::AppendPublicTargetAddress(hal::MacAddress address)
+    {
+        really_assert(sizeof(address) + headerSize <= RemainingSpaceAvailable());
+
+        AddHeader(payload, sizeof(address), GapAdvertisementDataType::publicTargetAddress);
+        AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(address)));
+    }
+
+    void GapAdvertisementFormatter::AppendAppearance(uint16_t appearance)
+    {
+        really_assert(sizeof(appearance) + headerSize <= RemainingSpaceAvailable());
+
+        AddHeader(payload, sizeof(appearance), GapAdvertisementDataType::appearance);
+        AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(appearance)));
+    }
+
+    infra::ConstByteRange GapAdvertisementFormatter::FormattedAdvertisementData() const
+    {
+        return infra::MakeRange(payload);
+    }
+
+    std::size_t GapAdvertisementFormatter::RemainingSpaceAvailable() const
+    {
+        return payload.max_size() - payload.size();
+    }
 }
 
 namespace infra
@@ -242,16 +430,12 @@ namespace infra
         return stream;
     }
 
-    TextOutputStream& operator<<(TextOutputStream& stream, const services::GapAdvertisingEventAddressType& addressType)
+    TextOutputStream& operator<<(TextOutputStream& stream, const services::GapDeviceAddressType& addressType)
     {
-        if (addressType == services::GapAdvertisingEventAddressType::publicDeviceAddress)
+        if (addressType == services::GapDeviceAddressType::publicAddress)
             stream << "Public Device Address";
-        else if (addressType == services::GapAdvertisingEventAddressType::randomDeviceAddress)
-            stream << "Random Device Address";
-        else if (addressType == services::GapAdvertisingEventAddressType::publicIdentityAddress)
-            stream << "Public Identity Address";
         else
-            stream << "Random Identity Address";
+            stream << "Random Device Address";
 
         return stream;
     }

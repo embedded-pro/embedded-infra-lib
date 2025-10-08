@@ -7,7 +7,7 @@ if (APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
 endif()
 
-project(emil LANGUAGES C CXX VERSION 7.0.0) # x-release-please-version
+project(emil LANGUAGES C CXX VERSION 7.2.0) # x-release-please-version
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
@@ -15,6 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED On)
 set_directory_properties(PROPERTY USE_FOLDERS On)
 
 include(CMakePackageConfigHelpers)
+include(emil_coverage)
 include(emil_antora)
 include(emil_build_for)
 include(emil_folderize)
@@ -160,6 +161,7 @@ emil_clangformat_directories(emil DIRECTORIES .)
 
 if (EMIL_STANDALONE)
     emil_generate_antora_docs_target(antora-playbook-branch.yml)
+    emil_coverage_targets(DIRECTORIES .)
     emil_folderize_all_targets()
 endif()
 

@@ -1,11 +1,12 @@
 #include "services/ble/GattClient.hpp"
+#include "infra/util/ReallyAssert.hpp"
 
 namespace services
 {
     GattClientCharacteristic::GattClientCharacteristic(GattClientCharacteristicOperations& operations, AttAttribute::Uuid type, AttAttribute::Handle handle, AttAttribute::Handle valueHandle, GattCharacteristic::PropertyFlags properties)
         : GattClientCharacteristic(type, handle, valueHandle, properties)
     {
-        GattClientCharacteristicOperationsObserver::Attach(operations);
+        this->operations = &operations;
         GattClientStackUpdateObserver::Attach(operations);
     }
 
@@ -13,53 +14,53 @@ namespace services
         : GattCharacteristic(type, handle, valueHandle, properties)
     {}
 
-    void GattClientCharacteristic::Read(infra::Function<void(const infra::ConstByteRange&)> onResponse)
+    void GattClientCharacteristic::Read(const infra::Function<void(const infra::ConstByteRange&)>& onResponse, const infra::Function<void(uint8_t)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().Read(*this, onResponse);
+        operations->Read(valueHandle, onResponse, onDone);
     }
 
-    void GattClientCharacteristic::Write(infra::ConstByteRange data, infra::Function<void()> onDone)
+    void GattClientCharacteristic::Write(infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().Write(*this, data, onDone);
+        operations->Write(valueHandle, data, onDone);
     }
 
-    void GattClientCharacteristic::WriteWithoutResponse(infra::ConstByteRange data)
+    void GattClientCharacteristic::WriteWithoutResponse(infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().WriteWithoutResponse(*this, data);
+        operations->WriteWithoutResponse(valueHandle, data, onDone);
     }
 
-    void GattClientCharacteristic::EnableNotification(infra::Function<void()> onDone)
+    void GattClientCharacteristic::EnableNotification(const infra::Function<void(uint8_t)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().EnableNotification(*this, onDone);
+        operations->EnableNotification(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::DisableNotification(infra::Function<void()> onDone)
+    void GattClientCharacteristic::DisableNotification(const infra::Function<void(uint8_t)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().DisableNotification(*this, onDone);
+        operations->DisableNotification(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::EnableIndication(infra::Function<void()> onDone)
+    void GattClientCharacteristic::EnableIndication(const infra::Function<void(uint8_t)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().EnableIndication(*this, onDone);
+        operations->EnableIndication(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::DisableIndication(infra::Function<void()> onDone)
+    void GattClientCharacteristic::DisableIndication(const infra::Function<void(uint8_t)>& onDone)
     {
-        really_assert(GattClientCharacteristicOperationsObserver::Attached());
+        really_assert(operations != nullptr);
 
-        GattClientCharacteristicOperationsObserver::Subject().DisableIndication(*this, onDone);
+        operations->DisableIndication(valueHandle, onDone);
     }
 
     void GattClientCharacteristic::NotificationReceived(AttAttribute::Handle handle, infra::ConstByteRange data)
@@ -120,66 +121,13 @@ namespace services
         return characteristics;
     }
 
-    void GattClientDiscoveryDecorator::ServiceDiscovered(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle endHandle)
+    void GattClientDiscovery::StartCharacteristicDiscovery(const GattService& service)
     {
-        GattClientDiscoveryObserver::SubjectType::NotifyObservers([&type, &handle, &endHandle](auto& obs)
-            {
-                obs.ServiceDiscovered(type, handle, endHandle);
-            });
+        StartCharacteristicDiscovery(service.Handle(), service.EndHandle());
     }
 
-    void GattClientDiscoveryDecorator::CharacteristicDiscovered(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle valueHandle, GattCharacteristic::PropertyFlags properties)
+    void GattClientDiscovery::StartDescriptorDiscovery(const GattService& service)
     {
-        GattClientDiscoveryObserver::SubjectType::NotifyObservers([&type, &handle, &valueHandle, &properties](auto& obs)
-            {
-                obs.CharacteristicDiscovered(type, handle, valueHandle, properties);
-            });
-    }
-
-    void GattClientDiscoveryDecorator::DescriptorDiscovered(const AttAttribute::Uuid& type, AttAttribute::Handle handle)
-    {
-        GattClientDiscoveryObserver::SubjectType::NotifyObservers([&type, &handle](auto& obs)
-            {
-                obs.DescriptorDiscovered(type, handle);
-            });
-    }
-
-    void GattClientDiscoveryDecorator::ServiceDiscoveryComplete()
-    {
-        GattClientDiscoveryObserver::SubjectType::NotifyObservers([](auto& obs)
-            {
-                obs.ServiceDiscoveryComplete();
-            });
-    }
-
-    void GattClientDiscoveryDecorator::CharacteristicDiscoveryComplete()
-    {
-        GattClientDiscoveryObserver::SubjectType::NotifyObservers([](auto& obs)
-            {
-                obs.CharacteristicDiscoveryComplete();
-            });
-    }
-
-    void GattClientDiscoveryDecorator::DescriptorDiscoveryComplete()
-    {
-        GattClientDiscoveryObserver::SubjectType::NotifyObservers([](auto& obs)
-            {
-                obs.DescriptorDiscoveryComplete();
-            });
-    }
-
-    void GattClientDiscoveryDecorator::StartServiceDiscovery()
-    {
-        GattClientDiscoveryObserver::Subject().StartServiceDiscovery();
-    }
-
-    void GattClientDiscoveryDecorator::StartCharacteristicDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle)
-    {
-        GattClientDiscoveryObserver::Subject().StartCharacteristicDiscovery(handle, endHandle);
-    }
-
-    void GattClientDiscoveryDecorator::StartDescriptorDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle)
-    {
-        GattClientDiscoveryObserver::Subject().StartDescriptorDiscovery(handle, endHandle);
+        StartDescriptorDiscovery(service.Handle(), service.EndHandle());
     }
 }

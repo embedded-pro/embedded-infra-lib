@@ -4,7 +4,7 @@
 #include "infra/stream/BoundedVectorOutputStream.hpp"
 #include "infra/util/IntrusiveForwardList.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "protobuf/echo/Echo.hpp"
+#include "protobuf/echo/EchoOnStreams.hpp"
 #include "services/tracer/Tracer.hpp"
 #include <type_traits>
 
@@ -93,6 +93,7 @@ namespace services
             void SendingMethod(uint32_t serviceId, uint32_t methodId, infra::ProtoLengthDelimited& contents) const;
             const ServiceTracer* FindService(uint32_t serviceId) const;
             void SerializationDone();
+            bool TraceOneMessage();
 
         private:
             class TracingWriter
