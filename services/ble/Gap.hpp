@@ -3,6 +3,7 @@
 
 #include "hal/interfaces/MacAddress.hpp"
 #include "infra/timer/Timer.hpp"
+#include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Observer.hpp"
 #include "infra/util/Optional.hpp"
