@@ -18,4 +18,8 @@ target_sources(segger.rtt PRIVATE
     ${segger_rtt_SOURCE_DIR}/RTT/SEGGER_RTT.h
 )
 
+if(DEFINED SEGGER_RTT_BUFFER_SIZE_UP)
+    target_compile_definitions(segger.rtt PUBLIC BUFFER_SIZE_UP=${SEGGER_RTT_BUFFER_SIZE_UP})
+endif()
+
 emil_exclude_from_clang_format(segger.rtt)

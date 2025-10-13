@@ -38,6 +38,7 @@ namespace services
 
     private:
         void Help();
+        void PrintDescription(infra::BoundedConstString description, infra::BoundedConstString shortName, infra::BoundedConstString longName, std::size_t descriptionWidth);
 
     private:
         infra::BoundedVector<Command>& commands;
