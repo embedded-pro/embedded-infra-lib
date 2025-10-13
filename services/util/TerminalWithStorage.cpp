@@ -34,13 +34,42 @@ namespace services
             tracer.Trace() << "ERROR: " << result.message;
     }
 
+    void TerminalWithStorage::PrintDescription(infra::BoundedConstString description, infra::BoundedConstString shortName, infra::BoundedConstString longName, std::size_t descriptionWidth)
+    {
+        bool firstLine = true;
+
+        while (!description.empty())
+        {
+            auto chunkSize = std::min(description.size(), descriptionWidth);
+            infra::BoundedConstString chunk = description.substr(0, chunkSize);
+            description = description.substr(chunkSize);
+
+            infra::BoundedString::WithStorage<40> paddedChunk(chunk);
+            paddedChunk.resize(descriptionWidth, ' ');
+
+            if (std::exchange(firstLine, false))
+                tracer.Continue() << "  | " << shortName << " | " << longName << " | " << paddedChunk << " |" << infra::endl;
+            else
+                tracer.Continue() << "  |            |                                  | " << paddedChunk << " |" << infra::endl;
+        }
+    }
+
     void TerminalWithStorage::Help()
     {
+        constexpr std::size_t descriptionWidth = 40;
+        tracer.Continue() << "\r\nAvailable commands:\r\n";
+        tracer.Continue() << "  +------------+----------------------------------+------------------------------------------+" << infra::endl;
+        tracer.Continue() << "  | Short Name | Long Name                        | Description                              |" << infra::endl;
+        tracer.Continue() << "  +------------+----------------------------------+------------------------------------------+" << infra::endl;
         for (const auto& cmd : Commands())
         {
-            infra::BoundedString::WithStorage<128> tmpLongName(cmd.info.longName);
+            infra::BoundedString::WithStorage<32> tmpShortName(cmd.info.shortName);
+            infra::BoundedString::WithStorage<32> tmpLongName(cmd.info.longName);
+            tmpShortName.resize(10, ' ');
             tmpLongName.resize(32, ' ');
-            tracer.Continue() << cmd.info.shortName << "\t" << tmpLongName << "\t" << cmd.info.description << infra::endl;
+
+            PrintDescription(cmd.info.description, tmpShortName, tmpLongName, descriptionWidth);
         }
+        tracer.Continue() << "  +------------+----------------------------------+------------------------------------------+" << infra::endl;
     }
 }
