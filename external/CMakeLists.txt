@@ -1,7 +1,9 @@
 add_subdirectory(args)
 add_subdirectory(crypto)
-add_subdirectory(protobuf)
-add_subdirectory(protoc)
+if (EMIL_INCLUDE_ECHO)
+    add_subdirectory(protobuf)
+    add_subdirectory(protoc)
+endif()
 
 if (EMIL_INCLUDE_SEGGER_RTT)
     add_subdirectory(segger_rtt)
