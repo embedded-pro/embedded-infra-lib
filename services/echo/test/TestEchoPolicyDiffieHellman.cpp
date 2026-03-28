@@ -9,7 +9,7 @@
 #include "protobuf/echo/test_doubles/ServiceStub.hpp"
 #include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/echo/EchoPolicyDiffieHellman.hpp"
-#include "services/util/MbedTlsRandomDataGeneratorWrapper.hpp"
+#include "services/crypto/MbedTlsRandomDataGeneratorWrapper.hpp"
 #include "services/sesame/test_doubles/SesameMock.hpp"
 
 namespace

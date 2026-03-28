@@ -8,7 +8,7 @@
 #include "services/network/HttpClientCachedConnection.hpp"
 #include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/network/test_doubles/HttpClientMock.hpp"
-#include "services/util/Sha256MbedTls.hpp"
+#include "services/crypto/Sha256MbedTls.hpp"
 #include "gmock/gmock.h"
 
 class HttpClientCachedConnectionTest

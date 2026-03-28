@@ -5,7 +5,7 @@
 #include "infra/util/Optional.hpp"
 #include "infra/util/SharedPtr.hpp"
 #include "services/network/HttpClient.hpp"
-#include "services/util/Sha256.hpp"
+#include "services/crypto/Sha256.hpp"
 
 namespace services
 {

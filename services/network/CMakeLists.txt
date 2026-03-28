@@ -9,6 +9,7 @@ target_link_libraries(services.network PUBLIC
     infra.timer
     hal.synchronous_interfaces
     protobuf.echo
+    services.crypto
     services.tracer
     services.util
 )

@@ -18,32 +18,8 @@ target_link_libraries(services.util_test PUBLIC
 )
 
 target_sources(services.util_test PRIVATE
-    TestAesCmac.cpp
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestAesMbedTls.cpp>
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestConfigurationStore.cpp>
     TestCyclicStore.cpp
-    TestDebouncedButton.cpp
-    TestDebugLed.cpp
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestEllipticCurveDiffieHellman.cpp>
-    TestFlashAlign.cpp
-    TestFlashMultipleAccess.cpp
-    TestFlashQuadSpiCypressFll.cpp
-    TestFlashQuadSpiMicronN25q.cpp
-    TestFlashQuadSpiSingleSpeed.cpp
-    TestFlashRegion.cpp
-    TestFlashSpi.cpp
-    TestI2cMultipleAccess.cpp
-    TestInverseLogicPin.cpp
-    TestKeyGenerator.cpp
-    TestLowPowerSerialCommunication.cpp
-    TestLowPowerSpiMaster.cpp
-    TestMessageCommunicationCobs.cpp
-    TestMessageCommunicationWindowed.cpp
-    TestRepeatingButton.cpp
-    TestSerialCommunicationLoopback.cpp
-    TestSignalLed.cpp
-    TestSpiMasterWithChipSelect.cpp
-    TestSpiMultipleAccess.cpp
     TestTerminal.cpp
     TestTerminalWithStorage.cpp
     TestTimeWithLocalization.cpp

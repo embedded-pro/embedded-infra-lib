@@ -5,7 +5,7 @@ target_link_libraries(upgrade.boot_loader PUBLIC
     crypto.tiny_aes128
     hal.synchronous_interfaces
     infra.syntax
-    services.synchronous_util
+    services.synchronous_flash
     upgrade.pack
 )
 

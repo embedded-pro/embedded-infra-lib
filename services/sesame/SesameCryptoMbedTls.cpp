@@ -3,7 +3,7 @@
 #include "mbedtls/ecdsa.h"
 #include "mbedtls/hmac_drbg.h"
 #include "mbedtls/sha256.h"
-#include "services/util/MbedTlsRandomDataGeneratorWrapper.hpp"
+#include "services/crypto/MbedTlsRandomDataGeneratorWrapper.hpp"
 
 namespace services
 {

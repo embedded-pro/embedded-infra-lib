@@ -5,8 +5,8 @@ target_link_libraries(services.echo PUBLIC
     infra.syntax
     infra.timer
     protobuf.echo
+    services.message_communication
     services.sesame
-    services.util
 )
 
 # Ensure protobuf generation in services.sesame completes before

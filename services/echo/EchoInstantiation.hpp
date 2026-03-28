@@ -8,8 +8,8 @@
 #include "protobuf/echo/ServiceForwarder.hpp"
 #include "services/echo/EchoOnMessageCommunication.hpp"
 #include "services/echo/EchoOnSesame.hpp"
-#include "services/util/MessageCommunicationCobs.hpp"
-#include "services/util/MessageCommunicationWindowed.hpp"
+#include "services/message_communication/MessageCommunicationCobs.hpp"
+#include "services/message_communication/MessageCommunicationWindowed.hpp"
 #include "services/sesame/SesameCobs.hpp"
 #include "services/sesame/SesameWindowed.hpp"
 

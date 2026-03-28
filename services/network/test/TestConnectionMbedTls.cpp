@@ -10,7 +10,7 @@
 #include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/network/test_doubles/ConnectionStub.hpp"
 #include "services/util/ConfigurationStore.hpp"
-#include "services/util/Sha256MbedTls.hpp"
+#include "services/crypto/Sha256MbedTls.hpp"
 #include "services/util/test_doubles/ConfigurationStoreMock.hpp"
 #include "gmock/gmock.h"
 #include <algorithm>

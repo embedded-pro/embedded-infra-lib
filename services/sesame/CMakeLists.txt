@@ -13,6 +13,7 @@ target_link_libraries(services.sesame PUBLIC
     infra.syntax
     infra.timer
     protobuf.echo
+    services.crypto
 )
 
 target_sources(services.sesame PRIVATE

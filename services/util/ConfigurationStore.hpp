@@ -11,7 +11,7 @@
 #include "infra/util/Observer.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include "infra/util/WithStorage.hpp"
-#include "services/util/Sha256.hpp"
+#include "services/crypto/Sha256.hpp"
 
 namespace services
 {

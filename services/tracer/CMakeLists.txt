@@ -12,7 +12,6 @@ target_link_libraries(services.tracer PUBLIC
     infra.stream
     infra.timer
     services.echo
-    services.util
 )
 
 target_sources(services.tracer PRIVATE

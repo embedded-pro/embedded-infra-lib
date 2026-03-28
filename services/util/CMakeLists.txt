@@ -4,69 +4,15 @@ target_link_libraries(services.util PUBLIC
     hal.interfaces
     infra.syntax
     infra.timer
+    services.crypto
     services.tracer
 )
 
 target_sources(services.util PRIVATE
-    Aes.hpp
-    AesCmac.cpp
-    AesCmac.hpp
     ConfigurationStore.cpp
     ConfigurationStore.hpp
     CyclicStore.cpp
     CyclicStore.hpp
-    DebouncedButton.cpp
-    DebouncedButton.hpp
-    DebugLed.cpp
-    DebugLed.hpp
-    EllipticCurve.hpp
-    EllipticCurveDiffieHellman.cpp
-    EllipticCurveDiffieHellman.hpp
-    FlashAlign.cpp
-    FlashAlign.hpp
-    FlashDelegate.hpp
-    FlashMultipleAccess.cpp
-    FlashMultipleAccess.hpp
-    FlashQuadSpi.cpp
-    FlashQuadSpi.hpp
-    FlashQuadSpiCypressFll.cpp
-    FlashQuadSpiCypressFll.hpp
-    FlashQuadSpiMicronN25q.cpp
-    FlashQuadSpiMicronN25q.hpp
-    FlashQuadSpiSingleSpeed.cpp
-    FlashQuadSpiSingleSpeed.hpp
-    FlashSpi.cpp
-    FlashSpi.hpp
-    FlashRegion.cpp
-    FlashRegion.hpp
-    GpioPinInverted.cpp
-    GpioPinInverted.hpp
-    KeyGenerator.cpp
-    KeyGenerator.hpp
-    I2cMultipleAccess.cpp
-    I2cMultipleAccess.hpp
-    LowPowerSerialCommunication.cpp
-    LowPowerSerialCommunication.hpp
-    LowPowerSpiMaster.cpp
-    LowPowerSpiMaster.hpp
-    MessageCommunication.hpp
-    MessageCommunicationCobs.cpp
-    MessageCommunicationCobs.hpp
-    MessageCommunicationWindowed.cpp
-    MessageCommunicationWindowed.hpp
-    RepeatingButton.cpp
-    RepeatingButton.hpp
-    Secp256r1.cpp
-    Secp256r1.hpp
-    SerialCommunicationLoopback.cpp
-    SerialCommunicationLoopback.hpp
-    Sha256.hpp
-    SignalLed.cpp
-    SignalLed.hpp
-    SpiMasterWithChipSelect.cpp
-    SpiMasterWithChipSelect.hpp
-    SpiMultipleAccess.cpp
-    SpiMultipleAccess.hpp
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp
@@ -80,31 +26,6 @@ target_sources(services.util PRIVATE
 if (EMIL_HOST_BUILD)
     target_link_libraries(services.util PUBLIC
         hal.generic
-    )
-endif()
-
-if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
-    if (NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
-        target_link_libraries(services.util PUBLIC
-            ${EMIL_EXTERNAL_MBEDTLS_TARGET}
-        )
-    else()
-        target_link_libraries(services.util PUBLIC
-            mbedcrypto
-        )
-    endif()
-
-    target_compile_definitions(services.util PUBLIC
-        EMIL_USE_MBEDTLS
-    )
-
-    target_sources(services.util PRIVATE
-        AesMbedTls.cpp
-        AesMbedTls.hpp
-        MbedTlsRandomDataGeneratorWrapper.cpp
-        MbedTlsRandomDataGeneratorWrapper.hpp
-        Sha256MbedTls.cpp
-        Sha256MbedTls.hpp
     )
 endif()
 

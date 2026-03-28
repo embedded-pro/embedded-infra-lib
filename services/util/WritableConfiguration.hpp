@@ -7,7 +7,7 @@
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/syntax/ProtoFormatter.hpp"
 #include "infra/syntax/ProtoParser.hpp"
-#include "services/util/Sha256.hpp"
+#include "services/crypto/Sha256.hpp"
 
 namespace services
 {
