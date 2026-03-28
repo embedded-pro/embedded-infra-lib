@@ -2,6 +2,12 @@ add_library(services.sesame ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
 protocol_buffer_echo_cpp(services.sesame SesameSecurity.proto)
 
+if (EMIL_ENABLE_TRACING)
+    target_compile_definitions(services.sesame PUBLIC EMIL_ENABLE_TRACING=1)
+else()
+    target_compile_definitions(services.sesame PUBLIC EMIL_DISABLE_TRACING=1)
+endif()
+
 target_link_libraries(services.sesame PUBLIC
     hal.interfaces
     infra.syntax
