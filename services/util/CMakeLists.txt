@@ -1,12 +1,9 @@
 add_library(services.util ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
-protocol_buffer_echo_cpp(services.util SesameSecurity.proto)
-
 target_link_libraries(services.util PUBLIC
     hal.interfaces
     infra.syntax
     infra.timer
-    protobuf.echo
     services.tracer
 )
 
@@ -22,16 +19,9 @@ target_sources(services.util PRIVATE
     DebouncedButton.hpp
     DebugLed.cpp
     DebugLed.hpp
-    EchoInstantiation.cpp
-    EchoInstantiation.hpp
-    EchoOnMessageCommunication.cpp
-    EchoOnMessageCommunication.hpp
-    EchoOnSesame.cpp
-    EchoOnSesame.hpp
-    EchoPolicyDiffieHellman.cpp
-    EchoPolicyDiffieHellman.hpp
-    EchoPolicySymmetricKey.cpp
-    EchoPolicySymmetricKey.hpp
+    EllipticCurve.hpp
+    EllipticCurveDiffieHellman.cpp
+    EllipticCurveDiffieHellman.hpp
     FlashAlign.cpp
     FlashAlign.hpp
     FlashDelegate.hpp
@@ -70,14 +60,6 @@ target_sources(services.util PRIVATE
     Secp256r1.hpp
     SerialCommunicationLoopback.cpp
     SerialCommunicationLoopback.hpp
-    Sesame.hpp
-    SesameCobs.cpp
-    SesameCobs.hpp
-    SesameCrypto.hpp
-    SesameSecured.cpp
-    SesameSecured.hpp
-    SesameWindowed.cpp
-    SesameWindowed.hpp
     Sha256.hpp
     SignalLed.cpp
     SignalLed.hpp
@@ -92,7 +74,6 @@ target_sources(services.util PRIVATE
     TerminalWithStorage.hpp
     TimeWithLocalization.cpp
     TimeWithLocalization.hpp
-    TracingEchoOnSesame.hpp
     WritableConfiguration.hpp
 )
 
@@ -120,12 +101,8 @@ if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
     target_sources(services.util PRIVATE
         AesMbedTls.cpp
         AesMbedTls.hpp
-        EchoInstantiationSecured.cpp
-        EchoInstantiationSecured.hpp
         MbedTlsRandomDataGeneratorWrapper.cpp
         MbedTlsRandomDataGeneratorWrapper.hpp
-        SesameCryptoMbedTls.cpp
-        SesameCryptoMbedTls.hpp
         Sha256MbedTls.cpp
         Sha256MbedTls.hpp
     )

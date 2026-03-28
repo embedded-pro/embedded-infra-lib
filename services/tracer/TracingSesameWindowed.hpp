@@ -2,7 +2,7 @@
 #define SERVICES_TRACING_MESSAGE_COMMUNICATION_WINDOWED_HPP
 
 #include "services/tracer/Tracer.hpp"
-#include "services/util/SesameWindowed.hpp"
+#include "services/sesame/SesameWindowed.hpp"
 
 namespace services
 {

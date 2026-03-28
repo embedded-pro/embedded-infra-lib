@@ -6,7 +6,7 @@
 #include "services/network/HttpClientImpl.hpp"
 #include "services/network/TracingEchoOnConnection.hpp"
 #include "services/network/WebSocketClientConnectionObserver.hpp"
-#include "services/util/EchoInstantiation.hpp"
+#include "services/echo/EchoInstantiation.hpp"
 
 namespace application
 {

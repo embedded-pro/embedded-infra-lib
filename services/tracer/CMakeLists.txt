@@ -11,6 +11,7 @@ target_link_libraries(services.tracer PUBLIC
     hal.synchronous_interfaces
     infra.stream
     infra.timer
+    services.echo
     services.util
 )
 

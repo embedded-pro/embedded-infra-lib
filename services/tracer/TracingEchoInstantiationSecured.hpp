@@ -3,13 +3,13 @@
 
 #include "hal/interfaces/SerialCommunication.hpp"
 #include "services/tracer/Tracer.hpp"
-#include "services/util/EchoInstantiationSecured.hpp"
-#include "services/util/EchoPolicyDiffieHellman.hpp"
-#include "services/util/EchoPolicySymmetricKey.hpp"
-#include "services/util/SesameCobs.hpp"
-#include "services/util/SesameSecured.hpp"
-#include "services/util/SesameWindowed.hpp"
-#include "services/util/TracingEchoOnSesame.hpp"
+#include "services/echo/EchoInstantiationSecured.hpp"
+#include "services/echo/EchoPolicyDiffieHellman.hpp"
+#include "services/echo/EchoPolicySymmetricKey.hpp"
+#include "services/sesame/SesameCobs.hpp"
+#include "services/sesame/SesameSecured.hpp"
+#include "services/sesame/SesameWindowed.hpp"
+#include "services/echo/TracingEchoOnSesame.hpp"
 
 namespace main_
 {
