@@ -10,6 +10,8 @@
 #include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/echo/EchoPolicyDiffieHellman.hpp"
 #include "services/crypto/MbedTlsRandomDataGeneratorWrapper.hpp"
+#include "services/echo/EchoPolicyDiffieHellman.hpp"
+#include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/sesame/test_doubles/SesameMock.hpp"
 
 namespace

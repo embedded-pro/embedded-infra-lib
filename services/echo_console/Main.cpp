@@ -16,6 +16,7 @@
 #include "services/sesame/SesameCobs.hpp"
 #include "services/sesame/SesameSecured.hpp"
 #include "services/sesame/SesameWindowed.hpp"
+#include "services/tracer/GlobalTracer.hpp"
 #include <deque>
 #include <fstream>
 #include <iostream>

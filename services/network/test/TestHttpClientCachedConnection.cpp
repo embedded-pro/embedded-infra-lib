@@ -5,10 +5,10 @@
 #include "infra/util/SharedOptional.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
+#include "services/crypto/Sha256MbedTls.hpp"
 #include "services/network/HttpClientCachedConnection.hpp"
 #include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/network/test_doubles/HttpClientMock.hpp"
-#include "services/crypto/Sha256MbedTls.hpp"
 #include "gmock/gmock.h"
 
 class HttpClientCachedConnectionTest

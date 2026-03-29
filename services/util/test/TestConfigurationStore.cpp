@@ -5,8 +5,8 @@
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
-#include "services/util/ConfigurationStore.hpp"
 #include "services/crypto/Sha256MbedTls.hpp"
+#include "services/util/ConfigurationStore.hpp"
 #include "gmock/gmock.h"
 
 namespace
