@@ -88,10 +88,10 @@ TEST_F(InverseLogicPinTest, ConfigWithoutStartState)
 TEST_F(InverseLogicPinTest, ConfigWithStartState)
 {
     gpioPin.Config(hal::PinConfigType::output, true);
-    EXPECT_TRUE(basePin.GetStubState());
+    EXPECT_FALSE(basePin.GetStubState());
 
     gpioPin.Config(hal::PinConfigType::output, false);
-    EXPECT_FALSE(basePin.GetStubState());
+    EXPECT_TRUE(basePin.GetStubState());
 }
 
 TEST_F(InverseLogicPinTest, ResetConfig)
@@ -116,6 +116,7 @@ TEST_F(InverseLogicPinTest, EnableInterruptWithRisingEdge)
             callback.callback();
         },
         hal::InterruptTrigger::risingEdge, hal::InterruptType::dispatched);
+    basePin.SetStubState(true);
     basePin.SetStubState(false);
 }
 
