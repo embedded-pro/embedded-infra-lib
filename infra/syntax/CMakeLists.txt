@@ -50,18 +50,6 @@ if (EMIL_HOST_BUILD)
     target_link_libraries(infra.syntax PUBLIC
         pugixml
     )
-
-    if (EMIL_INCLUDE_ECHO)
-        target_sources(infra.syntax PRIVATE
-            CppFormatter.cpp
-            CppFormatter.hpp
-        )
-
-        target_link_libraries(infra.syntax PUBLIC
-            libprotoc
-            libprotobuf
-        )
-    endif()
 endif()
 
 if (EMIL_ENABLE_FUZZING)

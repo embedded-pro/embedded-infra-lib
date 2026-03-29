@@ -3,7 +3,7 @@
 
 #include "google/protobuf/compiler/code_generator.h"
 #include "google/protobuf/io/printer.h"
-#include "infra/syntax/CppFormatter.hpp"
+#include "protobuf/protoc_echo_plugin/CppFormatter.hpp"
 #include "protobuf/protoc_echo_plugin/EchoObjects.hpp"
 #include <memory>
 
