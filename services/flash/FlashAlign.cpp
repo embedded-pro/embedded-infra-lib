@@ -30,7 +30,7 @@ namespace services
         {
             std::fill(firstChunk.begin(), firstChunk.end(), 0xff);
 
-            uint8_t bytesToAdd = std::min<uint32_t>(align - nrPrependBytes, buffer.size());
+            uint8_t bytesToAdd = static_cast<uint8_t>(std::min<std::size_t>(align - nrPrependBytes, buffer.size()));
             std::copy(&buffer.front(), &buffer.front() + bytesToAdd, firstChunk.begin() + nrPrependBytes);
 
             buffer.pop_front(bytesToAdd);
@@ -46,7 +46,7 @@ namespace services
 
     uint32_t FlashAlign::AlignFullWords(uint32_t address, infra::ConstByteRange& buffer)
     {
-        uint32_t remainingAlignedWords = buffer.size() / align;
+        uint32_t remainingAlignedWords = static_cast<uint32_t>(buffer.size() / align);
 
         if (remainingAlignedWords)
         {
@@ -60,7 +60,7 @@ namespace services
         return address;
     }
 
-    void FlashAlign::AlignLast(uint32_t address, infra::ConstByteRange& buffer)
+    void FlashAlign::AlignLast(uint32_t address, const infra::ConstByteRange& buffer)
     {
         if (!buffer.empty())
         {

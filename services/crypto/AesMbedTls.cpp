@@ -9,7 +9,7 @@ namespace services
 
     void Aes128CtrMbedTls::SetKey(const std::array<uint8_t, 16>& key)
     {
-        mbedtls_aes_setkey_enc(&context, &key[0], key.size() * 8);
+        mbedtls_aes_setkey_enc(&context, &key[0], static_cast<unsigned int>(key.size() * 8));
     }
 
     void Aes128CtrMbedTls::Encrypt(std::array<uint8_t, 16>& counter, infra::ConstByteRange input, infra::ByteRange output)

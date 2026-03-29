@@ -122,13 +122,13 @@ namespace services
         return tag;
     }
 
-    void Aes128CmacImpl::ComputeK1(infra::ByteRange key)
+    void Aes128CmacImpl::ComputeK1(infra::ByteRange key) const
     {
         aes128Ecb.Encrypt(key, key);
         KeyRoll(key);
     }
 
-    void Aes128CmacImpl::ComputeK2(infra::ByteRange block, infra::ByteRange key)
+    void Aes128CmacImpl::ComputeK2(infra::ByteRange block, infra::ByteRange key) const
     {
         AddByteBigEndianFormat(block, lastBlockSize, 0x80);
         KeyRoll(key);

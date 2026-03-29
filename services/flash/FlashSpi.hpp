@@ -61,6 +61,7 @@ namespace services
         void SendEraseBulk();
         void HoldWhileWriteInProgress();
         void ReadStatusRegister();
+        void ScheduleOnDone();
         infra::ConstByteRange InstructionAndAddress(const std::array<uint8_t, 2>& instruction, uint32_t address);
 
     private:

@@ -43,13 +43,7 @@ namespace services
                     });
                 HoldWhileWriteInProgress();
                 sequencer.EndWhile();
-                sequencer.Execute([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                this->onDone();
-                            });
-                    });
+                ScheduleOnDone();
             });
     }
 
@@ -87,13 +81,7 @@ namespace services
                     });
                 HoldWhileWriteInProgress();
                 sequencer.EndWhile();
-                sequencer.Execute([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                this->onDone();
-                            });
-                    });
+                ScheduleOnDone();
             });
     }
 
@@ -238,5 +226,16 @@ namespace services
         }
 
         return infra::ByteRange(instructionAndAddressBuffer.data(), instructionAndAddressBuffer.data() + addressSize + 1);
+    }
+
+    void FlashSpi::ScheduleOnDone()
+    {
+        sequencer.Execute([this]()
+            {
+                infra::EventDispatcher::Instance().Schedule([this]()
+                    {
+                        this->onDone();
+                    });
+            });
     }
 }

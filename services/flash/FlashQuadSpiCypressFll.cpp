@@ -32,13 +32,7 @@ namespace services
                     {
                         SwitchToQuadSpeed();
                     });
-                sequencer.Step([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                this->onInitialized();
-                            });
-                    });
+                ScheduleOnInitialized();
             });
     }
 
@@ -145,5 +139,16 @@ namespace services
     {
         static const hal::QuadSpi::Header readUniqueIdHeader{ infra::MakeOptional(commandReadUniqueId), {}, {}, 16 };
         spi.ReceiveData(readUniqueIdHeader, buffer, hal::QuadSpi::Lines::QuadSpeed(), onDone);
+    }
+
+    void FlashQuadSpiCypressFll::ScheduleOnInitialized()
+    {
+        sequencer.Step([this]()
+            {
+                infra::EventDispatcher::Instance().Schedule([this]()
+                    {
+                        this->onInitialized();
+                    });
+            });
     }
 }

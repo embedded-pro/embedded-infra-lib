@@ -4,6 +4,7 @@
 #include "hal/synchronous_interfaces/SynchronousFlashHomogeneous.hpp"
 #include "hal/synchronous_interfaces/SynchronousFlashId.hpp"
 #include "hal/synchronous_interfaces/SynchronousSpi.hpp"
+#include <array>
 
 namespace services
 {
@@ -20,10 +21,10 @@ namespace services
     public:
         using Config = SynchronousFlashSpiConfig;
 
-        static const uint8_t commandPageProgram[2];
-        static const uint8_t commandReadData[2];
-        static const uint8_t commandEraseSubSector[2];
-        static const uint8_t commandEraseSector[2];
+        static const std::array<uint8_t, 2> commandPageProgram;
+        static const std::array<uint8_t, 2> commandReadData;
+        static const std::array<uint8_t, 2> commandEraseSubSector;
+        static const std::array<uint8_t, 2> commandEraseSector;
         static const uint8_t commandReadStatusRegister;
         static const uint8_t commandWriteEnable;
         static const uint8_t commandEraseBulk;
@@ -35,7 +36,7 @@ namespace services
 
         static const uint8_t statusFlagWriteInProgress = 1;
 
-        SynchronousFlashSpi(hal::SynchronousSpi& spi, const Config& config = Config());
+        explicit SynchronousFlashSpi(hal::SynchronousSpi& spi, const Config& config = Config());
 
     public:
         void WriteBuffer(infra::ConstByteRange buffer, uint32_t address) override;
@@ -54,7 +55,7 @@ namespace services
         void HoldWhileWriteInProgress();
         uint8_t ReadStatusRegister();
 
-        infra::ByteRange InstructionAndAddress(const uint8_t instruction[], uint32_t address);
+        infra::ByteRange InstructionAndAddress(const std::array<uint8_t, 2>& instruction, uint32_t address);
 
     private:
         hal::SynchronousSpi& spi;

@@ -37,13 +37,7 @@ namespace services
                     {
                         SwitchToQuadSpeed();
                     });
-                sequencer.Step([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                this->onInitialized();
-                            });
-                    });
+                ScheduleOnInitialized();
             });
     }
 
@@ -133,6 +127,17 @@ namespace services
         spi.PollStatus(pollWriteInProgressHeader, 1, 0, statusFlagWriteInProgress, hal::QuadSpi::Lines::QuadSpeed(), [this]()
             {
                 sequencer.Continue();
+            });
+    }
+
+    void FlashQuadSpiMicronN25q::ScheduleOnInitialized()
+    {
+        sequencer.Step([this]()
+            {
+                infra::EventDispatcher::Instance().Schedule([this]()
+                    {
+                        this->onInitialized();
+                    });
             });
     }
 }

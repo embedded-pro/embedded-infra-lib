@@ -101,7 +101,9 @@ namespace services
     private:
         void ReceivedMessage(infra::StreamReader& reader);
         bool EvaluateReceiveMessage();
+        void ProcessReceivedMessage();
         void SetNextState();
+        void SelectNextState();
         uint16_t WindowSize(uint16_t messageSize) const;
         uint16_t AvailableWindow() const;
 

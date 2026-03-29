@@ -32,7 +32,7 @@ namespace services
     private:
         uint32_t AlignFirst(uint32_t address, infra::ConstByteRange& buffer);
         uint32_t AlignFullWords(uint32_t address, infra::ConstByteRange& buffer);
-        void AlignLast(uint32_t address, infra::ConstByteRange& buffer);
+        void AlignLast(uint32_t address, const infra::ConstByteRange& buffer);
 
         uint32_t alignedAddress = 0;
 

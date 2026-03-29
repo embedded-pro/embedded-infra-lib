@@ -9,7 +9,7 @@ namespace services
     class DebugLed
     {
     public:
-        DebugLed(hal::GpioPin& pin, infra::Duration onDuration = std::chrono::milliseconds(200),
+        explicit DebugLed(hal::GpioPin& pin, infra::Duration onDuration = std::chrono::milliseconds(200),
             infra::Duration offDuration = std::chrono::milliseconds(800), uint32_t timerServiceId = infra::systemTimerServiceId);
 
     private:

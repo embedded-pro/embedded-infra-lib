@@ -21,7 +21,7 @@ namespace services
     private:
         hal::InputPin buttonPin;
         infra::Duration debounceDuration;
-        bool previousButtonState;
+        bool previousButtonState = false;
         infra::TimerSingleShot debounceEnd;
         infra::Function<void()> onPressed;
         infra::Function<void()> onReleased;

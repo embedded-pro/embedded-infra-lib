@@ -27,6 +27,7 @@ namespace services
         void WriteBufferSequence();
         virtual void PageProgram();
         infra::BoundedVector<uint8_t>::WithMaxSize<4> ConvertAddress(uint32_t address) const;
+        void ScheduleOnDone();
 
         virtual void WriteEnable() = 0;
         virtual void EraseSomeSectors(uint32_t endIndex) = 0;

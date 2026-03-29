@@ -62,7 +62,8 @@ namespace services
     void SynchronousFlashQuadSpi::HoldWhileWriteInProgress()
     {
         while ((ReadStatusRegister() & 1) == 1)
-        {}
+        { /* Wait for write completion */
+        }
     }
 
     uint8_t SynchronousFlashQuadSpi::ReadStatusRegister()

@@ -3,9 +3,9 @@
 
 namespace services
 {
-    int MbedTlsRandomDataGeneratorWrapper(void* data, unsigned char* output, std::size_t size)
+    int MbedTlsRandomDataGeneratorWrapper(void* data, unsigned char* output, std::size_t size) //NOSONAR: void* required by MbedTLS callback signature
     {
-        reinterpret_cast<hal::SynchronousRandomDataGenerator*>(data)->GenerateRandomData(infra::ByteRange(output, output + size));
+        static_cast<hal::SynchronousRandomDataGenerator*>(data)->GenerateRandomData(infra::ByteRange(output, output + size));
         return 0;
     }
 }

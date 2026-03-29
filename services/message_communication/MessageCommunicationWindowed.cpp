@@ -61,7 +61,7 @@ namespace services
 
     void MessageCommunicationWindowed::ReceivedMessage(infra::StreamReader& reader)
     {
-        uint16_t size = static_cast<uint16_t>(reader.Available());
+        auto size = static_cast<uint16_t>(reader.Available());
 
         infra::DataInputStream::WithErrorPolicy from(reader, infra::noFail);
         infra::DataOutputStream::WithWriter<detail::AtomicDequeWriter> to(receivedData, infra::noFail);
@@ -90,28 +90,7 @@ namespace services
                 {
                     infra::EventDispatcher::Instance().Schedule([this]()
                         {
-                            infra::DataInputStream::WithReader<detail::AtomicDequeReader> stream(receivedData, infra::softFail);
-                            auto size = stream.Extract<uint16_t>();
-                            if (!stream.Failed() && stream.Available() >= size)
-                            {
-                                reader.OnAllocatable([this, size]()
-                                    {
-                                        receivedData.Pop(size);
-                                        releasedWindowBuffer += size + 2;
-                                        if (!EvaluateReceiveMessage())
-                                        {
-                                            releasedWindow += releasedWindowBuffer;
-                                            releasedWindowBuffer = 0;
-                                            SetNextState();
-                                        }
-                                    });
-                                receivedData.Pop(2);
-
-                                GetObserver().ReceivedMessage(reader.Emplace(infra::inPlace, receivedData, size));
-                            }
-
-                            notificationScheduled = false;
-                            EvaluateReceiveMessage();
+                            ProcessReceivedMessage();
                         });
 
                     return true;
@@ -122,27 +101,56 @@ namespace services
         return false;
     }
 
+    void MessageCommunicationWindowed::ProcessReceivedMessage()
+    {
+        infra::DataInputStream::WithReader<detail::AtomicDequeReader> stream(receivedData, infra::softFail);
+        auto size = stream.Extract<uint16_t>();
+        if (!stream.Failed() && stream.Available() >= size)
+        {
+            reader.OnAllocatable([this, size]()
+                {
+                    receivedData.Pop(size);
+                    releasedWindowBuffer += size + 2;
+                    if (!EvaluateReceiveMessage())
+                    {
+                        releasedWindow += releasedWindowBuffer;
+                        releasedWindowBuffer = 0;
+                        SetNextState();
+                    }
+                });
+            receivedData.Pop(2);
+
+            GetObserver().ReceivedMessage(reader.Emplace(infra::inPlace, receivedData, size));
+        }
+
+        notificationScheduled = false;
+        EvaluateReceiveMessage();
+    }
+
     void MessageCommunicationWindowed::SetNextState()
     {
-        if (!switchingState.exchange(true))
-        {
-            if (!sending)
-            {
-                if (sendInitResponse)
-                {
-                    if (receivedData.Empty())
-                        state.Emplace<StateSendingInitResponse>(*this);
-                }
-                else if (requestedSendMessageSize && WindowSize(*requestedSendMessageSize) <= otherAvailableWindow)
-                    state.Emplace<StateSendingMessage>(*this);
-                else if (releasedWindow != 0)
-                    state.Emplace<StateSendingReleaseWindow>(*this);
-                else
-                    state.Emplace<StateOperational>(*this);
-            }
+        if (switchingState.exchange(true))
+            return;
 
-            switchingState = false;
+        if (!sending)
+            SelectNextState();
+
+        switchingState = false;
+    }
+
+    void MessageCommunicationWindowed::SelectNextState()
+    {
+        if (sendInitResponse)
+        {
+            if (receivedData.Empty())
+                state.Emplace<StateSendingInitResponse>(*this);
         }
+        else if (requestedSendMessageSize && WindowSize(*requestedSendMessageSize) <= otherAvailableWindow)
+            state.Emplace<StateSendingMessage>(*this);
+        else if (releasedWindow != 0)
+            state.Emplace<StateSendingReleaseWindow>(*this);
+        else
+            state.Emplace<StateOperational>(*this);
     }
 
     uint16_t MessageCommunicationWindowed::WindowSize(uint16_t messageSize) const
@@ -261,7 +269,7 @@ namespace services
         : communication(communication)
     {
         communication.sending = true;
-        auto writer = communication.MessageCommunicationReceiveOnInterruptObserver::Subject().SendMessageStream(3, [this](uint16_t sent)
+        auto writer = communication.MessageCommunicationReceiveOnInterruptObserver::Subject().SendMessageStream(3, [this](uint16_t)
             {
                 OnSent();
             });

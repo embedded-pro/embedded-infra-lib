@@ -11,8 +11,7 @@ namespace services
     public:
         struct Config
         {
-            Config()
-            {}
+            Config() = default;
 
             infra::Duration initialDelay{ std::chrono::milliseconds(500) };
             infra::Duration successiveDelay{ std::chrono::milliseconds(250) };
@@ -47,7 +46,7 @@ namespace services
     private:
         hal::InputPin buttonPin;
         Config config;
-        bool previousButtonState;
+        bool previousButtonState = false;
         FireTimer repeatingFireTimer;
         infra::TimerSingleShot debounceEnd;
         infra::Function<void()> callback;

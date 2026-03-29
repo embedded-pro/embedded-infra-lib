@@ -41,13 +41,7 @@ namespace services
                         HoldWhileWriteInProgress();
                     });
                 sequencer.EndWhile();
-                sequencer.Execute([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                this->onDone();
-                            });
-                    });
+                ScheduleOnDone();
             });
     }
 
@@ -72,13 +66,7 @@ namespace services
                         HoldWhileWriteInProgress();
                     });
                 sequencer.EndWhile();
-                sequencer.Execute([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                this->onDone();
-                            });
-                    });
+                ScheduleOnDone();
             });
     }
 
@@ -99,5 +87,16 @@ namespace services
     infra::BoundedVector<uint8_t>::WithMaxSize<4> FlashQuadSpi::ConvertAddress(uint32_t address) const
     {
         return hal::QuadSpi::AddressToVector(address, 3);
+    }
+
+    void FlashQuadSpi::ScheduleOnDone()
+    {
+        sequencer.Execute([this]()
+            {
+                infra::EventDispatcher::Instance().Schedule([this]()
+                    {
+                        this->onDone();
+                    });
+            });
     }
 }

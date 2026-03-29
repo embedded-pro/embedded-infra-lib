@@ -5,7 +5,6 @@ namespace services
     DebouncedButton::DebouncedButton(hal::GpioPin& buttonPin, infra::Function<void()> onPressed, infra::Function<void()> onReleased, infra::Duration debounceDuration)
         : buttonPin(buttonPin)
         , debounceDuration(debounceDuration)
-        , previousButtonState(false)
         , onPressed(onPressed)
         , onReleased(onReleased)
     {

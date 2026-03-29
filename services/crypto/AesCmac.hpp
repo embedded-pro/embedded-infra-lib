@@ -16,8 +16,8 @@ namespace services
         Mac Calculate() override;
 
     private:
-        void ComputeK1(infra::ByteRange key);
-        void ComputeK2(infra::ByteRange block, infra::ByteRange key);
+        void ComputeK1(infra::ByteRange key) const;
+        void ComputeK2(infra::ByteRange block, infra::ByteRange key) const;
 
     private:
         const static std::size_t blockSize = 16;

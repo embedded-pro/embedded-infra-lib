@@ -39,6 +39,7 @@ namespace services
 
     private:
         void SwitchToQuadSpeed();
+        void ScheduleOnInitialized();
         void WriteEnable() override;
         void EraseSomeSectors(uint32_t endIndex) override;
         void SendEraseSector(uint32_t sectorIndex);

@@ -2,10 +2,10 @@
 
 namespace services
 {
-    const uint8_t SynchronousFlashSpi::commandPageProgram[2] = { 0x02, 0x12 }; // 3-byte addressing, 4-byte addressing
-    const uint8_t SynchronousFlashSpi::commandReadData[2] = { 0x03, 0x13 };
-    const uint8_t SynchronousFlashSpi::commandEraseSubSector[2] = { 0x20, 0x21 };
-    const uint8_t SynchronousFlashSpi::commandEraseSector[2] = { 0xd8, 0xdc };
+    const std::array<uint8_t, 2> SynchronousFlashSpi::commandPageProgram = { 0x02, 0x12 }; // 3-byte addressing, 4-byte addressing
+    const std::array<uint8_t, 2> SynchronousFlashSpi::commandReadData = { 0x03, 0x13 };
+    const std::array<uint8_t, 2> SynchronousFlashSpi::commandEraseSubSector = { 0x20, 0x21 };
+    const std::array<uint8_t, 2> SynchronousFlashSpi::commandEraseSector = { 0xd8, 0xdc };
     const uint8_t SynchronousFlashSpi::commandReadStatusRegister = 0x05;
     const uint8_t SynchronousFlashSpi::commandWriteEnable = 0x06;
     const uint8_t SynchronousFlashSpi::commandEraseBulk = 0xc7;
@@ -54,7 +54,7 @@ namespace services
         spi.ReceiveData(buffer, hal::SynchronousSpi::stop);
     }
 
-    infra::ByteRange SynchronousFlashSpi::InstructionAndAddress(const uint8_t instruction[], uint32_t address)
+    infra::ByteRange SynchronousFlashSpi::InstructionAndAddress(const std::array<uint8_t, 2>& instruction, uint32_t address)
     {
         if (config.extendedAddressing)
         {
@@ -132,7 +132,8 @@ namespace services
     void SynchronousFlashSpi::HoldWhileWriteInProgress()
     {
         while ((ReadStatusRegister() & 1) == 1)
-        {}
+        { /* Wait for write completion */
+        }
     }
 
     uint8_t SynchronousFlashSpi::ReadStatusRegister()

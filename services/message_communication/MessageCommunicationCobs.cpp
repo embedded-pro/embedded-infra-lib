@@ -26,7 +26,7 @@ namespace services
 
     MessageCommunicationCobs::~MessageCommunicationCobs()
     {
-        serial.ReceiveData([](infra::ConstByteRange data) {});
+        serial.ReceiveData([](infra::ConstByteRange) {});
     }
 
     infra::SharedPtr<infra::StreamWriter> MessageCommunicationCobs::SendMessageStream(uint16_t size, const infra::Function<void(uint16_t size)>& onSent)

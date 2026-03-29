@@ -133,7 +133,7 @@ namespace services
 
         uint32_t numSame = 0;
         for (auto i = 0; i != computedMac.size(); ++i)
-            numSame += computedMac[i] == receivedMac[i];
+            numSame += static_cast<uint32_t>(computedMac[i] == receivedMac[i]);
 
         if (numSame != computedMac.size())
         {
