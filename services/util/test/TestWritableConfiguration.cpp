@@ -2,7 +2,7 @@
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/util/InterfaceConnector.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
-#include "services/util/Sha256MbedTls.hpp"
+#include "services/crypto/Sha256MbedTls.hpp"
 #include "services/util/WritableConfiguration.hpp"
 #include "gtest/gtest.h"
 

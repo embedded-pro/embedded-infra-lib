@@ -11,7 +11,6 @@ target_link_libraries(services.tracer PUBLIC
     hal.synchronous_interfaces
     infra.stream
     infra.timer
-    services.util
 )
 
 target_sources(services.tracer PRIVATE
@@ -31,21 +30,30 @@ target_sources(services.tracer PRIVATE
     TracerWithTime.hpp
     TracerAdapterPrintf.cpp
     TracerAdapterPrintf.hpp
-    TracingEchoInstantiation.cpp
-    TracingEchoInstantiation.hpp
     TracingFlash.cpp
     TracingFlash.hpp
     TracingInputStream.cpp
     TracingInputStream.hpp
     TracingOutputStream.cpp
     TracingOutputStream.hpp
-    TracingSesameWindowed.cpp
-    TracingSesameWindowed.hpp
     TracingReset.cpp
     TracingReset.hpp
 )
 
-if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
+if (EMIL_INCLUDE_ECHO)
+    target_link_libraries(services.tracer PUBLIC
+        services.echo
+    )
+
+    target_sources(services.tracer PRIVATE
+        TracingEchoInstantiation.cpp
+        TracingEchoInstantiation.hpp
+        TracingSesameWindowed.cpp
+        TracingSesameWindowed.hpp
+    )
+endif()
+
+if (EMIL_INCLUDE_ECHO AND (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL ""))
     target_sources(services.tracer PRIVATE
         TracingEchoInstantiationSecured.cpp
         TracingEchoInstantiationSecured.hpp
