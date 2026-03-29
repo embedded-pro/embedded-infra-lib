@@ -9,5 +9,7 @@ target_link_libraries(services.synchronous_flash_test PUBLIC
 )
 
 target_sources(services.synchronous_flash_test PRIVATE
+    TestSynchronousFlashQuadSpi.cpp
+    TestSynchronousFlashRegion.cpp
     TestSynchronousFlashSpi.cpp
 )

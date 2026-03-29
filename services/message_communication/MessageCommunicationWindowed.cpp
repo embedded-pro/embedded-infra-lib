@@ -163,18 +163,6 @@ namespace services
         return static_cast<uint16_t>(receivedData.MaxSize() - receivedData.Size());
     }
 
-    MessageCommunicationWindowed::PacketInit::PacketInit(uint16_t window)
-        : window(window)
-    {}
-
-    MessageCommunicationWindowed::PacketInitResponse::PacketInitResponse(uint16_t window)
-        : window(window)
-    {}
-
-    MessageCommunicationWindowed::PacketReleaseWindow::PacketReleaseWindow(uint16_t window)
-        : window(window)
-    {}
-
     MessageCommunicationWindowed::StateSendingInit::StateSendingInit(MessageCommunicationWindowed& communication)
         : communication(communication)
     {

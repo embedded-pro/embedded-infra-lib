@@ -11,14 +11,13 @@ namespace services
     public:
         struct Config
         {
-            Config() = default;
-
             infra::Duration initialDelay{ std::chrono::milliseconds(500) };
             infra::Duration successiveDelay{ std::chrono::milliseconds(250) };
             infra::Duration debounceDuration{ std::chrono::milliseconds(10) };
         };
 
-        RepeatingButton(hal::GpioPin& buttonPin, infra::Function<void()> aCallback, const Config& config = Config());
+        RepeatingButton(hal::GpioPin& buttonPin, infra::Function<void()> aCallback, const Config& config);
+        RepeatingButton(hal::GpioPin& buttonPin, infra::Function<void()> aCallback);
 
         class FireTimer
             : public infra::Timer

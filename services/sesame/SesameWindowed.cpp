@@ -135,18 +135,6 @@ namespace services
         }
     }
 
-    SesameWindowed::PacketInit::PacketInit(uint16_t window)
-        : window(window)
-    {}
-
-    SesameWindowed::PacketInitResponse::PacketInitResponse(uint16_t window)
-        : window(window)
-    {}
-
-    SesameWindowed::PacketReleaseWindow::PacketReleaseWindow(uint16_t window)
-        : window(window)
-    {}
-
     SesameWindowed::State::State(SesameWindowed& communication)
         : communication(communication)
     {}

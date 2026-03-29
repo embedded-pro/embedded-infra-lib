@@ -62,3 +62,72 @@ TEST_F(InverseLogicPinTest, GpioPinGetOutputValue)
     pin.Set(false);
     EXPECT_FALSE(pin.GetOutputLatch());
 }
+
+TEST_F(InverseLogicPinTest, SetAsInput)
+{
+    gpioPin.SetAsInput();
+    EXPECT_TRUE(basePin.IsInput());
+}
+
+TEST_F(InverseLogicPinTest, IsInput)
+{
+    gpioPin.SetAsInput();
+    EXPECT_TRUE(gpioPin.IsInput());
+
+    hal::OutputPin pin(gpioPin);
+    pin.Set(true);
+    EXPECT_FALSE(gpioPin.IsInput());
+}
+
+TEST_F(InverseLogicPinTest, ConfigWithoutStartState)
+{
+    gpioPin.Config(hal::PinConfigType::input);
+    EXPECT_TRUE(basePin.IsInput());
+}
+
+TEST_F(InverseLogicPinTest, ConfigWithStartState)
+{
+    gpioPin.Config(hal::PinConfigType::output, true);
+    EXPECT_TRUE(basePin.GetStubState());
+
+    gpioPin.Config(hal::PinConfigType::output, false);
+    EXPECT_FALSE(basePin.GetStubState());
+}
+
+TEST_F(InverseLogicPinTest, ResetConfig)
+{
+    gpioPin.ResetConfig();
+}
+
+TEST_F(InverseLogicPinTest, DisableInterrupt)
+{
+    hal::InputPin pin(gpioPin);
+    pin.EnableInterrupt([]() {}, hal::InterruptTrigger::risingEdge);
+    gpioPin.DisableInterrupt();
+}
+
+TEST_F(InverseLogicPinTest, EnableInterruptWithRisingEdge)
+{
+    infra::MockCallback<void()> callback;
+    EXPECT_CALL(callback, callback());
+
+    gpioPin.EnableInterrupt([&callback]()
+        {
+            callback.callback();
+        },
+        hal::InterruptTrigger::risingEdge, hal::InterruptType::dispatched);
+    basePin.SetStubState(false);
+}
+
+TEST_F(InverseLogicPinTest, EnableInterruptWithBothEdges)
+{
+    infra::MockCallback<void()> callback;
+    EXPECT_CALL(callback, callback());
+
+    gpioPin.EnableInterrupt([&callback]()
+        {
+            callback.callback();
+        },
+        hal::InterruptTrigger::bothEdges, hal::InterruptType::dispatched);
+    basePin.SetStubState(true);
+}

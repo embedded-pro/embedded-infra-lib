@@ -20,6 +20,7 @@ target_sources(services.util PRIVATE
     TerminalWithStorage.hpp
     TimeWithLocalization.cpp
     TimeWithLocalization.hpp
+    WindowedProtocolTypes.hpp
     WritableConfiguration.hpp
 )
 

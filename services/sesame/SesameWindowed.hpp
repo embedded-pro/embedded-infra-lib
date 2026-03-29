@@ -7,6 +7,7 @@
 #include "infra/util/PolymorphicVariant.hpp"
 #include "infra/util/SharedOptional.hpp"
 #include "services/sesame/Sesame.hpp"
+#include "services/util/WindowedProtocolTypes.hpp"
 
 namespace services
 {
@@ -51,37 +52,10 @@ namespace services
         void SetNextState();
 
     private:
-        enum class Operation : uint8_t
-        {
-            init = 1,
-            initResponse,
-            releaseWindow,
-            message
-        };
-
-        struct PacketInit
-        {
-            explicit PacketInit(uint16_t window);
-
-            Operation operation = Operation::init;
-            infra::Aligned<uint8_t, infra::LittleEndian<uint16_t>> window;
-        };
-
-        struct PacketInitResponse
-        {
-            explicit PacketInitResponse(uint16_t window);
-
-            Operation operation = Operation::initResponse;
-            infra::Aligned<uint8_t, infra::LittleEndian<uint16_t>> window;
-        };
-
-        struct PacketReleaseWindow
-        {
-            explicit PacketReleaseWindow(uint16_t window);
-
-            Operation operation = Operation::releaseWindow;
-            infra::Aligned<uint8_t, infra::LittleEndian<uint16_t>> window;
-        };
+        using Operation = WindowedProtocolOperation;
+        using PacketInit = WindowedProtocolPacketInit;
+        using PacketInitResponse = WindowedProtocolPacketInitResponse;
+        using PacketReleaseWindow = WindowedProtocolPacketReleaseWindow;
 
     public:
         template<std::size_t MaxMessageSize, template<std::size_t> class MessageSize>
