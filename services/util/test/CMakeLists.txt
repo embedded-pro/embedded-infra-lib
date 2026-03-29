@@ -8,9 +8,9 @@ endif()
 
 target_link_libraries(services.util_test PUBLIC
     gmock_main
-    protobuf.test_doubles
     services.tracer
     services.util
+    services.util_test_doubles
     hal.interfaces_test_doubles
     infra.timer_test_helper
     infra.util_test_helper
@@ -18,36 +18,8 @@ target_link_libraries(services.util_test PUBLIC
 )
 
 target_sources(services.util_test PRIVATE
-    TestAesCmac.cpp
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestAesMbedTls.cpp>
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestConfigurationStore.cpp>
     TestCyclicStore.cpp
-    TestDebouncedButton.cpp
-    TestDebugLed.cpp
-    TestEchoOnSesame.cpp
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestEchoPolicyDiffieHellman.cpp>
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestEchoPolicySymmetricKey.cpp>
-    TestFlashAlign.cpp
-    TestFlashMultipleAccess.cpp
-    TestFlashQuadSpiCypressFll.cpp
-    TestFlashQuadSpiMicronN25q.cpp
-    TestFlashQuadSpiSingleSpeed.cpp
-    TestFlashRegion.cpp
-    TestFlashSpi.cpp
-    TestI2cMultipleAccess.cpp
-    TestInverseLogicPin.cpp
-    TestLowPowerSerialCommunication.cpp
-    TestLowPowerSpiMaster.cpp
-    TestMessageCommunicationCobs.cpp
-    TestMessageCommunicationWindowed.cpp
-    TestRepeatingButton.cpp
-    TestSerialCommunicationLoopback.cpp
-    TestSesameCobs.cpp
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestSesameSecured.cpp>
-    TestSesameWindowed.cpp
-    TestSignalLed.cpp
-    TestSpiMasterWithChipSelect.cpp
-    TestSpiMultipleAccess.cpp
     TestTerminal.cpp
     TestTerminalWithStorage.cpp
     TestTimeWithLocalization.cpp

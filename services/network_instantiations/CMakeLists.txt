@@ -11,6 +11,7 @@ target_sources(services.network_instantiations PRIVATE
 )
 
 target_link_libraries(services.network_instantiations PUBLIC
+    services.echo
     services.network
 )
 

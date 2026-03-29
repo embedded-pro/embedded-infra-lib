@@ -2,11 +2,11 @@
 #define SERVICES_TRACING_ECHO_INSTANTIATION_HPP
 
 #include "hal/interfaces/SerialCommunication.hpp"
+#include "services/echo/EchoInstantiation.hpp"
+#include "services/echo/TracingEchoOnSesame.hpp"
+#include "services/sesame/SesameCobs.hpp"
+#include "services/sesame/SesameWindowed.hpp"
 #include "services/tracer/Tracer.hpp"
-#include "services/util/EchoInstantiation.hpp"
-#include "services/util/SesameCobs.hpp"
-#include "services/util/SesameWindowed.hpp"
-#include "services/util/TracingEchoOnSesame.hpp"
 
 namespace main_
 {

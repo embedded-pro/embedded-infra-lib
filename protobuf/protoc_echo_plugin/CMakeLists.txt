@@ -16,6 +16,8 @@ if (EMIL_HOST_BUILD AND NOT EMIL_FETCH_ECHO_COMPILERS)
     )
 
     target_sources(protobuf.protoc_echo_plugin_lib PRIVATE
+        CppFormatter.cpp
+        CppFormatter.hpp
         EchoObjects.cpp
         EchoObjects.hpp
         ProtoCEchoPlugin.cpp

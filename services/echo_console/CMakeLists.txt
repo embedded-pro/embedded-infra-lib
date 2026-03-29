@@ -14,8 +14,9 @@ if (EMIL_HOST_BUILD AND EMIL_INCLUDE_MBEDTLS)
         hal.generic
         protobuf.protoc_echo_plugin_lib
         protobuf.echo
+        services.echo
         services.network_instantiations
-        services.util
+        services.sesame
     )
 
     target_sources(services.echo_console PRIVATE

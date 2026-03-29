@@ -5,7 +5,7 @@
 #include "mbedtls/oid.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/version.h"
-#include "services/util/MbedTlsRandomDataGeneratorWrapper.hpp"
+#include "services/crypto/MbedTlsRandomDataGeneratorWrapper.hpp"
 
 #if MBEDTLS_VERSION_MAJOR < 3
 #define MBEDTLS_PRIVATE(member) member
