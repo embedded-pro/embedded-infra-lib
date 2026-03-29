@@ -7,10 +7,10 @@
 #include "infra/util/Function.hpp"
 #include "infra/util/WithStorage.hpp"
 #include "mbedtls/ssl.h"
-#include "services/network/Address.hpp"
-#include "services/util/ConfigurationStore.hpp"
 #include "services/crypto/Sha256.hpp"
 #include "services/crypto/Sha256MbedTls.hpp"
+#include "services/network/Address.hpp"
+#include "services/util/ConfigurationStore.hpp"
 #include <memory>
 
 namespace services

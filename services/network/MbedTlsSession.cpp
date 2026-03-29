@@ -3,8 +3,8 @@
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/ByteRange.hpp"
-#include "services/network/Address.hpp"
 #include "services/crypto/Sha256.hpp"
+#include "services/network/Address.hpp"
 
 namespace services
 {

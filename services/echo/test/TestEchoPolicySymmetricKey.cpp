@@ -4,8 +4,8 @@
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "protobuf/echo/test_doubles/EchoMock.hpp"
 #include "protobuf/echo/test_doubles/ServiceStub.hpp"
-#include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/echo/EchoPolicySymmetricKey.hpp"
+#include "services/network/test_doubles/ConnectionMock.hpp"
 #include "services/sesame/test_doubles/SesameMock.hpp"
 #include <numeric>
 
