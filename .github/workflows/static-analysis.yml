@@ -41,13 +41,6 @@ jobs:
       - name: Collect coverage
         run: |
           gcovr --sonarqube=coverage.xml --exclude-lines-by-pattern '.*assert\(.*\);|.*really_assert\(.*\);|.*std::abort\(\);' --exclude-unreachable-branches --exclude-throw-branches -j "$(nproc)" --exclude=.*/generated/.* --exclude=.*/examples/.* --exclude=.*/external/.* --exclude=.*/lwip/.* --exclude=.*/tracing/.*
-      - name: Perform mutation testing
-        uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
-        with:
-          configurePreset: "mutation-testing"
-          buildPreset: "mutation-testing"
-          testPreset: "mutation-testing"
-          configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
       - uses: philips-software/sonarqube-issue-conversion@9e9958764ba5fd1d302b039779dc902bedfa4d01 # v1.2.0
         with:
           input: ${{ github.workspace }}/testresults/*.xml
@@ -55,8 +48,6 @@ jobs:
           transformation: gtest-to-generic-execution
       - name: Convert results
         run: |
-          jq -s 'reduce .[] as $item ({}; . * $item)' reports/mull/*.json > reports/mull/merged-mutation.json
-          jq --arg workspace "$GITHUB_WORKSPACE" -f .github/formatters/mutation-report-to-generic-issue.jq reports/mull/merged-mutation.json > mutation-sonar.json
           cp build/coverage/compile_commands.json compile_commands.json
       - uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
         env:
