@@ -7,11 +7,11 @@
 #include "mbedtls/x509_crt.h"
 #include "protobuf/echo/test_doubles/EchoMock.hpp"
 #include "protobuf/echo/test_doubles/ServiceStub.hpp"
-#include "services/network/test_doubles/ConnectionMock.hpp"
+#include "services/network/connection/test_doubles/ConnectionMock.hpp"
 #include "services/echo/EchoPolicyDiffieHellman.hpp"
 #include "services/crypto/MbedTlsRandomDataGeneratorWrapper.hpp"
 #include "services/echo/EchoPolicyDiffieHellman.hpp"
-#include "services/network/test_doubles/ConnectionMock.hpp"
+#include "services/network/connection/test_doubles/ConnectionMock.hpp"
 #include "services/sesame/test_doubles/SesameMock.hpp"
 
 namespace

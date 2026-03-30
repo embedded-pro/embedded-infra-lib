@@ -1,6 +1,6 @@
 #include "lwip/lwip_cpp/LightweightIp.hpp"
 #include "lwip/init.h"
-#include "services/network/Address.hpp"
+#include "services/network/connection/Address.hpp"
 #ifndef ESP_PLATFORM
 #include "lwip/timeouts.h"
 #endif

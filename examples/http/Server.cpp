@@ -1,5 +1,5 @@
 #include "hal/generic/TimerServiceGeneric.hpp"
-#include "services/network/HttpServer.hpp"
+#include "services/network/http/HttpServer.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 
 int main(int argc, const char* argv[], const char* env[])

@@ -1,7 +1,7 @@
 #ifndef SERVICES_NETWORK_INSTANTIATIONS_HPP
 #define SERVICES_NETWORK_INSTANTIATIONS_HPP
 
-#include "services/network/ConnectionFactoryWithNameResolver.hpp"
+#include "services/network/connection/ConnectionFactoryWithNameResolver.hpp"
 #include "services/network_instantiations/NameLookup.hpp"
 
 #ifdef EMIL_NETWORK_WIN

@@ -20,5 +20,5 @@ target_link_libraries(protobuf.protoc_echo_plugin_test PUBLIC
     infra.event_test_helper
     infra.util_test_helper
     protobuf.protoc_echo_plugin_lib
-    services.network_test_doubles
+    services.network.connection_test_doubles
 )

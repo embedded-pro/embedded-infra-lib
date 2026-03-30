@@ -3,6 +3,7 @@ target_sources(examples.serial_net PRIVATE Main.cpp)
 target_link_libraries(examples.serial_net PRIVATE
     hal.generic
     services.network_instantiations
+    services.network.serial
     services.util
 )
 

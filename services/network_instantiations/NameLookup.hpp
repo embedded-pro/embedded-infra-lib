@@ -1,7 +1,7 @@
 #ifndef SERVICES_NAME_LOOKUP_HPP
 #define SERVICES_NAME_LOOKUP_HPP
 
-#include "services/network/NameResolver.hpp"
+#include "services/network/connection/NameResolver.hpp"
 #include <condition_variable>
 #include <mutex>
 #include <thread>

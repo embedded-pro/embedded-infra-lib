@@ -4,6 +4,7 @@ if (EMIL_HOST_BUILD AND EMIL_INCLUDE_MBEDTLS)
 
     target_link_libraries(services.sesame_key_generator PUBLIC
         args
+        hal.generic
         services.echo
         services.sesame
     )

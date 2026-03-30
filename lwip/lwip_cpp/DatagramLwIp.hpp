@@ -7,7 +7,7 @@
 #include "infra/util/SharedOptional.hpp"
 #include "lwip/lwip_cpp/ConnectionLwIp.hpp"
 #include "lwip/udp.h"
-#include "services/network/Datagram.hpp"
+#include "services/network/connection/Datagram.hpp"
 
 namespace services
 {

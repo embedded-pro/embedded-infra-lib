@@ -7,7 +7,7 @@
 #include "infra/util/IntrusiveList.hpp"
 #include "infra/util/SharedObjectAllocator.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "services/network/Datagram.hpp"
+#include "services/network/connection/Datagram.hpp"
 #include <list>
 // clang-format off
 #include <winsock2.h>

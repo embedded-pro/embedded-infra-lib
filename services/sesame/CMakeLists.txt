@@ -35,6 +35,7 @@ if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
     else()
         target_link_libraries(services.sesame PUBLIC
             mbedcrypto
+            mbedx509
         )
     endif()
 
