@@ -62,13 +62,13 @@ embedded-infra-lib (EmIL) is a header-based C++17 library providing heap-less, S
 - **NO SYNCHRONIZATION NEEDED**: Since queued actions run sequentially on a single event dispatcher, no mutexes or locks are required for shared state accessed only from that dispatcher
 - **SCHEDULE COMPLETION, DON'T WAIT**: When starting an asynchronous operation (e.g. flash write, network request), schedule a new action upon completion instead of waiting for the result. This keeps the dispatcher responsive and allows other components to make progress
 - **WEAK POINTER SAFETY**: Use `infra::EventDispatcherWithWeakPtr` and schedule with an `infra::WeakPtr<T>` when the scheduling object may be destroyed before the action executes — the action is automatically discarded if the object has expired
-- **SYNCHRONOUS INTERFACES ARE THE EXCEPTION**: Synchronous (blocking) HAL interfaces exist only for constrained contexts like boot loaders where no event dispatcher is present. Default to asynchronous interfaces for all other code
+- **SYNCHRONOUS INTERFACES ARE THE EXCEPTION**: Synchronous (blocking) HAL interfaces are reserved for constrained contexts (e.g. boot loaders or applications that run without an event dispatcher). Default to asynchronous interfaces whenever an event dispatcher is present
 - **MULTI-THREADING IS OPT-IN**: Multiple threads are only used when real-time guarantees or long-running computations require isolation from the main event dispatcher. Each thread may have its own event dispatcher; completion is reported back to the main dispatcher via `Schedule()`
 
 ### Connection Lifetime Management
 
 - **SharedPtr OWNERSHIP**: Network connections use `infra::SharedPtr<services::Connection>` for lifetime management — the connection lives as long as the shared pointer is held
-- **Observer PATTERN**: `services::ConnectionObserver` attaches to a `Connection` via `SharedOwnedObserver`/`SharedOwningSubject` — always implement `SendStreamAvailable()`, `DataReceived()`, and `Detaching()`
+- **Observer PATTERN**: `services::ConnectionObserver` attaches to a `Connection` via `SharedOwnedObserver`/`SharedOwningSubject` — implement `SendStreamAvailable()` and `DataReceived()`; override `Attached()`/`Detaching()` only when setup/cleanup logic is needed
 - **REQUEST-BASED SENDING**: Never write directly to a connection; call `RequestSendStream(size)` and write in the `SendStreamAvailable()` callback
 
 ## Design Principles
@@ -262,7 +262,8 @@ std::array<uint8_t, 256> buffer;
 ### ECHO and Protobuf Conventions
 
 - ECHO services use `service_id` and `method_id` options instead of names for encoding — always assign these in `.proto` files
-- All ECHO methods are asynchronous and must return `Nothing` — use the `Nothing` message type for methods with no input
+- All ECHO methods are asynchronous and must return `Nothing`
+- ECHO methods with no input must use the `Nothing` message type as their request
 - Bound all unbounded Protobuf fields with `(string_size)`, `(bytes_size)`, or `(array_size)` options from `EchoAttributes.proto`
 - Follow the proto style guide: MixedCase for files/messages/services/methods, camelCase for fields/enum values
 
