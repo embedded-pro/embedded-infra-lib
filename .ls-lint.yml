@@ -4,14 +4,12 @@ ls:
   .cpp: PascalCase
 
 ignore:
-  - .clusterfuzzlite
   - .devcontainer
   - .git
   - .github
   - .gitlab
   - .gitlab-ci.yml
   - .vscode
-  - documents
   - external
   - lwip/lwip_config
   - megalinter-reports

@@ -30,21 +30,6 @@ function(emil_enable_coverage_for target)
     endif()
 endfunction()
 
-function(emil_enable_mutation_for target)
-    if (EMIL_ENABLE_MUTATION_TESTING)
-        message(DEBUG "enable mutation for: ${target}")
-        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            target_compile_options(${target} PRIVATE
-                -g -O0 -grecord-command-line -fprofile-instr-generate -fcoverage-mapping -fpass-plugin=/usr/lib/mull-ir-frontend
-            )
-
-            target_link_options(${target} PRIVATE -fprofile-instr-generate)
-        else()
-            message(FATAL_ERROR "Mutation testing is currently only supported for Clang/LLVM; not for ${CMAKE_CXX_COMPILER_ID}")
-        endif()
-    endif()
-endfunction()
-
 function(emil_coverage_targets directories)
     set(singleArgs COVERAGE_FILE)
     set(multiValueArgs DIRECTORIES)
@@ -60,9 +45,8 @@ function(emil_coverage_targets directories)
 
         if (NOT exclude AND NOT ${type} STREQUAL "INTERFACE_LIBRARY" AND NOT ${type} STREQUAL "UTILITY")
             emil_enable_coverage_for(${target})
-            emil_enable_mutation_for(${target})
         else()
-            message(DEBUG "skipping coverage and mutation for: ${target}")
+            message(DEBUG "skipping coverage for: ${target}")
         endif()
     endforeach()
 endfunction()

@@ -56,31 +56,6 @@
       "generator": "Ninja"
     },
     {
-      "name": "mutation-testing",
-      "displayName": "Configuration for Mutation Testing",
-      "inherits": "host",
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
-        "EMIL_ENABLE_MUTATION_TESTING": "On",
-        "EMIL_MUTATION_TESTING_RUNNER_ARGUMENTS": "--allow-surviving;--reporters;Elements;--report-dir;${sourceDir}/reports/mull"
-      },
-      "generator": "Ninja"
-    },
-    {
-      "name": "fuzzing",
-      "displayName": "Configuration for Fuzzing",
-      "inherits": "host",
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
-        "EMIL_BUILD_TESTS": "Off",
-        "EMIL_BUILD_EXAMPLES": "Off",
-        "EMIL_ENABLE_FUZZING": "On"
-      },
-      "generator": "Ninja"
-    },
-    {
       "name": "host-ClangMsvc",
       "displayName": "Configuration for Host Tooling using clang-cl to target Windows",
       "inherits": "defaults",
@@ -172,16 +147,6 @@
       "configurePreset": "coverage"
     },
     {
-      "name": "mutation-testing",
-      "configuration": "Debug",
-      "configurePreset": "mutation-testing"
-    },
-    {
-      "name": "fuzzing",
-      "configuration": "Debug",
-      "configurePreset": "fuzzing"
-    },
-    {
       "name": "host-ClangMsvc-Debug",
       "configuration": "Debug",
       "configurePreset": "host-ClangMsvc"
@@ -257,15 +222,6 @@
       "configurePreset": "coverage",
       "configuration": "Debug",
       "inherits": "defaults"
-    },
-    {
-      "name": "mutation-testing",
-      "configurePreset": "mutation-testing",
-      "configuration": "Debug",
-      "inherits": "defaults",
-      "output": {
-        "verbosity": "verbose"
-      }
     }
   ]
 }

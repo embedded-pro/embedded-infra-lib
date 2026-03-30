@@ -7,7 +7,7 @@
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=alert_status)](https://sonarcloud.io/dashboard?id=embedded-pro_embeddedinfralib) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=coverage)](https://sonarcloud.io/dashboard?id=embedded-pro_embeddedinfralib) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=embedded-pro_embeddedinfralib&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=embedded-pro_embeddedinfralib)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://choosealicense.com/licenses/mit/) [![Documentation](https://img.shields.io/website?down_message=offline&label=Documentation&up_message=online&url=https%3A%2F%2Fimg.shields.io%2Fwebsite-up-down-green-red%2Fhttps%2Fembedded-pro.github.io%2embedded-infra-lib.svg)](https://embedded-pro.github.io/embedded-infra-lib/) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/embedded-pro/embedded-infra-lib/badge)](https://securityscorecards.dev/viewer/?uri=github.com/embedded-pro/embedded-infra-lib)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://choosealicense.com/licenses/mit/) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/embedded-pro/embedded-infra-lib/badge)](https://securityscorecards.dev/viewer/?uri=github.com/embedded-pro/embedded-infra-lib)
  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6667/badge)](https://bestpractices.coreinfrastructure.org/projects/6667)
 
 </div>
@@ -51,7 +51,16 @@ Code examples can be found under the [examples](examples) folder.
 
 ## Documentation
 
-Documentation is available on [embedded-pro.github.io/embedded-infra-lib](https://embedded-pro.github.io/embedded-infra-lib/).
+Documentation is available in the [docs](docs/) folder:
+
+- [Overview](docs/index.md) - Introduction to embedded-infra-lib
+- [Execution Model](docs/ExecutionModel.md) - Event-driven execution model
+- [Memory Range](docs/MemoryRange.md) - MemoryRange class template
+- [Containers](docs/Containers.md) - Bounded and intrusive containers
+- [Echo](docs/Echo.md) - ECHO RPC mechanism
+- [Sesame](docs/Sesame.md) - SESAME serial protocol
+- [Network Connections](docs/NetworkConnections.md) - Connection and ConnectionObserver
+- [Coding Standard](docs/CodingStandard.md) - C++ coding standard for embedded projects
 
 ## Contributing
 

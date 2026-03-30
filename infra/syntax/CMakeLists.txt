@@ -52,9 +52,5 @@ if (EMIL_HOST_BUILD)
     )
 endif()
 
-if (EMIL_ENABLE_FUZZING)
-    add_subdirectory(fuzz)
-endif()
-
 add_subdirectory(test)
 add_subdirectory(test_doubles)
