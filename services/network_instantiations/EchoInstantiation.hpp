@@ -3,8 +3,8 @@
 
 #include "services/echo_core/TracingEcho.hpp"
 #include "services/network/echo/EchoOnConnection.hpp"
-#include "services/network/http/HttpClientImpl.hpp"
 #include "services/network/echo/TracingEchoOnConnection.hpp"
+#include "services/network/http/HttpClientImpl.hpp"
 #include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
 
 namespace application
