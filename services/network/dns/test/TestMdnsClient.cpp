@@ -4,9 +4,9 @@
 #include "infra/util/Function.hpp"
 #include "infra/util/SharedOptional.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
-#include "services/network/dns/MdnsClient.hpp"
 #include "services/network/connection/test_doubles/DatagramMock.hpp"
 #include "services/network/connection/test_doubles/MulticastMock.hpp"
+#include "services/network/dns/MdnsClient.hpp"
 #include "gmock/gmock.h"
 
 namespace

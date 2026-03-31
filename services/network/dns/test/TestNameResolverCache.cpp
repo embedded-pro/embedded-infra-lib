@@ -1,7 +1,7 @@
 #include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
-#include "services/network/dns/NameResolverCache.hpp"
 #include "services/network/connection/test_doubles/NameResolverMock.hpp"
+#include "services/network/dns/NameResolverCache.hpp"
 #include "gmock/gmock.h"
 
 class NameResolverCacheTest

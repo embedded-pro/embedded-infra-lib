@@ -7,8 +7,8 @@
 #include "infra/util/Optional.hpp"
 #include "infra/util/Variant.hpp"
 #include "services/network/connection/Datagram.hpp"
-#include "services/network/dns/Dns.hpp"
 #include "services/network/connection/NameResolver.hpp"
+#include "services/network/dns/Dns.hpp"
 
 namespace services
 {

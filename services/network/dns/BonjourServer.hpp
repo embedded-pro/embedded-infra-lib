@@ -4,8 +4,8 @@
 #include "infra/stream/CountingOutputStream.hpp"
 #include "infra/util/PolymorphicVariant.hpp"
 #include "services/network/connection/Datagram.hpp"
-#include "services/network/dns/Dns.hpp"
 #include "services/network/connection/Multicast.hpp"
+#include "services/network/dns/Dns.hpp"
 
 namespace services
 {

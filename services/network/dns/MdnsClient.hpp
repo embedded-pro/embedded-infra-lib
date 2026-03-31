@@ -4,8 +4,8 @@
 #include "infra/util/IntrusiveList.hpp"
 #include "infra/util/Optional.hpp"
 #include "services/network/connection/Datagram.hpp"
-#include "services/network/dns/Dns.hpp"
 #include "services/network/connection/Multicast.hpp"
+#include "services/network/dns/Dns.hpp"
 
 namespace services
 {
