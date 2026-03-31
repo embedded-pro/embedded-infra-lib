@@ -2,8 +2,8 @@
 #define SERVICES_SSDP_DEVICE_DISCOVERY_HPP
 
 #include "services/network/connection/Datagram.hpp"
-#include "services/network/http/Http.hpp"
 #include "services/network/connection/Multicast.hpp"
+#include "services/network/http/Http.hpp"
 
 namespace services
 {

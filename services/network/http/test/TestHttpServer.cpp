@@ -4,9 +4,9 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
-#include "services/network/http/HttpServer.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
 #include "services/network/connection/test_doubles/ConnectionStub.hpp"
+#include "services/network/http/HttpServer.hpp"
 #include "services/network/http/test_doubles/HttpServerMock.hpp"
 #include "gmock/gmock.h"
 

@@ -1,9 +1,9 @@
 #include "infra/stream/StdVectorOutputStream.hpp"
 #include "infra/util/ConstructBin.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "services/network/ssdp/SsdpDeviceDiscovery.hpp"
 #include "services/network/connection/test_doubles/DatagramMock.hpp"
 #include "services/network/connection/test_doubles/MulticastMock.hpp"
+#include "services/network/ssdp/SsdpDeviceDiscovery.hpp"
 #include "gmock/gmock.h"
 
 namespace

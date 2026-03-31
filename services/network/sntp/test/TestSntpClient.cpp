@@ -1,9 +1,9 @@
 #include "infra/stream/ByteInputStream.hpp"
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
-#include "services/network/sntp/SntpClient.hpp"
 #include "services/network/connection/test_doubles/AddressMock.hpp"
 #include "services/network/connection/test_doubles/DatagramMock.hpp"
+#include "services/network/sntp/SntpClient.hpp"
 #include "services/network/sntp/test_doubles/SntpMock.hpp"
 #include <gmock/gmock.h>
 

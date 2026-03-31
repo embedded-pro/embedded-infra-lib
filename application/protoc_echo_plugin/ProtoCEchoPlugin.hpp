@@ -1,10 +1,10 @@
 #ifndef PROTOBUF_PROTO_C_ECHO_PLUGIN_HPP
 #define PROTOBUF_PROTO_C_ECHO_PLUGIN_HPP
 
-#include "google/protobuf/compiler/code_generator.h"
-#include "google/protobuf/io/printer.h"
 #include "application/protoc_echo_plugin/CppFormatter.hpp"
 #include "application/protoc_echo_plugin/EchoObjects.hpp"
+#include "google/protobuf/compiler/code_generator.h"
+#include "google/protobuf/io/printer.h"
 #include <memory>
 
 namespace application

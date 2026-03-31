@@ -4,9 +4,9 @@
 #include "infra/util/ConstructBin.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "services/network/dns/BonjourServer.hpp"
 #include "services/network/connection/test_doubles/DatagramMock.hpp"
 #include "services/network/connection/test_doubles/MulticastMock.hpp"
+#include "services/network/dns/BonjourServer.hpp"
 #include "gmock/gmock.h"
 
 namespace

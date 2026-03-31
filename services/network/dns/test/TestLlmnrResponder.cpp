@@ -1,10 +1,10 @@
 #include "infra/stream/ByteInputStream.hpp"
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/util/Function.hpp"
-#include "services/network/dns/LlmnrResponder.hpp"
 #include "services/network/connection/test_doubles/AddressMock.hpp"
 #include "services/network/connection/test_doubles/DatagramMock.hpp"
 #include "services/network/connection/test_doubles/MulticastMock.hpp"
+#include "services/network/dns/LlmnrResponder.hpp"
 #include "gmock/gmock.h"
 
 class LlmnrResponderTest

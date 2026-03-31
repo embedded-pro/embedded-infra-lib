@@ -1,8 +1,7 @@
+#include "application/security_key_generator/material_generator/MaterialGenerator.hpp"
 #include "args.hxx"
 #include "hal/generic/FileSystemGeneric.hpp"
 #include "hal/generic/SynchronousRandomDataGeneratorGeneric.hpp"
-#include "application/security_key_generator/material_generator/MaterialGenerator.hpp"
-#include <iostream>
 #include <string>
 
 void GenerateUpgradeKeys(args::Subparser& p)

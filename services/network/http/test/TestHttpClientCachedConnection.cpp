@@ -6,8 +6,8 @@
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
 #include "services/crypto/Sha256MbedTls.hpp"
-#include "services/network/http/HttpClientCachedConnection.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
+#include "services/network/http/HttpClientCachedConnection.hpp"
 #include "services/network/http/test_doubles/HttpClientMock.hpp"
 #include "gmock/gmock.h"
 

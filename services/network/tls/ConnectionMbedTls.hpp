@@ -13,9 +13,9 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/ssl_cache.h"
-#include "services/network/tls/CertificatesMbedTls.hpp"
 #include "services/network/connection/Connection.hpp"
 #include "services/network/connection/ConnectionFactoryWithNameResolver.hpp"
+#include "services/network/tls/CertificatesMbedTls.hpp"
 #include "services/network/tls/MbedTlsSession.hpp"
 
 namespace services

@@ -1,5 +1,5 @@
-#include "google/protobuf/compiler/plugin.h"
 #include "application/protoc_echo_plugin_csharp/ProtoCEchoPluginCSharp.hpp"
+#include "google/protobuf/compiler/plugin.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>

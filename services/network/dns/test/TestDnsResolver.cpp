@@ -5,9 +5,9 @@
 #include "infra/util/Tokenizer.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
 #include "infra/util/test_helper/VariantPrintTo.hpp"
-#include "services/network/dns/DnsResolver.hpp"
 #include "services/network/connection/test_doubles/DatagramMock.hpp"
 #include "services/network/connection/test_doubles/NameResolverMock.hpp"
+#include "services/network/dns/DnsResolver.hpp"
 #include "gmock/gmock.h"
 
 class DnsResolverTest

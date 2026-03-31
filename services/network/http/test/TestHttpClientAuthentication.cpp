@@ -1,8 +1,8 @@
 #include "infra/stream/test/StreamMock.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "services/network/http/HttpClientAuthentication.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
+#include "services/network/http/HttpClientAuthentication.hpp"
 #include "services/network/http/test_doubles/HttpClientMock.hpp"
 #include "gmock/gmock.h"
 

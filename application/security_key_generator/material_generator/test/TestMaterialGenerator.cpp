@@ -1,3 +1,4 @@
+#include "application/security_key_generator/material_generator/MaterialGenerator.hpp"
 #include "generated/echo/UpgradeKeys.pb.hpp"
 #include "hal/generic/SynchronousRandomDataGeneratorGeneric.hpp"
 #include "hal/interfaces/test_doubles/FileSystemStub.hpp"
@@ -5,7 +6,6 @@
 #include "infra/syntax/ProtoParser.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "upgrade/pack_builder/ImageSignerEcDsa.hpp"
-#include "application/security_key_generator/material_generator/MaterialGenerator.hpp"
 #include "gtest/gtest.h"
 #include <vector>
 
