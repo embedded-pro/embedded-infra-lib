@@ -12,7 +12,7 @@ target_link_libraries(services.sesame PUBLIC
     hal.interfaces
     infra.syntax
     infra.timer
-    protobuf.echo
+    services.echo_core
     services.crypto
 )
 

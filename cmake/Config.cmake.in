@@ -1,5 +1,5 @@
 @PACKAGE_INIT@
 
-include("${CMAKE_CURRENT_LIST_DIR}/emilProtobufTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/emilApplicationTargets.cmake")
 
-check_required_components(Protobuf)
+check_required_components(Application)

@@ -8,7 +8,7 @@ endif()
 
 target_link_libraries(services.echo_test PUBLIC
     gmock_main
-    protobuf.test_doubles
+    services.echo_core_test_doubles
     services.echo
     services.sesame_test_doubles
     hal.interfaces_test_doubles

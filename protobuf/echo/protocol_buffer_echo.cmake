@@ -38,9 +38,9 @@ function(emil_fetch_echo_plugins)
 
     if (NOT ${echoplugin_FOUND})
         foreach(language IN ITEMS "" "_csharp" "_java")
-            if (NOT TARGET protobuf.protoc_echo_plugin${language})
-                add_executable(protobuf.protoc_echo_plugin${language} IMPORTED GLOBAL)
-                set_target_properties(protobuf.protoc_echo_plugin${language} PROPERTIES
+            if (NOT TARGET application.protoc_echo_plugin${language})
+                add_executable(application.protoc_echo_plugin${language} IMPORTED GLOBAL)
+                set_target_properties(application.protoc_echo_plugin${language} PROPERTIES
                     IMPORTED_LOCATION "${echoplugin_SOURCE_DIR}/bin/protobuf.protoc_echo_plugin${language}${host_executable_postfix}"
                 )
             endif()
@@ -115,20 +115,20 @@ function(protocol_buffer_echo_cpp target input)
         add_custom_command(
             OUTPUT ${generated_files}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_dir_echo}
-            COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-cpp-infra=$<TARGET_FILE:protobuf.protoc_echo_plugin> --dependency_out=${dependency_file} --cpp-infra_out="${generated_dir_echo}" ${absolute_input}
+            COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-cpp-infra=$<TARGET_FILE:application.protoc_echo_plugin> --dependency_out=${dependency_file} --cpp-infra_out="${generated_dir_echo}" ${absolute_input}
             COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --descriptor_set_out="${generated_dir_echo}/${source_base}.pb" --include_imports ${absolute_input}
             MAIN_DEPENDENCY "${absolute_input}"
-            DEPENDS protobuf.protoc_echo_plugin
+            DEPENDS application.protoc_echo_plugin
             DEPFILE "${dependency_file}"
         )
     else()
         add_custom_command(
             OUTPUT ${generated_files}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_dir_echo}
-            COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-cpp-infra=$<TARGET_FILE:protobuf.protoc_echo_plugin> --dependency_out=${dependency_file} --cpp-infra_out="${generated_dir_echo}" ${absolute_input}
+            COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-cpp-infra=$<TARGET_FILE:application.protoc_echo_plugin> --dependency_out=${dependency_file} --cpp-infra_out="${generated_dir_echo}" ${absolute_input}
             COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --descriptor_set_out="${generated_dir_echo}/${source_base}.pb" --include_imports ${absolute_input}
             MAIN_DEPENDENCY "${absolute_input}"
-            DEPENDS protobuf.protoc_echo_plugin
+            DEPENDS application.protoc_echo_plugin
         )
     endif()
 
@@ -156,7 +156,7 @@ function(protocol_buffer_echo_csharp target input)
         TARGET ${target}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_dir_echo}
-        COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-csharp-echo=$<TARGET_FILE:protobuf.protoc_echo_plugin_csharp> --csharp-echo_out="${generated_dir_echo}" ${absolute_input}
+        COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-csharp-echo=$<TARGET_FILE:application.protoc_echo_plugin_csharp> --csharp-echo_out="${generated_dir_echo}" ${absolute_input}
         BYPRODUCTS "${generated_dir_echo}/${source_base}.pb.cs"
     )
 endfunction()
@@ -174,7 +174,7 @@ function(protocol_buffer_echo_java target input)
         TARGET ${target}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_dir_echo}
-        COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-java-echo=$<TARGET_FILE:protobuf.protoc_echo_plugin_java> --java-echo_out="${java_dir}" ${absolute_input}
+        COMMAND ${EMIL_PROTOC_COMPILER_BINARY} ${protopath} --error_format=${error_format} --plugin=protoc-gen-java-echo=$<TARGET_FILE:application.protoc_echo_plugin_java> --java-echo_out="${java_dir}" ${absolute_input}
         BYPRODUCTS "${generated_dir_echo}/${source_base}Services.java"
     )
 endfunction()

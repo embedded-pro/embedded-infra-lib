@@ -5,7 +5,7 @@
 #include "hal/generic/UartGeneric.hpp"
 #endif
 #include "infra/util/BoundedVector.hpp"
-#include "protobuf/echo/ServiceForwarder.hpp"
+#include "services/echo_core/ServiceForwarder.hpp"
 #include "services/echo/EchoOnMessageCommunication.hpp"
 #include "services/echo/EchoOnSesame.hpp"
 #include "services/message_communication/MessageCommunicationCobs.hpp"

@@ -8,7 +8,7 @@ target_link_libraries(services.network.echo_test PUBLIC
     services.network.connection_test_doubles
     infra.timer_test_helper
     infra.util_test_helper
-    protobuf.test_doubles
+    services.echo_core_test_doubles
 )
 
 target_sources(services.network.echo_test PRIVATE

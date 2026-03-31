@@ -1,7 +1,7 @@
 #ifndef SERVICES_ECHO_ON_MESSAGE_COMMUNICATION_HPP
 #define SERVICES_ECHO_ON_MESSAGE_COMMUNICATION_HPP
 
-#include "protobuf/echo/EchoOnStreams.hpp"
+#include "services/echo_core/EchoOnStreams.hpp"
 #include "services/message_communication/MessageCommunication.hpp"
 
 namespace services
