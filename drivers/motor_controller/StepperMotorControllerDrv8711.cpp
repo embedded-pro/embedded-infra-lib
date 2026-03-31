@@ -18,12 +18,12 @@ namespace drivers
     void StepperMotorControllerDrv8711::Control(Dtime dtime, Isgain isgain, bool exStall, Mode mode, bool rStep, bool rDir, bool enable, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(dtime) << 10) |
-            (static_cast<uint16_t>(isgain) << 8) |
-            (static_cast<uint16_t>(exStall) << 7) |
-            (static_cast<uint16_t>(mode) << 3) |
-            (static_cast<uint16_t>(rStep) << 2) |
-            (static_cast<uint16_t>(rDir) << 1) |
-            static_cast<uint16_t>(enable);
+                        (static_cast<uint16_t>(isgain) << 8) |
+                        (static_cast<uint16_t>(exStall) << 7) |
+                        (static_cast<uint16_t>(mode) << 3) |
+                        (static_cast<uint16_t>(rStep) << 2) |
+                        (static_cast<uint16_t>(rDir) << 1) |
+                        static_cast<uint16_t>(enable);
 
         WriteRegister(registerControl, data, onDone);
     }
@@ -31,7 +31,7 @@ namespace drivers
     void StepperMotorControllerDrv8711::Torque(uint8_t torque, Smplth smplth, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(smplth) << 8) |
-            static_cast<uint16_t>(torque);
+                        static_cast<uint16_t>(torque);
 
         WriteRegister(registerTorque, data, onDone);
     }
@@ -39,7 +39,7 @@ namespace drivers
     void StepperMotorControllerDrv8711::Off(uint8_t toff, bool pwmMode, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(pwmMode) << 8) |
-            static_cast<uint16_t>(toff);
+                        static_cast<uint16_t>(toff);
 
         WriteRegister(registerOff, data, onDone);
     }
@@ -47,7 +47,7 @@ namespace drivers
     void StepperMotorControllerDrv8711::Blank(uint8_t tblank, bool abt, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(abt) << 8) |
-            static_cast<uint16_t>(tblank);
+                        static_cast<uint16_t>(tblank);
 
         WriteRegister(registerBlank, data, onDone);
     }
@@ -55,7 +55,7 @@ namespace drivers
     void StepperMotorControllerDrv8711::Decay(uint8_t tdecay, DecayMode decayMode, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(decayMode) << 8) |
-            static_cast<uint16_t>(tdecay);
+                        static_cast<uint16_t>(tdecay);
 
         WriteRegister(registerDecay, data, onDone);
     }
@@ -63,8 +63,8 @@ namespace drivers
     void StepperMotorControllerDrv8711::Stall(uint8_t sdthr, SdCount sdcnt, Vdiv vdiv, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(vdiv) << 10) |
-            (static_cast<uint16_t>(sdcnt) << 8) |
-            static_cast<uint16_t>(sdthr);
+                        (static_cast<uint16_t>(sdcnt) << 8) |
+                        static_cast<uint16_t>(sdthr);
 
         WriteRegister(registerStall, data, onDone);
     }
@@ -72,11 +72,11 @@ namespace drivers
     void StepperMotorControllerDrv8711::Drive(OcpThreshold ocpth, OcpDeglitch ocpdeg, DriveTime tdriven, DriveTime tdrivep, IdriveN idriven, IdriveP idrivep, const infra::Function<void()>& onDone)
     {
         uint16_t data = (static_cast<uint16_t>(idrivep) << 10) |
-            (static_cast<uint16_t>(idriven) << 8) |
-            (static_cast<uint16_t>(tdrivep) << 6) |
-            (static_cast<uint16_t>(tdriven) << 4) |
-            (static_cast<uint16_t>(ocpdeg) << 2) |
-            static_cast<uint16_t>(ocpth);
+                        (static_cast<uint16_t>(idriven) << 8) |
+                        (static_cast<uint16_t>(tdrivep) << 6) |
+                        (static_cast<uint16_t>(tdriven) << 4) |
+                        (static_cast<uint16_t>(ocpdeg) << 2) |
+                        static_cast<uint16_t>(ocpth);
 
         WriteRegister(registerDrive, data, onDone);
     }
