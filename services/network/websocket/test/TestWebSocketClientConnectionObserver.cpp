@@ -1,9 +1,9 @@
 #include "infra/event/test_helper/EventDispatcherWithWeakPtrFixture.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
-#include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
 #include "services/network/connection/test_doubles/ConnectionStub.hpp"
+#include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
 #include "gmock/gmock.h"
 
 class WebSocketClientConnectionObserverTest

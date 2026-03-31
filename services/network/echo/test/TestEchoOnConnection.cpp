@@ -5,8 +5,8 @@
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/echo_core/test_doubles/EchoMock.hpp"
 #include "services/echo_core/test_doubles/ServiceStub.hpp"
-#include "services/network/echo/EchoOnConnection.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
+#include "services/network/echo/EchoOnConnection.hpp"
 
 class EchoOnConnectionTest
     : public testing::Test

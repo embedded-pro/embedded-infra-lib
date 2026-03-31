@@ -5,9 +5,9 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
-#include "services/network/serial/SerialServer.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
 #include "services/network/connection/test_doubles/ConnectionStub.hpp"
+#include "services/network/serial/SerialServer.hpp"
 #include "gmock/gmock.h"
 
 class SerialServerTest

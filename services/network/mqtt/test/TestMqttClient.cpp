@@ -2,10 +2,10 @@
 #include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "infra/util/test_helper/MockHelpers.hpp"
-#include "services/network/mqtt/MqttClientImpl.hpp"
 #include "services/network/connection/test_doubles/AddressMock.hpp"
 #include "services/network/connection/test_doubles/ConnectionMock.hpp"
 #include "services/network/connection/test_doubles/ConnectionStub.hpp"
+#include "services/network/mqtt/MqttClientImpl.hpp"
 #include "services/network/mqtt/test_doubles/MqttMock.hpp"
 #include "gmock/gmock.h"
 #include <deque>

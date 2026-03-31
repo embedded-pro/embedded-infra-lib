@@ -1,4 +1,3 @@
-#include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "application/protoc_echo_plugin/CppFormatter.hpp"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "infra/util/Optional.hpp"
