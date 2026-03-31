@@ -171,7 +171,6 @@ namespace drivers
         void ReadRegister(uint8_t address, const infra::Function<void(Status)>& onDone);
         Status ParseStatus();
 
-    private:
         hal::SpiMaster& spi;
         hal::InputPin faultPin;
         hal::InputPin stallBemfPin;
