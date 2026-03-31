@@ -1,4 +1,4 @@
-if (EMIL_HOST_BUILD AND NOT CMAKE_CROSSCOMPILING AND NOT EMIL_FETCH_ECHO_COMPILERS)
+if (EMIL_HOST_BUILD AND NOT CMAKE_CROSSCOMPILING)
     add_executable(application.protoc_echo_plugin_java)
     emil_build_for(application.protoc_echo_plugin_java BOOL EMIL_BUILD_ECHO_COMPILERS)
     emil_install(application.protoc_echo_plugin_java EXPORT emilApplicationTargets DESTINATION bin)

@@ -179,28 +179,6 @@ jobs:
           configurePreset: "embedded"
           buildPreset: "embedded-${{ matrix.configuration }}"
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
-  embedded_build_without_host_install:
-    name: Embedded Build Without Host Install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-      - name: Install GNU Arm Embedded Toolchain 10.3-2021.10
-        uses: carlosperate/arm-none-eabi-gcc-action@a532c97fbfff58385beb2247ae1464dc4cc71724 # v1.10.1
-        with:
-          release: "10.3-2021.10"
-      - run: sudo apt-get update && sudo apt-get install ninja-build
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
-        with:
-          key: ${{ github.job }}
-          max-size: 2G
-          save: ${{ github.ref == 'refs/heads/main' }}
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
-        with:
-          configurePreset: "embedded"
-          buildPreset: "embedded-RelWithDebInfo"
-          configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
   rtos:
     name: Embedded Build - RTOS
     runs-on: ubuntu-latest

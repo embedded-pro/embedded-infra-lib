@@ -1,4 +1,4 @@
-if (EMIL_HOST_BUILD AND NOT EMIL_FETCH_ECHO_COMPILERS)
+if (EMIL_HOST_BUILD)
     add_library(application.protoc_echo_plugin_lib ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
     target_compile_definitions(application.protoc_echo_plugin_lib PRIVATE
