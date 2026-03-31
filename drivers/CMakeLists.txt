@@ -1,1 +1,2 @@
 add_subdirectory(external_flash)
+add_subdirectory(motor_controller)
