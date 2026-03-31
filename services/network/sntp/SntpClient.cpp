@@ -11,12 +11,12 @@ namespace
 
 namespace services
 {
-    infra::Duration SntpClient::NtpTimestamp::Convert()
+    infra::Duration SntpClient::NtpTimestamp::Convert() const
     {
         return std::chrono::seconds(seconds) + std::chrono::microseconds(fraction / ntpFractionFactor) - ntpEpochOffset;
     }
 
-    bool SntpClient::NtpMessage::Valid(infra::Duration& requestTime)
+    bool SntpClient::NtpMessage::Valid(const infra::Duration& requestTime) const
     {
         if (LeapIndicator() == NtpLeapIndicator::alarmConditionClockNotSynchronized)
             return false;
@@ -39,17 +39,17 @@ namespace services
         return true;
     }
 
-    SntpClient::NtpLeapIndicator SntpClient::NtpMessage::LeapIndicator()
+    SntpClient::NtpLeapIndicator SntpClient::NtpMessage::LeapIndicator() const
     {
         return static_cast<NtpLeapIndicator>((header >> 6) & 0b11);
     }
 
-    uint8_t SntpClient::NtpMessage::Version()
+    uint8_t SntpClient::NtpMessage::Version() const
     {
         return (header >> 3) & 0b111;
     }
 
-    SntpClient::NtpMode SntpClient::NtpMessage::Mode()
+    SntpClient::NtpMode SntpClient::NtpMessage::Mode() const
     {
         return static_cast<NtpMode>(header & 0b111);
     }
@@ -65,7 +65,7 @@ namespace services
         datagramExchange->RequestSendStream(sizeof(NtpMessage));
     }
 
-    void SntpClient::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from)
+    void SntpClient::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from)
     {
         if (reader->Empty())
         {

@@ -26,7 +26,7 @@ namespace services
         , dnsEntries(dnsEntries.entries)
     {}
 
-    void DnsServer::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from)
+    void DnsServer::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from)
     {
         if (question)
             return;

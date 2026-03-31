@@ -30,7 +30,7 @@ namespace services
         ~DatagramBsd();
 
         void RequestSendStream(std::size_t sendSize) override;
-        void RequestSendStream(std::size_t sendSize, UdpSocket to) override;
+        void RequestSendStream(std::size_t sendSize, const UdpSocket& to) override;
 
         void Receive();
         void Send();

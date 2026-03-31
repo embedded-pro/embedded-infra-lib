@@ -25,7 +25,7 @@ public:
         services::HttpClientBasic::StatusAvailable(code);
     }
 
-    MOCK_METHOD(void, HeaderAvailable, (services::HttpHeader), (override));
+    MOCK_METHOD(void, HeaderAvailable, (const services::HttpHeader&), (override));
     MOCK_METHOD(void, BodyAvailable, (infra::SharedPtr<infra::StreamReader> && reader), (override));
 };
 

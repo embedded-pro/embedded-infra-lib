@@ -146,7 +146,7 @@ namespace services
         Observer().StatusAvailable(statusCode);
     }
 
-    void HttpClientCachedConnection::HeaderAvailable(HttpHeader header)
+    void HttpClientCachedConnection::HeaderAvailable(const HttpHeader& header)
     {
         if (HttpClient::IsAttached())
             Observer().HeaderAvailable(header);

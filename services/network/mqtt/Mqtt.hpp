@@ -29,7 +29,7 @@ namespace services
         ~MqttClientObserverFactory() = default;
 
     public:
-        enum ConnectFailReason
+        enum class ConnectFailReason
         {
             refused,
             connectionAllocationFailed,

@@ -47,7 +47,7 @@ namespace services
         multicast.LeaveMulticastGroup(datagramExchange, llmnrMulticastAddress);
     }
 
-    void LlmnrResponder::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from)
+    void LlmnrResponder::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from)
     {
         if (replying)
             return;

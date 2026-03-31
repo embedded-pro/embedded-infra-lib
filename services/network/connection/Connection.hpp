@@ -71,7 +71,7 @@ namespace services
         ~ClientConnectionObserverFactory() = default;
 
     public:
-        enum ConnectFailReason
+        enum class ConnectFailReason
         {
             refused,
             connectionAllocationFailed

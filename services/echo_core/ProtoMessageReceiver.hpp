@@ -68,9 +68,11 @@ namespace services
     public:
         ProtoMessageReceiver();
 
-        Message message;
+        Message& GetMessage();
+        const Message& GetMessage() const;
 
     private:
+        Message message;
         infra::BoundedVector<std::pair<uint32_t, infra::Function<void(const infra::DataInputStream& stream)>>>::WithMaxSize<MessageDepth<services::ProtoMessage<Message>>::value + 1> stack{ { std::pair<uint32_t, infra::Function<void(const infra::DataInputStream& stream)>>{ std::numeric_limits<uint32_t>::max(), [this](const infra::DataInputStream& stream)
             {
                 FeedForMessage(stream, message);
@@ -82,6 +84,18 @@ namespace services
 
 namespace services
 {
+    template<class Message>
+    Message& ProtoMessageReceiver<Message>::GetMessage()
+    {
+        return message;
+    }
+
+    template<class Message>
+    const Message& ProtoMessageReceiver<Message>::GetMessage() const
+    {
+        return message;
+    }
+
     template<class Message>
     void ProtoMessageReceiverBase::FeedForMessage(const infra::DataInputStream& stream, Message& message)
     {

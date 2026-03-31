@@ -88,7 +88,7 @@ namespace services
     {
         tracer.Trace() << "ConnectionFactoryMbedTls::ConnectionFactoryMbedTls()";
 #if defined(MBEDTLS_DEBUG_C)
-        mbedtls_debug_set_threshold(level);
+        mbedtls_debug_set_threshold(static_cast<int>(level));
 #endif
     }
 
@@ -99,7 +99,7 @@ namespace services
     {
         tracer.Trace() << "ConnectionFactoryWithNameResolver::ConnectionFactoryWithNameResolver()";
 #if defined(MBEDTLS_DEBUG_C)
-        mbedtls_debug_set_threshold(level);
+        mbedtls_debug_set_threshold(static_cast<int>(level));
 #endif
     }
 }

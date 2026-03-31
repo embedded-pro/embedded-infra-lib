@@ -82,7 +82,7 @@ namespace services
             multicast.LeaveMulticastGroup(datagramExchangeIpv6, mdnsMulticastAddressIpv6);
     }
 
-    void BonjourServer::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from)
+    void BonjourServer::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from)
     {
         state->DataReceived(std::move(reader), from);
     }
@@ -272,7 +272,7 @@ namespace services
         return answer != infra::none && answer->Answers() != 0;
     }
 
-    void BonjourServer::QuestionParser::RequestSendStream(DatagramExchange& datagramExchange, UdpSocket from, UdpSocket to)
+    void BonjourServer::QuestionParser::RequestSendStream(DatagramExchange& datagramExchange, UdpSocket from, const UdpSocket& to)
     {
         datagramExchange.RequestSendStream(countingWriter.Processed(), to);
     }
@@ -471,7 +471,7 @@ namespace services
         : server(server)
     {}
 
-    void BonjourServer::StateIdle::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from)
+    void BonjourServer::StateIdle::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from)
     {
         if (GetPort(from) != mdnsPort)
             return;
@@ -505,7 +505,7 @@ namespace services
         : server(server)
     {}
 
-    void BonjourServer::StateAnnounce::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from)
+    void BonjourServer::StateAnnounce::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from)
     {}
 
     void BonjourServer::StateAnnounce::WriteAnnounceQuery(infra::StreamWriter& writer)

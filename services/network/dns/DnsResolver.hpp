@@ -92,7 +92,7 @@ namespace services
 
         private:
             // Implementation of DatagramExchangeObserver
-            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) override;
+            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) override;
             void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
             void ResolveNextAttempt();

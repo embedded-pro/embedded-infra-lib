@@ -151,7 +151,7 @@ namespace services
         Observer().StatusAvailable(code);
     }
 
-    void HttpClientImpl::HeaderAvailable(HttpHeader header)
+    void HttpClientImpl::HeaderAvailable(const HttpHeader& header)
     {
         if (infra::CaseInsensitiveCompare(header.Field(), "Content-Length"))
         {
@@ -683,7 +683,7 @@ namespace services
         }
     }
 
-    void HttpClientImplWithRedirection::HeaderAvailable(HttpHeader header)
+    void HttpClientImplWithRedirection::HeaderAvailable(const HttpHeader& header)
     {
         if (redirecting)
         {

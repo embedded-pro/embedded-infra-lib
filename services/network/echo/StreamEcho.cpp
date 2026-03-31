@@ -2,7 +2,7 @@
 
 namespace services
 {
-    void StreamEchoConnection::SendInitial()
+    void StreamEchoConnection::SendInitial() const
     {}
 
     void StreamEchoConnection::SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer)

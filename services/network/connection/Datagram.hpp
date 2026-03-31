@@ -15,7 +15,7 @@ namespace services
         : public infra::SingleObserver<DatagramExchangeObserver, DatagramExchange>
     {
     public:
-        virtual void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) = 0;
+        virtual void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) = 0;
 
         virtual void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) = 0;
     };
@@ -28,7 +28,7 @@ namespace services
         virtual void RequestSendStream(std::size_t sendSize) = 0;
 
         // RequestStream with address is possible on all DatagramExchange objects
-        virtual void RequestSendStream(std::size_t sendSize, UdpSocket to) = 0;
+        virtual void RequestSendStream(std::size_t sendSize, const UdpSocket& to) = 0;
     };
 
     class DatagramFactory

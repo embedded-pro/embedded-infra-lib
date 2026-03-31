@@ -32,7 +32,7 @@ namespace services
     void PrintField(const infra::BoundedVector<uint8_t>& value, services::Tracer& tracer);
 
     template<class T>
-    void PrintField(T value, services::Tracer& tracer, typename std::enable_if<std::is_enum<T>::value>::type* = 0)
+    void PrintField(T value, services::Tracer& tracer, std::enable_if_t<std::is_enum_v<T>>* = 0)
     {
         PrintField(static_cast<uint32_t>(value), tracer);
     }
@@ -40,7 +40,7 @@ namespace services
     template<class T, std::size_t... I>
     void PrintSubFields(const T& value, services::Tracer& tracer, std::index_sequence<I...>)
     {
-        (void)((PrintField(value.Get(std::integral_constant<uint32_t, I>()), tracer), true) && ...);
+        (PrintField(value.Get(std::integral_constant<uint32_t, I>()), tracer), ...);
     }
 
     template<class T>

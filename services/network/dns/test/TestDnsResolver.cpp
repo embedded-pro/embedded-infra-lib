@@ -310,7 +310,7 @@ public:
         return Concatenate({ result, nameReference, resourceInner, ConvertDns(address) });
     }
 
-    void DataReceived(const std::vector<uint8_t>& response, services::UdpSocket from)
+    void DataReceived(const std::vector<uint8_t>& response, const services::UdpSocket& from)
     {
         infra::StdVectorInputStream::WithStorage stream(infra::inPlace, response);
         datagramExchangeObserver->DataReceived(infra::UnOwnedSharedPtr(stream.Reader()), from);

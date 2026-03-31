@@ -60,7 +60,7 @@ namespace application
             tracer.Trace() << "Status: " << statusCode;
         }
 
-        void HeaderAvailable(services::HttpHeader header) override
+        void HeaderAvailable(const services::HttpHeader& header) override
         {
             tracer.Trace() << "Header: " << header;
         }

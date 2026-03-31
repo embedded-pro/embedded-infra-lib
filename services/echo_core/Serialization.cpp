@@ -34,29 +34,17 @@ namespace services
 
     infra::SharedPtr<infra::ByteRange> MethodSerializerFactory::OnHeap::SerializerMemory(uint32_t size)
     {
-        auto m = new uint8_t[size];
-        serializerMemory = { m,
-            m + size };
+        serializerStorage = std::make_unique<uint8_t[]>(size);
+        serializerMemory = { serializerStorage.get(),
+            serializerStorage.get() + size };
         return serializerAccess.MakeShared(serializerMemory);
     }
 
     infra::SharedPtr<infra::ByteRange> MethodSerializerFactory::OnHeap::DeserializerMemory(uint32_t size)
     {
-        auto m = new uint8_t[size];
-        deserializerMemory = { m,
-            m + size };
+        deserializerStorage = std::make_unique<uint8_t[]>(size);
+        deserializerMemory = { deserializerStorage.get(),
+            deserializerStorage.get() + size };
         return deserializerAccess.MakeShared(deserializerMemory);
-    }
-
-    void MethodSerializerFactory::OnHeap::DeAllocateSerializer()
-    {
-        delete[] serializerMemory.begin();
-        serializerMemory = {};
-    }
-
-    void MethodSerializerFactory::OnHeap::DeAllocateDeserializer()
-    {
-        delete[] deserializerMemory.begin();
-        deserializerMemory = {};
     }
 }

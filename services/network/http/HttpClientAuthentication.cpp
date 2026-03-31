@@ -133,7 +133,7 @@ namespace services
             Observer().StatusAvailable(statusCode);
     }
 
-    void HttpClientAuthentication::HeaderAvailable(HttpHeader header)
+    void HttpClientAuthentication::HeaderAvailable(const HttpHeader& header)
     {
         if (unauthorized)
         {

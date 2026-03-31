@@ -17,7 +17,7 @@ namespace services
         ~ClientConnectionObserverFactoryWithNameResolver() = default;
 
     public:
-        enum ConnectFailReason
+        enum class ConnectFailReason
         {
             refused,
             connectionAllocationFailed,

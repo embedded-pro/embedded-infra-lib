@@ -51,7 +51,7 @@ namespace services
     protected:
         // Implementation of HttpHeaderParserObserver
         void StatusAvailable(HttpStatusCode code, infra::BoundedConstString statusLine) override;
-        void HeaderAvailable(HttpHeader header) override;
+        void HeaderAvailable(const HttpHeader& header) override;
         void HeaderParsingDone(bool error) override;
 
         void BodyComplete();
@@ -113,7 +113,7 @@ namespace services
             : public SendingState
         {
         public:
-            SendingStateForwardSendStream(HttpClientImpl& client);
+            explicit SendingStateForwardSendStream(HttpClientImpl& client);
             SendingStateForwardSendStream(const SendingStateForwardSendStream& other);
             SendingStateForwardSendStream& operator=(const SendingStateForwardSendStream& other) = delete;
             ~SendingStateForwardSendStream() override = default;
@@ -309,7 +309,7 @@ namespace services
     protected:
         // Implementation of HttpHeaderParserObserver
         void StatusAvailable(HttpStatusCode code, infra::BoundedConstString statusLine) override;
-        void HeaderAvailable(HttpHeader header) override;
+        void HeaderAvailable(const HttpHeader& header) override;
         void HeaderParsingDone(bool error) override;
 
     private:

@@ -13,7 +13,7 @@ namespace services
     {
     public:
         virtual void StatusAvailable(HttpStatusCode statusCode) = 0;
-        virtual void HeaderAvailable(HttpHeader header) = 0;
+        virtual void HeaderAvailable(const HttpHeader& header) = 0;
         virtual void BodyAvailable(infra::SharedPtr<infra::StreamReader>&& reader) = 0;
         virtual void BodyComplete() = 0;
 

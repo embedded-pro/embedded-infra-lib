@@ -39,7 +39,7 @@ namespace services
         void Attached() override; // Default implementation. Override for behaviour other than an HTTP GET request
         void Detaching() override;
         void StatusAvailable(services::HttpStatusCode statusCode) override;
-        void HeaderAvailable(services::HttpHeader header) override;
+        void HeaderAvailable(const services::HttpHeader& header) override;
         void BodyAvailable(infra::SharedPtr<infra::StreamReader>&& reader) override;
 
         // Override HttpClient methods

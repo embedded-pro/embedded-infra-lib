@@ -198,16 +198,16 @@ namespace services
                 // The buffer contains a full message
                 stream.Reader().Rewind(save);
                 infra::ProtoParser newParser(stream, formatErrorPolicy);
-                auto message = newParser.GetField();
+                auto [messageField, messageFieldNumber] = newParser.GetField();
 
-                if (formatErrorPolicy.Failed() || !message.first.Is<infra::ProtoLengthDelimited>())
+                if (formatErrorPolicy.Failed() || !messageField.Is<infra::ProtoLengthDelimited>())
                 {
                     tracer.Trace() << "< Malformed message";
                     writerBuffer.erase(writerBuffer.begin(), writerBuffer.begin() + stream.Reader().Processed());
                 }
                 else
                 {
-                    SendingMethod(serviceId, methodId, message.first.Get<infra::ProtoLengthDelimited>());
+                    SendingMethod(serviceId, methodId, messageField.Get<infra::ProtoLengthDelimited>());
                     if (stream.Failed() || formatErrorPolicy.Failed())
                         tracer.Continue() << "... Malformed message";
                     writerBuffer.erase(writerBuffer.begin(), writerBuffer.begin() + stream.Reader().Processed());

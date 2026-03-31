@@ -17,7 +17,7 @@ namespace services
             infra::Optional<IPv4Address> ipv4Address, infra::Optional<IPv6Address> ipv6Address, uint16_t port, const DnsHostnameParts& text);
         ~BonjourServer();
 
-        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) override;
+        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) override;
         void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
     private:
@@ -65,7 +65,7 @@ namespace services
             QuestionParser(BonjourServer& server, infra::StreamReaderWithRewinding& reader, infra::StreamWriter& writer);
 
             bool HasAnswer() const;
-            void RequestSendStream(DatagramExchange& datagramExchange, UdpSocket from, UdpSocket to);
+            void RequestSendStream(DatagramExchange& datagramExchange, UdpSocket from, const UdpSocket& to);
 
         private:
             void CreateAnswer(infra::StreamWriter& writer);
@@ -102,7 +102,7 @@ namespace services
         public:
             virtual ~State() = default;
 
-            virtual void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) = 0;
+            virtual void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) = 0;
             virtual void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) = 0;
         };
 
@@ -112,7 +112,7 @@ namespace services
         public:
             explicit StateIdle(BonjourServer& server);
 
-            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) override;
+            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) override;
             void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
         private:
@@ -126,7 +126,7 @@ namespace services
         public:
             explicit StateAnnounce(BonjourServer& server);
 
-            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) override;
+            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) override;
 
         protected:
             void WriteAnnounceQuery(infra::StreamWriter& writer);

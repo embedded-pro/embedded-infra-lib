@@ -237,7 +237,7 @@ public:
 
         auto ptr = std::make_shared<Ptr>(Ptr{ *this, data });
 
-        EXPECT_CALL(*datagramExchange, RequestSendStream(data.size(), testing::_)).WillOnce(testing::Invoke([ptr](std::size_t sendSize, services::UdpSocket to)
+        EXPECT_CALL(*datagramExchange, RequestSendStream(data.size(), testing::_)).WillOnce(testing::Invoke([ptr](std::size_t sendSize, const services::UdpSocket& to)
             {
                 infra::EventDispatcher::Instance().Schedule([ptr]()
                     {

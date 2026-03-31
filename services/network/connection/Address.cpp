@@ -13,7 +13,7 @@ namespace services
             return Udpv6Socket{ address.Get<services::IPv6Address>(), port };
     }
 
-    IPAddress GetAddress(UdpSocket socket)
+    IPAddress GetAddress(const UdpSocket& socket)
     {
         if (socket.Is<Udpv4Socket>())
             return socket.Get<Udpv4Socket>().first;
@@ -21,7 +21,7 @@ namespace services
             return socket.Get<Udpv6Socket>().first;
     }
 
-    uint16_t GetPort(UdpSocket socket)
+    uint16_t GetPort(const UdpSocket& socket)
     {
         if (socket.Is<Udpv4Socket>())
             return socket.Get<Udpv4Socket>().second;
@@ -37,7 +37,7 @@ namespace services
             return services::IPVersions::ipv6;
     }
 
-    IPVersions GetVersion(UdpSocket socket)
+    IPVersions GetVersion(const UdpSocket& socket)
     {
         if (socket.Is<Udpv4Socket>())
             return services::IPVersions::ipv4;
@@ -131,7 +131,7 @@ namespace services
                 return infra::none;
 
             parsedCount += token.size();
-            ipv6Address[i] = decimal;
+            ipv6Address[i] = static_cast<uint16_t>(decimal);
         }
 
         if (parsedCount + 7 != address.size())

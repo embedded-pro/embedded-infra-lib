@@ -180,7 +180,7 @@ namespace services
             TrySendNextQuery();
     }
 
-    void MdnsClient::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from)
+    void MdnsClient::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from)
     {
         if (GetPort(from) != mdnsPort)
             return;

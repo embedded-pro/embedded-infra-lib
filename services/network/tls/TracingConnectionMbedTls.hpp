@@ -49,7 +49,7 @@ namespace services
         : public ConnectionFactoryMbedTls
     {
     public:
-        enum DebugLevel
+        enum class DebugLevel
         {
             NoDebug,
             Error,
@@ -75,7 +75,7 @@ namespace services
         : public ConnectionFactoryWithNameResolverMbedTls
     {
     public:
-        enum DebugLevel
+        enum class DebugLevel
         {
             NoDebug,
             Error,

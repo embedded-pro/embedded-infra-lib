@@ -41,7 +41,7 @@ namespace services
         void RequestTime(const services::IPv4Address& address);
 
         // From DatagramExchangeObserver
-        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from) override;
+        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from) override;
         void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
     private:
@@ -70,7 +70,7 @@ namespace services
             infra::BigEndian<uint32_t> seconds;
             infra::BigEndian<uint32_t> fraction;
 
-            infra::Duration Convert();
+            infra::Duration Convert() const;
         };
 
         struct NtpTimestamps
@@ -92,10 +92,10 @@ namespace services
             infra::BigEndian<uint32_t> referenceIdentifier;
             NtpTimestamps timestamps;
 
-            bool Valid(infra::Duration& requestTime);
-            NtpLeapIndicator LeapIndicator();
-            uint8_t Version();
-            NtpMode Mode();
+            bool Valid(const infra::Duration& requestTime) const;
+            NtpLeapIndicator LeapIndicator() const;
+            uint8_t Version() const;
+            NtpMode Mode() const;
         };
 
     private:

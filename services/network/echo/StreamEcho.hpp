@@ -12,7 +12,7 @@ namespace services
     public:
         StreamEchoConnection() = default;
 
-        void SendInitial();
+        void SendInitial() const;
 
         void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
         void DataReceived() override;

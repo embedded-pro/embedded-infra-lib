@@ -6,11 +6,11 @@ namespace services
     {
         switch (reason)
         {
-            case refused:
+            case ConnectFailReason::refused:
                 return "refused";
-            case connectionAllocationFailed:
+            case ConnectFailReason::connectionAllocationFailed:
                 return "connectionAllocationFailed";
-            case nameLookupFailed:
+            case ConnectFailReason::nameLookupFailed:
                 return "nameLookupFailed";
             default:
                 std::abort();

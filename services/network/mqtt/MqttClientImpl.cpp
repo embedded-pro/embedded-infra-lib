@@ -73,23 +73,23 @@ namespace services
         return 5 + 2 + EncodedTopicLength(message) + 1;
     }
 
-    void MqttClientImpl::MqttFormatter::MessagePubAck(const MqttClientObserver& message, uint16_t packetIdentifier)
+    void MqttClientImpl::MqttFormatter::MessagePubAck(const MqttClientObserver& /*message*/, uint16_t packetIdentifier)
     {
         Header(PacketType::packetTypePubAck, 2, 0);
         stream << infra::BigEndian<uint16_t>(packetIdentifier);
     }
 
-    std::size_t MqttClientImpl::MqttFormatter::MessageSizePubAck(const MqttClientObserver& message)
+    std::size_t MqttClientImpl::MqttFormatter::MessageSizePubAck(const MqttClientObserver& /*message*/)
     {
         return 4;
     }
 
-    void MqttClientImpl::MqttFormatter::MessagePing(const MqttClientObserver& message)
+    void MqttClientImpl::MqttFormatter::MessagePing(const MqttClientObserver& /*message*/)
     {
         Header(PacketType::packetTypePingReq, 0, 0);
     }
 
-    std::size_t MqttClientImpl::MqttFormatter::MessageSizePing(const MqttClientObserver& message)
+    std::size_t MqttClientImpl::MqttFormatter::MessageSizePing(const MqttClientObserver& /*message*/)
     {
         return 2;
     }
@@ -136,7 +136,7 @@ namespace services
         stream << static_cast<uint8_t>(size);
     }
 
-    uint8_t MqttClientImpl::MqttFormatter::MakePacketType(PacketType packetType, uint8_t flags)
+    uint8_t MqttClientImpl::MqttFormatter::MakePacketType(PacketType packetType, uint8_t flags) // static
     {
         return static_cast<uint8_t>((static_cast<uint8_t>(packetType) << 4) | flags);
     }

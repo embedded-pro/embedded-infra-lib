@@ -23,7 +23,7 @@ namespace services
         ~WebSocketClientObserverFactory() = default;
 
     public:
-        enum ConnectFailReason
+        enum class ConnectFailReason
         {
             refused,
             connectionAllocationFailed,
@@ -175,7 +175,7 @@ namespace services
         void Attached() override;
         services::HttpHeaders Headers() const override;
         void StatusAvailable(HttpStatusCode statusCode) override;
-        void HeaderAvailable(HttpHeader header) override;
+        void HeaderAvailable(const HttpHeader& header) override;
         void BodyAvailable(infra::SharedPtr<infra::StreamReader>&& reader) override;
         void BodyComplete() override;
         void Done() override;

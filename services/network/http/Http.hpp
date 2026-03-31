@@ -98,9 +98,10 @@ namespace services
     using HttpHeaders = infra::MemoryRange<const HttpHeader>;
     extern const HttpHeaders noHeaders;
 
-    extern const struct Chunked
-    {
-    } chunked;
+    struct Chunked
+    {};
+
+    extern const Chunked chunked;
 
     class HttpRequestFormatter
     {
@@ -140,7 +141,7 @@ namespace services
 
     public:
         virtual void StatusAvailable(HttpStatusCode code, infra::BoundedConstString statusLine) = 0;
-        virtual void HeaderAvailable(HttpHeader header) = 0;
+        virtual void HeaderAvailable(const HttpHeader& header) = 0;
         virtual void HeaderParsingDone(bool error) = 0;
     };
 
@@ -154,10 +155,10 @@ namespace services
 
     private:
         void ParseStatusLine(infra::StreamReaderWithRewinding& reader, bool& error);
-        bool HttpVersionValid(infra::BoundedConstString httpVersion);
+        bool HttpVersionValid(infra::BoundedConstString httpVersion) const;
 
         void ParseHeaders(infra::StreamReaderWithRewinding& reader);
-        HttpHeader HeaderFromString(infra::BoundedConstString header);
+        HttpHeader HeaderFromString(infra::BoundedConstString header) const;
 
     private:
         HttpHeaderParserObserver& observer;

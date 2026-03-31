@@ -616,7 +616,7 @@ TEST_F(HttpClientTest, Close_while_HeaderAvailable_is_handled)
     ExecuteAllActions();
 
     EXPECT_CALL(client, StatusAvailable(services::HttpStatusCode::OK));
-    EXPECT_CALL(client, HeaderAvailable(testing::_)).WillOnce(testing::Invoke([this](services::HttpHeader header)
+    EXPECT_CALL(client, HeaderAvailable(testing::_)).WillOnce(testing::Invoke([this](const services::HttpHeader& header)
         {
             ASSERT_EQ("header", header.Field());
             ASSERT_EQ("a", header.Value());

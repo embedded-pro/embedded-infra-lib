@@ -18,7 +18,7 @@ namespace services
         MOCK_METHOD0(Detaching, void());
 
         MOCK_METHOD1(StatusAvailable, void(HttpStatusCode statusCode));
-        MOCK_METHOD1(HeaderAvailable, void(HttpHeader header));
+        MOCK_METHOD1(HeaderAvailable, void(const HttpHeader& header));
         MOCK_METHOD1(BodyAvailable, void(infra::SharedPtr<infra::StreamReader>&& reader));
         MOCK_METHOD0(BodyComplete, void());
         MOCK_METHOD1(SendStreamAvailable, void(infra::SharedPtr<infra::StreamWriter>&& writer));

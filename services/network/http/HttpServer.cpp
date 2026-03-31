@@ -8,7 +8,7 @@
 
 namespace services
 {
-    SimpleHttpResponse httpResponseNoContent{ services::http_responses::noContent };
+    const SimpleHttpResponse httpResponseNoContent{ services::http_responses::noContent };
 
     void HttpPageServer::AddPage(services::HttpPage& page)
     {
@@ -489,7 +489,7 @@ namespace services
     DefaultHttpServer::DefaultHttpServer(infra::BoundedString& buffer, ConnectionFactory& connectionFactory, uint16_t port)
         : SingleConnectionListener(connectionFactory, port, { connectionCreator })
         , buffer(buffer)
-        , connectionCreator([this](infra::Optional<HttpServerConnectionObserver>& value, IPAddress address)
+        , connectionCreator([this](infra::Optional<HttpServerConnectionObserver>& value, IPAddress /*address*/)
               {
                   value.Emplace(this->buffer, *this);
               })

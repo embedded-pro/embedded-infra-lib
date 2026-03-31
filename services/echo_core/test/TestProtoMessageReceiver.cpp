@@ -10,7 +10,7 @@ TEST(ProtoMessageReceiverTest, parse_bool)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 1 });
     receiver.Feed(data);
 
-    EXPECT_EQ(true, receiver.message.value);
+    EXPECT_EQ(true, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_unknown_simple_field)
@@ -20,7 +20,7 @@ TEST(ProtoMessageReceiverTest, parse_unknown_simple_field)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 2 << 3, 1, 1 << 3, 1 });
     receiver.Feed(data);
 
-    EXPECT_EQ(true, receiver.message.value);
+    EXPECT_EQ(true, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_unknown_length_delimited)
@@ -30,7 +30,7 @@ TEST(ProtoMessageReceiverTest, parse_unknown_length_delimited)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 1, (2 << 3) | 2, 2, 1 << 3, 0 });
     receiver.Feed(data);
 
-    EXPECT_EQ(true, receiver.message.value);
+    EXPECT_EQ(true, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_incomplete_bool)
@@ -40,12 +40,12 @@ TEST(ProtoMessageReceiverTest, parse_incomplete_bool)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 8 });
     receiver.Feed(data);
 
-    EXPECT_EQ(false, receiver.message.value);
+    EXPECT_EQ(false, receiver.GetMessage().value);
 
     infra::StdVectorInputStreamReader::WithStorage data2(infra::inPlace, std::initializer_list<uint8_t>{ 1 });
     receiver.Feed(data2);
 
-    EXPECT_EQ(true, receiver.message.value);
+    EXPECT_EQ(true, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_uint32)
@@ -55,7 +55,7 @@ TEST(ProtoMessageReceiverTest, parse_uint32)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 5 });
     receiver.Feed(data);
 
-    EXPECT_EQ(5, receiver.message.value);
+    EXPECT_EQ(5, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_int32)
@@ -65,7 +65,7 @@ TEST(ProtoMessageReceiverTest, parse_int32)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 1 });
     receiver.Feed(data);
 
-    EXPECT_EQ(-1, receiver.message.value);
+    EXPECT_EQ(-1, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_uint64)
@@ -75,7 +75,7 @@ TEST(ProtoMessageReceiverTest, parse_uint64)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 5 });
     receiver.Feed(data);
 
-    EXPECT_EQ(5, receiver.message.value);
+    EXPECT_EQ(5, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_int64)
@@ -85,7 +85,7 @@ TEST(ProtoMessageReceiverTest, parse_int64)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 1 });
     receiver.Feed(data);
 
-    EXPECT_EQ(-1, receiver.message.value);
+    EXPECT_EQ(-1, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_fixed32)
@@ -95,7 +95,7 @@ TEST(ProtoMessageReceiverTest, parse_fixed32)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 13, 0x90, 0x91, 0x0f, 0 });
     receiver.Feed(data);
 
-    EXPECT_EQ(1020304, receiver.message.value);
+    EXPECT_EQ(1020304, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_fixed64)
@@ -105,7 +105,7 @@ TEST(ProtoMessageReceiverTest, parse_fixed64)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 9, 0x64, 0xc8, 0x0c, 0xce, 0xcb, 0x5c, 0x00, 0x00 });
     receiver.Feed(data);
 
-    EXPECT_EQ(102030405060708, receiver.message.value);
+    EXPECT_EQ(102030405060708, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_sfixed32)
@@ -115,7 +115,7 @@ TEST(ProtoMessageReceiverTest, parse_sfixed32)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 13, 0xff, 0xff, 0xff, 0xff });
     receiver.Feed(data);
 
-    EXPECT_EQ(-1, receiver.message.value);
+    EXPECT_EQ(-1, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_sfixed64)
@@ -125,7 +125,7 @@ TEST(ProtoMessageReceiverTest, parse_sfixed64)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 9, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff });
     receiver.Feed(data);
 
-    EXPECT_EQ(-1, receiver.message.value);
+    EXPECT_EQ(-1, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_enum)
@@ -135,7 +135,7 @@ TEST(ProtoMessageReceiverTest, parse_enum)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 1 });
     receiver.Feed(data);
 
-    EXPECT_EQ(test_messages::Enumeration::val1, receiver.message.e);
+    EXPECT_EQ(test_messages::Enumeration::val1, receiver.GetMessage().e);
 }
 
 TEST(ProtoMessageReceiverTest, parse_repeated_uint32)
@@ -145,7 +145,7 @@ TEST(ProtoMessageReceiverTest, parse_repeated_uint32)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 5, 1 << 3, 6 });
     receiver.Feed(data);
 
-    EXPECT_EQ((infra::BoundedVector<uint32_t>::WithMaxSize<10>{ { 5, 6 } }), receiver.message.value);
+    EXPECT_EQ((infra::BoundedVector<uint32_t>::WithMaxSize<10>{ { 5, 6 } }), receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_unbounded_repeated_uint32)
@@ -155,7 +155,7 @@ TEST(ProtoMessageReceiverTest, parse_unbounded_repeated_uint32)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 1 << 3, 5, 1 << 3, 6 });
     receiver.Feed(data);
 
-    EXPECT_EQ((std::vector<uint32_t>{ { 5, 6 } }), receiver.message.value);
+    EXPECT_EQ((std::vector<uint32_t>{ { 5, 6 } }), receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_incomplete_int)
@@ -164,11 +164,11 @@ TEST(ProtoMessageReceiverTest, parse_incomplete_int)
 
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff });
     receiver.Feed(data);
-    EXPECT_EQ(0, receiver.message.value);
+    EXPECT_EQ(0, receiver.GetMessage().value);
 
     infra::StdVectorInputStreamReader::WithStorage data2(infra::inPlace, std::initializer_list<uint8_t>{ 0xff, 1 });
     receiver.Feed(data2);
-    EXPECT_EQ(-1, receiver.message.value);
+    EXPECT_EQ(-1, receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_string)
@@ -178,7 +178,7 @@ TEST(ProtoMessageReceiverTest, parse_string)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 10, 4, 'a', 'b', 'c', 'd' });
     receiver.Feed(data);
 
-    EXPECT_EQ("abcd", receiver.message.value);
+    EXPECT_EQ("abcd", receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_std_string)
@@ -188,7 +188,7 @@ TEST(ProtoMessageReceiverTest, parse_std_string)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ 10, 4, 'a', 'b', 'c', 'd' });
     receiver.Feed(data);
 
-    EXPECT_EQ("abcd", receiver.message.value);
+    EXPECT_EQ("abcd", receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_bytes)
@@ -199,7 +199,7 @@ TEST(ProtoMessageReceiverTest, parse_bytes)
     receiver.Feed(data);
 
     EXPECT_FALSE(receiver.Failed());
-    EXPECT_EQ((infra::BoundedVector<uint8_t>::WithMaxSize<10>{ { 5, 6 } }), receiver.message.value);
+    EXPECT_EQ((infra::BoundedVector<uint8_t>::WithMaxSize<10>{ { 5, 6 } }), receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_bytes_too_long)
@@ -210,7 +210,7 @@ TEST(ProtoMessageReceiverTest, parse_bytes_too_long)
     receiver.Feed(data);
 
     EXPECT_TRUE(receiver.Failed());
-    EXPECT_EQ((infra::BoundedVector<uint8_t>::WithMaxSize<50>{ { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } }), receiver.message.value);
+    EXPECT_EQ((infra::BoundedVector<uint8_t>::WithMaxSize<50>{ { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } }), receiver.GetMessage().value);
 }
 
 TEST(ProtoMessageReceiverTest, parse_message)
@@ -220,7 +220,7 @@ TEST(ProtoMessageReceiverTest, parse_message)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ (1 << 3) | 2, 2, 1 << 3, 5 });
     receiver.Feed(data);
 
-    EXPECT_EQ((test_messages::TestMessageWithMessageField(test_messages::TestUInt32(5))), receiver.message.message);
+    EXPECT_EQ((test_messages::TestMessageWithMessageField(test_messages::TestUInt32(5))), receiver.GetMessage().message);
 }
 
 TEST(ProtoMessageReceiverTest, parse_more_nested_message)
@@ -230,5 +230,5 @@ TEST(ProtoMessageReceiverTest, parse_more_nested_message)
     infra::StdVectorInputStreamReader::WithStorage data(infra::inPlace, std::initializer_list<uint8_t>{ (1 << 3) | 2, 2, 1 << 3, 5, (2 << 3) | 2, 2, 2 << 3, 10 });
     receiver.Feed(data);
 
-    EXPECT_EQ((test_messages::TestMoreNestedMessage({ 5 }, { 10 })), receiver.message);
+    EXPECT_EQ((test_messages::TestMoreNestedMessage({ 5 }, { 10 })), receiver.GetMessage());
 }

@@ -56,7 +56,7 @@ namespace services
         : SingleConnectionListener(connectionFactory, port, { connectionCreator })
         , receiveBuffer(receiveBuffer)
         , serialCommunication(serialCommunication)
-        , connectionCreator([this](infra::Optional<SerialServerConnectionObserver>& value, services::IPAddress address)
+        , connectionCreator([this](infra::Optional<SerialServerConnectionObserver>& value, services::IPAddress /*address*/)
               {
                   value.Emplace(this->receiveBuffer, this->serialCommunication);
               })

@@ -35,7 +35,7 @@ namespace services
         ~DatagramWin();
 
         void RequestSendStream(std::size_t sendSize) override;
-        void RequestSendStream(std::size_t sendSize, UdpSocket to) override;
+        void RequestSendStream(std::size_t sendSize, const UdpSocket& to) override;
 
         void Receive();
         void Send();
@@ -111,7 +111,7 @@ namespace services
 
         // Implementation of DatagramExchange
         void RequestSendStream(std::size_t sendSize) override;
-        void RequestSendStream(std::size_t sendSize, UdpSocket to) override;
+        void RequestSendStream(std::size_t sendSize, const UdpSocket& to) override;
 
     private:
         class Observer
@@ -124,7 +124,7 @@ namespace services
             Observer(DatagramExchangeMultiple& parent, DatagramFactoryWithLocalIpBinding& factory, UdpSocket local, UdpSocket remote);
 
             // Implementation of DatagramExchangeObserver
-            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from) override;
+            void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from) override;
             void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
         private:

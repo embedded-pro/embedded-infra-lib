@@ -219,7 +219,7 @@ namespace services
         }
     }
 
-    bool HttpHeaderParser::HttpVersionValid(infra::BoundedConstString httpVersion)
+    bool HttpHeaderParser::HttpVersionValid(infra::BoundedConstString httpVersion) const
     {
         static const std::array<infra::BoundedConstString, 2> validVersions{ "HTTP/1.0", "HTTP/1.1" };
         return std::any_of(validVersions.begin(), validVersions.end(), [&](infra::BoundedConstString validVersion)
@@ -274,7 +274,7 @@ namespace services
         }
     }
 
-    HttpHeader HttpHeaderParser::HeaderFromString(infra::BoundedConstString header)
+    HttpHeader HttpHeaderParser::HeaderFromString(infra::BoundedConstString header) const
     {
         infra::Tokenizer tokenizer(header, ':');
         return { tokenizer.Token(0), infra::TrimLeft(tokenizer.TokenAndRest(1)) };
@@ -410,10 +410,10 @@ namespace services
 
     infra::Optional<HttpStatusCode> HttpStatusCodeFromString(infra::BoundedConstString statusCode)
     {
-        std::underlying_type<services::HttpStatusCode>::type value = 0;
+        std::underlying_type_t<services::HttpStatusCode> value = 0;
 
-        for (std::size_t index = 0; index < statusCode.size(); ++index)
-            value = value * 10 + statusCode[index] - '0';
+        for (auto c : statusCode)
+            value = static_cast<std::underlying_type_t<services::HttpStatusCode>>(value * 10 + c - '0');
 
         switch (value)
         {
@@ -499,9 +499,9 @@ namespace services
                 return infra::MakeOptional(HttpStatusCode::GatewayTimeOut);
             case 505:
                 return infra::MakeOptional(HttpStatusCode::HttpVersionNotSupported);
+            default:
+                return infra::none;
         }
-
-        return infra::none;
     }
 
     infra::BoundedConstString HttpStatusCodeToString(services::HttpStatusCode statusCode)

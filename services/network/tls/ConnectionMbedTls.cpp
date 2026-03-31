@@ -156,12 +156,7 @@ namespace services
             infra::ByteRange buffer = receiveBuffer.contiguous_range(receiveBuffer.begin() + newBufferStart);
 
             int result = mbedtls_ssl_read(&sslContext, buffer.begin(), buffer.size());
-            if (result == MBEDTLS_ERR_SSL_WANT_WRITE || result == MBEDTLS_ERR_SSL_WANT_READ)
-            {
-                receiveBuffer.resize(newBufferStart);
-                break;
-            }
-            else if (result == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+            if (result == MBEDTLS_ERR_SSL_WANT_WRITE || result == MBEDTLS_ERR_SSL_WANT_READ || result == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
             {
                 receiveBuffer.resize(newBufferStart);
                 break;

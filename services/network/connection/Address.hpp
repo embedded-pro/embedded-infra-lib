@@ -27,10 +27,10 @@ namespace services
 
     UdpSocket MakeUdpSocket(IPAddress address, uint16_t port);
 
-    IPAddress GetAddress(UdpSocket socket);
-    uint16_t GetPort(UdpSocket socket);
+    IPAddress GetAddress(const UdpSocket& socket);
+    uint16_t GetPort(const UdpSocket& socket);
     IPVersions GetVersion(IPAddress socket);
-    IPVersions GetVersion(UdpSocket socket);
+    IPVersions GetVersion(const UdpSocket& socket);
 
     IPv4Address IPv4AddressLocalHost();
     IPv6Address IPv6AddressLocalHost();

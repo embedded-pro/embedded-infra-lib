@@ -453,7 +453,7 @@ namespace services
             ContentError();
     }
 
-    void HttpClientWebSocketInitiation::HeaderAvailable(HttpHeader header)
+    void HttpClientWebSocketInitiation::HeaderAvailable(const HttpHeader& header)
     {
         if (infra::CaseInsensitiveCompare(header.Field(), "Upgrade"))
         {

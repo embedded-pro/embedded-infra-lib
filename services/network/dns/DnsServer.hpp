@@ -21,7 +21,7 @@ namespace services
 
         DnsServer(services::DatagramFactory& factory, DnsEntries dnsEntries);
 
-        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from) override;
+        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from) override;
         void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
     protected:

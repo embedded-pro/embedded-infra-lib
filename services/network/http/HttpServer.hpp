@@ -71,7 +71,7 @@ namespace services
         : public HttpResponse
     {
     public:
-        SimpleHttpResponse(infra::BoundedConstString status, infra::BoundedConstString body = infra::BoundedConstString());
+        explicit SimpleHttpResponse(infra::BoundedConstString status, infra::BoundedConstString body = infra::BoundedConstString());
 
         infra::BoundedConstString Status() const override;
         void WriteBody(infra::TextOutputStream& stream) const override;
@@ -82,7 +82,7 @@ namespace services
         infra::BoundedConstString body;
     };
 
-    extern SimpleHttpResponse httpResponseNoContent;
+    extern const SimpleHttpResponse httpResponseNoContent;
 
     class HttpServerConnection
     {

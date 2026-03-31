@@ -5,6 +5,7 @@
 #include "infra/util/SharedOptional.hpp"
 #include "services/echo_core/ProtoMessageReceiver.hpp"
 #include "services/echo_core/ProtoMessageSender.hpp"
+#include <memory>
 
 namespace services
 {
@@ -220,24 +221,24 @@ namespace services
         infra::SharedPtr<infra::ByteRange> DeserializerMemory(uint32_t size) override;
 
     private:
-        void DeAllocateSerializer();
-        void DeAllocateDeserializer();
-
-    private:
         infra::AccessedBySharedPtr serializerAccess{
             [this]()
             {
-                DeAllocateSerializer();
+                serializerStorage.reset();
+                serializerMemory = {};
             }
         };
 
         infra::AccessedBySharedPtr deserializerAccess{
             [this]()
             {
-                DeAllocateDeserializer();
+                deserializerStorage.reset();
+                deserializerMemory = {};
             }
         };
 
+        std::unique_ptr<uint8_t[]> serializerStorage;
+        std::unique_ptr<uint8_t[]> deserializerStorage;
         infra::ByteRange serializerMemory;
         infra::ByteRange deserializerMemory;
     };
@@ -271,7 +272,7 @@ namespace services
     template<std::size_t... I>
     void MethodDeserializerImpl<Message, Args...>::Execute(std::index_sequence<I...>)
     {
-        method(receiver.message.GetDecayed(std::integral_constant<uint32_t, I>{})...);
+        method(receiver.GetMessage().GetDecayed(std::integral_constant<uint32_t, I>{})...);
     }
 
     template<class Message, class... Args>

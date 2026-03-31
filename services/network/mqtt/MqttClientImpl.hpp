@@ -83,7 +83,7 @@ namespace services
             void AddString(infra::BoundedConstString value);
             void AddTopic(const MqttClientObserver& message);
             void Header(PacketType packetType, std::size_t size, uint8_t flags = 0);
-            uint8_t MakePacketType(PacketType packetType, uint8_t flags);
+            static uint8_t MakePacketType(PacketType packetType, uint8_t flags);
 
         private:
             infra::DataOutputStream stream;

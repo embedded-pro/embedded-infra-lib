@@ -31,7 +31,7 @@ namespace services
         activeDiscovery.Discover(maxWaitResponseTime, ipVersion);
     }
 
-    void SsdpDeviceDiscovery::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from)
+    void SsdpDeviceDiscovery::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from)
     {
         bool skipped = SkippedNotify(*reader);
 
@@ -83,7 +83,7 @@ namespace services
         valid &= code == services::HttpStatusCode::OK;
     }
 
-    void SsdpDeviceDiscovery::ResponseValidator::HeaderAvailable(services::HttpHeader header)
+    void SsdpDeviceDiscovery::ResponseValidator::HeaderAvailable(const services::HttpHeader& header)
     {
         if ((infra::CaseInsensitiveCompare(header.Field(), "ST") || infra::CaseInsensitiveCompare(header.Field(), "NT")) && header.Value() == searchTarget)
             foundDevice = true;
@@ -108,7 +108,7 @@ namespace services
         discoverExchange->RequestSendStream(200, MakeSsdpUdpSocket(ipVersion));
     }
 
-    void SsdpDeviceDiscovery::ActiveDiscovery::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from)
+    void SsdpDeviceDiscovery::ActiveDiscovery::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from)
     {
         discovery.DataReceived(std::move(reader), from);
     }

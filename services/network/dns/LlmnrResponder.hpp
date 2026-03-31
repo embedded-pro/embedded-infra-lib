@@ -17,7 +17,7 @@ namespace services
         LlmnrResponder(services::DatagramFactory& factory, services::Multicast& multicast, services::IPv4Info& ipv4Info, infra::BoundedConstString name);
         ~LlmnrResponder();
 
-        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, services::UdpSocket from) override;
+        void DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const services::UdpSocket& from) override;
         void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
 
     private:

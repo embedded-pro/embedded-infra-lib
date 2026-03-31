@@ -49,7 +49,7 @@ namespace services
     public:
         // Implementation of HttpClientObserver
         void StatusAvailable(HttpStatusCode statusCode) override;
-        void HeaderAvailable(HttpHeader header) override;
+        void HeaderAvailable(const HttpHeader& header) override;
         void BodyAvailable(infra::SharedPtr<infra::StreamReader>&& reader) override;
         void BodyComplete() override;
         void SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer) override;
