@@ -12,7 +12,7 @@ target_link_libraries(services.sesame PUBLIC
     hal.interfaces
     infra.syntax
     infra.timer
-    protobuf.echo
+    services.echo_core
     services.crypto
 )
 
@@ -35,6 +35,7 @@ if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
     else()
         target_link_libraries(services.sesame PUBLIC
             mbedcrypto
+            mbedx509
         )
     endif()
 

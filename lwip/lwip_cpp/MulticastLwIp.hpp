@@ -1,7 +1,7 @@
 #ifndef LWIP_MULTICAST_LW_IP_HPP
 #define LWIP_MULTICAST_LW_IP_HPP
 
-#include "services/network/Multicast.hpp"
+#include "services/network/connection/Multicast.hpp"
 
 namespace services
 {

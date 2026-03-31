@@ -83,7 +83,7 @@ namespace services
         RequestSendStream(sendSize, *connectedTo);
     }
 
-    void DatagramBsd::RequestSendStream(std::size_t sendSize, UdpSocket to)
+    void DatagramBsd::RequestSendStream(std::size_t sendSize, const UdpSocket& to)
     {
         assert(streamWriter.Allocatable());
         requestedSendSize = sendSize;

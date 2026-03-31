@@ -7,7 +7,7 @@
 #endif
 #include "infra/stream/IoOutputStream.hpp"
 #include "infra/util/Tokenizer.hpp"
-#include "services/network/SerialServer.hpp"
+#include "services/network/serial/SerialServer.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 #include "services/tracer/Tracer.hpp"
 

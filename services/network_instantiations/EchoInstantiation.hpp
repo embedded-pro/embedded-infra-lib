@@ -1,11 +1,11 @@
 #ifndef SERVICES_NETWORK_ECHO_INSTANTIATIONS
 #define SERVICES_NETWORK_ECHO_INSTANTIATIONS
 
-#include "protobuf/echo/TracingEcho.hpp"
-#include "services/network/EchoOnConnection.hpp"
-#include "services/network/HttpClientImpl.hpp"
-#include "services/network/TracingEchoOnConnection.hpp"
-#include "services/network/WebSocketClientConnectionObserver.hpp"
+#include "services/echo_core/TracingEcho.hpp"
+#include "services/network/echo/EchoOnConnection.hpp"
+#include "services/network/echo/TracingEchoOnConnection.hpp"
+#include "services/network/http/HttpClientImpl.hpp"
+#include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
 
 namespace application
 {

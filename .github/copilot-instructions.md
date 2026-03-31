@@ -17,13 +17,42 @@ embedded-infra-lib (EmIL) is a header-based C++17 library providing heap-less, S
   - `generic/`: Generic HAL implementations
   - `unix/`, `windows/`: Platform-specific HAL
   - `synchronous_interfaces/`: Blocking HAL interfaces
-- **services/**: Higher-level services (networking, BLE, crypto, echo, flash, tracing)
-- **protobuf/**: Protocol buffer support with ECHO RPC framework
+- **drivers/**: Device drivers for specific hardware chips
+  - `external_flash/`: SPI flash chip drivers (MicronN25q, CypressFll)
+- **services/**: Higher-level services and protocols
+  - `echo_core/`: ECHO RPC runtime (serialization, message send/receive)
+  - `echo_attributes/`: ECHO protobuf attribute definitions
+  - `echo/`: ECHO integration (on message communication, on sesame)
+  - `network/`: Networking (split into sub-targets):
+    - `connection/`: Base connection abstractions, address, name resolution
+    - `http/`: HTTP client and server
+    - `mqtt/`: MQTT client
+    - `dns/`: DNS, mDNS, LLMNR, Bonjour
+    - `websocket/`: WebSocket client and server
+    - `tls/`: TLS/MbedTLS connections and certificates
+    - `echo/`: ECHO-over-network (EchoOnConnection, proto generation)
+    - `sntp/`: SNTP client
+    - `ssdp/`: SSDP device discovery
+    - `serial/`: Serial server
+  - `network_instantiations/`: Ready-to-use network stack instantiations
+  - `ble/`: Bluetooth Low Energy
+  - `sesame/`: SESAME secured serial protocol
+  - `crypto/`: Cryptographic services
+  - `flash/`: Flash abstractions (QuadSpi, SPI, regions)
+  - `tracer/`: Tracing services
+  - `util/`: Service utilities
+- **application/**: Standalone CLI tools and build-time executables
+  - `echo_console/`: Interactive ECHO console application
+  - `sesame_key_generator/`: SESAME key generation tool
+  - `security_key_generator/`: Upgrade security key generator
+  - `protoc_echo_plugin/`: Protobuf compiler ECHO plugin (C++)
+  - `protoc_echo_plugin_csharp/`: Protobuf compiler ECHO plugin (C#)
+  - `protoc_echo_plugin_java/`: Protobuf compiler ECHO plugin (Java)
+- **upgrade/**: Firmware upgrade and bootloader support
 - **lwip/**: LwIP TCP/IP stack wrappers
 - **osal/**: OS abstraction layer (FreeRTOS, ThreadX, std::thread)
-- **upgrade/**: Firmware upgrade and bootloader support
 - **external/**: Third-party dependencies (args, crypto, protobuf, Segger RTT)
-- **cmake/**: CMake build modules and toolchain files
+- **cmake/**: CMake build modules, toolchain files, and protocol_buffer_echo.cmake
 - **examples/**: Usage examples
 
 ## Critical Constraints
@@ -231,6 +260,8 @@ std::array<uint8_t, 256> buffer;
   - `infra` — Core utilities, containers, streams, timers
   - `hal` — Hardware abstraction layer
   - `services` — Higher-level services and protocols
+  - `drivers` — Device drivers for specific hardware chips
+  - `application` — Standalone CLI tools and build-time executables
 - **SELF-DOCUMENTING CODE**: Write clear, self-explanatory code with descriptive names
 - **CODE FORMATTING**: Strictly adhere to the rules defined in `.clang-format` for consistent code style
 - **TEMPLATE USAGE**: Use templates for type-generic components while maintaining type safety

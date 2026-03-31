@@ -7,7 +7,7 @@
 #include "infra/util/IntrusiveList.hpp"
 #include "infra/util/SharedObjectAllocator.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "services/network/Connection.hpp"
+#include "services/network/connection/Connection.hpp"
 #include <list>
 
 namespace services

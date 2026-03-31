@@ -7,8 +7,7 @@
       "package-name": "amp-embedded-infra-lib",
       "extra-files": [
         "CMakeLists.txt",
-        "sonar-project.properties",
-        "protobuf/echo/protocol_buffer_echo.cmake"
+        "sonar-project.properties"
       ]
     }
   },

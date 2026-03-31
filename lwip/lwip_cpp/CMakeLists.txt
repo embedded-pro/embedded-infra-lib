@@ -1,7 +1,7 @@
 add_library(lwip.lwip_cpp ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
 target_link_libraries(lwip.lwip_cpp PUBLIC
-    services.network
+    services.network.connection
     infra.event
     hal.interfaces
 )

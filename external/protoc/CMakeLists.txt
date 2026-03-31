@@ -54,7 +54,7 @@ function(protocol_buffer_generator)
 
     # Include defaults and self. This assumes set_target_properties on self
     # is done prior to the loop.
-    list(APPEND protobuf_dependencies ${PROTOGEN_TARGET} protobuf.echo_attributes)
+    list(APPEND protobuf_dependencies ${PROTOGEN_TARGET} services.echo_attributes)
 
     set(protopath)
     foreach(dependency ${protobuf_dependencies})

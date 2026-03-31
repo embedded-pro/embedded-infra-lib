@@ -1,7 +1,7 @@
 #ifndef SERVICES_EVENT_DISPATCHER_WITH_NETWORK_HPP
 #define SERVICES_EVENT_DISPATCHER_WITH_NETWORK_HPP
 
-#include "services/network/Multicast.hpp"
+#include "services/network/connection/Multicast.hpp"
 #include "services/network_instantiations/ConnectionWin.hpp"
 #include "services/network_instantiations/DatagramWin.hpp"
 

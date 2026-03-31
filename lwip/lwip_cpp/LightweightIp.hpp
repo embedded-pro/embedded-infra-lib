@@ -6,8 +6,8 @@
 #include "lwip/lwip_cpp/ConnectionLwIp.hpp"
 #include "lwip/lwip_cpp/DatagramLwIp.hpp"
 #include "lwip/lwip_cpp/MulticastLwIp.hpp"
-#include "services/network/Address.hpp"
-#include "services/network/ConnectionStatus.hpp"
+#include "services/network/connection/Address.hpp"
+#include "services/network/connection/ConnectionStatus.hpp"
 #include "services/util/Stoppable.hpp"
 
 namespace services
