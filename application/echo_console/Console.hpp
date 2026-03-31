@@ -1,11 +1,11 @@
 #ifndef SERVICES_ECHO_CONSOLE_HPP
 #define SERVICES_ECHO_CONSOLE_HPP
 
+#include "application/protoc_echo_plugin/EchoObjects.hpp"
 #include "hal/generic/TimerServiceGeneric.hpp"
 #include "infra/syntax/ProtoFormatter.hpp"
 #include "infra/syntax/ProtoParser.hpp"
 #include "services/echo_core/Echo.hpp"
-#include "application/protoc_echo_plugin/EchoObjects.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 #include <thread>
 
