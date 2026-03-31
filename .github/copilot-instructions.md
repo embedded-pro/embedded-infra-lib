@@ -85,6 +85,21 @@ embedded-infra-lib (EmIL) is a header-based C++17 library providing heap-less, S
 - **AVOID COPYING**: Use references and move semantics to prevent unnecessary copies
 - **MEASURE SIZE**: Be aware of sizeof() for all data structures
 
+### Execution Model
+
+- **EVENT-DRIVEN, NON-BLOCKING**: The primary execution model uses an event dispatcher (`infra::EventDispatcher`). Actions are scheduled via `Schedule()` with `infra::Function<void()>` (typically lambdas) and executed one after another on the main thread — no action may block, sleep, or busy-wait
+- **NO SYNCHRONIZATION NEEDED**: Since queued actions run sequentially on a single event dispatcher, no mutexes or locks are required for shared state accessed only from that dispatcher
+- **SCHEDULE COMPLETION, DON'T WAIT**: When starting an asynchronous operation (e.g. flash write, network request), schedule a new action upon completion instead of waiting for the result. This keeps the dispatcher responsive and allows other components to make progress
+- **WEAK POINTER SAFETY**: Use `infra::EventDispatcherWithWeakPtr` and schedule with an `infra::WeakPtr<T>` when the scheduling object may be destroyed before the action executes — the action is automatically discarded if the object has expired
+- **SYNCHRONOUS INTERFACES ARE THE EXCEPTION**: Synchronous (blocking) HAL interfaces are reserved for constrained contexts (e.g. boot loaders or applications that run without an event dispatcher). Default to asynchronous interfaces whenever an event dispatcher is present
+- **MULTI-THREADING IS OPT-IN**: Multiple threads are only used when real-time guarantees or long-running computations require isolation from the main event dispatcher. Each thread may have its own event dispatcher; completion is reported back to the main dispatcher via `Schedule()`
+
+### Connection Lifetime Management
+
+- **SharedPtr OWNERSHIP**: Network connections use `infra::SharedPtr<services::Connection>` for lifetime management — the connection lives as long as the shared pointer is held
+- **Observer PATTERN**: `services::ConnectionObserver` attaches to a `Connection` via `SharedOwnedObserver`/`SharedOwningSubject` — implement `SendStreamAvailable()` and `DataReceived()`; override `Attached()`/`Detaching()` only when setup/cleanup logic is needed
+- **REQUEST-BASED SENDING**: Never write directly to a connection; call `RequestSendStream(size)` and write in the `SendStreamAvailable()` callback
+
 ## Design Principles
 
 These are the most important architectural directives in this codebase. Every new class, function, and CMake target must follow them.
@@ -275,8 +290,28 @@ std::array<uint8_t, 256> buffer;
 - HAL implementations are split per platform (`hal/unix/`, `hal/windows/`)
 - Test on host before deploying to target hardware
 
+### ECHO and Protobuf Conventions
+
+- ECHO services use `service_id` and `method_id` options instead of names for encoding — always assign these in `.proto` files
+- All ECHO methods are asynchronous and must return `Nothing`
+- ECHO methods with no input must use the `Nothing` message type as their request
+- Bound all unbounded Protobuf fields with `(string_size)`, `(bytes_size)`, or `(array_size)` options from `EchoAttributes.proto`
+- Follow the proto style guide: MixedCase for files/messages/services/methods, camelCase for fields/enum values
+
 ## Version Control
 
 - Keep commits atomic and focused
 - Write clear commit messages following conventional commits
 - Update CHANGELOG.md according to release-please conventions
+
+## Documentation Reference
+
+Detailed documentation is available in the `docs/` folder. Consult these when reviewing or writing code in the relevant areas:
+
+- `docs/ExecutionModel.md` — Event dispatcher architecture, async patterns, WeakPtr safety, multi-threading guidelines
+- `docs/MemoryRange.md` — `ByteRange`/`ConstByteRange` usage, range accessors, helper functions
+- `docs/Containers.md` — `BoundedVector`, `BoundedDeque`, `BoundedString`, `IntrusiveList`, `WithMaxSize` pattern
+- `docs/Echo.md` — ECHO RPC protocol, Protobuf message encoding, `EchoAttributes.proto`, service/method ID conventions
+- `docs/Sesame.md` — SESAME serial protocol stack (COBS, Windowed, Secured layers), key establishment
+- `docs/NetworkConnections.md` — `Connection`/`ConnectionObserver` pattern, `SharedPtr` lifetime management
+- `docs/CodingStandard.md` — Complete C++ coding standard with 61 rules covering naming, spacing, braces, and more
