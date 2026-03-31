@@ -1,5 +1,5 @@
-#include "generated/echo/UpgradeKeys.pb.hpp"
 #include "application/security_key_generator/material_generator/MaterialGenerator.hpp"
+#include "generated/echo/UpgradeKeys.pb.hpp"
 #include "hal/generic/SynchronousRandomDataGeneratorGeneric.hpp"
 #include "hal/interfaces/test_doubles/FileSystemStub.hpp"
 #include "infra/stream/ByteInputStream.hpp"

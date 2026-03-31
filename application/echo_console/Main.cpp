@@ -1,5 +1,5 @@
-#include "args.hxx"
 #include "application/echo_console/Console.hpp"
+#include "args.hxx"
 #include "hal/generic/FileSystemGeneric.hpp"
 #include "hal/generic/SynchronousRandomDataGeneratorGeneric.hpp"
 #include "hal/generic/UartGeneric.hpp"
