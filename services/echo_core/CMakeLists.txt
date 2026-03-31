@@ -31,6 +31,6 @@ target_sources(services.echo_core PRIVATE
 
 add_subdirectory(test_doubles)
 
-include(protocol_buffer_echo)
+include(echo/protocol_buffer_echo)
 
 add_subdirectory(test)

@@ -8,7 +8,7 @@
       "extra-files": [
         "CMakeLists.txt",
         "sonar-project.properties",
-        "cmake/protocol_buffer_echo.cmake"
+        "cmake/echo/protocol_buffer_echo.cmake"
       ]
     }
   },
