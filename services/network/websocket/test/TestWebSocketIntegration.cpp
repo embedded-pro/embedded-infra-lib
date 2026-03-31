@@ -7,6 +7,9 @@
 #include "services/network/http/HttpClientImpl.hpp"
 #include "services/network/http/HttpServer.hpp"
 #include "services/network/http/test_doubles/HttpClientMock.hpp"
+#include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
+#include "services/network/websocket/WebSocketServerConnectionObserver.hpp"
+#include "services/network/websocket/HttpPageWebSocket.hpp"
 #include "services/util/test_doubles/StoppableMock.hpp"
 #include "gmock/gmock.h"
 
@@ -19,7 +22,7 @@ namespace
         MOCK_CONST_METHOD0(Url, infra::BoundedString());
         MOCK_CONST_METHOD0(Port, uint16_t());
         MOCK_METHOD1(ConnectionEstablished, void(infra::AutoResetFunction<void(infra::SharedPtr<services::ConnectionObserver> client)>&& createdClientObserver));
-        MOCK_METHOD1(ConnectionFailed, void(ConnectFailReason reason));
+        MOCK_METHOD1(ConnectionFailed, void(services::WebSocketClientObserverFactory::ConnectFailReason reason));
     };
 }
 
