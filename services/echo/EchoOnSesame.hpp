@@ -1,7 +1,7 @@
 #ifndef SERVICES_ECHO_ON_SESAME_HPP
 #define SERVICES_ECHO_ON_SESAME_HPP
 
-#include "protobuf/echo/EchoOnStreams.hpp"
+#include "services/echo_core/EchoOnStreams.hpp"
 #include "services/sesame/Sesame.hpp"
 
 namespace services

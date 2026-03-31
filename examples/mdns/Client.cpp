@@ -1,6 +1,6 @@
 #include "hal/generic/TimerServiceGeneric.hpp"
 #include "infra/timer/Timer.hpp"
-#include "services/network/MdnsClient.hpp"
+#include "services/network/dns/MdnsClient.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 #include "services/tracer/TracerOnIoOutputInfrastructure.hpp"
 

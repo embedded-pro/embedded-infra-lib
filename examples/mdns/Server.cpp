@@ -1,4 +1,4 @@
-#include "services/network/BonjourServer.hpp"
+#include "services/network/dns/BonjourServer.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 
 int main(int argc, const char* argv[], const char* env[])

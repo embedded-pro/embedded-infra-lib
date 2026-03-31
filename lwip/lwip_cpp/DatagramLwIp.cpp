@@ -128,7 +128,7 @@ namespace services
         state->RequestSendStream(sendSize);
     }
 
-    void DatagramExchangeLwIP::RequestSendStream(std::size_t sendSize, UdpSocket remote)
+    void DatagramExchangeLwIP::RequestSendStream(std::size_t sendSize, const UdpSocket& remote)
     {
         state->RequestSendStream(sendSize, remote);
     }
@@ -300,7 +300,7 @@ namespace services
         std::abort();
     }
 
-    void DatagramExchangeLwIP::StateBase::RequestSendStream(std::size_t sendSize, UdpSocket remote)
+    void DatagramExchangeLwIP::StateBase::RequestSendStream(std::size_t sendSize, const UdpSocket& remote)
     {
         std::abort();
     }
@@ -315,7 +315,7 @@ namespace services
         state.TryAllocateBuffer();
     }
 
-    void DatagramExchangeLwIP::StateIdle::RequestSendStream(std::size_t sendSize, UdpSocket remote)
+    void DatagramExchangeLwIP::StateIdle::RequestSendStream(std::size_t sendSize, const UdpSocket& remote)
     {
         StateWaitingForBuffer& state = datagramExchange.state.Emplace<StateWaitingForBuffer>(datagramExchange, sendSize, infra::MakeOptional(remote));
         state.TryAllocateBuffer();

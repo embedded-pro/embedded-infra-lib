@@ -11,8 +11,8 @@
 #include "infra/util/SharedOptional.hpp"
 #include "infra/util/WithStorage.hpp"
 #include "lwip/tcp.h"
-#include "services/network/Address.hpp"
-#include "services/network/Connection.hpp"
+#include "services/network/connection/Address.hpp"
+#include "services/network/connection/Connection.hpp"
 
 namespace services
 {

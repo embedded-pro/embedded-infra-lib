@@ -13,8 +13,6 @@ target_link_libraries(services.flash_test PUBLIC
 target_sources(services.flash_test PRIVATE
     TestFlashAlign.cpp
     TestFlashMultipleAccess.cpp
-    TestFlashQuadSpiCypressFll.cpp
-    TestFlashQuadSpiMicronN25q.cpp
     TestFlashQuadSpiSingleSpeed.cpp
     TestFlashRegion.cpp
     TestFlashSpi.cpp

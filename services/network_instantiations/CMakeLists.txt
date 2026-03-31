@@ -12,7 +12,10 @@ target_sources(services.network_instantiations PRIVATE
 
 target_link_libraries(services.network_instantiations PUBLIC
     services.echo
-    services.network
+    services.network.connection
+    services.network.echo
+    services.network.http
+    services.network.websocket
 )
 
 if (EMIL_BUILD_WIN)

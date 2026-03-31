@@ -1,9 +1,9 @@
 #include "hal/generic/SynchronousRandomDataGeneratorGeneric.hpp"
 #include "hal/generic/TimerServiceGeneric.hpp"
-#include "services/network/ConnectionFactoryWithNameResolver.hpp"
-#include "services/network/ConnectionMbedTls.hpp"
-#include "services/network/HttpClientBasic.hpp"
-#include "services/network/HttpClientImpl.hpp"
+#include "services/network/connection/ConnectionFactoryWithNameResolver.hpp"
+#include "services/network/http/HttpClientBasic.hpp"
+#include "services/network/http/HttpClientImpl.hpp"
+#include "services/network/tls/ConnectionMbedTls.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 #include "services/tracer/TracerOnIoOutputInfrastructure.hpp"
 
@@ -60,7 +60,7 @@ namespace application
             tracer.Trace() << "Status: " << statusCode;
         }
 
-        void HeaderAvailable(services::HttpHeader header) override
+        void HeaderAvailable(const services::HttpHeader& header) override
         {
             tracer.Trace() << "Header: " << header;
         }

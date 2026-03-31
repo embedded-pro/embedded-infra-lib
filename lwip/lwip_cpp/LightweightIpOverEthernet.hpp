@@ -8,7 +8,7 @@
 #include "infra/util/Observer.hpp"
 #include "infra/util/Optional.hpp"
 #include "lwip/netif.h"
-#include "services/network/Address.hpp"
+#include "services/network/connection/Address.hpp"
 #include <array>
 
 namespace services

@@ -1,5 +1,5 @@
 #include "hal/generic/TimerServiceGeneric.hpp"
-#include "services/network/SntpClient.hpp"
+#include "services/network/sntp/SntpClient.hpp"
 #include "services/network_instantiations/NetworkAdapter.hpp"
 #include "services/tracer/TracerOnIoOutputInfrastructure.hpp"
 #include "services/util/TimeWithLocalization.hpp"

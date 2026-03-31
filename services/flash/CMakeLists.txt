@@ -15,10 +15,6 @@ target_sources(services.flash PRIVATE
     FlashMultipleAccess.hpp
     FlashQuadSpi.cpp
     FlashQuadSpi.hpp
-    FlashQuadSpiCypressFll.cpp
-    FlashQuadSpiCypressFll.hpp
-    FlashQuadSpiMicronN25q.cpp
-    FlashQuadSpiMicronN25q.hpp
     FlashQuadSpiSingleSpeed.cpp
     FlashQuadSpiSingleSpeed.hpp
     FlashRegion.cpp

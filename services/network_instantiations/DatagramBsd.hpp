@@ -7,7 +7,7 @@
 #include "infra/util/IntrusiveList.hpp"
 #include "infra/util/SharedObjectAllocator.hpp"
 #include "infra/util/SharedOptional.hpp"
-#include "services/network/Datagram.hpp"
+#include "services/network/connection/Datagram.hpp"
 #include <list>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -30,7 +30,7 @@ namespace services
         ~DatagramBsd();
 
         void RequestSendStream(std::size_t sendSize) override;
-        void RequestSendStream(std::size_t sendSize, UdpSocket to) override;
+        void RequestSendStream(std::size_t sendSize, const UdpSocket& to) override;
 
         void Receive();
         void Send();

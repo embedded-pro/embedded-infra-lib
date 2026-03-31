@@ -7,7 +7,7 @@
 #include "infra/util/SharedOptional.hpp"
 #include "lwip/lwip_cpp/ConnectionLwIp.hpp"
 #include "lwip/udp.h"
-#include "services/network/Datagram.hpp"
+#include "services/network/connection/Datagram.hpp"
 
 namespace services
 {
@@ -26,7 +26,7 @@ namespace services
 
         // Implementation of DatagramExchange
         void RequestSendStream(std::size_t sendSize) override;
-        void RequestSendStream(std::size_t sendSize, UdpSocket to) override;
+        void RequestSendStream(std::size_t sendSize, const UdpSocket& to) override;
 
     private:
         udp_pcb* CreateUdpPcb(IPVersions versions) const;
@@ -79,7 +79,7 @@ namespace services
             virtual ~StateBase() = default;
 
             virtual void RequestSendStream(std::size_t sendSize);
-            virtual void RequestSendStream(std::size_t sendSize, UdpSocket remote);
+            virtual void RequestSendStream(std::size_t sendSize, const UdpSocket& remote);
         };
 
         class StateIdle
@@ -89,7 +89,7 @@ namespace services
             explicit StateIdle(DatagramExchangeLwIP& datagramExchange);
 
             void RequestSendStream(std::size_t sendSize) override;
-            void RequestSendStream(std::size_t sendSize, UdpSocket remote) override;
+            void RequestSendStream(std::size_t sendSize, const UdpSocket& remote) override;
 
         private:
             DatagramExchangeLwIP& datagramExchange;

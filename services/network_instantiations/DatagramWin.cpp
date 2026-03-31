@@ -85,7 +85,7 @@ namespace services
         RequestSendStream(sendSize, *connectedTo);
     }
 
-    void DatagramWin::RequestSendStream(std::size_t sendSize, UdpSocket to)
+    void DatagramWin::RequestSendStream(std::size_t sendSize, const UdpSocket& to)
     {
         assert(streamWriter.Allocatable());
         requestedSendSize = sendSize;
@@ -300,7 +300,7 @@ namespace services
             observer->Subject().RequestSendStream(sendSize);
     }
 
-    void DatagramExchangeMultiple::RequestSendStream(std::size_t sendSize, UdpSocket to)
+    void DatagramExchangeMultiple::RequestSendStream(std::size_t sendSize, const UdpSocket& to)
     {
         assert(writers.empty());
 
@@ -332,7 +332,7 @@ namespace services
         exchange = factory.Connect(*this, local, remote);
     }
 
-    void DatagramExchangeMultiple::Observer::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, UdpSocket from)
+    void DatagramExchangeMultiple::Observer::DataReceived(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader, const UdpSocket& from)
     {
         parent.GetObserver().DataReceived(std::move(reader), from);
     }
