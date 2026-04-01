@@ -44,7 +44,7 @@ namespace services
         void DeregisterInstance();
         static void InstanceCallback(netif* netif, netif_nsc_reason_t reason, const netif_ext_callback_args_t* args);
 
-        void ExtCallback(netif_nsc_reason_t reason, const netif_ext_callback_args_t* args);
+        void ExtCallback(netif_nsc_reason_t reason, const netif_ext_callback_args_t*);
         void OnStopped();
 
     private:

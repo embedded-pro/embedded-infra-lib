@@ -58,7 +58,7 @@ namespace services
         assert(currentReceiveBufferFirst != nullptr);
 
         pbuf* end = currentReceiveBufferFirst;
-        end->tot_len = frameSize;
+        end->tot_len = static_cast<u16_t>(frameSize);
         while (--usedBuffers != 0)
         {
             frameSize -= end->len;
@@ -66,7 +66,7 @@ namespace services
         }
 
         assert(end != nullptr);
-        end->len = frameSize;
+        end->len = static_cast<u16_t>(frameSize);
 
         pbuf* newBegin = end->next;
         end->next = nullptr;
@@ -123,7 +123,7 @@ namespace services
             return ERR_MEM;
     }
 
-    err_t LightweightIpOverEthernet::SetMldMacFilter(const ip6_addr_t* group, netif_mac_filter_action action)
+    err_t LightweightIpOverEthernet::SetMldMacFilter(const ip6_addr_t* group, netif_mac_filter_action action) const
     {
         hal::MacAddress address = { 0x33, 0x33, static_cast<uint8_t>(IP6_ADDR_BLOCK7(group) >> 8), static_cast<uint8_t>(IP6_ADDR_BLOCK7(group)),
             static_cast<uint8_t>(IP6_ADDR_BLOCK8(group) >> 8), static_cast<uint8_t>(IP6_ADDR_BLOCK8(group)) };
@@ -136,7 +136,7 @@ namespace services
         return ERR_OK;
     }
 
-    err_t LightweightIpOverEthernet::SetIgmpMacFilter(const ip4_addr_t* group, netif_mac_filter_action action)
+    err_t LightweightIpOverEthernet::SetIgmpMacFilter(const ip4_addr_t* group, netif_mac_filter_action action) const
     {
         hal::MacAddress address = { 0x01, 0x00, 0x5e, static_cast<uint8_t>(ip4_addr2(group) & 0x7f), ip4_addr3(group), ip4_addr4(group) };
 
@@ -251,7 +251,7 @@ namespace services
             return ERR_IF;
     }
 
-    err_t LightweightIpOverEthernetFactory::SetMldMacFilter(netif* netif, const ip6_addr_t* group, netif_mac_filter_action action)
+    err_t LightweightIpOverEthernetFactory::SetMldMacFilter(netif*, const ip6_addr_t* group, netif_mac_filter_action action)
     {
         if (ethernetStack)
             return ethernetStack->SetMldMacFilter(group, action);
@@ -259,7 +259,7 @@ namespace services
             return ERR_IF;
     }
 
-    err_t LightweightIpOverEthernetFactory::SetIgmpMacFilter(netif* netif, const ip4_addr_t* group, netif_mac_filter_action action)
+    err_t LightweightIpOverEthernetFactory::SetIgmpMacFilter(netif*, const ip4_addr_t* group, netif_mac_filter_action action)
     {
         if (ethernetStack)
             return ethernetStack->SetIgmpMacFilter(group, action);

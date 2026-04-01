@@ -46,7 +46,7 @@ namespace services
         void AbortAndDestroy() override;
 
         void Attach(const infra::SharedPtr<ConnectionObserver>& observer);
-        void SetSelfOwnership(const infra::SharedPtr<ConnectionObserver>& observer);
+        void SetSelfOwnership(const infra::SharedPtr<ConnectionObserver>&);
         void ResetOwnership();
         IPAddress IpAddress() const;
         bool PendingSend() const;
@@ -57,16 +57,16 @@ namespace services
         void AbortControl();
         void DisableCallbacks();
 
-        static err_t Recv(void* arg, tcp_pcb* tpcb, pbuf* p, err_t err);
+        static err_t Recv(void* arg, tcp_pcb*, pbuf* p, err_t err);
         static void Err(void* arg, err_t err);
-        static err_t Sent(void* arg, struct tcp_pcb* tpcb, uint16_t len);
-        static void Destroy(u8_t id, void* data);
+        static err_t Sent(void* arg, struct tcp_pcb*, uint16_t len);
+        static void Destroy(u8_t, void* data);
 
-        err_t Recv(pbuf* p, err_t err);
+        err_t Recv(pbuf* p, err_t);
         void Err(err_t err);
         err_t Sent(uint16_t len);
         void Destroy();
-        void RemoveFromPool(infra::ConstByteRange range);
+        void RemoveFromPool(infra::ConstByteRange range) const;
 
     private:
         class StreamWriterLwIp
@@ -147,7 +147,7 @@ namespace services
     private:
         static err_t Accept(void* arg, struct tcp_pcb* newPcb, err_t err);
 
-        err_t Accept(tcp_pcb* newPcb, err_t err);
+        err_t Accept(tcp_pcb* newPcb, err_t);
         void TryProcessBacklog();
         err_t ProcessBacklog();
         void PurgeBacklog();
@@ -173,10 +173,10 @@ namespace services
         ~ConnectorLwIp();
 
     private:
-        static err_t StaticConnected(void* arg, tcp_pcb* tpcb, err_t err);
+        static err_t StaticConnected(void* arg, const tcp_pcb* tpcb, err_t err);
         static void StaticError(void* arg, err_t err);
         err_t Connected();
-        void Error(err_t err);
+        void Error(err_t);
         void ResetControl();
         void AbortControl();
 
@@ -186,7 +186,7 @@ namespace services
         ConnectionFactoryLwIp& factory;
         ClientConnectionObserverFactory& clientFactory;
         AllocatorConnectionLwIp& connectionAllocator;
-        tcp_pcb* control;
+        tcp_pcb* control = tcp_new();
     };
 
     class ConnectionFactoryLwIp
@@ -207,7 +207,7 @@ namespace services
         void CancelConnect(ClientConnectionObserverFactory& factory) override;
 
         void Remove(ConnectorLwIp& connector);
-        bool PendingSend() const;
+        virtual bool PendingSend() const;
 
     private:
         void TryConnect();
