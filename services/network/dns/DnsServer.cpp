@@ -35,16 +35,16 @@ namespace services
         if (question->IsValid() && question->RequestIncludesOneQuestion())
         {
             answer = FindAnswer(question->Hostname());
-            if (answer != infra::none)
+            if (answer != std::nullopt)
                 datagramExchange->RequestSendStream(AnswerSize(), from);
         }
         else
-            question = infra::none;
+            question = std::nullopt;
     }
 
     void DnsServer::SendStreamAvailable(infra::SharedPtr<infra::StreamWriter>&& writer)
     {
-        assert(question != infra::none);
+        assert(question != std::nullopt);
 
         infra::DataOutputStream::WithErrorPolicy stream(*writer);
 
@@ -58,10 +58,10 @@ namespace services
         stream << questionFooter;
         stream << rnameCompression;
         stream << payload;
-        stream << answer->second.Get<services::IPv4Address>();
+        stream << answer->std::get<services::IPv4Address>(second);
 
-        question = infra::none;
-        answer = infra::none;
+        question = std::nullopt;
+        answer = std::nullopt;
     }
 
     infra::MemoryRange<const DnsServer::DnsEntry> DnsServer::Entries() const
@@ -71,7 +71,7 @@ namespace services
 
     std::size_t DnsServer::AnswerSize() const
     {
-        assert(question != infra::none);
+        assert(question != std::nullopt);
 
         return sizeof(DnsRecordHeader) + question->QueryNameSize() + sizeof(DnsQuestionFooter) + sizeof(rnameCompression) + sizeof(DnsRecordPayload) + sizeof(IPv4Address);
     }
@@ -150,14 +150,14 @@ namespace services
         hostnameParts.ConsumeStream();
     }
 
-    infra::Optional<DnsServer::DnsEntry> DnsServerImpl::FindAnswer(infra::BoundedConstString hostname)
+    std::optional<DnsServer::DnsEntry> DnsServerImpl::FindAnswer(infra::BoundedConstString hostname)
     {
         auto hostnameWithoutWww = StripLeadingWww(hostname);
 
         for (auto& entry : Entries())
             if (infra::CaseInsensitiveCompare(entry.first, hostnameWithoutWww))
-                return infra::MakeOptional(entry);
+                return std::make_optional(entry);
 
-        return infra::none;
+        return std::nullopt;
     }
 }

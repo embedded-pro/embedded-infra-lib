@@ -4,7 +4,7 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include "infra/syntax/Json.hpp"
 #include "infra/util/BoundedString.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "infra/util/WithStorage.hpp"
 #include <type_traits>
 

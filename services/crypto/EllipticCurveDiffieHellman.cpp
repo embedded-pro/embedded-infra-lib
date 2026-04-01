@@ -4,7 +4,7 @@ namespace services
 {
     EllipticCurveDiffieHellman::EllipticCurveDiffieHellman(EllipticCurveOperations& ecc)
         : ecc(ecc)
-        , states(infra::InPlaceType<Idle>(), *this)
+        , states(std::in_place_type_t<Idle>(), *this)
     {}
 
     void EllipticCurveDiffieHellman::CalculateSharedSecretKey(const EllipticCurveExtendedParameters& ellipticCurve, infra::ConstByteRange privateKey, infra::ConstByteRange peerPublicKey, infra::ByteRange sharedSecretKey, const infra::Function<void(bool)>& onDone)
@@ -17,7 +17,7 @@ namespace services
         this->sharedKey = sharedSecretKey;
         this->onDone = onDone;
 
-        states.Emplace<CheckPublicKeyX>(*this, ellipticCurve);
+        states.emplace<CheckPublicKeyX>(*this, ellipticCurve);
     }
 
     EllipticCurveDiffieHellman::State::State(EllipticCurveDiffieHellman& ecdh, const EllipticCurveExtendedParameters* ellipticCurve)
@@ -45,7 +45,7 @@ namespace services
         ecdh.ecc.Comparison(ecdh.publicKeyX, ellipticCurve.p, [this](auto result)
             {
                 if (result == EllipticCurveOperations::ComparisonResult::aLessThanB)
-                    this->Ecdh().states.Emplace<CheckPublicKeyY>(this->Ecdh(), *this->EllipticCurve());
+                    this->Ecdh().states.emplace<CheckPublicKeyY>(this->Ecdh(), *this->EllipticCurve());
                 else
                     this->Ecdh().onDone(false);
             });
@@ -57,7 +57,7 @@ namespace services
         ecdh.ecc.Comparison(ecdh.publicKeyY, ellipticCurve.p, [this](auto result)
             {
                 if (result == EllipticCurveOperations::ComparisonResult::aLessThanB)
-                    this->Ecdh().states.Emplace<CheckPublicKeyOnCurve>(this->Ecdh(), *this->EllipticCurve());
+                    this->Ecdh().states.emplace<CheckPublicKeyOnCurve>(this->Ecdh(), *this->EllipticCurve());
                 else
                     this->Ecdh().onDone(false);
             });
@@ -69,7 +69,7 @@ namespace services
         ecdh.ecc.CheckPointOnCurve(ellipticCurve, ecdh.publicKeyX, ecdh.publicKeyY, [this](auto result)
             {
                 if (result == EllipticCurveOperations::PointOnCurveResult::pointOnCurve)
-                    this->Ecdh().states.Emplace<CalculateSharedKey>(this->Ecdh(), *this->EllipticCurve());
+                    this->Ecdh().states.emplace<CalculateSharedKey>(this->Ecdh(), *this->EllipticCurve());
                 else
                     this->Ecdh().onDone(false);
             });

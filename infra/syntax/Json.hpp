@@ -4,9 +4,9 @@
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/Compatibility.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "infra/util/ReverseRange.hpp"
-#include "infra/util/Variant.hpp"
+#include <variant>
 #include <cstdint>
 
 #ifdef EMIL_HOST_BUILD
@@ -242,7 +242,7 @@ namespace infra
             bool value;
         };
 
-        using Token = infra::Variant<End, Error, Colon, Comma, Dot, Null, LeftBrace, RightBrace, LeftBracket, RightBracket, String, JsonBiggerInt, JsonFloat, Boolean>;
+        using Token = std::variant<End, Error, Colon, Comma, Dot, Null, LeftBrace, RightBrace, LeftBracket, RightBracket, String, JsonBiggerInt, JsonFloat, Boolean>;
     }
 
     class JsonTokenizer
@@ -272,7 +272,7 @@ namespace infra
     class JsonObject;
     class JsonArray;
 
-    using JsonValue = infra::Variant<bool, int32_t, JsonBiggerInt, JsonString, JsonFloat, JsonObject, JsonArray>;
+    using JsonValue = std::variant<bool, int32_t, JsonBiggerInt, JsonString, JsonFloat, JsonObject, JsonArray>;
 
     class JsonObject
     {
@@ -298,12 +298,12 @@ namespace infra
         template<class T>
         T GetIntegerAs(infra::BoundedConstString key);
 
-        infra::Optional<JsonString> GetOptionalString(infra::BoundedConstString key);
-        infra::Optional<JsonFloat> GetOptionalFloat(infra::BoundedConstString key);
-        infra::Optional<bool> GetOptionalBoolean(infra::BoundedConstString key);
-        infra::Optional<int32_t> GetOptionalInteger(infra::BoundedConstString key);
-        infra::Optional<JsonObject> GetOptionalObject(infra::BoundedConstString key);
-        infra::Optional<JsonArray> GetOptionalArray(infra::BoundedConstString key);
+        std::optional<JsonString> GetOptionalString(infra::BoundedConstString key);
+        std::optional<JsonFloat> GetOptionalFloat(infra::BoundedConstString key);
+        std::optional<bool> GetOptionalBoolean(infra::BoundedConstString key);
+        std::optional<int32_t> GetOptionalInteger(infra::BoundedConstString key);
+        std::optional<JsonObject> GetOptionalObject(infra::BoundedConstString key);
+        std::optional<JsonArray> GetOptionalArray(infra::BoundedConstString key);
 
         bool operator==(const JsonObject& other) const;
         bool operator!=(const JsonObject& other) const;
@@ -316,7 +316,7 @@ namespace infra
         template<class T>
         T GetValue(infra::BoundedConstString key);
         template<class T>
-        infra::Optional<T> GetOptionalValue(infra::BoundedConstString key);
+        std::optional<T> GetOptionalValue(infra::BoundedConstString key);
 
         template<class T>
         T ConvertValueTo(std::uint64_t value, bool negative);
@@ -363,14 +363,14 @@ namespace infra
     protected:
         explicit JsonIterator(infra::BoundedConstString objectString);
 
-        infra::Optional<JsonValue> ConvertValue(JsonToken::Token token);
+        std::optional<JsonValue> ConvertValue(JsonToken::Token token);
 
     private:
-        infra::Optional<JsonValue> ReadInteger(const JsonToken::Token& token);
-        infra::Optional<JsonValue> ReadObjectValue(const JsonToken::Token& token);
-        infra::Optional<JsonValue> ReadArrayValue(const JsonToken::Token& token);
-        infra::Optional<JsonToken::RightBrace> SearchObjectEnd();
-        infra::Optional<JsonToken::RightBracket> SearchArrayEnd();
+        std::optional<JsonValue> ReadInteger(const JsonToken::Token& token);
+        std::optional<JsonValue> ReadObjectValue(const JsonToken::Token& token);
+        std::optional<JsonValue> ReadArrayValue(const JsonToken::Token& token);
+        std::optional<JsonToken::RightBrace> SearchObjectEnd();
+        std::optional<JsonToken::RightBracket> SearchArrayEnd();
 
     protected:
         infra::BoundedConstString objectString;
@@ -529,10 +529,10 @@ namespace infra
     {
         const auto jsonValue = GetValue(key);
 
-        if (jsonValue.Is<int32_t>())
-            return ConvertValueTo<T>(std::abs(static_cast<int64_t>(jsonValue.Get<int32_t>())), jsonValue.Get<int32_t>() < 0);
-        else if (jsonValue.Is<JsonBiggerInt>())
-            return ConvertValueTo<T>(jsonValue.Get<JsonBiggerInt>().Value(), jsonValue.Get<JsonBiggerInt>().Negative());
+        if (std::holds_alternative<int32_t>(jsonValue))
+            return ConvertValueTo<T>(std::abs(static_cast<int64_t>(std::get<int32_t>(jsonValue))), std::get<int32_t>(jsonValue) < 0);
+        else if (std::holds_alternative<JsonBiggerInt>(jsonValue))
+            return ConvertValueTo<T>(std::get<JsonBiggerInt>(jsonValue).Value(), std::get<JsonBiggerInt>(jsonValue).Negative());
 
         SetError();
         return {};

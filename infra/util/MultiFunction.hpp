@@ -2,7 +2,8 @@
 #define INFRA_MULTI_FUNCTION_HPP
 
 #include "infra/util/Function.hpp"
-#include "infra/util/Variant.hpp"
+#include "infra/util/VariadicTemplates.hpp"
+#include <variant>
 
 namespace infra
 {
@@ -71,7 +72,7 @@ namespace infra
         template<class F2>
         MultiFunctionHelper(F2 f)
         {
-            functions.template Emplace<typename infra::TypeAtIndex<IndexOfFunctionObject<F2>::Value, F...>::Type>(f);
+            functions.template emplace<typename infra::TypeAtIndex<IndexOfFunctionObject<F2>::Value, F...>::Type>(f);
         }
 
         template<class... Args>
@@ -83,42 +84,42 @@ namespace infra
         template<class... Args>
         typename ResultOf<Args...>::Type operator()(Args&&... args)
         {
-            return functions.template GetAtIndex<IndexOf<Args...>::Value + 1>()(std::forward<Args>(args)...);
+            return std::get<IndexOf<Args...>::Value + 1>(functions)(std::forward<Args>(args)...);
         }
 
         template<class... Args>
         bool Invocable([[maybe_unused]] Args&&... args)
         {
-            return functions.Which() == IndexOf<Args...>::Value + 1;
+            return functions.index() == IndexOf<Args...>::Value + 1;
         }
 
         explicit operator bool() const
         {
-            return functions.Which() != 0;
+            return functions.index() != 0;
         }
 
         bool operator==(const std::nullptr_t) const
         {
-            return functions.Which() == 0;
+            return functions.index() == 0;
         }
 
         friend bool operator==(const std::nullptr_t, const MultiFunctionHelper<F...>& f)
         {
-            return f.functions.Which() == 0;
+            return f.functions.index() == 0;
         }
 
         bool operator!=(const std::nullptr_t) const
         {
-            return functions.Which() != 0;
+            return functions.index() != 0;
         }
 
         friend bool operator!=(const std::nullptr_t, const MultiFunctionHelper<F...>& f)
         {
-            return f.functions.Which() != 0;
+            return f.functions.index() != 0;
         }
 
     private:
-        infra::Variant<infra::None, F...> functions;
+        std::variant<std::monostate, F...> functions;
     };
 
     template<class F>

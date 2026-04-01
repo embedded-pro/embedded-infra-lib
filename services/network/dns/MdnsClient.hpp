@@ -2,7 +2,7 @@
 #define SERVICES_MDNS_CLIENT_HPP
 
 #include "infra/util/IntrusiveList.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "services/network/connection/Datagram.hpp"
 #include "services/network/connection/Multicast.hpp"
 #include "services/network/dns/Dns.hpp"
@@ -143,7 +143,7 @@ namespace services
         Multicast& multicast;
         IPVersions versions;
         infra::SharedPtr<DatagramExchange> datagramExchange;
-        infra::Optional<ActiveMdnsQuery> activeMdnsQuery;
+        std::optional<ActiveMdnsQuery> activeMdnsQuery;
         infra::IntrusiveList<MdnsQuery> queries;
         size_t lastWaitingQueryPosition = 0;
     };

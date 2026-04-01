@@ -3,7 +3,7 @@
 #include "infra/stream/ByteInputStream.hpp"
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "upgrade/deploy_pack_to_external/DeployPackToExternal.hpp"
 #include "upgrade/pack/UpgradePackHeader.hpp"
 #include "gmock/gmock.h"

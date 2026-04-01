@@ -7,7 +7,7 @@ namespace services
         : SesameEncodedObserver(delegate)
         , ownBufferSize(static_cast<uint16_t>(SesameEncodedObserver::Subject().MaxSendMessageSize()))
         , releaseWindowSize(static_cast<uint16_t>(SesameEncodedObserver::Subject().MessageSize(sizeof(PacketReleaseWindow))))
-        , state(infra::InPlaceType<StateSendingInit>(), *this)
+        , state(std::in_place_type_t<StateSendingInit>(), *this)
     {
         state->Request();
     }
@@ -39,8 +39,8 @@ namespace services
         releasedWindow = 0;
         sendInitResponse = false;
         sending = false;
-        requestedSendMessageSize = infra::none;
-        state.Emplace<StateSendingInit>(*this);
+        requestedSendMessageSize = std::nullopt;
+        state.emplace<StateSendingInit>(*this);
         state->Request();
     }
 
@@ -124,14 +124,14 @@ namespace services
             if (sendInitResponse)
             {
                 if (receivedMessageReader == nullptr)
-                    state.Emplace<StateSendingInitResponse>(*this).Request();
+                    state.emplace<StateSendingInitResponse>(*this).Request();
             }
-            else if (requestedSendMessageSize != infra::none && SesameEncodedObserver::Subject().MessageSize(*requestedSendMessageSize + 1) + releaseWindowSize <= otherAvailableWindow)
-                state.Emplace<StateSendingMessage>(*this).Request();
+            else if (requestedSendMessageSize != std::nullopt && SesameEncodedObserver::Subject().MessageSize(*requestedSendMessageSize + 1) + releaseWindowSize <= otherAvailableWindow)
+                state.emplace<StateSendingMessage>(*this).Request();
             else if (releasedWindow > releaseWindowSize && releaseWindowSize <= otherAvailableWindow)
-                state.Emplace<StateSendingReleaseWindow>(*this).Request();
+                state.emplace<StateSendingReleaseWindow>(*this).Request();
             else
-                state.Emplace<StateOperational>(*this);
+                state.emplace<StateOperational>(*this);
         }
     }
 
@@ -237,7 +237,7 @@ namespace services
         infra::DataOutputStream::WithErrorPolicy stream(*writer);
         stream << Operation::message;
 
-        communication.requestedSendMessageSize = infra::none;
+        communication.requestedSendMessageSize = std::nullopt;
         communication.GetObserver().SendMessageStreamAvailable(std::move(writer));
     }
 

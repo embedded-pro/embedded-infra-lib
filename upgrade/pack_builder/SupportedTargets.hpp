@@ -1,7 +1,7 @@
 #ifndef UPGRADE_SUPPORTED_TARGETS_HPP
 #define UPGRADE_SUPPORTED_TARGETS_HPP
 
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include <map>
 #include <string>
 #include <utility>
@@ -84,7 +84,7 @@ namespace application
     private:
         SupportedTargets targets;
         bool mandatory{ false };
-        infra::Optional<uint8_t> order;
+        std::optional<uint8_t> order;
     };
 }
 

@@ -6,7 +6,7 @@
 #include "infra/util/BoundedDeque.hpp"
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/Observer.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "lwip/netif.h"
 #include "services/network/connection/Address.hpp"
 #include <array>
@@ -75,7 +75,7 @@ namespace services
         hal::MacAddress macAddress;
         Config config;
         netif netInterface;
-        infra::Optional<LightweightIpOverEthernet> ethernetStack;
+        std::optional<LightweightIpOverEthernet> ethernetStack;
     };
 }
 

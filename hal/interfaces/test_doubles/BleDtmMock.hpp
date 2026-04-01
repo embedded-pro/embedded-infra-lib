@@ -2,7 +2,7 @@
 #define HAL_BLE_DTM_MOCK_HPP
 
 #include "hal/interfaces/BleDtm.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "gmock/gmock.h"
 #include <cstdint>
 
@@ -17,7 +17,7 @@ namespace hal
         MOCK_METHOD(bool, SetTxPowerLevel, (uint8_t txPower), (override));
         MOCK_METHOD(bool, StartRxTest, (uint8_t frequency, uint8_t phy), (override));
         MOCK_METHOD(bool, StartTxTest, (uint8_t frequency, uint8_t dataLength, uint8_t packetPayload, uint8_t phy), (override));
-        MOCK_METHOD(infra::Optional<uint16_t>, StopTest, (), (override));
+        MOCK_METHOD(std::optional<uint16_t>, StopTest, (), (override));
     };
 }
 

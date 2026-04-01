@@ -115,7 +115,7 @@ namespace services
         return bodyBuffer;
     }
 
-    infra::Optional<uint32_t> HttpRequestParserImpl::ContentLength() const
+    std::optional<uint32_t> HttpRequestParserImpl::ContentLength() const
     {
         return contentLength;
     }

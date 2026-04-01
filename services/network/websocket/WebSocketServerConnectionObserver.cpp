@@ -8,8 +8,8 @@
 namespace services
 {
     WebSocketServerConnectionObserver::WebSocketServerConnectionObserver(infra::BoundedVector<uint8_t>& sendBuffer, infra::BoundedDeque<uint8_t>& receiveBuffer)
-        : receivingState(infra::InPlaceType<ReceivingStateReceiveHeader>(), *this)
-        , sendingState(infra::InPlaceType<SendingStateIdle>(), *this)
+        : receivingState(std::in_place_type_t<ReceivingStateReceiveHeader>(), *this)
+        , sendingState(std::in_place_type_t<SendingStateIdle>(), *this)
         , receiveBuffer(receiveBuffer)
         , sendBuffer(sendBuffer)
         , streamReader([this]()
@@ -73,7 +73,7 @@ namespace services
     {
         assert(!streamReader);
         keepAliveWhileReading = Subject().ObserverPtr();
-        return streamReader.Emplace(infra::inPlace, receiveBuffer, receiveBuffer.size());
+        return streamReader.Emplace(std::in_place, receiveBuffer, receiveBuffer.size());
     }
 
     void WebSocketServerConnectionObserver::AckReceived()
@@ -107,29 +107,29 @@ namespace services
 
     void WebSocketServerConnectionObserver::SetReceivingStateReceiveHeader()
     {
-        receivingState.Emplace<ReceivingStateReceiveHeader>(*this);
+        receivingState.emplace<ReceivingStateReceiveHeader>(*this);
         receivingState->DataReceived();
     }
 
     void WebSocketServerConnectionObserver::SetStateReceiveData(services::WebSocketFrameHeader header)
     {
-        receivingState.Emplace<ReceivingStateReceiveData>(*this, header);
+        receivingState.emplace<ReceivingStateReceiveData>(*this, header);
         receivingState->DataReceived();
     }
 
     void WebSocketServerConnectionObserver::SetReceivingStateClose()
     {
-        receivingState.Emplace<ReceivingStateClose>(*this);
+        receivingState.emplace<ReceivingStateClose>(*this);
     }
 
     void WebSocketServerConnectionObserver::SetReceivingStatePong()
     {
-        receivingState.Emplace<ReceivingStatePong>(*this);
+        receivingState.emplace<ReceivingStatePong>(*this);
     }
 
     void WebSocketServerConnectionObserver::SetStateSendingIdle()
     {
-        sendingState.Emplace<SendingStateIdle>(*this);
+        sendingState.emplace<SendingStateIdle>(*this);
         sendingState->CheckForSomethingToDo();
     }
 
@@ -152,7 +152,7 @@ namespace services
         if (streamWriter.Allocatable() && sendBuffer.empty() && requestedSendSize != 0)
         {
             keepAliveWhileWriting = Subject().ObserverPtr();
-            services::Connection::Observer().SendStreamAvailable(streamWriter.Emplace(infra::inPlace, sendBuffer, std::exchange(requestedSendSize, 0)));
+            services::Connection::Observer().SendStreamAvailable(streamWriter.Emplace(std::in_place, sendBuffer, std::exchange(requestedSendSize, 0)));
         }
     }
 
@@ -324,9 +324,9 @@ namespace services
     void WebSocketServerConnectionObserver::SendingStateIdle::CheckForSomethingToDo()
     {
         if (connection.receivingStateThatWantsToSendData != nullptr)
-            connection.sendingState.Emplace<SendingStateInternalData>(connection);
+            connection.sendingState.emplace<SendingStateInternalData>(connection);
         else if (connection.sendBufferReadyForSending)
-            connection.sendingState.Emplace<SendingStateExternalData>(connection);
+            connection.sendingState.emplace<SendingStateExternalData>(connection);
         else
             connection.TryAllocateSendStream();
     }

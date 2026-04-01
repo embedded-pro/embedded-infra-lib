@@ -2,7 +2,7 @@
 #define SERVICES_HTTP_CLIENT_CACHED_CONNECTION_HPP
 
 #include "infra/timer/Timer.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "infra/util/SharedPtr.hpp"
 #include "services/crypto/Sha256.hpp"
 #include "services/network/http/HttpClient.hpp"
@@ -108,7 +108,7 @@ namespace services
         HttpClientObserverFactory* clientObserverFactory = nullptr;
         infra::IntrusiveList<HttpClientObserverFactory> waitingClientObserverFactories;
 
-        infra::Optional<HttpClientCachedConnection> client;
+        std::optional<HttpClientCachedConnection> client;
         infra::AccessedBySharedPtr clientPtr{ [this]()
             {
                 ClientPtrExpired();

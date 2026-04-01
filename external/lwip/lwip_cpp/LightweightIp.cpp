@@ -136,7 +136,7 @@ namespace services
 
             if (ipv4Address == IPv4Address())
             {
-                if (connected != infra::none && !stopping)
+                if (connected != std::nullopt && !stopping)
                 {
                     stopping = true;
                     (*connected)->Stop([this]()
@@ -160,7 +160,7 @@ namespace services
 
     void LightweightIp::OnStopped()
     {
-        connected = infra::none;
+        connected = std::nullopt;
         stopping = false;
 
         if (starting)

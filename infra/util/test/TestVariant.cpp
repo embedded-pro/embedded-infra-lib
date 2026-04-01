@@ -1,4 +1,5 @@
-#include "infra/util/Variant.hpp"
+#include "infra/util/VariantDetail.hpp"
+#include <variant>
 #include "gtest/gtest.h"
 #include <cstdint>
 
@@ -30,48 +31,48 @@ struct MoveableStruct
 
 TEST(VariantTest, TestEmptyConstruction)
 {
-    infra::Variant<bool> v;
+    std::variant<bool> v;
 }
 
 TEST(VariantTest, TestConstructionWithBool)
 {
     bool b;
-    infra::Variant<bool> v(b);
+    std::variant<bool> v(b);
 }
 
 TEST(VariantTest, TestConstructionWithVariant)
 {
-    infra::Variant<bool, int> i(5);
-    infra::Variant<bool, int> v(i);
-    EXPECT_EQ(5, v.Get<int>());
+    std::variant<bool, int> i(5);
+    std::variant<bool, int> v(i);
+    EXPECT_EQ(5, std::get<int>(v));
 }
 
 TEST(VariantTest, TestConstructionWithNarrowVariant)
 {
-    infra::Variant<int> i(5);
-    infra::Variant<bool, int> v(i);
-    EXPECT_EQ(5, v.Get<int>());
+    std::variant<int> i(5);
+    std::variant<bool, int> v(i);
+    EXPECT_EQ(5, std::get<int>(v));
 }
 
 TEST(VariantTest, TestConstructionAtIndex)
 {
-    infra::Variant<uint8_t, uint16_t> v(infra::atIndex, 1, 3);
-    EXPECT_EQ(1, v.Which());
-    EXPECT_EQ(3, v.Get<uint16_t>());
+    std::variant<uint8_t, uint16_t> v(infra::atIndex, 1, 3);
+    EXPECT_EQ(1, v.index());
+    EXPECT_EQ(3, std::get<uint16_t>(v));
 }
 
 TEST(VariantTest, TestGetBool)
 {
     bool b = true;
-    infra::Variant<bool> v(b);
-    EXPECT_TRUE(v.Get<bool>());
+    std::variant<bool> v(b);
+    EXPECT_TRUE(std::get<bool>(v));
 }
 
 TEST(VariantTest, TestAssignment)
 {
-    infra::Variant<bool, int> v(true);
+    std::variant<bool, int> v(true);
     v = 5;
-    EXPECT_EQ(5, v.Get<int>());
+    EXPECT_EQ(5, std::get<int>(v));
 }
 
 TEST(VariantTest, TestInPlaceConstruction)
@@ -86,10 +87,10 @@ TEST(VariantTest, TestInPlaceConstruction)
         int y;
     };
 
-    infra::Variant<MyStruct> v(infra::InPlaceType<MyStruct>(), 2, 3);
-    EXPECT_EQ(0, v.Which());
-    EXPECT_EQ(2, v.Get<MyStruct>().x);
-    EXPECT_EQ(3, v.Get<MyStruct>().y);
+    std::variant<MyStruct> v(std::in_place_type_t<MyStruct>(), 2, 3);
+    EXPECT_EQ(0, v.index());
+    EXPECT_EQ(2, std::get<MyStruct>(v).x);
+    EXPECT_EQ(3, std::get<MyStruct>(v).y);
 }
 
 TEST(VariantTest, TestEmplace)
@@ -109,58 +110,58 @@ TEST(VariantTest, TestEmplace)
         int y;
     };
 
-    infra::Variant<bool, MyStruct> v(true);
-    EXPECT_EQ(MyStruct(2, 3), v.Emplace<MyStruct>(2, 3));
-    EXPECT_EQ(1, v.Which());
-    EXPECT_EQ(2, v.Get<MyStruct>().x);
-    EXPECT_EQ(3, v.Get<MyStruct>().y);
+    std::variant<bool, MyStruct> v(true);
+    EXPECT_EQ(MyStruct(2, 3), v.emplace<MyStruct>(2, 3));
+    EXPECT_EQ(1, v.index());
+    EXPECT_EQ(2, std::get<MyStruct>(v).x);
+    EXPECT_EQ(3, std::get<MyStruct>(v).y);
 }
 
 TEST(VariantTest, TestAssignmentFromVariant)
 {
-    infra::Variant<bool, int> v(true);
-    v = infra::Variant<bool, int>(5);
-    EXPECT_EQ(5, v.Get<int>());
+    std::variant<bool, int> v(true);
+    v = std::variant<bool, int>(5);
+    EXPECT_EQ(5, std::get<int>(v));
 }
 
 TEST(VariantTest, TestSelfAssignment)
 {
-    infra::Variant<bool, int> v(true);
+    std::variant<bool, int> v(true);
     v = v;
-    EXPECT_EQ(true, v.Get<bool>());
+    EXPECT_EQ(true, std::get<bool>(v));
 }
 
 TEST(VariantTest, TestAssignmentFromNarrowVariant)
 {
-    infra::Variant<bool, int> v(true);
-    v = infra::Variant<int>(5);
-    EXPECT_EQ(5, v.Get<int>());
+    std::variant<bool, int> v(true);
+    v = std::variant<int>(5);
+    EXPECT_EQ(5, std::get<int>(v));
 }
 
 TEST(VariantTest, TestMoveConstruct)
 {
-    infra::Variant<MoveableStruct> v(infra::InPlaceType<MoveableStruct>(), 2);
+    std::variant<MoveableStruct> v(std::in_place_type_t<MoveableStruct>(), 2);
     auto v2(std::move(v));
-    EXPECT_EQ(0, v2.Which());
-    EXPECT_EQ(0, v.Get<MoveableStruct>().x);
-    EXPECT_EQ(2, v2.Get<MoveableStruct>().x);
+    EXPECT_EQ(0, v2.index());
+    EXPECT_EQ(0, std::get<MoveableStruct>(v).x);
+    EXPECT_EQ(2, std::get<MoveableStruct>(v2).x);
 }
 
 TEST(VariantTest, TestMoveAssign)
 {
-    infra::Variant<MoveableStruct> v(infra::InPlaceType<MoveableStruct>(), 2);
-    infra::Variant<MoveableStruct> v2(infra::InPlaceType<MoveableStruct>(), 3);
+    std::variant<MoveableStruct> v(std::in_place_type_t<MoveableStruct>(), 2);
+    std::variant<MoveableStruct> v2(std::in_place_type_t<MoveableStruct>(), 3);
     v2 = std::move(v);
-    EXPECT_EQ(0, v2.Which());
-    EXPECT_EQ(0, v.Get<MoveableStruct>().x);
-    EXPECT_EQ(2, v2.Get<MoveableStruct>().x);
+    EXPECT_EQ(0, v2.index());
+    EXPECT_EQ(0, std::get<MoveableStruct>(v).x);
+    EXPECT_EQ(2, std::get<MoveableStruct>(v2).x);
 }
 
 TEST(VariantTest, TestVariantWithTwoTypes)
 {
     int i = 5;
-    infra::Variant<bool, int> v(i);
-    EXPECT_EQ(5, v.Get<int>());
+    std::variant<bool, int> v(i);
+    EXPECT_EQ(5, std::get<int>(v));
 }
 
 TEST(VariantTest, TestVisitor)
@@ -184,9 +185,9 @@ TEST(VariantTest, TestVisitor)
     };
 
     int i = 5;
-    infra::Variant<bool, int> variant(i);
+    std::variant<bool, int> variant(i);
     Visitor visitor;
-    infra::ApplyVisitor(visitor, variant);
+    std::visit(visitor, variant);
     EXPECT_EQ(1, visitor.passed);
 }
 
@@ -207,9 +208,9 @@ TEST(VariantTest, TestReturningVisitor)
     };
 
     int i = 5;
-    infra::Variant<bool, int> variant(i);
+    std::variant<bool, int> variant(i);
     Visitor visitor;
-    EXPECT_EQ(true, infra::ApplyVisitor(visitor, variant));
+    EXPECT_EQ(true, std::visit(visitor, variant));
 }
 
 TEST(VariantTest, TestEqual)
@@ -217,10 +218,10 @@ TEST(VariantTest, TestEqual)
     int i = 1;
     int j = 2;
     bool k = true;
-    const infra::Variant<bool, int> v1(i);
-    const infra::Variant<bool, int> v2(i);
-    const infra::Variant<bool, int> v3(j);
-    const infra::Variant<bool, int> v4(k);
+    const std::variant<bool, int> v1(i);
+    const std::variant<bool, int> v2(i);
+    const std::variant<bool, int> v3(j);
+    const std::variant<bool, int> v4(k);
 
     EXPECT_EQ(v1, v2);
     EXPECT_NE(v1, v3);
@@ -232,10 +233,10 @@ TEST(VariantTest, TestLessThan)
     int i = 1;
     int j = 2;
     bool k = true;
-    const infra::Variant<bool, int> v1(i);
-    const infra::Variant<bool, int> v2(i);
-    const infra::Variant<bool, int> v3(j);
-    const infra::Variant<bool, int> v4(k);
+    const std::variant<bool, int> v1(i);
+    const std::variant<bool, int> v2(i);
+    const std::variant<bool, int> v3(j);
+    const std::variant<bool, int> v4(k);
 
     EXPECT_GE(v1, v2);
     EXPECT_LE(v1, v2);
@@ -248,7 +249,7 @@ TEST(VariantTest, TestEqualValue)
     int i = 1;
     int j = 2;
     bool k = true;
-    const infra::Variant<bool, int> v1(i);
+    const std::variant<bool, int> v1(i);
 
     EXPECT_EQ(v1, i);
     EXPECT_NE(v1, j);
@@ -260,7 +261,7 @@ TEST(VariantTest, TestLessThanValue)
     int i = 1;
     int j = 2;
     bool k = true;
-    const infra::Variant<bool, int> v1(i);
+    const std::variant<bool, int> v1(i);
 
     EXPECT_GE(v1, i);
     EXPECT_LE(v1, i);
@@ -280,12 +281,12 @@ struct DoubleVisitor
 
 TEST(VariantTest, TestDoubleVisitor)
 {
-    infra::Variant<uint32_t, int> variant1(infra::InPlaceType<int>(), 5);
-    infra::Variant<uint32_t, int> variant2(infra::InPlaceType<uint32_t>(), 1u);
+    std::variant<uint32_t, int> variant1(std::in_place_type_t<int>(), 5);
+    std::variant<uint32_t, int> variant2(std::in_place_type_t<uint32_t>(), 1u);
     DoubleVisitor visitor;
-    EXPECT_EQ(2, infra::ApplyVisitor(visitor, variant2, variant2));
-    EXPECT_EQ(6, infra::ApplyVisitor(visitor, variant1, variant2));
-    EXPECT_EQ(10, infra::ApplyVisitor(visitor, variant1, variant1));
+    EXPECT_EQ(2, std::visit(visitor, variant2, variant2));
+    EXPECT_EQ(6, std::visit(visitor, variant1, variant2));
+    EXPECT_EQ(10, std::visit(visitor, variant1, variant1));
 }
 
 struct EmptyVisitor
@@ -324,117 +325,117 @@ struct F
 
 TEST(VariantTest, TestRecursiveLoopUnrolling3_1)
 {
-    infra::Variant<A, B, C> v((A()));
+    std::variant<A, B, C> v((A()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling3_2)
 {
-    infra::Variant<A, B, C> v((B()));
+    std::variant<A, B, C> v((B()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling3_3)
 {
-    infra::Variant<A, B, C> v((C()));
+    std::variant<A, B, C> v((C()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling4_1)
 {
-    infra::Variant<A, B, C, D> v((A()));
+    std::variant<A, B, C, D> v((A()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling4_2)
 {
-    infra::Variant<A, B, C, D> v((B()));
+    std::variant<A, B, C, D> v((B()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling4_3)
 {
-    infra::Variant<A, B, C, D> v((C()));
+    std::variant<A, B, C, D> v((C()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling4_4)
 {
-    infra::Variant<A, B, C, D> v((D()));
+    std::variant<A, B, C, D> v((D()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling5_1)
 {
-    infra::Variant<A, B, C, D, E> v((A()));
+    std::variant<A, B, C, D, E> v((A()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling5_2)
 {
-    infra::Variant<A, B, C, D, E> v((B()));
+    std::variant<A, B, C, D, E> v((B()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling5_3)
 {
-    infra::Variant<A, B, C, D, E> v((C()));
+    std::variant<A, B, C, D, E> v((C()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling5_4)
 {
-    infra::Variant<A, B, C, D, E> v((D()));
+    std::variant<A, B, C, D, E> v((D()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrolling5_5)
 {
-    infra::Variant<A, B, C, D, E> v((E()));
+    std::variant<A, B, C, D, E> v((E()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }
 
 TEST(VariantTest, TestRecursiveLoopUnrollingX)
 {
-    infra::Variant<A, B, C, D, E, F> v((F()));
+    std::variant<A, B, C, D, E, F> v((F()));
     EmptyVisitor visitor;
-    infra::ApplyVisitor(visitor, v);
-    infra::ApplyVisitor(visitor, v, v);
+    std::visit(visitor, v);
+    std::visit(visitor, v, v);
     infra::ApplySameTypeVisitor(visitor, v, v);
 }

@@ -122,7 +122,7 @@ namespace infra
     }
 
     struct MakeFullField
-        : infra::StaticVisitor<ProtoParser::Field>
+        
     {
         MakeFullField(infra::DataInputStream inputStream, infra::StreamErrorPolicy& formatErrorPolicy, uint32_t fieldNumber)
             : inputStream(inputStream)
@@ -151,7 +151,7 @@ namespace infra
     {
         auto [value, fieldNumber] = GetPartialField();
         MakeFullField visitor(input, formatErrorPolicy, fieldNumber);
-        return infra::ApplyVisitor(visitor, value);
+        return std::visit(visitor, value);
     }
 
     ProtoParser::PartialField ProtoParser::GetPartialField()

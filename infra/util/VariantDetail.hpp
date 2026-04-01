@@ -20,9 +20,6 @@ namespace infra
         using ResultType = R;
     };
 
-    template<class... T>
-    class Variant;
-
     template<class Base, class... T>
     class PolymorphicVariant;
 
@@ -47,58 +44,6 @@ namespace infra
         struct ApplySameTypeVisitorHelper
         {
             typename Visitor::ResultType operator()(Visitor& visitor, const Variant& variant1, const Variant& variant2);
-        };
-
-        template<class... T>
-        struct CopyConstructVisitor
-            : StaticVisitor<void>
-        {
-            explicit CopyConstructVisitor(Variant<T...>& aVariant);
-
-            template<class T2>
-            void operator()(const T2& v);
-
-        private:
-            Variant<T...>& variant;
-        };
-
-        template<class... T>
-        struct MoveConstructVisitor
-            : StaticVisitor<void>
-        {
-            explicit MoveConstructVisitor(Variant<T...>& aVariant);
-
-            template<class T2>
-            void operator()(T2& v);
-
-        private:
-            Variant<T...>& variant;
-        };
-
-        template<class... T>
-        struct CopyAssignVisitor
-            : StaticVisitor<void>
-        {
-            explicit CopyAssignVisitor(Variant<T...>& aVariant);
-
-            template<class T2>
-            void operator()(const T2& v);
-
-        private:
-            Variant<T...>& variant;
-        };
-
-        template<class... T>
-        struct MoveAssignVisitor
-            : StaticVisitor<void>
-        {
-            explicit MoveAssignVisitor(Variant<T...>& aVariant);
-
-            template<class T2>
-            void operator()(T2& v);
-
-        private:
-            Variant<T...>& variant;
         };
 
         struct DestroyVisitor
@@ -527,55 +472,6 @@ namespace infra
         void DestroyVisitor::operator()(T& x)
         {
             x.~T();
-        }
-
-        template<class... T>
-        CopyConstructVisitor<T...>::CopyConstructVisitor(Variant<T...>& aVariant)
-            : variant(aVariant)
-        {}
-
-        template<class... T>
-        template<class T2>
-        void CopyConstructVisitor<T...>::operator()(const T2& v)
-        {
-            variant.template ConstructInEmptyVariant<T2>(v);
-        }
-
-        template<class... T>
-        MoveConstructVisitor<T...>::MoveConstructVisitor(Variant<T...>& aVariant)
-            : variant(aVariant)
-        {}
-
-        template<class... T>
-        template<class T2>
-        void MoveConstructVisitor<T...>::operator()(T2& v)
-        {
-            variant.template ConstructInEmptyVariant<T2>(std::move(v));
-        }
-
-        template<class... T>
-        CopyAssignVisitor<T...>::CopyAssignVisitor(Variant<T...>& aVariant)
-            : variant(aVariant)
-        {}
-
-        template<class... T>
-        template<class T2>
-        void CopyAssignVisitor<T...>::operator()(const T2& v)
-        {
-            variant = v;
-        }
-
-        template<class... T>
-        MoveAssignVisitor<T...>::MoveAssignVisitor(Variant<T...>& aVariant)
-            : variant(aVariant)
-        {}
-
-        template<class... T>
-        template<class T2>
-        void MoveAssignVisitor<T...>::operator()(T2& v)
-        {
-            variant.Destruct();
-            variant.template ConstructInEmptyVariant<T2>(std::move(v));
         }
 
         template<class T>

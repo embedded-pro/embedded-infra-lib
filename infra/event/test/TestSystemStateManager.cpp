@@ -1,7 +1,7 @@
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/event/SystemStateManager.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "gtest/gtest.h"
 
 class SystemStateTest
@@ -27,7 +27,7 @@ public:
 
     using infra::SystemStateParticipant::ReachedState;
 
-    infra::Optional<infra::SystemStateBase> requestedState;
+    std::optional<infra::SystemStateBase> requestedState;
 };
 
 TEST_F(SystemStateTest, Construction)

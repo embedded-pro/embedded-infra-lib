@@ -39,7 +39,7 @@ namespace services
     void EchoPolicyDiffieHellman::Initialized()
     {
         initializingKeys = true;
-        nextKeyPair = infra::none;
+        nextKeyPair = std::nullopt;
 
         keyExchange.Emplace(keyExchangeCreator, randomDataGenerator);
 
@@ -72,7 +72,7 @@ namespace services
         if (nextKeyPair && &proxy != this)
         {
             secured.SetSendKey(nextKeyPair->first, nextKeyPair->second);
-            nextKeyPair = infra::none;
+            nextKeyPair = std::nullopt;
         }
     }
 
@@ -92,7 +92,7 @@ namespace services
 
     void EchoPolicyDiffieHellman::Exchange(infra::ConstByteRange otherPublicKey, infra::ConstByteRange signatureR, infra::ConstByteRange signatureS)
     {
-        if (verifier == infra::none || !(*verifier)->Verify(otherPublicKey, signatureR, signatureS))
+        if (verifier == std::nullopt || !(*verifier)->Verify(otherPublicKey, signatureR, signatureS))
         {
             KeyExchangeFailed();
             return;

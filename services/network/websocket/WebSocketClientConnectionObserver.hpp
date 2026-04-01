@@ -4,7 +4,7 @@
 #include "hal/synchronous_interfaces/SynchronousRandomDataGenerator.hpp"
 #include "infra/stream/LimitedOutputStream.hpp"
 #include "infra/util/ProxyCreator.hpp"
-#include "infra/util/Variant.hpp"
+#include <variant>
 #include "services/network/connection/Connection.hpp"
 #include "services/network/connection/ConnectionFactoryWithNameResolver.hpp"
 #include "services/network/http/HttpClientBasic.hpp"
@@ -128,7 +128,7 @@ namespace services
         };
 
     private:
-        infra::Optional<std::size_t> requestedSendSize;
+        std::optional<std::size_t> requestedSendSize;
         infra::NotifyingSharedOptional<FrameWriter> streamWriter;
         infra::SharedPtr<void> keepAliveWhileWriting;
         infra::NotifyingSharedOptional<FrameReader> streamReader;
@@ -259,7 +259,7 @@ namespace services
         };
 
     private:
-        infra::Optional<WebSocketClientInitiation> initiation;
+        std::optional<WebSocketClientInitiation> initiation;
         infra::NotifyingSharedOptional<WebSocketClientConnectionObserver> webSocket;
         hal::SynchronousRandomDataGenerator& randomDataGenerator;
         Creators creators;

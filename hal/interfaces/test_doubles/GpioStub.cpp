@@ -2,7 +2,7 @@
 #include "hal/interfaces/Gpio.hpp"
 #include "infra/timer/Timer.hpp"
 #include "infra/util/Function.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -62,7 +62,7 @@ namespace hal
 
     void GpioPinStub::DisableInterrupt()
     {
-        triggerOnChange = infra::none;
+        triggerOnChange = std::nullopt;
     }
 
     void GpioPinStub::SetStubState(bool value)

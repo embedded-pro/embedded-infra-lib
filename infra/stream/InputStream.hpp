@@ -5,7 +5,7 @@
 #include "infra/stream/StreamManipulators.hpp"
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/ByteRange.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include <cstdlib>
 #include <type_traits>
 
@@ -167,7 +167,7 @@ namespace infra
         void ReadAsHex(uint64_t& v);
 
         bool isDecimal = true;
-        infra::Optional<std::size_t> width;
+        std::optional<std::size_t> width;
     };
 
     class FromHexHelper

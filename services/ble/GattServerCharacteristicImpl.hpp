@@ -2,7 +2,7 @@
 #define SERVICES_GATT_CHARACTERISTIC_IMPL_HPP
 
 #include "infra/util/ByteRange.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include "services/ble/GattServer.hpp"
 
 namespace services
@@ -35,7 +35,7 @@ namespace services
 
     private:
         GattServerService& service;
-        infra::Optional<UpdateContext> updateContext;
+        std::optional<UpdateContext> updateContext;
     };
 }
 
