@@ -3,7 +3,8 @@
 
 #include "infra/util/Endian.hpp"
 #include <array>
-#include <infra/util/Variant.hpp>
+#include <cstdint>
+#include <variant>
 
 namespace services
 {
