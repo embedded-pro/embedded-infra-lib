@@ -5,6 +5,7 @@
 #include "infra/event/ClaimableResource.hpp"
 #include "infra/util/IntrusiveForwardList.hpp"
 #include "infra/util/Sequencer.hpp"
+#include <optional>
 
 namespace services
 {

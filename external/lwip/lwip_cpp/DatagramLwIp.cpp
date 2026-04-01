@@ -311,13 +311,13 @@ namespace services
 
     void DatagramExchangeLwIP::StateIdle::RequestSendStream(std::size_t sendSize)
     {
-        StateWaitingForBuffer& state = datagramExchange.state.emplace<StateWaitingForBuffer>(datagramExchange, sendSize, std::nullopt);
+        StateWaitingForBuffer& state = datagramExchange.state.Emplace<StateWaitingForBuffer>(datagramExchange, sendSize, std::nullopt);
         state.TryAllocateBuffer();
     }
 
     void DatagramExchangeLwIP::StateIdle::RequestSendStream(std::size_t sendSize, const UdpSocket& remote)
     {
-        StateWaitingForBuffer& state = datagramExchange.state.emplace<StateWaitingForBuffer>(datagramExchange, sendSize, std::make_optional(remote));
+        StateWaitingForBuffer& state = datagramExchange.state.Emplace<StateWaitingForBuffer>(datagramExchange, sendSize, std::make_optional(remote));
         state.TryAllocateBuffer();
     }
 
@@ -335,14 +335,14 @@ namespace services
     {
         pbuf* buffer = pbuf_alloc(PBUF_TRANSPORT, static_cast<uint16_t>(sendSize), PBUF_POOL);
         if (buffer != nullptr)
-            datagramExchange.state.emplace<StateBufferAllocated>(datagramExchange, buffer, std::optional<UdpSocket>(remote));
+            datagramExchange.state.Emplace<StateBufferAllocated>(datagramExchange, buffer, std::optional<UdpSocket>(remote));
     }
 
     DatagramExchangeLwIP::StateBufferAllocated::StateBufferAllocated(DatagramExchangeLwIP& datagramExchange, pbuf* buffer, std::optional<UdpSocket> remote)
         : datagramExchange(datagramExchange)
         , stream([this]()
               {
-                  this->datagramExchange.state.emplace<StateIdle>(this->datagramExchange);
+                  this->datagramExchange.state.Emplace<StateIdle>(this->datagramExchange);
               })
         , streamPtr(stream.Emplace(datagramExchange.control, buffer, remote))
     {

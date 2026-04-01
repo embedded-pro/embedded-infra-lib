@@ -360,7 +360,7 @@ namespace infra
     template<class T, class U, class... ConstructionArgs>
     void Creator<T, U, void(ConstructionArgs...)>::Destroy()
     {
-        object = none;
+        object = std::nullopt;
     }
 
     template<class T, class U, class... ConstructionArgs>
@@ -435,7 +435,7 @@ namespace infra
     template<class U, class... ConstructionArgs>
     void Creator<void, U, void(ConstructionArgs...)>::Destroy()
     {
-        object = none;
+        object = std::nullopt;
     }
 
     template<class U, class... ConstructionArgs>

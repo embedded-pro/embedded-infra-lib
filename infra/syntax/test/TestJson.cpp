@@ -907,7 +907,7 @@ TEST(JsonObjectIteratorTest, get_value_from_iterator)
     infra::JsonArray jsonArray(R"([ "value" ])");
     infra::JsonArrayIterator iterator(jsonArray.begin());
 
-    EXPECT_EQ("value", iterator->Get<infra::JsonString>());
+    EXPECT_EQ("value", std::get<infra::JsonString>(*iterator));
 }
 
 TEST(JsonObjectIteratorTest, get_multiple_values_from_iterator)

@@ -143,14 +143,14 @@ namespace services
         if (sendInitResponse)
         {
             if (receivedData.Empty())
-                state.emplace<StateSendingInitResponse>(*this);
+                state.Emplace<StateSendingInitResponse>(*this);
         }
         else if (requestedSendMessageSize && WindowSize(*requestedSendMessageSize) <= otherAvailableWindow)
-            state.emplace<StateSendingMessage>(*this);
+            state.Emplace<StateSendingMessage>(*this);
         else if (releasedWindow != 0)
-            state.emplace<StateSendingReleaseWindow>(*this);
+            state.Emplace<StateSendingReleaseWindow>(*this);
         else
-            state.emplace<StateOperational>(*this);
+            state.Emplace<StateOperational>(*this);
     }
 
     uint16_t MessageCommunicationWindowed::WindowSize(uint16_t messageSize) const

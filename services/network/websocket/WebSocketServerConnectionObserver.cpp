@@ -107,29 +107,29 @@ namespace services
 
     void WebSocketServerConnectionObserver::SetReceivingStateReceiveHeader()
     {
-        receivingState.emplace<ReceivingStateReceiveHeader>(*this);
+        receivingState.Emplace<ReceivingStateReceiveHeader>(*this);
         receivingState->DataReceived();
     }
 
     void WebSocketServerConnectionObserver::SetStateReceiveData(services::WebSocketFrameHeader header)
     {
-        receivingState.emplace<ReceivingStateReceiveData>(*this, header);
+        receivingState.Emplace<ReceivingStateReceiveData>(*this, header);
         receivingState->DataReceived();
     }
 
     void WebSocketServerConnectionObserver::SetReceivingStateClose()
     {
-        receivingState.emplace<ReceivingStateClose>(*this);
+        receivingState.Emplace<ReceivingStateClose>(*this);
     }
 
     void WebSocketServerConnectionObserver::SetReceivingStatePong()
     {
-        receivingState.emplace<ReceivingStatePong>(*this);
+        receivingState.Emplace<ReceivingStatePong>(*this);
     }
 
     void WebSocketServerConnectionObserver::SetStateSendingIdle()
     {
-        sendingState.emplace<SendingStateIdle>(*this);
+        sendingState.Emplace<SendingStateIdle>(*this);
         sendingState->CheckForSomethingToDo();
     }
 
@@ -324,9 +324,9 @@ namespace services
     void WebSocketServerConnectionObserver::SendingStateIdle::CheckForSomethingToDo()
     {
         if (connection.receivingStateThatWantsToSendData != nullptr)
-            connection.sendingState.emplace<SendingStateInternalData>(connection);
+            connection.sendingState.Emplace<SendingStateInternalData>(connection);
         else if (connection.sendBufferReadyForSending)
-            connection.sendingState.emplace<SendingStateExternalData>(connection);
+            connection.sendingState.Emplace<SendingStateExternalData>(connection);
         else
             connection.TryAllocateSendStream();
     }

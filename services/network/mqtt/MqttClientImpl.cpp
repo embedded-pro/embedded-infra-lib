@@ -332,7 +332,7 @@ namespace services
                     if (observer)
                     {
                         auto& clientConnectionCopy = clientConnection;
-                        auto& newState = clientConnection.state.emplace<StateConnected>(clientConnection);
+                        auto& newState = clientConnection.state.Emplace<StateConnected>(clientConnection);
                         clientConnectionCopy.Attach(observer);
                         newState.HandleDataReceived();
                     }

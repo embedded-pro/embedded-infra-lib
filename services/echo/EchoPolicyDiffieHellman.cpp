@@ -41,7 +41,7 @@ namespace services
         initializingKeys = true;
         nextKeyPair = std::nullopt;
 
-        keyExchange.Emplace(keyExchangeCreator, randomDataGenerator);
+        keyExchange.emplace(keyExchangeCreator, randomDataGenerator);
 
         DiffieHellmanKeyEstablishmentProxy::RequestSend([this]()
             {
@@ -123,7 +123,7 @@ namespace services
 
     void EchoPolicyDiffieHellman::PresentCertificate(infra::ConstByteRange otherDsaCertificate)
     {
-        verifier.Emplace(verifierCreator, otherDsaCertificate, rootCaCertificate);
+        verifier.emplace(verifierCreator, otherDsaCertificate, rootCaCertificate);
 
         MethodDone();
     }

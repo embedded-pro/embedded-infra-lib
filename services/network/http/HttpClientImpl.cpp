@@ -343,14 +343,14 @@ namespace services
     void HttpClientImpl::ExecuteRequestWithContent(HttpVerb verb, infra::BoundedConstString requestTarget, std::size_t contentSize, const HttpHeaders headers)
     {
         request.Emplace(verb, hostname, requestTarget, contentSize, headers);
-        nextState.emplace<SendingStateForwardDefinedSizeStream>(*this, contentSize);
+        nextState.Emplace<SendingStateForwardDefinedSizeStream>(*this, contentSize);
         ConnectionObserver::Subject().RequestSendStream(request->Size());
     }
 
     void HttpClientImpl::ExecuteRequestWithContent(HttpVerb verb, infra::BoundedConstString requestTarget, const HttpHeaders headers)
     {
         request.Emplace(verb, hostname, requestTarget, headers, chunked);
-        nextState.emplace<SendingStateForwardSendStream>(*this);
+        nextState.Emplace<SendingStateForwardSendStream>(*this);
         ConnectionObserver::Subject().RequestSendStream(request->Size());
     }
 
@@ -373,7 +373,7 @@ namespace services
         auto& client = this->client;
 
         client.sendingState = client.nextState;
-        client.nextState.emplace<SendingStateRequest>(client);
+        client.nextState.Emplace<SendingStateRequest>(client);
         client.sendingState->Activate();
     }
 

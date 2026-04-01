@@ -566,7 +566,7 @@ namespace infra
         : arrayIterator(arrayIterator)
         , arrayEndIterator(arrayEndIterator)
     {
-        if (this->arrayIterator != arrayEndIterator && !this->arrayIterator->template Is<T>())
+        if (this->arrayIterator != arrayEndIterator && !std::holds_alternative<T>(*this->arrayIterator))
             this->arrayIterator.SetError();
     }
 
@@ -585,13 +585,13 @@ namespace infra
     template<class T>
     T JsonValueArrayIterator<T>::operator*() const
     {
-        return arrayIterator->Get<T>();
+        return std::get<T>(*arrayIterator);
     }
 
     template<class T>
     const T* JsonValueArrayIterator<T>::operator->() const
     {
-        return &arrayIterator->Get<T>();
+        return &std::get<T>(*arrayIterator);
     }
 
     template<class T>
@@ -599,7 +599,7 @@ namespace infra
     {
         ++arrayIterator;
 
-        if (arrayIterator != arrayEndIterator && !arrayIterator->Is<T>())
+        if (arrayIterator != arrayEndIterator && !std::holds_alternative<T>(*arrayIterator))
             arrayIterator.SetError();
 
         return *this;

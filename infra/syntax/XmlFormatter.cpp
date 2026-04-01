@@ -70,8 +70,10 @@ namespace infra
 
     XmlTagFormatter& XmlTagFormatter::operator=(XmlTagFormatter&& other) noexcept
     {
-        stream = other.stream;
-        other.stream = std::nullopt;
+        stream.reset();
+        if (other.stream)
+            stream.emplace(std::move(*other.stream));
+        other.stream.reset();
 
         return *this;
     }

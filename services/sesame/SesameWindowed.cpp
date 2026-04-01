@@ -40,7 +40,7 @@ namespace services
         sendInitResponse = false;
         sending = false;
         requestedSendMessageSize = std::nullopt;
-        state.emplace<StateSendingInit>(*this);
+        state.Emplace<StateSendingInit>(*this);
         state->Request();
     }
 
@@ -124,14 +124,14 @@ namespace services
             if (sendInitResponse)
             {
                 if (receivedMessageReader == nullptr)
-                    state.emplace<StateSendingInitResponse>(*this).Request();
+                    state.Emplace<StateSendingInitResponse>(*this).Request();
             }
             else if (requestedSendMessageSize != std::nullopt && SesameEncodedObserver::Subject().MessageSize(*requestedSendMessageSize + 1) + releaseWindowSize <= otherAvailableWindow)
-                state.emplace<StateSendingMessage>(*this).Request();
+                state.Emplace<StateSendingMessage>(*this).Request();
             else if (releasedWindow > releaseWindowSize && releaseWindowSize <= otherAvailableWindow)
-                state.emplace<StateSendingReleaseWindow>(*this).Request();
+                state.Emplace<StateSendingReleaseWindow>(*this).Request();
             else
-                state.emplace<StateOperational>(*this);
+                state.Emplace<StateOperational>(*this);
         }
     }
 
