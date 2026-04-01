@@ -1,8 +1,8 @@
 #ifndef INFRA_VARIANT_PRINT_TO_HPP
 #define INFRA_VARIANT_PRINT_TO_HPP
 
-#include <variant>
 #include "gtest/gtest-printers.h"
+#include <variant>
 
 namespace infra
 {

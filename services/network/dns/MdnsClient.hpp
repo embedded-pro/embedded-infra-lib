@@ -2,10 +2,10 @@
 #define SERVICES_MDNS_CLIENT_HPP
 
 #include "infra/util/IntrusiveList.hpp"
-#include <optional>
 #include "services/network/connection/Datagram.hpp"
 #include "services/network/connection/Multicast.hpp"
 #include "services/network/dns/Dns.hpp"
+#include <optional>
 
 namespace services
 {

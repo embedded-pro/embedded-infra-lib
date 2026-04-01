@@ -4,12 +4,12 @@
 #include "hal/synchronous_interfaces/SynchronousRandomDataGenerator.hpp"
 #include "infra/stream/LimitedOutputStream.hpp"
 #include "infra/util/ProxyCreator.hpp"
-#include <variant>
 #include "services/network/connection/Connection.hpp"
 #include "services/network/connection/ConnectionFactoryWithNameResolver.hpp"
 #include "services/network/http/HttpClientBasic.hpp"
 #include "services/network/websocket/WebSocket.hpp"
 #include "services/util/Stoppable.hpp"
+#include <variant>
 
 namespace services
 {

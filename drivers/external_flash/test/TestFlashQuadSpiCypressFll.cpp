@@ -1,7 +1,7 @@
+#include "drivers/external_flash/FlashQuadSpiCypressFll.hpp"
 #include "hal/interfaces/test_doubles/QuadSpiStub.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
-#include "drivers/external_flash/FlashQuadSpiCypressFll.hpp"
 #include "gmock/gmock.h"
 
 class FlashQuadSpiCypressFllTest

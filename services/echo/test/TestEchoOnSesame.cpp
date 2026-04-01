@@ -3,7 +3,6 @@
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/stream/LimitedOutputStream.hpp"
 #include "infra/util/ConstructBin.hpp"
-#include <optional>
 #include "infra/util/SharedOptional.hpp"
 #include "services/echo/EchoOnSesame.hpp"
 #include "services/echo_core/test_doubles/EchoMock.hpp"
@@ -11,6 +10,7 @@
 #include "services/sesame/test_doubles/SesameMock.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include <optional>
 
 namespace services
 {

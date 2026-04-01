@@ -1261,7 +1261,7 @@ namespace infra
     void CopyToken(infra::JsonToken::Token token, infra::TextOutputStream& stream)
     {
         class CopyVisitor
-            
+
         {
         public:
             explicit CopyVisitor(infra::TextOutputStream& stream)

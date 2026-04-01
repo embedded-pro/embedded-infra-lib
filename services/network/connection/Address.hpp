@@ -3,9 +3,9 @@
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/Endian.hpp"
-#include <variant>
 #include <array>
 #include <utility>
+#include <variant>
 
 namespace services
 {

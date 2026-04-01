@@ -4,8 +4,8 @@
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/Function.hpp"
-#include <optional>
 #include <cstdint>
+#include <optional>
 
 namespace hal
 {

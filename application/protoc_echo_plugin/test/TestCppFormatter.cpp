@@ -1,7 +1,7 @@
 #include "application/protoc_echo_plugin/CppFormatter.hpp"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
-#include <optional>
 #include "infra/util/test_helper/MockHelpers.hpp"
+#include <optional>
 #include <sstream>
 
 class EntityMock

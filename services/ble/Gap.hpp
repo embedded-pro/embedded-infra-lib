@@ -6,9 +6,8 @@
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Observer.hpp"
-#include <optional>
 #include "services/ble/Att.hpp"
-#include "infra/util/BoundedVector.hpp"
+#include <optional>
 
 namespace services
 {

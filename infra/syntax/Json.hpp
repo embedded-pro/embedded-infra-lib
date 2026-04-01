@@ -4,10 +4,10 @@
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/Compatibility.hpp"
-#include <optional>
 #include "infra/util/ReverseRange.hpp"
-#include <variant>
 #include <cstdint>
+#include <optional>
+#include <variant>
 
 #ifdef EMIL_HOST_BUILD
 #include <string>

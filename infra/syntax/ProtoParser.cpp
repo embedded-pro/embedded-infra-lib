@@ -122,7 +122,7 @@ namespace infra
     }
 
     struct MakeFullField
-        
+
     {
         MakeFullField(infra::DataInputStream inputStream, infra::StreamErrorPolicy& formatErrorPolicy, uint32_t fieldNumber)
             : inputStream(inputStream)

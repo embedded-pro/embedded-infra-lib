@@ -4,8 +4,8 @@
 #include "infra/stream/InputStream.hpp"
 #include "infra/stream/LimitedInputStream.hpp"
 #include "infra/util/BoundedVector.hpp"
-#include <variant>
 #include <utility>
+#include <variant>
 
 namespace infra
 {

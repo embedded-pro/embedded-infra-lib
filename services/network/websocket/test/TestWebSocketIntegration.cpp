@@ -7,9 +7,9 @@
 #include "services/network/http/HttpClientImpl.hpp"
 #include "services/network/http/HttpServer.hpp"
 #include "services/network/http/test_doubles/HttpClientMock.hpp"
+#include "services/network/websocket/HttpPageWebSocket.hpp"
 #include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
 #include "services/network/websocket/WebSocketServerConnectionObserver.hpp"
-#include "services/network/websocket/HttpPageWebSocket.hpp"
 #include "services/util/test_doubles/StoppableMock.hpp"
 #include "gmock/gmock.h"
 

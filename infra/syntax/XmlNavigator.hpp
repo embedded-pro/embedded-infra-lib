@@ -1,9 +1,9 @@
 #ifndef INFRA_XML_OBJECT_NAVIGATOR_HPP
 #define INFRA_XML_OBJECT_NAVIGATOR_HPP
 
-#include <optional>
 #include "pugixml.hpp"
 #include <functional>
+#include <optional>
 #include <stdexcept>
 
 namespace infra

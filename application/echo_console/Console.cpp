@@ -178,7 +178,7 @@ namespace application
     namespace
     {
         struct IndexOfVisitor
-            
+
         {
             template<class T>
             std::size_t operator()(const T& value) const
@@ -1003,7 +1003,7 @@ namespace application
     std::pair<Console::MessageTokens::MessageTokenValue, std::size_t> Console::MethodInvocation::CreateMessageTokenValue()
     {
         struct TokenVisitor
-            
+
         {
             explicit TokenVisitor(MethodInvocation& invocation)
                 : invocation(invocation)

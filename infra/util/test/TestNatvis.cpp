@@ -1,10 +1,10 @@
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/Function.hpp"
-#include <optional>
 #include "infra/util/PolymorphicVariant.hpp"
-#include <variant>
 #include "gtest/gtest.h"
+#include <optional>
+#include <variant>
 
 namespace
 {

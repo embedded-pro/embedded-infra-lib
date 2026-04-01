@@ -4,11 +4,11 @@
 #include "hal/synchronous_interfaces/SynchronousRandomDataGenerator.hpp"
 #include "infra/timer/Timer.hpp"
 #include "infra/util/BoundedVector.hpp"
-#include <optional>
-#include <variant>
 #include "services/network/connection/Datagram.hpp"
 #include "services/network/connection/NameResolver.hpp"
 #include "services/network/dns/Dns.hpp"
+#include <optional>
+#include <variant>
 
 namespace services
 {

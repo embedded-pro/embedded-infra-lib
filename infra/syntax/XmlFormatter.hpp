@@ -3,8 +3,8 @@
 
 #include "infra/stream/StringOutputStream.hpp"
 #include "infra/util/BoundedString.hpp"
-#include <optional>
 #include "infra/util/WithStorage.hpp"
+#include <optional>
 
 namespace infra
 {
