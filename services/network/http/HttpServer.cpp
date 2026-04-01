@@ -302,7 +302,7 @@ namespace services
 
         if (!buffer.empty())
         {
-            parser.Emplace(buffer);
+            parser.emplace(buffer);
             if (parser->HeadersComplete())
             {
                 reader->Rewind(start + buffer.size());
@@ -360,7 +360,7 @@ namespace services
         {
             keepSelfAlive = Subject().ObserverPtr();
             pageReader = std::move(reader);
-            pageCountingReader.Emplace(*pageReader);
+            pageCountingReader.emplace(*pageReader);
             pageServer->DataReceived(pageLimitedReader.Emplace(*pageCountingReader, contentLength.value_or(std::numeric_limits<uint32_t>::max())));
         }
     }

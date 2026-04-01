@@ -141,7 +141,7 @@ namespace services
     {
         infra::StringOutputStream contentLengthStream(contentLength);
         contentLengthStream << size;
-        contentLengthHeader.Emplace("Content-Length", contentLength);
+        contentLengthHeader.emplace("Content-Length", contentLength);
     }
 
     std::size_t HttpRequestFormatter::HeadersSize() const

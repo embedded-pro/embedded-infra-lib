@@ -183,7 +183,7 @@ TEST(OptionalTest, TestConstruct)
 {
     bool b(true);
     std::optional<bool> o;
-    o.Emplace(std::move(b));
+    o.emplace(std::move(b));
     EXPECT_TRUE(static_cast<bool>(o));
     EXPECT_TRUE(*o);
 }
@@ -199,7 +199,7 @@ TEST(OptionalTest, TestConstructReturn)
 
     Foo b{ 1, true, nullptr };
     std::optional<Foo> o;
-    auto& ref = o.Emplace(std::move(b));
+    auto& ref = o.emplace(std::move(b));
     EXPECT_TRUE(ref.a == 1);
     EXPECT_TRUE(ref.b);
     EXPECT_TRUE(ref.c == nullptr);
@@ -214,7 +214,7 @@ TEST(OptionalTest, TestConstructWithInitializerList)
     };
 
     std::optional<X> o;
-    o.Emplace({ true });
+    o.emplace({ true });
     EXPECT_TRUE(static_cast<bool>(o));
 }
 

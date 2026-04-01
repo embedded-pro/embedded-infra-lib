@@ -388,7 +388,7 @@ int main(int argc, char* argv[], const char* env[])
             auto actualBaudrate = baudrateOptional ? get(baudrateOptional) : baudrateDefault;
             hal::UartGeneric::Config config = { actualBaudrate };
             uart.emplace(get(targetPort), config);
-            bufferedUart.Emplace(*uart);
+            bufferedUart.emplace(*uart);
 
             if (!get(symmetricKeyFile).empty())
                 consoleClientUart.emplace(console, *bufferedUart, ReadProtoFile<sesame_security::SymmetricKeyFile>(get(symmetricKeyFile)), randomDataGenerator);

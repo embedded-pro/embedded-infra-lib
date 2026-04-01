@@ -545,6 +545,28 @@ namespace infra
             variant = v;
         }
     }
+
+    template<class Visitor, class Variant>
+    typename Visitor::ResultType ApplyVisitor(Visitor& visitor, Variant& variant)
+    {
+        detail::ApplyVisitorHelper<0, Visitor, Variant> helper;
+        return helper(visitor, variant);
+    }
+
+    template<class Visitor, class Variant>
+    typename Visitor::ResultType ApplyVisitor(Visitor& visitor, Variant& variant1, Variant& variant2)
+    {
+        detail::ApplyVisitorHelper2<0, Visitor, Variant> helper;
+        return helper(visitor, variant1, variant2);
+    }
+
+    template<class Visitor, class Variant>
+    typename Visitor::ResultType ApplySameTypeVisitor(Visitor& visitor, Variant& variant1, Variant& variant2)
+    {
+        really_assert(variant1.Which() == variant2.Which());
+        detail::ApplySameTypeVisitorHelper<0, Visitor, Variant> helper;
+        return helper(visitor, variant1, variant2);
+    }
 }
 
 #endif

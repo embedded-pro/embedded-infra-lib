@@ -175,7 +175,7 @@ namespace services
 
     void HttpClientImpl::ExpectResponse()
     {
-        response.Emplace(static_cast<HttpHeaderParserObserver&>(*this));
+        response.emplace(static_cast<HttpHeaderParserObserver&>(*this));
     }
 
     void HttpClientImpl::HandleData()
@@ -231,7 +231,7 @@ namespace services
             }
             else
             {
-                bodyReader.Emplace(ConnectionObserver::Subject().ReceiveStream(), *contentLength);
+                bodyReader.emplace(ConnectionObserver::Subject().ReceiveStream(), *contentLength);
                 auto reader = infra::MakeContainedSharedObject(bodyReader->countingReader, bodyReaderAccess.MakeShared(bodyReader));
                 BodyReaderAvailable(std::move(reader));
 
@@ -330,26 +330,26 @@ namespace services
 
     void HttpClientImpl::ExecuteRequest(HttpVerb verb, infra::BoundedConstString requestTarget, const HttpHeaders headers)
     {
-        request.Emplace(verb, hostname, requestTarget, headers);
+        request.emplace(verb, hostname, requestTarget, headers);
         ConnectionObserver::Subject().RequestSendStream(request->Size());
     }
 
     void HttpClientImpl::ExecuteRequestWithContent(HttpVerb verb, infra::BoundedConstString requestTarget, infra::BoundedConstString content, const HttpHeaders headers)
     {
-        request.Emplace(verb, hostname, requestTarget, content, headers);
+        request.emplace(verb, hostname, requestTarget, content, headers);
         ConnectionObserver::Subject().RequestSendStream(std::min(request->Size(), ConnectionObserver::Subject().MaxSendStreamSize()));
     }
 
     void HttpClientImpl::ExecuteRequestWithContent(HttpVerb verb, infra::BoundedConstString requestTarget, std::size_t contentSize, const HttpHeaders headers)
     {
-        request.Emplace(verb, hostname, requestTarget, contentSize, headers);
+        request.emplace(verb, hostname, requestTarget, contentSize, headers);
         nextState.Emplace<SendingStateForwardDefinedSizeStream>(*this, contentSize);
         ConnectionObserver::Subject().RequestSendStream(request->Size());
     }
 
     void HttpClientImpl::ExecuteRequestWithContent(HttpVerb verb, infra::BoundedConstString requestTarget, const HttpHeaders headers)
     {
-        request.Emplace(verb, hostname, requestTarget, headers, chunked);
+        request.emplace(verb, hostname, requestTarget, headers, chunked);
         nextState.Emplace<SendingStateForwardSendStream>(*this);
         ConnectionObserver::Subject().RequestSendStream(request->Size());
     }
@@ -535,7 +535,7 @@ namespace services
     void HttpClientImplWithRedirection::Get(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryGet>(), headers);
+            query.emplace(std::in_place_type_t<QueryGet>(), headers);
 
         HttpClientImpl::Get(requestTarget, headers);
     }
@@ -543,7 +543,7 @@ namespace services
     void HttpClientImplWithRedirection::Head(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryHead>(), headers);
+            query.emplace(std::in_place_type_t<QueryHead>(), headers);
 
         HttpClientImpl::Head(requestTarget, headers);
     }
@@ -551,7 +551,7 @@ namespace services
     void HttpClientImplWithRedirection::Connect(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryConnect>(), headers);
+            query.emplace(std::in_place_type_t<QueryConnect>(), headers);
 
         HttpClientImpl::Connect(requestTarget, headers);
     }
@@ -559,7 +559,7 @@ namespace services
     void HttpClientImplWithRedirection::Options(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryOptions>(), headers);
+            query.emplace(std::in_place_type_t<QueryOptions>(), headers);
 
         HttpClientImpl::Options(requestTarget, headers);
     }
@@ -567,7 +567,7 @@ namespace services
     void HttpClientImplWithRedirection::Post(infra::BoundedConstString requestTarget, infra::BoundedConstString content, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPost>(), content, headers);
+            query.emplace(std::in_place_type_t<QueryPost>(), content, headers);
 
         HttpClientImpl::Post(requestTarget, content, headers);
     }
@@ -575,7 +575,7 @@ namespace services
     void HttpClientImplWithRedirection::Post(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPostChunked>(), headers);
+            query.emplace(std::in_place_type_t<QueryPostChunked>(), headers);
 
         HttpClientImpl::Post(requestTarget, headers);
     }
@@ -583,7 +583,7 @@ namespace services
     void HttpClientImplWithRedirection::Post(infra::BoundedConstString requestTarget, std::size_t contentSize, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPostStreamed>(), contentSize, headers);
+            query.emplace(std::in_place_type_t<QueryPostStreamed>(), contentSize, headers);
 
         HttpClientImpl::Post(requestTarget, contentSize, headers);
     }
@@ -591,7 +591,7 @@ namespace services
     void HttpClientImplWithRedirection::Put(infra::BoundedConstString requestTarget, infra::BoundedConstString content, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPut>(), content, headers);
+            query.emplace(std::in_place_type_t<QueryPut>(), content, headers);
 
         HttpClientImpl::Put(requestTarget, content, headers);
     }
@@ -599,7 +599,7 @@ namespace services
     void HttpClientImplWithRedirection::Put(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPutChunked>(), headers);
+            query.emplace(std::in_place_type_t<QueryPutChunked>(), headers);
 
         HttpClientImpl::Put(requestTarget, headers);
     }
@@ -607,7 +607,7 @@ namespace services
     void HttpClientImplWithRedirection::Put(infra::BoundedConstString requestTarget, std::size_t contentSize, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPutStreamed>(), contentSize, headers);
+            query.emplace(std::in_place_type_t<QueryPutStreamed>(), contentSize, headers);
 
         HttpClientImpl::Put(requestTarget, contentSize, headers);
     }
@@ -615,7 +615,7 @@ namespace services
     void HttpClientImplWithRedirection::Patch(infra::BoundedConstString requestTarget, infra::BoundedConstString content, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPatch>(), content, headers);
+            query.emplace(std::in_place_type_t<QueryPatch>(), content, headers);
 
         HttpClientImpl::Patch(requestTarget, content, headers);
     }
@@ -623,7 +623,7 @@ namespace services
     void HttpClientImplWithRedirection::Patch(infra::BoundedConstString requestTarget, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryPatchChunked>(), headers);
+            query.emplace(std::in_place_type_t<QueryPatchChunked>(), headers);
 
         HttpClientImpl::Patch(requestTarget, headers);
     }
@@ -631,7 +631,7 @@ namespace services
     void HttpClientImplWithRedirection::Delete(infra::BoundedConstString requestTarget, infra::BoundedConstString content, HttpHeaders headers)
     {
         if (query == std::nullopt)
-            query.Emplace(std::in_place_type_t<QueryDelete>(), content, headers);
+            query.emplace(std::in_place_type_t<QueryDelete>(), content, headers);
 
         HttpClientImpl::Delete(requestTarget, content, headers);
     }
@@ -738,9 +738,9 @@ namespace services
     std::optional<uint16_t> HttpClientImplWithRedirection::PortFromScheme(infra::BoundedConstString scheme) const
     {
         if (infra::CaseInsensitiveCompare(scheme, "http"))
-            return infra::MakeOptional<uint16_t>(80);
+            return std::make_optional<uint16_t>(80);
         if (infra::CaseInsensitiveCompare(scheme, "https"))
-            return infra::MakeOptional<uint16_t>(443);
+            return std::make_optional<uint16_t>(443);
         return std::nullopt;
     }
 
