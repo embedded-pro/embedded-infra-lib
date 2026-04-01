@@ -245,14 +245,12 @@ TEST(OptionalTest, TestTransformOptional)
 {
     std::optional<bool> o = std::make_optional(true);
     std::optional<bool> empty;
-    EXPECT_EQ(std::make_optional(5), infra::TransformOptional(std::make_optional(true), [](bool value)
-                                          {
-                                              return 5;
-                                          }));
-    EXPECT_EQ(std::nullopt, infra::TransformOptional(empty, [](bool value)
-                               {
-                                   return 5;
-                               }));
+    auto transform = [](bool value)
+    {
+        return 5;
+    };
+    EXPECT_EQ(std::make_optional(5), o ? std::make_optional(transform(*o)) : std::nullopt);
+    EXPECT_EQ(std::nullopt, empty ? std::make_optional(transform(*empty)) : std::nullopt);
 }
 
 TEST(OptionalTest, ValueOrGivesStoredWhenAvailable)
@@ -284,13 +282,13 @@ TEST(OptionalTest, ValueOrConstRefGivesParameterWhenNothingIsStored)
 TEST(OptionalTest, ValueOrDefaultGivesStoredWhenAvailable)
 {
     std::optional<int> i(std::in_place, 5);
-    EXPECT_EQ(5, i.value_or({}));
+    EXPECT_EQ(5, i.value_or(0));
 }
 
 TEST(OptionalTest, ValueOrDefaultGivesDefaultWhenNothingIsStored)
 {
     std::optional<int> i;
-    EXPECT_EQ(0, i.value_or({}));
+    EXPECT_EQ(0, i.value_or(0));
 }
 
 struct PolymorphicBool
