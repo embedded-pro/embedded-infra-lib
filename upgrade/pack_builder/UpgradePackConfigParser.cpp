@@ -50,11 +50,11 @@ namespace application
         std::vector<std::tuple<std::string, std::string, std::optional<uint32_t>>> result;
 
         for (infra::JsonObjectIterator it = components->begin(); it != components->end(); ++it)
-            if (it->std::holds_alternative<infra::JsonString>(value))
-                result.push_back(std::make_tuple(it->key.ToStdString(), it->std::get<infra::JsonString>(value).ToStdString(), std::nullopt));
-            else if (it->std::holds_alternative<infra::JsonObject>(value))
+            if (std::holds_alternative<infra::JsonString>(it->value))
+                result.push_back(std::make_tuple(it->key.ToStdString(), std::get<infra::JsonString>(it->value).ToStdString(), std::nullopt));
+            else if (std::holds_alternative<infra::JsonObject>(it->value))
             {
-                auto component = it->std::get<infra::JsonObject>(value);
+                auto component = std::get<infra::JsonObject>(it->value);
                 auto key = it->key.ToStdString();
                 auto [path, address] = ExtractDataFromObjectComponent(key, component);
 
@@ -78,10 +78,10 @@ namespace application
             throw ParseException(std::string("ConfigParser error: options list should be an object"));
 
         for (infra::JsonObjectIterator it = options->begin(); it != options->end(); ++it)
-            if (it->std::holds_alternative<infra::JsonString>(value))
-                result.push_back(std::make_pair(it->key.ToStdString(), it->std::get<infra::JsonString>(value).ToStdString()));
-            else if (it->std::holds_alternative<int32_t>(value))
-                result.push_back(std::pair<std::string, std::string>(it->key.ToStdString(), std::to_string(it->std::get<int32_t>(value))));
+            if (std::holds_alternative<infra::JsonString>(it->value))
+                result.push_back(std::make_pair(it->key.ToStdString(), std::get<infra::JsonString>(it->value).ToStdString()));
+            else if (std::holds_alternative<int32_t>(it->value))
+                result.push_back(std::pair<std::string, std::string>(it->key.ToStdString(), std::to_string(std::get<int32_t>(it->value))));
             else
                 throw ParseException("ConfigParser error: invalid value for option: " + it->key.ToStdString());
 

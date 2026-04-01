@@ -1,6 +1,7 @@
 #ifndef UPGRADE_SUPPORTED_TARGETS_HPP
 #define UPGRADE_SUPPORTED_TARGETS_HPP
 
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>

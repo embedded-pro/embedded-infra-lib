@@ -1286,10 +1286,10 @@ namespace application
 
             void PutRepeated(const std::string& fieldProtoType, std::shared_ptr<EchoField> fieldType)
             {
-                if (!value.Is<std::vector<MessageTokens>>())
+                if (!std::holds_alternative<std::vector<MessageTokens>>(value))
                     throw ConsoleExceptions::IncorrectType{ valueIndex, fieldProtoType };
 
-                for (auto& messageTokens : value.Get<std::vector<MessageTokens>>())
+                for (auto& messageTokens : std::get<std::vector<MessageTokens>>(value))
                 {
                     EncodeFieldVisitor visitor(messageTokens, valueIndex, formatter, methodInvocation);
                     fieldType->Accept(visitor);

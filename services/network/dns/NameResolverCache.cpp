@@ -73,7 +73,7 @@ namespace services
     {
         if (activeLookup == std::nullopt && !waiting.empty())
         {
-            activeLookup.Emplace(*this, waiting.front());
+            activeLookup.emplace(*this, waiting.front());
             waiting.pop_front();
         }
     }

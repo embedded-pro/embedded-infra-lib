@@ -33,7 +33,7 @@ TEST(GattTest, service_has_handle_and_type)
 {
     services::GattService s{ uuid16 };
 
-    EXPECT_EQ(0x42, s.Type().Get<services::AttAttribute::Uuid16>());
+    EXPECT_EQ(0x42, std::get<services::AttAttribute::Uuid16>(s.Type()));
     EXPECT_EQ(0, s.Handle());
     EXPECT_EQ(0, s.EndHandle());
     EXPECT_EQ(0, const_cast<const services::GattService&>(s).EndHandle());

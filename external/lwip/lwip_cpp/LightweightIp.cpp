@@ -149,7 +149,7 @@ namespace services
             {
                 if (!stopping)
                 {
-                    connected.Emplace(connectedCreator, *this);
+                    connected.emplace(connectedCreator, *this);
                     starting = false;
                 }
                 else
@@ -165,7 +165,7 @@ namespace services
 
         if (starting)
         {
-            connected.Emplace(connectedCreator, *this);
+            connected.emplace(connectedCreator, *this);
             starting = false;
         }
     }

@@ -231,7 +231,7 @@ namespace services
     void MdnsClient::SendQuery(MdnsQuery& query)
     {
         assert(activeMdnsQuery == std::nullopt);
-        activeMdnsQuery.Emplace(*this, datagramFactory, multicast, query);
+        activeMdnsQuery.emplace(*this, datagramFactory, multicast, query);
     }
 
     void MdnsClient::ActiveQueryDone()

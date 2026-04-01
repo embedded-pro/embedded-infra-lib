@@ -31,7 +31,7 @@ namespace services
         if (question)
             return;
 
-        question.Emplace(*reader);
+        question.emplace(*reader);
         if (question->IsValid() && question->RequestIncludesOneQuestion())
         {
             answer = FindAnswer(question->Hostname());
@@ -58,7 +58,7 @@ namespace services
         stream << questionFooter;
         stream << rnameCompression;
         stream << payload;
-        stream << answer->std::get<services::IPv4Address>(second);
+        stream << std::get<services::IPv4Address>(answer->second);
 
         question = std::nullopt;
         answer = std::nullopt;

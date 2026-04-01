@@ -543,7 +543,7 @@ namespace services
 
     void WebSocketClientFactorySingleConnection::Connect(WebSocketClientObserverFactory& factory)
     {
-        initiation.Emplace(factory, static_cast<WebSocketClientInitiationResult&>(*this), randomDataGenerator, creators);
+        initiation.emplace(factory, static_cast<WebSocketClientInitiationResult&>(*this), randomDataGenerator, creators);
     }
 
     void WebSocketClientFactorySingleConnection::CancelConnect(WebSocketClientObserverFactory& factory, const infra::Function<void()>& onDone)

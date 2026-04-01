@@ -284,7 +284,7 @@ namespace services
         if (!IsValidQuestion())
             return;
 
-        answer.Emplace(server, header.id, writer, answersCount, additionalRecordsCount);
+        answer.emplace(server, header.id, writer, answersCount, additionalRecordsCount);
 
         auto startOfQuestions = reader.ConstructSaveMarker();
 
@@ -483,7 +483,7 @@ namespace services
         QuestionParser question(server, *waitingReader);
         if (question.HasAnswer())
         {
-            if (GetAddress(from).Is<services::IPv4Address>())
+            if (std::holds_alternative<services::IPv4Address>(GetAddress(from)))
                 question.RequestSendStream(*server.datagramExchangeIpv4, from, MakeUdpSocket(mdnsMulticastAddressIpv4, mdnsPort));
             else
                 question.RequestSendStream(*server.datagramExchangeIpv6, from, MakeUdpSocket(mdnsMulticastAddressIpv6, mdnsPort));

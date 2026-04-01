@@ -207,7 +207,7 @@ namespace services
 
     void LightweightIpOverEthernetFactory::Create(hal::EthernetMac& ethernet)
     {
-        ethernetStack.Emplace(ethernet, netInterface);
+        ethernetStack.emplace(ethernet, netInterface);
     }
 
     void LightweightIpOverEthernetFactory::Destroy()

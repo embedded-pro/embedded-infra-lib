@@ -45,7 +45,7 @@ namespace services
 
     void DnsResolver::Resolve(NameResolverResult& nameLookup)
     {
-        activeLookup.Emplace(*this, nameLookup);
+        activeLookup.emplace(*this, nameLookup);
         ++currentNameServer;
         if (currentNameServer == nameServers.size())
             currentNameServer = 0;
