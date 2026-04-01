@@ -88,16 +88,6 @@ namespace hal
         , state(state)
     {}
 
-    bool PinChange::operator==(const PinChange& other) const
-    {
-        return infra::Equals()(duration, other.duration)(state, other.state);
-    }
-
-    bool PinChange::operator!=(const PinChange& other) const
-    {
-        return !(*this == other);
-    }
-
     GpioPinSpy::GpioPinSpy()
         : start(infra::Now())
     {}

@@ -29,11 +29,6 @@ namespace hal
         return Lines(instructionLines, addressLines, dataLines, dataLines);
     }
 
-    bool QuadSpi::Lines::operator==(const Lines& other) const
-    {
-        return instructionLines == other.instructionLines && addressLines == other.addressLines && alternateLines == other.alternateLines && dataLines == other.dataLines;
-    }
-
     infra::BoundedVector<uint8_t>::WithMaxSize<4> QuadSpi::AddressToVector(uint32_t address, uint8_t numberOfBytes)
     {
         infra::BoundedVector<uint8_t>::WithMaxSize<4> result;
