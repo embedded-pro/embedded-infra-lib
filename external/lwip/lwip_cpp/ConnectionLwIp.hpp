@@ -173,7 +173,7 @@ namespace services
         ~ConnectorLwIp();
 
     private:
-        static err_t StaticConnected(void* arg, const tcp_pcb* tpcb, err_t err);
+        static err_t StaticConnected(void* arg, tcp_pcb* tpcb, err_t err);
         static void StaticError(void* arg, err_t err);
         err_t Connected();
         void Error(err_t);

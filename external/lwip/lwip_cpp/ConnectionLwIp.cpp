@@ -650,7 +650,7 @@ namespace services
             AbortControl();
     }
 
-    err_t ConnectorLwIp::StaticConnected(void* arg, const tcp_pcb* tpcb, err_t err)
+    err_t ConnectorLwIp::StaticConnected(void* arg, tcp_pcb* tpcb, err_t err)
     {
         auto* connector = static_cast<ConnectorLwIp*>(arg);
         assert(tpcb == connector->control);
