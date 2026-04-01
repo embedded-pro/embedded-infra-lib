@@ -3,7 +3,6 @@
 #include "infra/stream/LimitedOutputStream.hpp"
 #include "infra/stream/SavedMarkerStream.hpp"
 #include "infra/stream/StringInputStream.hpp"
-#include "infra/util/Compatibility.hpp"
 
 namespace services
 {
@@ -676,7 +675,7 @@ namespace services
                     redirecting = true;
                     break;
                 }
-                EMIL_FALLTHROUGH;
+                [[fallthrough]];
             default:
                 HttpClientImpl::StatusAvailable(code, statusLine);
                 break;

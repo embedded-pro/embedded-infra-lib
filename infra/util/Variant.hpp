@@ -92,7 +92,7 @@ namespace infra
 
     private:
         std::size_t dataIndex = 0;
-        typename std::aligned_storage<MaxSizeOfTypes<T...>::value, MaxAlignmentOfTypes<T...>::value>::type data;
+        alignas(MaxAlignmentOfTypes<T...>::value) unsigned char data[MaxSizeOfTypes<T...>::value];
 
         template<class... T2>
         friend struct detail::CopyConstructVisitor;

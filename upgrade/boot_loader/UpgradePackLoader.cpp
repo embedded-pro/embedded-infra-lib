@@ -1,5 +1,4 @@
 #include "upgrade/boot_loader/UpgradePackLoader.hpp"
-#include "infra/util/Compatibility.hpp"
 #include "upgrade/pack/UpgradePackHeader.hpp"
 #include <cstring>
 
@@ -45,7 +44,7 @@ namespace application
         return false;
     }
 
-    bool UpgradePackLoader::PostLoadActions(EMIL_MAYBE_UNUSED uint32_t numberOfImages, EMIL_MAYBE_UNUSED Decryptor& decryptor)
+    bool UpgradePackLoader::PostLoadActions([[maybe_unused]] uint32_t numberOfImages, [[maybe_unused]] Decryptor& decryptor)
     {
         return true;
     }

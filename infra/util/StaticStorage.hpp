@@ -41,7 +41,7 @@ namespace infra
         const T* operator->() const;
 
     private:
-        typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data = {};
+        alignas(T) unsigned char data[sizeof(T)] = {};
     };
 
     template<class T, std::size_t ExtraSize, class AlignAs = uint64_t>
@@ -67,7 +67,7 @@ namespace infra
 
     private:
         T* dataPtr = nullptr;
-        typename std::aligned_storage<sizeof(T) + ExtraSize, std::alignment_of<AlignAs>::value>::type data;
+        alignas(AlignAs) unsigned char data[sizeof(T) + ExtraSize];
     };
 
     template<class Base, class... Derived>

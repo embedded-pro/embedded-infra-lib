@@ -75,8 +75,7 @@ namespace infra
                 CopyConstructor copyConstruct;
             };
 
-            using StorageType = typename std::aligned_storage<ExtraSize, std::alignment_of<UTIL_FUNCTION_ALIGNMENT>::value>::type;
-            StorageType data;
+            alignas(UTIL_FUNCTION_ALIGNMENT) unsigned char data[ExtraSize];
 
             template<class F>
             static Result StaticInvoke(const InvokerFunctionsType& invokerFunctions, Args... args);

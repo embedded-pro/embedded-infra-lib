@@ -1,10 +1,10 @@
 #ifndef INFRA_OBSERVER_HPP
 #define INFRA_OBSERVER_HPP
 
-#include "infra/util/Compatibility.hpp"
 #include "infra/util/IntrusiveList.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <cassert>
+#include <type_traits>
 
 namespace infra
 {
@@ -113,13 +113,13 @@ namespace infra
 
     public:
         template<class F>
-        void NotifyObservers(F callback, infra::enable_if_t<std::is_same<infra::result_of_t<F, ObserverType_&>, void>::value>* = nullptr) const;
+        void NotifyObservers(F callback, std::enable_if_t<std::is_same_v<std::invoke_result_t<F, ObserverType_&>, void>>* = nullptr) const;
         template<class F>
-        void NotifyObservers(F callback, infra::enable_if_t<std::is_same<infra::result_of_t<F, ObserverType_&>, void>::value>* = nullptr);
+        void NotifyObservers(F callback, std::enable_if_t<std::is_same_v<std::invoke_result_t<F, ObserverType_&>, void>>* = nullptr);
         template<class F>
-        bool NotifyObservers(F callback, infra::enable_if_t<!std::is_same<infra::result_of_t<F, ObserverType_&>, void>::value>* = nullptr) const;
+        bool NotifyObservers(F callback, std::enable_if_t<!std::is_same_v<std::invoke_result_t<F, ObserverType_&>, void>>* = nullptr) const;
         template<class F>
-        bool NotifyObservers(F callback, infra::enable_if_t<!std::is_same<infra::result_of_t<F, ObserverType_&>, void>::value>* = nullptr);
+        bool NotifyObservers(F callback, std::enable_if_t<!std::is_same_v<std::invoke_result_t<F, ObserverType_&>, void>>* = nullptr);
 
     private:
         IntrusiveList<Observer<ObserverType_, SubjectType>> observers;
@@ -271,7 +271,7 @@ namespace infra
 
     template<class ObserverType>
     template<class F>
-    void Subject<ObserverType, void>::NotifyObservers(F callback, infra::enable_if_t<std::is_same<infra::result_of_t<F, ObserverType&>, void>::value>*) const
+    void Subject<ObserverType, void>::NotifyObservers(F callback, std::enable_if_t<std::is_same_v<std::invoke_result_t<F, ObserverType&>, void>>*) const
     {
         for (typename IntrusiveList<Observer<ObserverType, SubjectType>>::const_iterator i = observers.begin(); i != observers.end();)
         {
@@ -283,7 +283,7 @@ namespace infra
 
     template<class ObserverType>
     template<class F>
-    void Subject<ObserverType, void>::NotifyObservers(F callback, infra::enable_if_t<std::is_same<infra::result_of_t<F, ObserverType&>, void>::value>*)
+    void Subject<ObserverType, void>::NotifyObservers(F callback, std::enable_if_t<std::is_same_v<std::invoke_result_t<F, ObserverType&>, void>>*)
     {
         for (typename IntrusiveList<Observer<ObserverType, SubjectType>>::iterator i = observers.begin(); i != observers.end();)
         {
@@ -295,7 +295,7 @@ namespace infra
 
     template<class ObserverType>
     template<class F>
-    bool Subject<ObserverType, void>::NotifyObservers(F callback, infra::enable_if_t<!std::is_same<infra::result_of_t<F, ObserverType&>, void>::value>*) const
+    bool Subject<ObserverType, void>::NotifyObservers(F callback, std::enable_if_t<!std::is_same_v<std::invoke_result_t<F, ObserverType&>, void>>*) const
     {
         for (typename IntrusiveList<Observer<ObserverType, SubjectType>>::const_iterator i = observers.begin(); i != observers.end();)
         {
@@ -310,7 +310,7 @@ namespace infra
 
     template<class ObserverType>
     template<class F>
-    bool Subject<ObserverType, void>::NotifyObservers(F callback, infra::enable_if_t<!std::is_same<infra::result_of_t<F, ObserverType&>, void>::value>*)
+    bool Subject<ObserverType, void>::NotifyObservers(F callback, std::enable_if_t<!std::is_same_v<std::invoke_result_t<F, ObserverType&>, void>>*)
     {
         for (typename IntrusiveList<Observer<ObserverType, SubjectType>>::iterator i = observers.begin(); i != observers.end();)
         {
