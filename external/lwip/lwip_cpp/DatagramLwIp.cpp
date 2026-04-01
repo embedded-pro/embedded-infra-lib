@@ -163,9 +163,9 @@ namespace services
         }
     }
 
-    void DatagramExchangeLwIP::StaticRecv(void* arg, udp_pcb* pcb, pbuf* buffer, const ip_addr_t* address, u16_t port)
+    void DatagramExchangeLwIP::StaticRecv(void* arg, udp_pcb*, pbuf* buffer, const ip_addr_t* address, u16_t port)
     {
-        reinterpret_cast<DatagramExchangeLwIP*>(arg)->Recv(buffer, address, port);
+        static_cast<DatagramExchangeLwIP*>(arg)->Recv(buffer, address, port);
     }
 
     void DatagramExchangeLwIP::Recv(pbuf* buffer, const ip_addr_t* address, u16_t port)
@@ -255,7 +255,7 @@ namespace services
         bufferOffset = static_cast<uint16_t>(marker);
     }
 
-    DatagramExchangeLwIP::UdpWriter::UdpWriter(udp_pcb* control, pbuf* buffer, infra::Optional<UdpSocket> remote)
+    DatagramExchangeLwIP::UdpWriter::UdpWriter(udp_pcb* control, pbuf* buffer, const infra::Optional<UdpSocket>& remote)
         : control(control)
         , buffer(buffer)
         , remote(remote)
@@ -321,7 +321,7 @@ namespace services
         state.TryAllocateBuffer();
     }
 
-    DatagramExchangeLwIP::StateWaitingForBuffer::StateWaitingForBuffer(DatagramExchangeLwIP& datagramExchange, std::size_t sendSize, infra::Optional<UdpSocket> remote)
+    DatagramExchangeLwIP::StateWaitingForBuffer::StateWaitingForBuffer(DatagramExchangeLwIP& datagramExchange, std::size_t sendSize, const infra::Optional<UdpSocket>& remote)
         : datagramExchange(datagramExchange)
         , sendSize(sendSize)
         , remote(remote)

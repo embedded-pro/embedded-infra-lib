@@ -9,5 +9,8 @@ if (EMIL_INCLUDE_SEGGER_RTT)
     add_subdirectory(segger_rtt)
 endif()
 
+add_subdirectory(lwip)
+add_subdirectory(osal)
+
 emil_exclude_directory_from_clang_format(.)
 emil_exclude_directory_from_coverage(.)

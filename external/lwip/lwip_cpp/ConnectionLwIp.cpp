@@ -28,7 +28,7 @@ namespace services
                 };
         }
 
-        tcp_ext_arg_callbacks emptyCallbacks{};
+        const tcp_ext_arg_callbacks emptyCallbacks{};
     }
 
     infra::BoundedList<std::array<uint8_t, TCP_MSS>>::WithMaxSize<tcpSndQueueLen> ConnectionLwIp::sendMemoryPool;
@@ -51,7 +51,7 @@ namespace services
         tcp_nagle_disable(control);
 
         callbacks.destroy = &ConnectionLwIp::Destroy;
-        callbacks.passive_open = 0;
+        callbacks.passive_open = nullptr;
         tcp_ext_arg_set_callbacks(control, 0, &callbacks);
         tcp_ext_arg_set(control, 0, this);
     }
@@ -148,7 +148,7 @@ namespace services
             observer->DataReceived();
     }
 
-    void ConnectionLwIp::SetSelfOwnership(const infra::SharedPtr<ConnectionObserver>& observer)
+    void ConnectionLwIp::SetSelfOwnership(const infra::SharedPtr<ConnectionObserver>&)
     {
         self = SharedFromThis();
     }
@@ -218,11 +218,8 @@ namespace services
 
             requestedSendSize = 0;
         }
-        else if (sendMemoryPool.full())
-        {
-            if (!sendMemoryPoolWaiting.has_element(*this))
-                sendMemoryPoolWaiting.push_back(*this);
-        }
+        else if (sendMemoryPool.full() && !sendMemoryPoolWaiting.has_element(*this))
+            sendMemoryPoolWaiting.push_back(*this);
     }
 
     void ConnectionLwIp::AbortControl()
@@ -243,7 +240,7 @@ namespace services
         tcp_sent(control, nullptr);
     }
 
-    err_t ConnectionLwIp::Recv(void* arg, tcp_pcb* tpcb, pbuf* p, err_t err)
+    err_t ConnectionLwIp::Recv(void* arg, tcp_pcb*, pbuf* p, err_t err)
     {
         return static_cast<ConnectionLwIp*>(arg)->Recv(p, err);
     }
@@ -253,17 +250,17 @@ namespace services
         static_cast<ConnectionLwIp*>(arg)->Err(err);
     }
 
-    err_t ConnectionLwIp::Sent(void* arg, struct tcp_pcb* tpcb, std::uint16_t len)
+    err_t ConnectionLwIp::Sent(void* arg, struct tcp_pcb*, std::uint16_t len)
     {
         return static_cast<ConnectionLwIp*>(arg)->Sent(len);
     }
 
-    void ConnectionLwIp::Destroy(u8_t id, void* data)
+    void ConnectionLwIp::Destroy(u8_t, void* data)
     {
         static_cast<ConnectionLwIp*>(data)->Destroy();
     }
 
-    err_t ConnectionLwIp::Recv(pbuf* p, err_t err)
+    err_t ConnectionLwIp::Recv(pbuf* p, err_t)
     {
         if (p != nullptr)
         {
@@ -342,7 +339,7 @@ namespace services
         ResetOwnership();
     }
 
-    void ConnectionLwIp::RemoveFromPool(infra::ConstByteRange range)
+    void ConnectionLwIp::RemoveFromPool(infra::ConstByteRange range) const
     {
         auto size = sendMemoryPool.size();
         for (auto& r : sendMemoryPool)
@@ -513,11 +510,11 @@ namespace services
         assert(pcb != nullptr);
         ip_set_option(pcb, SOF_REUSEADDR);
         if (versions == IPVersions::both)
-            err_t err = tcp_bind(pcb, IP_ANY_TYPE, port);
+            assert(tcp_bind(pcb, IP_ANY_TYPE, port) == ERR_OK);
         else if (versions == IPVersions::ipv4)
-            err_t err = tcp_bind(pcb, IP4_ADDR_ANY, port);
+            assert(tcp_bind(pcb, IP4_ADDR_ANY, port) == ERR_OK);
         else
-            err_t err = tcp_bind(pcb, IP6_ADDR_ANY, port);
+            assert(tcp_bind(pcb, IP6_ADDR_ANY, port) == ERR_OK);
         listenPort = tcp_listen(pcb);
         assert(listenPort != nullptr);
         tcp_accept(listenPort, &ListenerLwIp::Accept);
@@ -534,7 +531,7 @@ namespace services
         return static_cast<ListenerLwIp*>(arg)->Accept(newPcb, err);
     }
 
-    err_t ListenerLwIp::Accept(tcp_pcb* newPcb, err_t err)
+    err_t ListenerLwIp::Accept(tcp_pcb* newPcb, err_t)
     {
         tcp_accepted(listenPort);
         services::GlobalTracer().Trace() << "ListenerLwIp::Accept accepted new connection from " << Convert(newPcb->remote_ip);
@@ -596,7 +593,7 @@ namespace services
                 },
                 connection->IpAddress());
 
-            infra::WeakPtr<ConnectionLwIp> weakConnection = connection;
+            infra::WeakPtr weakConnection = connection;
             connection = nullptr;
             if (weakConnection.lock())
                 return ERR_OK;
@@ -625,7 +622,6 @@ namespace services
         : factory(factory)
         , clientFactory(clientFactory)
         , connectionAllocator(connectionAllocator)
-        , control(tcp_new())
     {
         tcp_arg(control, this);
         tcp_err(control, &ConnectorLwIp::StaticError);
@@ -656,7 +652,7 @@ namespace services
 
     err_t ConnectorLwIp::StaticConnected(void* arg, tcp_pcb* tpcb, err_t err)
     {
-        ConnectorLwIp* connector = reinterpret_cast<ConnectorLwIp*>(arg);
+        auto* connector = static_cast<ConnectorLwIp*>(arg);
         assert(tpcb == connector->control);
         assert(err == ERR_OK);
         return connector->Connected();
@@ -664,7 +660,7 @@ namespace services
 
     void ConnectorLwIp::StaticError(void* arg, err_t err)
     {
-        reinterpret_cast<ConnectorLwIp*>(arg)->Error(err);
+        static_cast<ConnectorLwIp*>(arg)->Error(err);
     }
 
     err_t ConnectorLwIp::Connected()
@@ -684,7 +680,7 @@ namespace services
                     }
                 });
 
-            infra::WeakPtr<ConnectionLwIp> weakConnection = connection;
+            infra::WeakPtr weakConnection = connection;
             connection = nullptr;
             factory.Remove(*this);
             if (weakConnection.lock())
@@ -702,7 +698,7 @@ namespace services
         }
     }
 
-    void ConnectorLwIp::Error(err_t err)
+    void ConnectorLwIp::Error(err_t)
     {
         ResetControl();
         clientFactory.ConnectionFailed(ClientConnectionObserverFactory::ConnectFailReason::refused);

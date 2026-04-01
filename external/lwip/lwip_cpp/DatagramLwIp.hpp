@@ -31,7 +31,7 @@ namespace services
     private:
         udp_pcb* CreateUdpPcb(IPVersions versions) const;
         const ip_addr_t* IpAddrAny(IPVersions versions) const;
-        static void StaticRecv(void* arg, udp_pcb* pcb, pbuf* buffer, const ip_addr_t* address, u16_t port);
+        static void StaticRecv(void* arg, udp_pcb*, pbuf* buffer, const ip_addr_t* address, u16_t port);
         void Recv(pbuf* buffer, const ip_addr_t* address, u16_t port);
 
     private:
@@ -60,7 +60,7 @@ namespace services
             : public infra::StreamWriter
         {
         public:
-            UdpWriter(udp_pcb* control, pbuf* buffer, infra::Optional<UdpSocket> remote);
+            UdpWriter(udp_pcb* control, pbuf* buffer, const infra::Optional<UdpSocket>& remote);
             ~UdpWriter();
 
             void Insert(infra::ConstByteRange range, infra::StreamErrorPolicy& errorPolicy) override;
@@ -99,7 +99,7 @@ namespace services
             : public StateBase
         {
         public:
-            StateWaitingForBuffer(DatagramExchangeLwIP& datagramExchange, std::size_t sendSize, infra::Optional<UdpSocket> remote);
+            StateWaitingForBuffer(DatagramExchangeLwIP& datagramExchange, std::size_t sendSize, const infra::Optional<UdpSocket>& remote);
 
             void TryAllocateBuffer();
 

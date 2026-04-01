@@ -7,7 +7,7 @@
 
 namespace
 {
-    hal::SynchronousRandomDataGenerator* randomDataGenerator = nullptr;
+    hal::SynchronousRandomDataGenerator* randomDataGenerator = nullptr; // NOSONAR(cpp:S1043)
 }
 
 extern "C" uint32_t StaticLwIpRand()
@@ -43,19 +43,6 @@ namespace services
                 IP6_ADDR_BLOCK7(&address),
                 IP6_ADDR_BLOCK8(&address)
             };
-        }
-
-        IPAddress Convert(const ip_addr_t& address)
-        {
-            switch (address.type)
-            {
-                case IPADDR_TYPE_V4:
-                    return Convert(address.u_addr.ip4);
-                case IPADDR_TYPE_V6:
-                    return Convert(address.u_addr.ip6);
-                default:
-                    return {};
-            }
         }
     }
 
@@ -125,13 +112,13 @@ namespace services
             netif_remove_ext_callback(&instanceCallback);
     }
 
-    void LightweightIp::InstanceCallback(netif* netif, netif_nsc_reason_t reason, const netif_ext_callback_args_t* args)
+    void LightweightIp::InstanceCallback(netif*, netif_nsc_reason_t reason, const netif_ext_callback_args_t* args)
     {
         for (auto& instance : instances)
             instance.ExtCallback(reason, args);
     }
 
-    void LightweightIp::ExtCallback(netif_nsc_reason_t reason, const netif_ext_callback_args_t* args)
+    void LightweightIp::ExtCallback(netif_nsc_reason_t reason, const netif_ext_callback_args_t*)
     {
         if (netif_default == nullptr)
             return;

@@ -31,6 +31,11 @@ target_sources(osal.threadx_osal PRIVATE
     EventDispatcherThreadX.hpp
 )
 
+target_include_directories(osal.threadx_osal PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+)
+
 target_link_libraries(osal.threadx_osal PUBLIC infra.util threadx)
 
 if (TARGET_BUILD_UNIX OR TARGET_BUILD_OSX)

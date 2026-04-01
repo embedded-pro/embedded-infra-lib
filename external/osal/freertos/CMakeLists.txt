@@ -35,6 +35,11 @@ target_sources(osal.freertos_osal PRIVATE
     Osal.cpp
 )
 
+target_include_directories(osal.freertos_osal PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+)
+
 target_link_libraries(osal.freertos_osal PUBLIC
     infra.util
     freertos_kernel
