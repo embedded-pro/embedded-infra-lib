@@ -42,8 +42,7 @@ namespace hal
         PinChange() = default;
         PinChange(infra::Duration duration, bool state);
 
-        bool operator==(const PinChange& other) const;
-        bool operator!=(const PinChange& other) const;
+        bool operator==(const PinChange& other) const = default;
 
         infra::Duration duration;
         bool state = false;

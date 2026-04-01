@@ -1,7 +1,6 @@
 #include "hal/interfaces/test_doubles/GpioStub.hpp"
 #include "hal/interfaces/Gpio.hpp"
 #include "infra/timer/Timer.hpp"
-#include "infra/util/CompareMembers.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/Optional.hpp"
 #include <utility>

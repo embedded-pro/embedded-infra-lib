@@ -11,7 +11,7 @@
 
 namespace infra
 {
-    static_assert(__cplusplus >= 202002L || _MSC_VER >= 1929, "C++20 or later is required. When using MSVC, ensure the /Zc:__cplusplus flag is set.");
+    static_assert(__cplusplus >= 202002L, "C++20 or later is required. When using MSVC, ensure the /Zc:__cplusplus flag is set.");
 
 #ifdef __cpp_lib_integer_comparison_functions
     using std::in_range;

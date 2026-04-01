@@ -1,5 +1,4 @@
 #include "hal/interfaces/QuadSpi.hpp"
-#include "infra/util/CompareMembers.hpp"
 
 namespace hal
 {
@@ -32,12 +31,7 @@ namespace hal
 
     bool QuadSpi::Lines::operator==(const Lines& other) const
     {
-        return infra::Equals()(instructionLines, other.instructionLines)(addressLines, other.addressLines)(alternateLines, other.alternateLines)(dataLines, other.dataLines);
-    }
-
-    bool QuadSpi::Lines::operator!=(const Lines& other) const
-    {
-        return !(*this == other);
+        return instructionLines == other.instructionLines && addressLines == other.addressLines && alternateLines == other.alternateLines && dataLines == other.dataLines;
     }
 
     infra::BoundedVector<uint8_t>::WithMaxSize<4> QuadSpi::AddressToVector(uint32_t address, uint8_t numberOfBytes)
@@ -64,15 +58,5 @@ namespace hal
         }
 
         return result;
-    }
-
-    bool QuadSpi::Header::operator==(const Header& other) const
-    {
-        return infra::Equals()(instruction, other.instruction)(address, other.address)(alternate, other.alternate)(nofDummyCycles, other.nofDummyCycles);
-    }
-
-    bool QuadSpi::Header::operator!=(const Header& other) const
-    {
-        return !(*this == other);
     }
 }
