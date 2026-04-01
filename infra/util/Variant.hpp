@@ -339,7 +339,11 @@ namespace infra
 
     template<class... T>
     void Variant<T...>::Destruct()
-    {}
+    {
+        // No-op: std::variant manages its own lifetime.
+        // Kept for API compatibility; callers that call Destruct() before Emplace()
+        // are safe because std::variant::emplace<U>() already destroys the current value.
+    }
 
     template<class Visitor, class Variant>
     typename Visitor::ResultType ApplyVisitor(Visitor& visitor, Variant& variant)
