@@ -85,7 +85,7 @@ Before finalizing, verify the plan against these EmIL constraints:
 - [ ] Use `infra::Function<void()>` for callbacks (typically lambdas)
 - [ ] Use `infra::WeakPtr<T>` when scheduling object may be destroyed before action executes
 - [ ] Synchronous interfaces only for bootloaders or no-event-dispatcher contexts
-- [ ] **WeakPtr safety**: Any class that schedules actions via `EventDispatcherWithWeakPtr::Instance().Schedule()` and can be destroyed before execution MUST derive from `infra::EnableSharedFromThis<T>`. The `Schedule()` overload takes an `infra::WeakPtr<T>` as second parameter — it converts to a shared pointer before execution and auto-discards the action if the object is expired. Missing this causes use-after-destroy crashes.
+- [ ] **WeakPtr safety**: Classes that schedule actions via `EventDispatcherWithWeakPtr::Instance().Schedule()` must schedule using an `infra::WeakPtr<T>`. Derive from `infra::EnableSharedFromThis<T>` when the object itself needs to obtain a `WeakPtr` to `*this` for scheduling; otherwise, accept or store an `infra::WeakPtr<T>`/`infra::SharedPtr<T>` from the owner and schedule using that. The `Schedule()` overload takes an `infra::WeakPtr<T>` as second parameter — it converts to a shared pointer before execution and auto-discards the action if the object is expired, preventing use-after-destroy crashes.
 
 ### Design — SOLID + DRY
 - [ ] Single Responsibility: each class owns exactly one concern
