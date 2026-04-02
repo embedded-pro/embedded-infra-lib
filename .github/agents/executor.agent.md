@@ -101,11 +101,12 @@ namespace services
 
 ### WeakPtr Safety — CRITICAL
 
-When a class schedules actions via `infra::EventDispatcherWithWeakPtr::Instance().Schedule()` and the class instance can be destroyed before the action executes, it **MUST** derive from `infra::EnableSharedFromThis<T>`. This allows the event dispatcher to take a `WeakPtr` and automatically discard the action if the object has been destroyed. Without this, the scheduled action may execute on a destroyed object, causing a crash.
+When a class schedules actions via `infra::EventDispatcherWithWeakPtr::Instance().Schedule()` and the class instance can be destroyed before the action executes, the action **MUST** be scheduled using a valid `infra::WeakPtr<T>`. This allows the event dispatcher to automatically discard the action if the object has been destroyed; otherwise, the scheduled action may execute on a destroyed object, causing a crash.
 
-- If a class uses `EventDispatcherWithWeakPtr::Instance().Schedule()` → derive from `infra::EnableSharedFromThis<T>`
-- Use the `Schedule()` overload that takes an `infra::WeakPtr<T>` as second parameter
-- The weak pointer is converted to a shared pointer before execution; if conversion fails, the action is skipped
+- When an object may be destroyed before a scheduled action runs, use the `Schedule()` overload that takes an `infra::WeakPtr<T>` as second parameter.
+- Obtain the `infra::WeakPtr<T>` from an owning `infra::SharedPtr<T>` (for example, from the owner or factory) whenever possible; in this case the class itself does **not** need to derive from `infra::EnableSharedFromThis<T>`.
+- Derive from `infra::EnableSharedFromThis<T>` only when the object itself must create a `SharedPtr`/`WeakPtr` to `*this` (for example, scheduling from within the class when no owning `SharedPtr` is in scope).
+- At execution time, the dispatcher converts/locks the weak pointer to a shared pointer; if that fails because the object has expired, the action is skipped.
 
 ### Connection Patterns (when working with network code)
 

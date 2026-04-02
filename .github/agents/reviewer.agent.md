@@ -109,7 +109,7 @@ Reference: [ExecutionModel.md](../../docs/ExecutionModel.md)
 - [ ] `infra::WeakPtr<T>` used when scheduling object may be destroyed before callback executes
 - [ ] No mutexes/locks needed for state accessed only from main event dispatcher
 - [ ] Synchronous interfaces only in bootloader/no-dispatcher contexts
-- [ ] **WeakPtr safety**: Any class that uses `EventDispatcherWithWeakPtr::Instance().Schedule()` and can be destroyed before the action executes MUST derive from `infra::EnableSharedFromThis<T>`. Without this, the scheduled action executes on a destroyed object → crash. The `Schedule()` overload takes an `infra::WeakPtr<T>` as second parameter; it converts to a shared pointer before execution and skips the action if the object is expired.
+- [ ] **WeakPtr safety**: When using `EventDispatcherWithWeakPtr::Instance().Schedule()` for an object that may be destroyed before the action executes, the scheduled lambda must use an `infra::WeakPtr<T>` target so the action is skipped if the object is expired. That `WeakPtr<T>` can be obtained either from `infra::EnableSharedFromThis<T>` (when the object itself needs a weak pointer to `*this`) or from an owning `infra::SharedPtr<T>`; deriving from `EnableSharedFromThis` is only required in the former case.
 
 ### 8. Error Handling (WARNING)
 
