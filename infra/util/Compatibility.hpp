@@ -11,9 +11,7 @@
 
 namespace infra
 {
-    // GCC 10 reports __cplusplus as 201709L for -std=gnu++2a/-std=c++20 because C++20
-    // was not finalized at release time. GCC 11+ correctly reports 202002L.
-    static_assert(__cplusplus >= 202002L || __cplusplus == 201709L, "C++20 or later is required. When using MSVC, ensure the /Zc:__cplusplus flag is set.");
+    static_assert(__cplusplus >= 202002L, "C++20 or later is required. When using MSVC, ensure the /Zc:__cplusplus flag is set.");
 
 #ifdef __cpp_lib_integer_comparison_functions
     using std::in_range;
