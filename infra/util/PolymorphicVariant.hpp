@@ -42,7 +42,6 @@ namespace infra
         Base* operator->();
 
         bool operator==(const PolymorphicVariant& other) const;
-        bool operator!=(const PolymorphicVariant& other) const;
         bool operator<(const PolymorphicVariant& other) const;
         bool operator>(const PolymorphicVariant& other) const;
         bool operator<=(const PolymorphicVariant& other) const;
@@ -50,8 +49,6 @@ namespace infra
 
         template<class U>
         typename std::enable_if<ExistsInTypeList<U, T...>::value, bool>::type operator==(const U& other) const;
-        template<class U>
-        typename std::enable_if<ExistsInTypeList<U, T...>::value, bool>::type operator!=(const U& other) const;
         template<class U>
         typename std::enable_if<ExistsInTypeList<U, T...>::value, bool>::type operator<(const U& other) const;
         template<class U>
@@ -223,12 +220,6 @@ namespace infra
     }
 
     template<class Base, class... T>
-    bool PolymorphicVariant<Base, T...>::operator!=(const PolymorphicVariant& other) const
-    {
-        return !(*this == other);
-    }
-
-    template<class Base, class... T>
     bool PolymorphicVariant<Base, T...>::operator<(const PolymorphicVariant& other) const
     {
         if (Which() != other.Which())
@@ -264,13 +255,6 @@ namespace infra
             return false;
 
         return GetAtIndex<IndexInTypeList<U, T...>::value>() == other;
-    }
-
-    template<class Base, class... T>
-    template<class U>
-    typename std::enable_if<ExistsInTypeList<U, T...>::value, bool>::type PolymorphicVariant<Base, T...>::operator!=(const U& other) const
-    {
-        return !(*this == other);
     }
 
     template<class Base, class... T>

@@ -49,39 +49,9 @@ namespace infra
             return !x;
         }
 
-        friend bool operator!=(const OptionalForPolymorphicObjects& x, std::nullopt_t y)
-        {
-            return !(x == y);
-        }
-
-        friend bool operator==(std::nullopt_t x, const OptionalForPolymorphicObjects& y)
-        {
-            return y == x;
-        }
-
-        friend bool operator!=(std::nullopt_t x, const OptionalForPolymorphicObjects& y)
-        {
-            return y != x;
-        }
-
         friend bool operator==(const OptionalForPolymorphicObjects& x, const T& y)
         {
             return x && *x == y;
-        }
-
-        friend bool operator!=(const OptionalForPolymorphicObjects& x, const T& y)
-        {
-            return !(x == y);
-        }
-
-        friend bool operator==(const T& x, const OptionalForPolymorphicObjects& y)
-        {
-            return y == x;
-        }
-
-        friend bool operator!=(const T& x, const OptionalForPolymorphicObjects& y)
-        {
-            return y != x;
         }
 
     private:

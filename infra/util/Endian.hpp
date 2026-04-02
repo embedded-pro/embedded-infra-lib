@@ -111,53 +111,15 @@ namespace infra
             return value == other.value;
         }
 
-        bool operator!=(BigEndian other) const
-        {
-            return !(*this == other);
-        }
-
         bool operator==(T other) const
         {
             return value == ToBigEndian(other);
-        }
-
-        bool operator!=(T other) const
-        {
-            return !(*this == other);
         }
 
         template<class U>
         bool operator==(U other) const
         {
             return value == ToBigEndian(static_cast<T>(other));
-        }
-
-        template<class U>
-        bool operator!=(U other) const
-        {
-            return !(*this == other);
-        }
-
-        friend bool operator==(T x, BigEndian y)
-        {
-            return y.operator==(x);
-        }
-
-        friend bool operator!=(T x, BigEndian y)
-        {
-            return y.operator!=(x);
-        }
-
-        template<class U>
-        friend bool operator==(U x, BigEndian y)
-        {
-            return y.operator==(x);
-        }
-
-        template<class U>
-        friend bool operator!=(U x, BigEndian y)
-        {
-            return y.operator!=(x);
         }
 
     private:
@@ -184,53 +146,15 @@ namespace infra
             return value == other.value;
         }
 
-        bool operator!=(LittleEndian other) const
-        {
-            return !(*this == other);
-        }
-
         bool operator==(T other) const
         {
             return value == ToLittleEndian(other);
-        }
-
-        bool operator!=(T other) const
-        {
-            return !(*this == other);
         }
 
         template<class U>
         bool operator==(U other) const
         {
             return value == ToLittleEndian(static_cast<T>(other));
-        }
-
-        template<class U>
-        bool operator!=(U other) const
-        {
-            return !(*this == other);
-        }
-
-        friend bool operator==(T x, LittleEndian y)
-        {
-            return y == x;
-        }
-
-        friend bool operator!=(T x, LittleEndian y)
-        {
-            return y != x;
-        }
-
-        template<class U>
-        friend bool operator==(U x, LittleEndian y)
-        {
-            return y == x;
-        }
-
-        template<class U>
-        friend bool operator!=(U x, LittleEndian y)
-        {
-            return y != x;
         }
 
     private:

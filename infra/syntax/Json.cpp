@@ -137,11 +137,6 @@ namespace infra
         return position == other.position;
     }
 
-    bool JsonStringIterator::operator!=(const JsonStringIterator& other) const
-    {
-        return !(*this == other);
-    }
-
     JsonString::JsonString(infra::BoundedConstString source)
         : source(source)
     {}
@@ -153,11 +148,6 @@ namespace infra
     bool JsonString::operator==(const JsonString& other) const
     {
         return source == other.source;
-    }
-
-    bool JsonString::operator!=(const JsonString& other) const
-    {
-        return !(*this == other);
     }
 
     bool JsonString::operator==(infra::BoundedConstString other) const
@@ -177,19 +167,9 @@ namespace infra
         return x == end() && y == other.end();
     }
 
-    bool JsonString::operator!=(infra::BoundedConstString other) const
-    {
-        return !(*this == other);
-    }
-
     bool operator==(infra::BoundedConstString x, JsonString y)
     {
         return y == x;
-    }
-
-    bool operator!=(infra::BoundedConstString x, JsonString y)
-    {
-        return y != x;
     }
 
     bool JsonString::operator==(const char* other) const
@@ -209,19 +189,9 @@ namespace infra
         return x == end() && *y == 0;
     }
 
-    bool JsonString::operator!=(const char* other) const
-    {
-        return !(*this == other);
-    }
-
     bool operator==(const char* x, JsonString y)
     {
         return y == x;
-    }
-
-    bool operator!=(const char* x, JsonString y)
-    {
-        return y != x;
     }
 
     bool JsonString::empty() const
@@ -288,11 +258,6 @@ namespace infra
         return intValue == other.intValue && nanoFractionalValue == other.nanoFractionalValue;
     }
 
-    bool JsonFloat::operator!=(const JsonFloat& other) const
-    {
-        return !(*this == other);
-    }
-
     uint64_t JsonFloat::IntValue() const
     {
         return intValue;
@@ -318,11 +283,6 @@ namespace infra
         return value == other.value && negative == other.negative;
     }
 
-    bool JsonBiggerInt::operator!=(const JsonBiggerInt& other) const
-    {
-        return !(*this == other);
-    }
-
     uint64_t JsonBiggerInt::Value() const
     {
         return value;
@@ -346,180 +306,6 @@ namespace infra
         bool End::operator==(const End&) const
         {
             return true;
-        }
-
-        bool End::operator!=(const End&) const
-        {
-            return false;
-        }
-
-        bool Error::operator==(const Error&) const
-        {
-            return true;
-        }
-
-        bool Error::operator!=(const Error&) const
-        {
-            return false;
-        }
-
-        bool Colon::operator==(const Colon&) const
-        {
-            return true;
-        }
-
-        bool Colon::operator!=(const Colon&) const
-        {
-            return false;
-        }
-
-        bool Comma::operator==(const Comma&) const
-        {
-            return true;
-        }
-
-        bool Comma::operator!=(const Comma&) const
-        {
-            return false;
-        }
-
-        bool Dot::operator==(const Dot&) const
-        {
-            return true;
-        }
-
-        bool Dot::operator!=(const Dot&) const
-        {
-            return false;
-        }
-
-        bool Null::operator==(const Null&) const
-        {
-            return true;
-        }
-
-        bool Null::operator!=(const Null&) const
-        {
-            return false;
-        }
-
-        LeftBrace::LeftBrace(std::size_t index)
-            : index(index)
-        {}
-
-        bool LeftBrace::operator==(const LeftBrace& other) const
-        {
-            return index == other.index;
-        }
-
-        bool LeftBrace::operator!=(const LeftBrace& other) const
-        {
-            return index != other.index;
-        }
-
-        std::size_t LeftBrace::Index() const
-        {
-            return index;
-        }
-
-        RightBrace::RightBrace(std::size_t index)
-            : index(index)
-        {}
-
-        bool RightBrace::operator==(const RightBrace& other) const
-        {
-            return index == other.index;
-        }
-
-        bool RightBrace::operator!=(const RightBrace& other) const
-        {
-            return index != other.index;
-        }
-
-        std::size_t RightBrace::Index() const
-        {
-            return index;
-        }
-
-        LeftBracket::LeftBracket(std::size_t index)
-            : index(index)
-        {}
-
-        bool LeftBracket::operator==(const LeftBracket& other) const
-        {
-            return index == other.index;
-        }
-
-        bool LeftBracket::operator!=(const LeftBracket& other) const
-        {
-            return index != other.index;
-        }
-
-        std::size_t LeftBracket::Index() const
-        {
-            return index;
-        }
-
-        RightBracket::RightBracket(std::size_t index)
-            : index(index)
-        {}
-
-        bool RightBracket::operator==(const RightBracket& other) const
-        {
-            return index == other.index;
-        }
-
-        bool RightBracket::operator!=(const RightBracket& other) const
-        {
-            return index != other.index;
-        }
-
-        std::size_t RightBracket::Index() const
-        {
-            return index;
-        }
-
-        String::String(infra::BoundedConstString value)
-            : value(value)
-        {}
-
-        bool String::operator==(const String& other) const
-        {
-            return value == other.value;
-        }
-
-        bool String::operator!=(const String& other) const
-        {
-            return value != other.value;
-        }
-
-        JsonString String::Value() const
-        {
-            return value;
-        }
-
-        BoundedConstString String::RawValue() const
-        {
-            return value.Raw();
-        }
-
-        Boolean::Boolean(bool value)
-            : value(value)
-        {}
-
-        bool Boolean::operator==(const Boolean& other) const
-        {
-            return value == other.value;
-        }
-
-        bool Boolean::operator!=(const Boolean& other) const
-        {
-            return value != other.value;
-        }
-
-        bool Boolean::Value() const
-        {
-            return value;
         }
     }
 
@@ -572,11 +358,6 @@ namespace infra
     bool JsonTokenizer::operator==(const JsonTokenizer& other) const
     {
         return parseIndex == other.parseIndex;
-    }
-
-    bool JsonTokenizer::operator!=(const JsonTokenizer& other) const
-    {
-        return !(*this == other);
     }
 
     void JsonTokenizer::SkipWhitespace()
@@ -780,11 +561,6 @@ namespace infra
         return result && !left.Error() && !right.Error();
     }
 
-    bool JsonObject::operator!=(const JsonObject& other) const
-    {
-        return !(*this == other);
-    }
-
     void JsonObject::SetError()
     {
         error = true;
@@ -858,19 +634,9 @@ namespace infra
         return result && !left.Error() && !right.Error();
     }
 
-    bool JsonArray::operator!=(const JsonArray& other) const
-    {
-        return !(*this == other);
-    }
-
     bool JsonKeyValue::operator==(const JsonKeyValue& other) const
     {
         return key == other.key && value == other.value;
-    }
-
-    bool JsonKeyValue::operator!=(const JsonKeyValue& other) const
-    {
-        return !(*this == other);
     }
 
     JsonIterator::JsonIterator(infra::BoundedConstString objectString)
@@ -980,11 +746,6 @@ namespace infra
     bool JsonObjectIterator::operator==(const JsonObjectIterator& other) const
     {
         return state == other.state && (state == end || tokenizer == other.tokenizer);
-    }
-
-    bool JsonObjectIterator::operator!=(const JsonObjectIterator& other) const
-    {
-        return !(*this == other);
     }
 
     JsonKeyValue& JsonObjectIterator::operator*()
@@ -1131,11 +892,6 @@ namespace infra
     bool JsonArrayIterator::operator==(const JsonArrayIterator& other) const
     {
         return state == other.state && (state == end || tokenizer == other.tokenizer);
-    }
-
-    bool JsonArrayIterator::operator!=(const JsonArrayIterator& other) const
-    {
-        return !(*this == other);
     }
 
     JsonValue& JsonArrayIterator::operator*()

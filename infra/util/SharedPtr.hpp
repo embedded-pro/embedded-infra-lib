@@ -116,19 +116,11 @@ namespace infra
 
         template<class U>
         bool operator==(const SharedPtr<U>& other) const;
-        template<class U>
-        bool operator!=(const SharedPtr<U>& other) const;
         bool operator==(std::nullptr_t) const;
-        bool operator!=(std::nullptr_t) const;
 
         friend bool operator==(std::nullptr_t, const SharedPtr& ptr)
         {
             return ptr == nullptr;
-        }
-
-        friend bool operator!=(std::nullptr_t, const SharedPtr& ptr)
-        {
-            return ptr != nullptr;
         }
 
     private:
@@ -186,22 +178,12 @@ namespace infra
         template<class U>
         bool operator==(const WeakPtr<U>& other) const;
         template<class U>
-        bool operator!=(const WeakPtr<U>& other) const;
-        template<class U>
         bool operator==(const SharedPtr<U>& other) const;
-        template<class U>
-        bool operator!=(const SharedPtr<U>& other) const;
 
         template<class U>
         friend bool operator==(const SharedPtr<U>& left, const WeakPtr& right)
         {
             return right == left;
-        }
-
-        template<class U>
-        friend bool operator!=(const SharedPtr<U>& left, const WeakPtr& right)
-        {
-            return right != left;
         }
 
     private:
@@ -379,22 +361,9 @@ namespace infra
     }
 
     template<class T>
-    template<class U>
-    bool SharedPtr<T>::operator!=(const SharedPtr<U>& other) const
-    {
-        return !(*this == other);
-    }
-
-    template<class T>
     bool SharedPtr<T>::operator==(std::nullptr_t) const
     {
         return object == nullptr;
-    }
-
-    template<class T>
-    bool SharedPtr<T>::operator!=(std::nullptr_t) const
-    {
-        return !(*this == nullptr);
     }
 
     template<class T>
@@ -544,23 +513,9 @@ namespace infra
 
     template<class T>
     template<class U>
-    bool WeakPtr<T>::operator!=(const WeakPtr<U>& other) const
-    {
-        return !(*this == other);
-    }
-
-    template<class T>
-    template<class U>
     bool WeakPtr<T>::operator==(const SharedPtr<U>& other) const
     {
         return object == other.object;
-    }
-
-    template<class T>
-    template<class U>
-    bool WeakPtr<T>::operator!=(const SharedPtr<U>& other) const
-    {
-        return !(*this == other);
     }
 
     template<class T>

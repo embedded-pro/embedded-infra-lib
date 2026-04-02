@@ -34,53 +34,15 @@ namespace infra
             return value == other.value;
         }
 
-        bool operator!=(Aligned other) const
-        {
-            return !(*this == other);
-        }
-
         bool operator==(T other) const
         {
             return Value() == other;
-        }
-
-        bool operator!=(T other) const
-        {
-            return !(*this == other);
         }
 
         template<class U>
         bool operator==(U other) const
         {
             return Value() == static_cast<T>(other);
-        }
-
-        template<class U>
-        bool operator!=(U other) const
-        {
-            return !(*this == other);
-        }
-
-        friend bool operator==(T x, Aligned y)
-        {
-            return y == x;
-        }
-
-        friend bool operator!=(T x, Aligned y)
-        {
-            return y != x;
-        }
-
-        template<class U>
-        friend bool operator==(U x, Aligned y)
-        {
-            return y == x;
-        }
-
-        template<class U>
-        friend bool operator!=(U x, Aligned y)
-        {
-            return y != x;
         }
 
     private:

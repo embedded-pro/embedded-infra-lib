@@ -188,10 +188,6 @@ namespace infra
     bool operator==(const Function<Result(Args...), ExtraSize>& f, std::nullptr_t);
     template<std::size_t ExtraSize, class Result, class... Args>
     bool operator==(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f);
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(const Function<Result(Args...), ExtraSize>& f, std::nullptr_t);
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f);
 
 #ifdef EMIL_HOST_BUILD
     // gtest uses PrintTo to display the contents of Function
@@ -464,18 +460,6 @@ namespace infra
     bool operator==(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f)
     {
         return !f;
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(const Function<Result(Args...), ExtraSize>& f, std::nullptr_t)
-    {
-        return !(f == nullptr);
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f)
-    {
-        return !(f == nullptr);
     }
 
     template<std::size_t ExtraSize>

@@ -278,8 +278,6 @@ namespace infra
     template<class T, class U>
     bool operator==(const BoundedStringBase<T>& lhs, const BoundedStringBase<U>& rhs);
     template<class T, class U>
-    bool operator!=(const BoundedStringBase<T>& lhs, const BoundedStringBase<U>& rhs);
-    template<class T, class U>
     bool operator<(const BoundedStringBase<T>& lhs, const BoundedStringBase<U>& rhs);
     template<class T, class U>
     bool operator<=(const BoundedStringBase<T>& lhs, const BoundedStringBase<U>& rhs);
@@ -295,14 +293,6 @@ namespace infra
     bool operator==(const std::string& lhs, const BoundedStringBase<T>& rhs);
     template<class T>
     bool operator==(const BoundedStringBase<T>& lhs, const std::string& rhs);
-    template<class T>
-    bool operator!=(const char* lhs, const BoundedStringBase<T>& rhs);
-    template<class T>
-    bool operator!=(const BoundedStringBase<T>& lhs, const char* rhs);
-    template<class T>
-    bool operator!=(const std::string& lhs, const BoundedStringBase<T>& rhs);
-    template<class T>
-    bool operator!=(const BoundedStringBase<T>& lhs, const std::string& rhs);
     template<class T>
     bool operator<(const char* lhs, const BoundedStringBase<T>& rhs);
     template<class T>
@@ -1533,12 +1523,6 @@ namespace infra
     }
 
     template<class T, class U>
-    bool operator!=(const BoundedStringBase<T>& lhs, const BoundedStringBase<U>& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    template<class T, class U>
     bool operator<(const BoundedStringBase<T>& lhs, const BoundedStringBase<U>& rhs)
     {
         return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
@@ -1586,30 +1570,6 @@ namespace infra
     bool operator==(const BoundedStringBase<T>& lhs, const std::string& rhs)
     {
         return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
-    }
-
-    template<class T>
-    bool operator!=(const char* lhs, const BoundedStringBase<T>& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    template<class T>
-    bool operator!=(const BoundedStringBase<T>& lhs, const char* rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    template<class T>
-    bool operator!=(const std::string& lhs, const BoundedStringBase<T>& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    template<class T>
-    bool operator!=(const BoundedStringBase<T>& lhs, const std::string& rhs)
-    {
-        return !(lhs == rhs);
     }
 
     template<class T>
