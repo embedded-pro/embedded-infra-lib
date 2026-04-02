@@ -146,9 +146,9 @@ TEST(ProtoParserTest, SkipEverything_skips_LengthDelimited)
 
     std::get<infra::ProtoLengthDelimited>(field.first).SkipEverything();
 
-    field = parser.GetField();
-    EXPECT_EQ(5, std::get<uint64_t>(field.first));
-    EXPECT_EQ(1, field.second);
+    auto field2 = parser.GetField();
+    EXPECT_EQ(5, std::get<uint64_t>(field2.first));
+    EXPECT_EQ(1, field2.second);
 }
 
 TEST(ProtoParserTest, ReportResult_is_propagated)

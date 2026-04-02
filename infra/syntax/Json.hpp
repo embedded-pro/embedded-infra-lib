@@ -285,7 +285,6 @@ namespace infra
         std::optional<JsonArray> GetOptionalArray(infra::BoundedConstString key);
 
         bool operator==(const JsonObject& other) const;
-        bool operator!=(const JsonObject& other) const;
 
     public:
         void SetError();
@@ -317,7 +316,6 @@ namespace infra
         JsonArrayIterator end();
 
         bool operator==(const JsonArray& other) const;
-        bool operator!=(const JsonArray& other) const;
 
     public:
         void SetError();
@@ -331,7 +329,6 @@ namespace infra
     struct JsonKeyValue
     {
         bool operator==(const JsonKeyValue& other) const;
-        bool operator!=(const JsonKeyValue& other) const;
 
         JsonString key;
         JsonValue value;
@@ -377,7 +374,6 @@ namespace infra
 
     public:
         bool operator==(const JsonObjectIterator& other) const;
-        bool operator!=(const JsonObjectIterator& other) const;
 
         JsonKeyValue& operator*();
         const JsonKeyValue& operator*() const;
@@ -438,7 +434,6 @@ namespace infra
 
     public:
         bool operator==(const JsonArrayIterator& other) const;
-        bool operator!=(const JsonArrayIterator& other) const;
 
         JsonValue& operator*();
         const JsonValue& operator*() const;
@@ -480,7 +475,6 @@ namespace infra
         JsonValueArrayIterator(const JsonArrayIterator& arrayIterator, const JsonArrayIterator& arrayEndIterator);
 
         bool operator==(const JsonValueArrayIterator& other) const;
-        bool operator!=(const JsonValueArrayIterator& other) const;
 
         T operator*() const;
         const T* operator->() const;

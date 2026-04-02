@@ -1,7 +1,7 @@
 ---
 description: "Use when starting a new development task in embedded-infra-lib. Triages requests and routes to the appropriate specialist agent: planner for design, executor for implementation, or reviewer for code review."
 tools: [read, search, web, agent]
-model: "Claude Sonnet 4"
+model: "Claude Sonnet 4.6"
 agents: [planner, executor, reviewer]
 handoffs:
   - label: "Plan Implementation"

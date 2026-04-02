@@ -307,6 +307,120 @@ namespace infra
         {
             return true;
         }
+
+        bool Error::operator==(const Error&) const
+        {
+            return true;
+        }
+
+        bool Colon::operator==(const Colon&) const
+        {
+            return true;
+        }
+
+        bool Comma::operator==(const Comma&) const
+        {
+            return true;
+        }
+
+        bool Dot::operator==(const Dot&) const
+        {
+            return true;
+        }
+
+        bool Null::operator==(const Null&) const
+        {
+            return true;
+        }
+
+        bool LeftBrace::operator==(const LeftBrace& other) const
+        {
+            return index == other.index;
+        }
+
+        LeftBrace::LeftBrace(std::size_t index)
+            : index(index)
+        {}
+
+        std::size_t LeftBrace::Index() const
+        {
+            return index;
+        }
+
+        bool RightBrace::operator==(const RightBrace& other) const
+        {
+            return index == other.index;
+        }
+
+        RightBrace::RightBrace(std::size_t index)
+            : index(index)
+        {}
+
+        std::size_t RightBrace::Index() const
+        {
+            return index;
+        }
+
+        bool LeftBracket::operator==(const LeftBracket& other) const
+        {
+            return index == other.index;
+        }
+
+        LeftBracket::LeftBracket(std::size_t index)
+            : index(index)
+        {}
+
+        std::size_t LeftBracket::Index() const
+        {
+            return index;
+        }
+
+        bool RightBracket::operator==(const RightBracket& other) const
+        {
+            return index == other.index;
+        }
+
+        RightBracket::RightBracket(std::size_t index)
+            : index(index)
+        {}
+
+        std::size_t RightBracket::Index() const
+        {
+            return index;
+        }
+
+        bool String::operator==(const String& other) const
+        {
+            return value == other.value;
+        }
+
+        String::String(infra::BoundedConstString value)
+            : value(value)
+        {}
+
+        JsonString String::Value() const
+        {
+            return value;
+        }
+
+        BoundedConstString String::RawValue() const
+        {
+            return value.Raw();
+        }
+
+        bool Boolean::operator==(const Boolean& other) const
+        {
+            return value == other.value;
+        }
+
+        Boolean::Boolean(bool value)
+            : value(value)
+        {}
+
+        bool Boolean::Value() const
+        {
+            return value;
+        }
     }
 
     JsonTokenizer::JsonTokenizer(infra::BoundedConstString objectString)
