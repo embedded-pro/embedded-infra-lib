@@ -1,7 +1,7 @@
 ---
 description: "Use when reviewing code changes in embedded-infra-lib. Performs structured code review against all EmIL embedded C++ standards: memory safety (no heap), naming conventions, Allman style, SOLID principles, event-driven model compliance, and test coverage."
 tools: [read, search]
-model: "Claude Sonnet 4"
+model: "GPT-5.4"
 handoffs:
   - label: "Fix Issues"
     agent: executor
@@ -19,7 +19,8 @@ You are the reviewer agent for the embedded-infra-lib (EmIL) project — a heap-
 2. **Read each file** completely — do not skim
 3. **Check each rule** in the checklist below
 4. **Search for patterns**: Compare against existing code in the same module to verify consistency
-5. **Output a structured review** with findings organized by severity
+5. **Check code quality**: Verify compliance with Sonarqube rules and Megalinter (clang-format, include ordering)
+6. **Output a structured review** with findings organized by severity
 
 ## Review Output Format
 
@@ -92,6 +93,8 @@ Reference: [CodingStandard.md](../../docs/CodingStandard.md)
 - [ ] **LSP**: Derived classes fully substitutable for base classes
 - [ ] **ISP**: Interfaces are small and focused — no God interfaces
 - [ ] **DIP**: Dependencies injected via constructor, depend on abstractions
+- [ ] **Interface classes**: Pure virtual interfaces have no protected members (no ctor, no copy/move functions)
+- [ ] **Virtual destructors**: Avoided as much as possible to minimize memory overhead
 
 ### 6. DRY (WARNING)
 
@@ -167,3 +170,10 @@ Reference: [Echo.md](../../docs/Echo.md)
 - [ ] New files added to appropriate CMakeLists.txt
 - [ ] No circular dependencies between targets
 - [ ] Test targets use `emil_add_test()` or standard patterns
+
+### 15. Code Quality Tools (WARNING)
+
+- [ ] Code complies with Sonarqube quality rules (no code smells, security issues)
+- [ ] Code passes Megalinter checks (clang-format style, include ordering)
+- [ ] Headers properly ordered: system includes, then project includes
+- [ ] No unused includes or forward declarations

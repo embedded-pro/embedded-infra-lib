@@ -74,6 +74,8 @@ namespace services
 - **`const` correctness**: Mark all non-mutating methods `const`
 - **`constexpr`**: Use for compile-time calculations
 - **Fixed-size types**: Prefer `uint8_t`, `int32_t`, etc., over `int`
+- **Interface classes**: Pure virtual interfaces should have no protected members (no ctor, no copy/move functions)
+- **Virtual destructors**: Avoid virtual destructors as much as possible to minimize memory overhead
 
 ### Error Handling
 
@@ -121,8 +123,9 @@ When a class schedules actions via `infra::EventDispatcherWithWeakPtr::Instance(
 3. **Implement changes** one file at a time, following all rules above
 4. **Create or update tests** for every change
 5. **Update CMakeLists.txt** if new files were added
-6. **Build and test**: run `cmake --build --preset host` and `ctest --preset host`
-7. **Hand off to reviewer** using the handoff button
+6. **Run code quality checks**: Ensure compliance with Sonarqube and Megalinter (clang-format, include ordering)
+7. **Build and test**: run `cmake --build --preset host` and `ctest --preset host`
+8. **Hand off to reviewer** using the handoff button
 
 ## What NOT to Do
 
