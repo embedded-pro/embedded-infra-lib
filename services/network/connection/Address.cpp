@@ -7,31 +7,31 @@ namespace services
 {
     UdpSocket MakeUdpSocket(IPAddress address, uint16_t port)
     {
-        if (address.Is<services::IPv4Address>())
-            return Udpv4Socket{ address.Get<services::IPv4Address>(), port };
+        if (std::holds_alternative<services::IPv4Address>(address))
+            return Udpv4Socket{ std::get<services::IPv4Address>(address), port };
         else
-            return Udpv6Socket{ address.Get<services::IPv6Address>(), port };
+            return Udpv6Socket{ std::get<services::IPv6Address>(address), port };
     }
 
     IPAddress GetAddress(const UdpSocket& socket)
     {
-        if (socket.Is<Udpv4Socket>())
-            return socket.Get<Udpv4Socket>().first;
+        if (std::holds_alternative<Udpv4Socket>(socket))
+            return std::get<Udpv4Socket>(socket).first;
         else
-            return socket.Get<Udpv6Socket>().first;
+            return std::get<Udpv6Socket>(socket).first;
     }
 
     uint16_t GetPort(const UdpSocket& socket)
     {
-        if (socket.Is<Udpv4Socket>())
-            return socket.Get<Udpv4Socket>().second;
+        if (std::holds_alternative<Udpv4Socket>(socket))
+            return std::get<Udpv4Socket>(socket).second;
         else
-            return socket.Get<Udpv6Socket>().second;
+            return std::get<Udpv6Socket>(socket).second;
     }
 
     IPVersions GetVersion(IPAddress address)
     {
-        if (address.Is<IPv4Address>())
+        if (std::holds_alternative<IPv4Address>(address))
             return services::IPVersions::ipv4;
         else
             return services::IPVersions::ipv6;
@@ -39,7 +39,7 @@ namespace services
 
     IPVersions GetVersion(const UdpSocket& socket)
     {
-        if (socket.Is<Udpv4Socket>())
+        if (std::holds_alternative<Udpv4Socket>(socket))
             return services::IPVersions::ipv4;
         else
             return services::IPVersions::ipv6;
@@ -70,20 +70,20 @@ namespace services
         };
     }
 
-    infra::Optional<IPAddress> ParseIpAddress(infra::BoundedConstString address)
+    std::optional<IPAddress> ParseIpAddress(infra::BoundedConstString address)
     {
         auto ipv4 = ParseIpv4Address(address);
         if (ipv4)
-            return infra::MakeOptional(IPAddress{ *ipv4 });
+            return std::make_optional(IPAddress{ *ipv4 });
 
         auto ipv6 = ParseFullIpv6Address(address);
         if (ipv6)
-            return infra::MakeOptional(IPAddress{ *ipv6 });
+            return std::make_optional(IPAddress{ *ipv6 });
 
-        return infra::none;
+        return std::nullopt;
     }
 
-    infra::Optional<IPv4Address> ParseIpv4Address(infra::BoundedConstString address)
+    std::optional<IPv4Address> ParseIpv4Address(infra::BoundedConstString address)
     {
         IPv4Address ipv4Address;
         std::size_t parsedCount = 0;
@@ -98,22 +98,22 @@ namespace services
             stream >> infra::Width(3) >> decimal;
 
             if (stream.Failed() || stream.Available() != 0)
-                return infra::none;
+                return std::nullopt;
 
             if (decimal != static_cast<uint8_t>(decimal))
-                return infra::none;
+                return std::nullopt;
 
             parsedCount += token.size();
             ipv4Address[i] = static_cast<uint8_t>(decimal);
         }
 
         if (parsedCount + 3 != address.size())
-            return infra::none;
+            return std::nullopt;
 
-        return infra::MakeOptional(ipv4Address);
+        return std::make_optional(ipv4Address);
     }
 
-    infra::Optional<IPv6Address> ParseFullIpv6Address(infra::BoundedConstString address)
+    std::optional<IPv6Address> ParseFullIpv6Address(infra::BoundedConstString address)
     {
         IPv6Address ipv6Address;
         std::size_t parsedCount = 0;
@@ -128,16 +128,16 @@ namespace services
             stream >> infra::hex >> infra::Width(4) >> decimal;
 
             if (stream.Failed() || stream.Available() != 0)
-                return infra::none;
+                return std::nullopt;
 
             parsedCount += token.size();
             ipv6Address[i] = static_cast<uint16_t>(decimal);
         }
 
         if (parsedCount + 7 != address.size())
-            return infra::none;
+            return std::nullopt;
 
-        return infra::MakeOptional(ipv6Address);
+        return std::make_optional(ipv6Address);
     }
 
     IPv6Address FromNetworkOrder(IPv6AddressNetworkOrder address)
@@ -200,10 +200,10 @@ namespace infra
 
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::IPAddress& address)
     {
-        if (address.Is<services::IPv4Address>())
-            stream << address.Get<services::IPv4Address>();
+        if (std::holds_alternative<services::IPv4Address>(address))
+            stream << std::get<services::IPv4Address>(address);
         else
-            stream << address.Get<services::IPv6Address>();
+            stream << std::get<services::IPv6Address>(address);
 
         return stream;
     }

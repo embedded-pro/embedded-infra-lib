@@ -53,8 +53,7 @@ target_sources(infra.util PRIVATE
     MemoryRange.hpp
     MultiFunction.hpp
     Observer.hpp
-    Optional.cpp
-    Optional.hpp
+    OptionalForPolymorphicObjects.hpp
     PolymorphicVariant.hpp
     PostAssign.hpp
     ProxyCreator.hpp
@@ -76,7 +75,6 @@ target_sources(infra.util PRIVATE
     Tokenizer.hpp
     Unit.hpp
     VariadicTemplates.hpp
-    Variant.hpp
     VariantDetail.hpp
     WithStorage.hpp
 )

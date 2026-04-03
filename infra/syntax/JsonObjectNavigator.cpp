@@ -10,147 +10,144 @@ namespace infra
         : object(object)
     {}
 
-    JsonObjectNavigator JsonObjectNavigator::operator/(JsonObjectNavigatorToken token) const
+    JsonObjectNavigator JsonObjectNavigator::operator/(const JsonObjectNavigatorToken& token) const
     {
         auto subObject = object.GetOptionalObject(token.name);
-        if (subObject == infra::none)
+        if (subObject == std::nullopt)
             throw std::runtime_error(("Object " + token.name + " not found").c_str());
 
         return { *subObject };
     }
 
-    JsonOptionalObjectNavigator JsonObjectNavigator::operator/(JsonOptionalObjectNavigatorToken token) const
+    JsonOptionalObjectNavigator JsonObjectNavigator::operator/(const JsonOptionalObjectNavigatorToken& token) const
     {
         auto subObject = object.GetOptionalObject(token.name);
-        if (subObject == infra::none)
+        if (subObject == std::nullopt)
             return {};
 
         return { *subObject };
     }
 
-    JsonArrayNavigator JsonObjectNavigator::operator/(JsonArrayNavigatorToken token) const
+    JsonArrayNavigator JsonObjectNavigator::operator/(const JsonArrayNavigatorToken& token) const
     {
         auto subArray = object.GetOptionalArray(token.name);
-        if (subArray == infra::none)
+        if (subArray == std::nullopt)
             throw std::runtime_error(("Array " + token.name + " not found").c_str());
 
         return { *subArray };
     }
 
-    JsonOptionalArrayNavigator JsonObjectNavigator::operator/(JsonOptionalArrayNavigatorToken token) const
+    JsonOptionalArrayNavigator JsonObjectNavigator::operator/(const JsonOptionalArrayNavigatorToken& token) const
     {
         auto subArray = object.GetOptionalArray(token.name);
-        if (subArray == infra::none)
+        if (subArray == std::nullopt)
             return {};
 
         return { *subArray };
     }
 
-    std::string JsonObjectNavigator::operator/(JsonStringNavigatorToken token) const
+    std::string JsonObjectNavigator::operator/(const JsonStringNavigatorToken& token) const
     {
         auto member = object.GetOptionalString(token.name);
-        if (member == infra::none)
+        if (member == std::nullopt)
             throw std::runtime_error(("String " + token.name + " not found").c_str());
 
         return member->ToStdString();
     }
 
-    infra::Optional<std::string> JsonObjectNavigator::operator/(JsonOptionalStringNavigatorToken token) const
+    std::optional<std::string> JsonObjectNavigator::operator/(const JsonOptionalStringNavigatorToken& token) const
     {
         auto member = object.GetOptionalString(token.name);
 
-        return infra::TransformOptional(member, [](auto value)
-            {
-                return value.ToStdString();
-            });
+        return member ? std::make_optional(member->ToStdString()) : std::nullopt;
     }
 
-    int32_t JsonObjectNavigator::operator/(JsonIntegerNavigatorToken token) const
+    int32_t JsonObjectNavigator::operator/(const JsonIntegerNavigatorToken& token) const
     {
         auto member = object.GetOptionalInteger(token.name);
-        if (member == infra::none)
+        if (member == std::nullopt)
             throw std::runtime_error(("Integer " + token.name + " not found").c_str());
 
         return *member;
     }
 
-    bool JsonObjectNavigator::operator/(JsonBoolNavigatorToken token) const
+    bool JsonObjectNavigator::operator/(const JsonBoolNavigatorToken& token) const
     {
         auto member = object.GetOptionalBoolean(token.name);
-        if (member == infra::none)
+        if (member == std::nullopt)
             throw std::runtime_error(("Boolean " + token.name + " not found").c_str());
 
         return *member;
     }
 
     JsonOptionalObjectNavigator::JsonOptionalObjectNavigator(infra::JsonObject& object)
-        : navigator(infra::inPlace, object)
+        : navigator(std::in_place, object)
     {}
 
     JsonOptionalObjectNavigator::JsonOptionalObjectNavigator(const JsonObjectNavigator& navigator)
-        : navigator(infra::inPlace, navigator)
+        : navigator(std::in_place, navigator)
     {}
 
-    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(JsonObjectNavigatorToken token) const
+    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(const JsonObjectNavigatorToken& token) const
     {
-        if (navigator != infra::none)
+        if (navigator != std::nullopt)
             return *navigator / token;
         else
             return {};
     }
 
-    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(JsonOptionalObjectNavigatorToken token) const
+    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(const JsonOptionalObjectNavigatorToken& token) const
     {
-        if (navigator != infra::none)
+        if (navigator != std::nullopt)
             return *navigator / token;
         else
             return {};
     }
 
-    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(JsonArrayNavigatorToken token) const
+    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(const JsonArrayNavigatorToken& token) const
     {
-        if (navigator != infra::none)
+        if (navigator != std::nullopt)
             return *navigator / token;
         else
             return {};
     }
 
-    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(JsonOptionalArrayNavigatorToken token) const
+    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(const JsonOptionalArrayNavigatorToken& token) const
     {
-        if (navigator != infra::none)
+        if (navigator != std::nullopt)
             return *navigator / token;
         else
             return {};
     }
 
-    infra::Optional<std::string> JsonOptionalObjectNavigator::operator/(JsonStringNavigatorToken token) const
+    std::optional<std::string> JsonOptionalObjectNavigator::operator/(const JsonStringNavigatorToken& token) const
     {
-        if (navigator != infra::none)
-            return infra::MakeOptional(*navigator / token);
+        if (navigator != std::nullopt)
+            return std::make_optional(*navigator / token);
         else
             return {};
     }
 
-    infra::Optional<std::string> JsonOptionalObjectNavigator::operator/(JsonOptionalStringNavigatorToken token) const
+    std::optional<std::string> JsonOptionalObjectNavigator::operator/(const JsonOptionalStringNavigatorToken& token) const
     {
-        if (navigator != infra::none)
+        if (navigator != std::nullopt)
             return *navigator / token;
         else
             return {};
     }
 
-    infra::Optional<int32_t> JsonOptionalObjectNavigator::operator/(JsonIntegerNavigatorToken token) const
+    std::optional<int32_t> JsonOptionalObjectNavigator::operator/(const JsonIntegerNavigatorToken& token) const
     {
-        if (navigator != infra::none)
-            return infra::MakeOptional(*navigator / token);
+        if (navigator != std::nullopt)
+            return std::make_optional(*navigator / token);
         else
             return {};
     }
 
-    infra::Optional<bool> JsonOptionalObjectNavigator::operator/(JsonBoolNavigatorToken token) const
+    std::optional<bool> JsonOptionalObjectNavigator::operator/(const JsonBoolNavigatorToken& token) const
     {
-        if (navigator != infra::none)
-            return infra::MakeOptional(*navigator / token);
+        if (navigator != std::nullopt)
+            return std::make_optional(*navigator / token);
         else
             return {};
     }
@@ -160,10 +157,10 @@ namespace infra
     {}
 
     JsonOptionalArrayNavigator::JsonOptionalArrayNavigator(infra::JsonArray& array)
-        : navigator(infra::inPlace, array)
+        : navigator(std::in_place, array)
     {}
 
     JsonOptionalArrayNavigator::JsonOptionalArrayNavigator(const JsonArrayNavigator& navigator)
-        : navigator(infra::inPlace, navigator)
+        : navigator(std::in_place, navigator)
     {}
 }

@@ -3,7 +3,6 @@
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/stream/LimitedOutputStream.hpp"
 #include "infra/util/ConstructBin.hpp"
-#include "infra/util/Optional.hpp"
 #include "infra/util/SharedOptional.hpp"
 #include "services/echo/EchoOnSesame.hpp"
 #include "services/echo_core/test_doubles/EchoMock.hpp"
@@ -11,6 +10,7 @@
 #include "services/sesame/test_doubles/SesameMock.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include <optional>
 
 namespace services
 {
@@ -298,7 +298,7 @@ TEST_F(EchoOnSesameTest, invoke_service_proxy_method_after_previous_service_prox
         EXPECT_CALL(check, Call("RequestSendMessage called after SendMssageStreamAvailable for destroyed optional service proxy is called"));
     }
 
-    infra::Optional<services::ServiceStubProxy> optionalServiceProxy{ infra::inPlace, echo };
+    std::optional<services::ServiceStubProxy> optionalServiceProxy{ std::in_place, echo };
     testing::Sequence seq;
 
     optionalServiceProxy->RequestSend([&optionalServiceProxy]()
@@ -307,7 +307,7 @@ TEST_F(EchoOnSesameTest, invoke_service_proxy_method_after_previous_service_prox
         });
     check.Call("optional service proxy destroyed");
 
-    optionalServiceProxy = infra::none;
+    optionalServiceProxy = std::nullopt;
 
     serviceProxy.RequestSend([this]()
         {

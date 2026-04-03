@@ -1,9 +1,10 @@
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/Function.hpp"
-#include "infra/util/Optional.hpp"
-#include "infra/util/Variant.hpp"
+#include "infra/util/PolymorphicVariant.hpp"
 #include "gtest/gtest.h"
+#include <optional>
+#include <variant>
 
 namespace
 {
@@ -58,19 +59,19 @@ TEST(NatvisTest, visualize_Function)
 
 TEST(NatvisTest, visualize_Optional)
 {
-    infra::Optional<int> emptyOptional;
-    infra::Optional<int> optional{ infra::inPlace, 1 };
-    infra::Optional<Content> optionalWithOwnType{ infra::inPlace, Content() };
+    std::optional<int> emptyOptional;
+    std::optional<int> optional{ std::in_place, 1 };
+    std::optional<Content> optionalWithOwnType{ std::in_place, Content() };
 }
 
 TEST(NatvisTest, visualize_Variant)
 {
-    infra::Variant<int, char, bool> emptyVariant;
-    infra::Variant<int, char, bool> variantWithBool{ true };
-    infra::Variant<int, char, bool> variantWithInt{ 1 };
-    infra::Variant<int, char, bool> variantWithChar{ 'A' };
+    std::variant<int, char, bool> emptyVariant;
+    std::variant<int, char, bool> variantWithBool{ true };
+    std::variant<int, char, bool> variantWithInt{ 1 };
+    std::variant<int, char, bool> variantWithChar{ 'A' };
 
-    infra::Variant<Content, bool> variantWithOwnType{ Content() };
+    std::variant<Content, bool> variantWithOwnType{ Content() };
 }
 
 /*
@@ -84,5 +85,5 @@ TEST(NatvisTest, visualize_PolymorphicVariant)
 */
 TEST(NatvisTest, visualize_types_from_anonymous_namespace)
 {
-    infra::Optional<AnonymousContent> anonymousOptional{ infra::inPlace, AnonymousContent() };
+    std::optional<AnonymousContent> anonymousOptional{ std::in_place, AnonymousContent() };
 }

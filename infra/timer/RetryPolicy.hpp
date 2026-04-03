@@ -2,7 +2,7 @@
 #define INFRA_RETRY_POLICY_HPP
 
 #include "infra/timer/Timer.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 
 namespace infra
 {
@@ -34,7 +34,7 @@ namespace infra
     private:
         infra::Duration maximumDelay;
         infra::TimePoint retryAfterMaximumDelay;
-        infra::Optional<infra::Duration> retryDelay;
+        std::optional<infra::Duration> retryDelay;
     };
 
     class RetryPolicyFixedInterval

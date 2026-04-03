@@ -20,7 +20,6 @@ namespace infra
 
     const infra::Function<void()> emptyFunction = []() {};
 
-
     Execute::Execute(Function<void()> f)
     {
         f();

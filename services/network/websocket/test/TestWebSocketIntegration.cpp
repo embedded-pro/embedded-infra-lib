@@ -7,9 +7,9 @@
 #include "services/network/http/HttpClientImpl.hpp"
 #include "services/network/http/HttpServer.hpp"
 #include "services/network/http/test_doubles/HttpClientMock.hpp"
+#include "services/network/websocket/HttpPageWebSocket.hpp"
 #include "services/network/websocket/WebSocketClientConnectionObserver.hpp"
 #include "services/network/websocket/WebSocketServerConnectionObserver.hpp"
-#include "services/network/websocket/HttpPageWebSocket.hpp"
 #include "services/util/test_doubles/StoppableMock.hpp"
 #include "gmock/gmock.h"
 
@@ -55,10 +55,10 @@ TEST_F(WebSocketIntegrationTest, create_connection)
     hal::SynchronousFixedRandomDataGenerator randomDataGenerator({ 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4 });
     services::HttpClientConnectorWithNameResolverImpl<> clientConnector(connectionFactoryWithNameResolver);
     infra::Creator<services::Stoppable, services::HttpClientWebSocketInitiation, void(services::WebSocketClientObserverFactory & clientObserverFactory, services::HttpClientWebSocketInitiationResult & result, hal::SynchronousRandomDataGenerator & randomDataGenerator)> httpClientInitiationCreator(
-        [&clientConnector](infra::Optional<services::HttpClientWebSocketInitiation>& value, services::WebSocketClientObserverFactory& clientObserverFactory,
+        [&clientConnector](std::optional<services::HttpClientWebSocketInitiation>& value, services::WebSocketClientObserverFactory& clientObserverFactory,
             services::HttpClientWebSocketInitiationResult& result, hal::SynchronousRandomDataGenerator& randomDataGenerator)
         {
-            value.Emplace(clientObserverFactory, clientConnector, result, randomDataGenerator);
+            value.emplace(clientObserverFactory, clientConnector, result, randomDataGenerator);
         });
     services::WebSocketClientFactorySingleConnection webSocketClientFactory(randomDataGenerator, { httpClientInitiationCreator });
 
@@ -143,10 +143,10 @@ TEST_F(WebSocketIntegrationTest, create_connection_failed)
     hal::SynchronousFixedRandomDataGenerator randomDataGenerator({ 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4 });
     services::HttpClientConnectorWithNameResolverImpl<> clientConnector(connectionFactoryWithNameResolver);
     infra::Creator<services::Stoppable, services::HttpClientWebSocketInitiation, void(services::WebSocketClientObserverFactory & clientObserverFactory, services::HttpClientWebSocketInitiationResult & result, hal::SynchronousRandomDataGenerator & randomDataGenerator)> httpClientInitiationCreator(
-        [&clientConnector](infra::Optional<services::HttpClientWebSocketInitiation>& value, services::WebSocketClientObserverFactory& clientObserverFactory,
+        [&clientConnector](std::optional<services::HttpClientWebSocketInitiation>& value, services::WebSocketClientObserverFactory& clientObserverFactory,
             services::HttpClientWebSocketInitiationResult& result, hal::SynchronousRandomDataGenerator& randomDataGenerator)
         {
-            value.Emplace(clientObserverFactory, clientConnector, result, randomDataGenerator);
+            value.emplace(clientObserverFactory, clientConnector, result, randomDataGenerator);
         });
     services::WebSocketClientFactorySingleConnection webSocketClientFactory(randomDataGenerator, { httpClientInitiationCreator });
 

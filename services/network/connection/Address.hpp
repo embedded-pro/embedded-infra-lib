@@ -3,16 +3,16 @@
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/Endian.hpp"
-#include "infra/util/Variant.hpp"
 #include <array>
 #include <utility>
+#include <variant>
 
 namespace services
 {
     using IPv4Address = std::array<uint8_t, 4>;
     using IPv6Address = std::array<uint16_t, 8>;
     using IPv6AddressNetworkOrder = std::array<infra::BigEndian<uint16_t>, 8>;
-    using IPAddress = infra::Variant<services::IPv4Address, services::IPv6Address>;
+    using IPAddress = std::variant<services::IPv4Address, services::IPv6Address>;
 
     enum class IPVersions
     {
@@ -23,7 +23,7 @@ namespace services
 
     using Udpv4Socket = std::pair<IPv4Address, uint16_t>;
     using Udpv6Socket = std::pair<IPv6Address, uint16_t>;
-    using UdpSocket = infra::Variant<Udpv4Socket, Udpv6Socket>;
+    using UdpSocket = std::variant<Udpv4Socket, Udpv6Socket>;
 
     UdpSocket MakeUdpSocket(IPAddress address, uint16_t port);
 
@@ -38,9 +38,9 @@ namespace services
     uint32_t ConvertToUint32(IPv4Address address);
     IPv4Address ConvertFromUint32(uint32_t address);
 
-    infra::Optional<IPAddress> ParseIpAddress(infra::BoundedConstString address);
-    infra::Optional<IPv4Address> ParseIpv4Address(infra::BoundedConstString address);
-    infra::Optional<IPv6Address> ParseFullIpv6Address(infra::BoundedConstString address);
+    std::optional<IPAddress> ParseIpAddress(infra::BoundedConstString address);
+    std::optional<IPv4Address> ParseIpv4Address(infra::BoundedConstString address);
+    std::optional<IPv6Address> ParseFullIpv6Address(infra::BoundedConstString address);
 
     IPv6Address FromNetworkOrder(IPv6AddressNetworkOrder address);
     IPv6AddressNetworkOrder ToNetworkOrder(IPv6Address address);

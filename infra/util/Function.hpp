@@ -75,8 +75,7 @@ namespace infra
                 CopyConstructor copyConstruct;
             };
 
-            using StorageType = typename std::aligned_storage<ExtraSize, std::alignment_of<UTIL_FUNCTION_ALIGNMENT>::value>::type;
-            StorageType data;
+            alignas(UTIL_FUNCTION_ALIGNMENT) unsigned char data[ExtraSize];
 
             template<class F>
             static Result StaticInvoke(const InvokerFunctionsType& invokerFunctions, Args... args);
@@ -189,10 +188,6 @@ namespace infra
     bool operator==(const Function<Result(Args...), ExtraSize>& f, std::nullptr_t);
     template<std::size_t ExtraSize, class Result, class... Args>
     bool operator==(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f);
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(const Function<Result(Args...), ExtraSize>& f, std::nullptr_t);
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f);
 
 #ifdef EMIL_HOST_BUILD
     // gtest uses PrintTo to display the contents of Function
@@ -251,14 +246,14 @@ namespace infra
         template<class F>
         Result InvokerFunctions<Result(Args...), ExtraSize>::StaticInvoke(const InvokerFunctionsType& invokerFunctions, Args... args)
         {
-            return (const_cast<F&>(reinterpret_cast<const F&>(invokerFunctions.data)))(std::forward<Args>(args)...);
+            return (*std::launder(const_cast<F*>(reinterpret_cast<const F*>(&invokerFunctions.data))))(std::forward<Args>(args)...);
         }
 
         template<std::size_t ExtraSize, class Result, class... Args>
         template<class F>
         void InvokerFunctions<Result(Args...), ExtraSize>::StaticDestruct(InvokerFunctionsType& invokerFunctions)
         {
-            reinterpret_cast<F&>(invokerFunctions.data).~F();
+            std::launder(reinterpret_cast<F*>(&invokerFunctions.data))->~F(); //NOSONAR
             invokerFunctions.virtualMethodTable = FunctionType::ReinterpretAbortOnExecuteSentinelTable();
         }
 
@@ -266,7 +261,7 @@ namespace infra
         template<class F>
         void InvokerFunctions<Result(Args...), ExtraSize>::StaticCopyConstruct(const InvokerFunctionsType& from, InvokerFunctionsType& to)
         {
-            new (&to.data) F(reinterpret_cast<const F&>(from.data));
+            new (&to.data) F(*std::launder(reinterpret_cast<const F*>(&from.data)));
             std::memset(reinterpret_cast<char*>(&to.data) + sizeof(F), 0, ExtraSize - sizeof(F));
             to.virtualMethodTable = StaticVirtualMethodTable<F>();
         }
@@ -465,18 +460,6 @@ namespace infra
     bool operator==(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f)
     {
         return !f;
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(const Function<Result(Args...), ExtraSize>& f, std::nullptr_t)
-    {
-        return !(f == nullptr);
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool operator!=(std::nullptr_t, const Function<Result(Args...), ExtraSize>& f)
-    {
-        return !(f == nullptr);
     }
 
     template<std::size_t ExtraSize>

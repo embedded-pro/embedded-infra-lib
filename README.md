@@ -20,13 +20,13 @@
 ## Dependencies
 
 EmIL requires:
-- A recent C++ compiler that supports C++17 at minimum (for a host build it should support std::filesystem).
+- A recent C++ compiler that supports C++20 at minimum (for a host build it should support std::filesystem).
 - CMake 3.24 or higher.
 
 EmIL is know to build under the following configurations:
 - Windows from Visual Studio 2022 onwards.
 - Linux from GCC 7 onwards.
-- OSX from XCode 11 and target platform 10.15 onwards.
+- macOS from XCode 12 and target platform 11.0 onwards.
 
 ## How to build the software
 

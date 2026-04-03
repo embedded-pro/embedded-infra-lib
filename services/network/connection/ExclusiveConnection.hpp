@@ -15,7 +15,7 @@ namespace services
         class ExclusiveConnection;
 
     public:
-        using Claimer = infra::ClaimableResource::Claimer::WithSize<sizeof(void*) + sizeof(IPAddress) + sizeof(infra::AutoResetFunction<void()>)>;
+        using Claimer = infra::ClaimableResource::Claimer::WithSize<sizeof(void*) + sizeof(IPAddress) + sizeof(void*) + sizeof(infra::AutoResetFunction<void()>)>;
 
         infra::ClaimableResource& Resource();
         infra::SharedPtr<ExclusiveConnection> CreateConnection(Claimer&& claimer);

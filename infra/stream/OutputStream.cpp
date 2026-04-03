@@ -48,7 +48,7 @@ namespace infra
         , errorPolicy(other.errorPolicy)
     {}
 
-    OutputStream::OutputStream(OutputStream&& other)
+    OutputStream::OutputStream(OutputStream&& other) noexcept
         : writer(other.writer)
         , errorPolicy(other.errorPolicy)
     {}

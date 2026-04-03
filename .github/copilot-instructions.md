@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-embedded-infra-lib (EmIL) is a header-based C++17 library providing heap-less, STL-like infrastructure for embedded software development. It targets resource-constrained microcontrollers with strict memory and performance requirements, supporting Windows, Linux, macOS, and bare-metal ARM targets.
+embedded-infra-lib (EmIL) is a header-based C++20 library providing heap-less, STL-like infrastructure for embedded software development. It targets resource-constrained microcontrollers with strict memory and performance requirements, supporting Windows, Linux, macOS, and bare-metal ARM targets.
 
 ## Repository Structure
 
@@ -272,7 +272,7 @@ std::array<uint8_t, 256> buffer;
 ## Build System
 
 - CMake-based build (minimum 3.24) with presets for different targets
-- C++17 required (`CMAKE_CXX_STANDARD 17`)
+- C++20 required (`CMAKE_CXX_STANDARD 20`)
 - Support for host (simulation and testing) and embedded ARM targets
 - Separate build configurations for Debug, Release, RelWithDebInfo, MinSizeRel
 - GoogleTest for unit testing, fetched via `FetchContent`

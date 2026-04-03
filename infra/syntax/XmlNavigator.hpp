@@ -1,9 +1,9 @@
 #ifndef INFRA_XML_OBJECT_NAVIGATOR_HPP
 #define INFRA_XML_OBJECT_NAVIGATOR_HPP
 
-#include "infra/util/Optional.hpp"
 #include "pugixml.hpp"
 #include <functional>
+#include <optional>
 #include <stdexcept>
 
 namespace infra
@@ -57,9 +57,9 @@ namespace infra
 
         XmlNodeNavigator operator/(const XmlNodeNavigatorToken& token) const;
         std::string operator/(const XmlStringAttributeNavigatorToken& token) const;
-        infra::Optional<std::string> operator/(const XmlOptionalStringAttributeNavigatorToken& token) const;
+        std::optional<std::string> operator/(const XmlOptionalStringAttributeNavigatorToken& token) const;
         int32_t operator/(const XmlIntegerAttributeNavigatorToken& token) const;
-        infra::Optional<int32_t> operator/(const XmlOptionalIntegerAttributeNavigatorToken& token) const;
+        std::optional<int32_t> operator/(const XmlOptionalIntegerAttributeNavigatorToken& token) const;
 
         template<class Result>
         Result operator/(const XmlTransformObjectNavigatorToken<Result>& token) const;

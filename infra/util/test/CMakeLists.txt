@@ -36,7 +36,6 @@ target_sources(infra.util_test PRIVATE
     TestIntrusiveUnorderedSet.cpp
     TestMemoryRange.cpp
     TestObserver.cpp
-    TestOptional.cpp
     TestPolymorphicVariant.cpp
     TestProxyCreator.cpp
     TestReferenceCountedSingleton.cpp
@@ -48,7 +47,6 @@ target_sources(infra.util_test PRIVATE
     TestStaticStorage.cpp
     TestTokenizer.cpp
     TestUnit.cpp
-    TestVariant.cpp
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

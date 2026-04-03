@@ -234,7 +234,6 @@ namespace infra
         Quantity<typename UnitType::template Div<UnitTypeOther>, StorageType> operator/(Quantity<UnitTypeOther, StorageType> other) const;
 
         bool operator==(const Quantity& other) const;
-        bool operator!=(const Quantity& other) const;
         bool operator<(const Quantity& other) const;
         bool operator>(const Quantity& other) const;
         bool operator<=(const Quantity& other) const;
@@ -381,12 +380,6 @@ namespace infra
     bool Quantity<UnitType, StorageType>::operator==(const Quantity& other) const
     {
         return value == other.value;
-    }
-
-    template<class UnitType, class StorageType>
-    bool Quantity<UnitType, StorageType>::operator!=(const Quantity& other) const
-    {
-        return value != other.value;
     }
 
     template<class UnitType, class StorageType>

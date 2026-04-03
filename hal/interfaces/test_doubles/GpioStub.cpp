@@ -1,9 +1,8 @@
 #include "hal/interfaces/test_doubles/GpioStub.hpp"
 #include "hal/interfaces/Gpio.hpp"
 #include "infra/timer/Timer.hpp"
-#include "infra/util/CompareMembers.hpp"
 #include "infra/util/Function.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -63,7 +62,7 @@ namespace hal
 
     void GpioPinStub::DisableInterrupt()
     {
-        triggerOnChange = infra::none;
+        triggerOnChange = std::nullopt;
     }
 
     void GpioPinStub::SetStubState(bool value)
@@ -88,16 +87,6 @@ namespace hal
         : duration(duration)
         , state(state)
     {}
-
-    bool PinChange::operator==(const PinChange& other) const
-    {
-        return infra::Equals()(duration, other.duration)(state, other.state);
-    }
-
-    bool PinChange::operator!=(const PinChange& other) const
-    {
-        return !(*this == other);
-    }
 
     GpioPinSpy::GpioPinSpy()
         : start(infra::Now())
