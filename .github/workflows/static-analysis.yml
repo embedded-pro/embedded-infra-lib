@@ -24,13 +24,13 @@ jobs:
         with:
           fetch-depth: 0 # Disable shallow clone to enable blame information
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
       - name: Build for coverage
-        uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "coverage"
           buildPreset: "coverage"
@@ -49,29 +49,6 @@ jobs:
       - name: Convert results
         run: |
           cp build/coverage/compile_commands.json compile_commands.json
-      - uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+      - uses: sonarsource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4 # v7.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  codeql:
-    name: CodeQL
-    if: false  # Disabled
-    runs-on: ubuntu-latest
-    container: gabrielfrasantos/embedded-devcontainer:latest@sha256:259aa0e8fb47d3f216dc244202045bad6046af8408ff0eb60af4b53d9d144849 # 5.1.4
-    permissions:
-      security-events: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
-        with:
-          key: ${{ github.job }}
-      - uses: github/codeql-action/init@3599b3baa15b485a2e49ef411a7a4bb2452e7f93 # v3.29.5
-        with:
-          languages: cpp
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
-        with:
-          configurePreset: "host"
-          buildPreset: "host-Debug"
-          configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
-      - uses: github/codeql-action/analyze@3599b3baa15b485a2e49ef411a7a4bb2452e7f93 # v3.29.5

@@ -27,13 +27,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-ubuntu-latest
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
       - uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67 # v6
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host"
           buildPreset: "host-Debug-WithPackage"
@@ -58,12 +58,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-ubuntu-latest
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host"
           buildPreset: "host-RelWithDebInfo"
@@ -77,9 +77,8 @@ jobs:
           path: build/host/Testing/Temporary/
   host_build_test_clang_msvc:
     name: Host Build & Test (clang-msvc)
-    if: false  # Disabled
     runs-on: ubuntu-latest
-    container: ghcr.io/philips-software/amp-devcontainer-cpp:v5.6.1@sha256:04cda0c73cd01f0d97879aba7871c5118147ea0478616c49e8c0643653fbbc8b
+    container: gabrielfrasantos/embedded-devcontainer:latest@sha256:259aa0e8fb47d3f216dc244202045bad6046af8408ff0eb60af4b53d9d144849 # 5.1.4
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -91,10 +90,10 @@ jobs:
           key: cache-winsdk-10.0.26100-14.43.17.13
       - if: ${{ steps.cache-winsdk.outputs.cache-hit != 'true' }}
         run: xwin --accept-license --sdk-version "10.0.26100" --crt-version "14.43.17.13" splat --preserve-ms-arch-notation --include-debug-libs && mv .xwin-cache/splat/ /winsdk
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-clang-msvc
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host-ClangMsvc"
           buildPreset: "host-ClangMsvc-Debug"
@@ -112,12 +111,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-${{ matrix.os }}
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host-single-Debug"
           buildPreset: "host-single-Debug"
@@ -136,13 +135,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-ubuntu-latest
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
       - uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67 # v6
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host-no-mbedtls"
           buildPreset: "host-no-mbedtls-Debug"
@@ -160,11 +159,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Install GNU Arm Embedded Toolchain ${{ matrix.gcc }}
-        uses: carlosperate/arm-none-eabi-gcc-action@a532c97fbfff58385beb2247ae1464dc4cc71724 # v1.10.1
+        uses: carlosperate/arm-none-eabi-gcc-action@7153327ecfbc421a0b4268058e4bb3d5d6e5df2c # v1.12.1
         with:
           release: ${{ matrix.gcc }}
       - run: sudo apt-get update && sudo apt-get install ninja-build
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-${{ matrix.gcc }}-${{ matrix.configuration }}
           max-size: 2G
@@ -174,7 +173,7 @@ jobs:
           name: emil
       - run: tar -zxvf emil-*.tar.gz
       - run: mkdir install && mv emil-*/* install/
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "embedded"
           buildPreset: "embedded-${{ matrix.configuration }}"
@@ -191,11 +190,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Install GNU Arm Embedded Toolchain 13.2.Rel1
-        uses: carlosperate/arm-none-eabi-gcc-action@a532c97fbfff58385beb2247ae1464dc4cc71724 # v1.10.1
+        uses: carlosperate/arm-none-eabi-gcc-action@7153327ecfbc421a0b4268058e4bb3d5d6e5df2c # v1.12.1
         with:
           release: "13.2.Rel1"
       - run: sudo apt-get update && sudo apt-get install ninja-build
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}
           max-size: 2G
@@ -205,7 +204,7 @@ jobs:
           name: emil
       - run: tar -zxvf emil-*.tar.gz
       - run: mkdir install && mv emil-*/* install/
-      - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "embedded-${{ matrix.rtos }}"
           buildPreset: "embedded-${{ matrix.rtos }}-RelWithDebInfo"

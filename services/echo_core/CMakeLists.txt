@@ -33,4 +33,6 @@ add_subdirectory(test_doubles)
 
 include(echo/protocol_buffer_echo)
 
-add_subdirectory(test)
+if (EMIL_BUILD_TESTS)
+    add_subdirectory(test)
+endif()
