@@ -64,7 +64,8 @@
         "CMAKE_COMPILE_WARNING_AS_ERROR": "Off",
         "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
         "EMIL_BUILD_TESTS": "Off",
-        "EMIL_BUILD_EXAMPLES": "Off"
+        "EMIL_BUILD_EXAMPLES": "Off",
+        "EMIL_INCLUDE_ECHO": "Off"
       },
       "generator": "Ninja Multi-Config"
     },
