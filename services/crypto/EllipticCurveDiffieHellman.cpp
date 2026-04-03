@@ -4,7 +4,7 @@ namespace services
 {
     EllipticCurveDiffieHellman::EllipticCurveDiffieHellman(EllipticCurveOperations& ecc)
         : ecc(ecc)
-        , states(infra::InPlaceType<Idle>(), *this)
+        , states(std::in_place_type_t<Idle>(), *this)
     {}
 
     void EllipticCurveDiffieHellman::CalculateSharedSecretKey(const EllipticCurveExtendedParameters& ellipticCurve, infra::ConstByteRange privateKey, infra::ConstByteRange peerPublicKey, infra::ByteRange sharedSecretKey, const infra::Function<void(bool)>& onDone)

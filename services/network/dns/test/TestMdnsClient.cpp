@@ -39,22 +39,22 @@ public:
 
     void ExpectJoinMulticastIpv4()
     {
-        EXPECT_CALL(multicast, JoinMulticastGroup(testing::_, mdnsMulticastAddressIpv4.Get<services::IPv4Address>()));
+        EXPECT_CALL(multicast, JoinMulticastGroup(testing::_, std::get<services::IPv4Address>(mdnsMulticastAddressIpv4)));
     }
 
     void ExpectJoinMulticastIpv6()
     {
-        EXPECT_CALL(multicast, JoinMulticastGroup(testing::_, mdnsMulticastAddressIpv6.Get<services::IPv6Address>()));
+        EXPECT_CALL(multicast, JoinMulticastGroup(testing::_, std::get<services::IPv6Address>(mdnsMulticastAddressIpv6)));
     }
 
     void ExpectLeaveMulticastIpv4()
     {
-        EXPECT_CALL(multicast, LeaveMulticastGroup(testing::_, mdnsMulticastAddressIpv4.Get<services::IPv4Address>()));
+        EXPECT_CALL(multicast, LeaveMulticastGroup(testing::_, std::get<services::IPv4Address>(mdnsMulticastAddressIpv4)));
     }
 
     void ExpectLeaveMulticastIpv6()
     {
-        EXPECT_CALL(multicast, LeaveMulticastGroup(testing::_, mdnsMulticastAddressIpv6.Get<services::IPv6Address>()));
+        EXPECT_CALL(multicast, LeaveMulticastGroup(testing::_, std::get<services::IPv6Address>(mdnsMulticastAddressIpv6)));
     }
 
     void ExpectActiveQueryStarted(services::IPVersions ipVersion = services::IPVersions::ipv4)
@@ -62,28 +62,28 @@ public:
         EXPECT_CALL(*datagramExchange, RequestSendStream(testing::_, testing::_)).WillOnce([ipVersion](std::size_t sendSize, services::UdpSocket remote)
             {
                 if (ipVersion == services::IPVersions::ipv6)
-                    ASSERT_TRUE(remote.Is<services::Udpv6Socket>());
+                    ASSERT_TRUE(std::holds_alternative<services::Udpv6Socket>(remote));
                 else
-                    ASSERT_TRUE(remote.Is<services::Udpv4Socket>());
+                    ASSERT_TRUE(std::holds_alternative<services::Udpv4Socket>(remote));
             });
     }
 
     void DataReceived(const std::vector<uint8_t>& data, services::IPv4Address address = services::IPv4Address{ 1, 2, 3, 4 }, uint16_t port = mdnsPort)
     {
-        datagramExchange->GetObserver().DataReceived(infra::MakeSharedOnHeap<infra::StdVectorInputStreamReader::WithStorage>(infra::inPlace, data), services::Udpv4Socket{ address, port });
+        datagramExchange->GetObserver().DataReceived(infra::MakeSharedOnHeap<infra::StdVectorInputStreamReader::WithStorage>(std::in_place, data), services::Udpv4Socket{ address, port });
     }
 
     void DataReceived(const std::vector<uint8_t>& data, services::IPv6Address address, uint16_t port = mdnsPort)
     {
-        datagramExchange->GetObserver().DataReceived(infra::MakeSharedOnHeap<infra::StdVectorInputStreamReader::WithStorage>(infra::inPlace, data), services::Udpv6Socket{ address, port });
+        datagramExchange->GetObserver().DataReceived(infra::MakeSharedOnHeap<infra::StdVectorInputStreamReader::WithStorage>(std::in_place, data), services::Udpv6Socket{ address, port });
     }
 
     void DataReceived(const std::vector<uint8_t>& data, services::IPAddress address, uint16_t port = mdnsPort)
     {
-        if (address.Is<services::IPv4Address>())
-            DataReceived(data, address.Get<services::IPv4Address>(), port);
+        if (std::holds_alternative<services::IPv4Address>(address))
+            DataReceived(data, std::get<services::IPv4Address>(address), port);
         else
-            DataReceived(data, address.Get<services::IPv6Address>(), port);
+            DataReceived(data, std::get<services::IPv6Address>(address), port);
     }
 
     void SendStreamAvailableAndExpectQuestion(const std::vector<uint8_t>& data)
@@ -237,33 +237,33 @@ public:
 
     void QueryA(infra::Function<void(infra::ConstByteRange data)>& callback)
     {
-        queryA.Emplace(client, services::DnsType::dnsTypeA, "_instance", callback);
+        queryA.emplace(client, services::DnsType::dnsTypeA, "_instance", callback);
     }
 
     void QueryAaaa(infra::Function<void(infra::ConstByteRange data)>& callback)
     {
-        queryAaaa.Emplace(client, services::DnsType::dnsTypeAAAA, "_instance", callback);
+        queryAaaa.emplace(client, services::DnsType::dnsTypeAAAA, "_instance", callback);
         queryAaaa->SetIpVersion(services::IPVersions::ipv6);
     }
 
     void QueryPtr(infra::Function<void(infra::ConstByteRange data)>& callback)
     {
-        queryPtr.Emplace(client, services::DnsType::dnsTypePtr, "_service", "_protocol", callback);
+        queryPtr.emplace(client, services::DnsType::dnsTypePtr, "_service", "_protocol", callback);
     }
 
     void QueryPtr(infra::Function<void(infra::ConstByteRange data)>& callback, infra::Function<void(infra::BoundedString hostname, services::DnsRecordPayload payload, infra::ConstByteRange data)>& additionalRecordsCallback)
     {
-        queryPtr.Emplace(client, services::DnsType::dnsTypePtr, "_service", "_protocol", callback, additionalRecordsCallback);
+        queryPtr.emplace(client, services::DnsType::dnsTypePtr, "_service", "_protocol", callback, additionalRecordsCallback);
     }
 
     void QueryTxt(infra::Function<void(infra::ConstByteRange data)>& callback)
     {
-        queryTxt.Emplace(client, services::DnsType::dnsTypeTxt, "_instance", "_service", "_protocol", callback);
+        queryTxt.emplace(client, services::DnsType::dnsTypeTxt, "_instance", "_service", "_protocol", callback);
     }
 
     void QuerySrv(infra::Function<void(infra::ConstByteRange data)>& callback)
     {
-        querySrv.Emplace(client, services::DnsType::dnsTypeSrv, "_instance", "_service", "_protocol", callback);
+        querySrv.emplace(client, services::DnsType::dnsTypeSrv, "_instance", "_service", "_protocol", callback);
     }
 
     void ConstructAllQueries()
@@ -291,16 +291,16 @@ public:
 
     void DestructAllQueries()
     {
-        queryA = infra::none;
-        queryAaaa = infra::none;
-        queryPtr = infra::none;
-        queryTxt = infra::none;
-        querySrv = infra::none;
+        queryA = std::nullopt;
+        queryAaaa = std::nullopt;
+        queryPtr = std::nullopt;
+        queryTxt = std::nullopt;
+        querySrv = std::nullopt;
     }
 
     void DestructQueryPtr()
     {
-        queryPtr = infra::none;
+        queryPtr = std::nullopt;
     }
 
     testing::StrictMock<services::MulticastMock> multicast;
@@ -389,11 +389,11 @@ public:
         }
     };
 
-    infra::Optional<services::MdnsQueryImpl> queryA;
-    infra::Optional<services::MdnsQueryImpl> queryAaaa;
-    infra::Optional<services::MdnsQueryImpl> queryPtr;
-    infra::Optional<services::MdnsQueryImpl> queryTxt;
-    infra::Optional<services::MdnsQueryImpl> querySrv;
+    std::optional<services::MdnsQueryImpl> queryA;
+    std::optional<services::MdnsQueryImpl> queryAaaa;
+    std::optional<services::MdnsQueryImpl> queryPtr;
+    std::optional<services::MdnsQueryImpl> queryTxt;
+    std::optional<services::MdnsQueryImpl> querySrv;
 };
 
 TEST_F(MdnsClientTest, query_asking_starts_active_query)

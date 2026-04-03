@@ -285,7 +285,7 @@ namespace services
             template<class operation, class... Args>
             void QueueSendOperation(Args&&... args)
             {
-                sendOperations.emplace_back(infra::InPlaceType<operation>(), std::forward<Args>(args)...);
+                sendOperations.emplace_back(std::in_place_type_t<operation>(), std::forward<Args>(args)...);
                 ProcessSendOperations();
             }
         };

@@ -115,7 +115,7 @@ namespace services
 
             CharacteristicOperation(Operation operation, AttAttribute::Handle handle)
                 : operation(operation)
-                , handle(handle) {};
+                , handle(handle){};
 
             Operation operation;
             AttAttribute::Handle handle;

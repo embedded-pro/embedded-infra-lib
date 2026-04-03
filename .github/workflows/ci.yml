@@ -153,7 +153,7 @@ jobs:
     needs: [host_build_test_ubuntu]
     strategy:
       matrix:
-        gcc: ["10.3-2021.10"]
+        gcc: ["13.2.Rel1"]
         configuration: ["RelWithDebInfo"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -190,10 +190,10 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - name: Install GNU Arm Embedded Toolchain 10.3-2021.10
+      - name: Install GNU Arm Embedded Toolchain 13.2.Rel1
         uses: carlosperate/arm-none-eabi-gcc-action@a532c97fbfff58385beb2247ae1464dc4cc71724 # v1.10.1
         with:
-          release: "10.3-2021.10"
+          release: "13.2.Rel1"
       - run: sudo apt-get update && sudo apt-get install ninja-build
       - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
         with:

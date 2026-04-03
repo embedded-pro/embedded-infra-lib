@@ -1,7 +1,7 @@
 ---
 description: "Use when implementing code changes in embedded-infra-lib. Writes production code and tests following all EmIL embedded C++ constraints: no heap allocation, bounded containers, event-driven non-blocking model, Allman braces, PascalCase naming, SOLID principles."
 tools: [read, edit, search, execute, todo]
-model: "Claude Sonnet 4"
+model: "Claude Sonnet 4.6"
 handoffs:
   - label: "Review Changes"
     agent: reviewer

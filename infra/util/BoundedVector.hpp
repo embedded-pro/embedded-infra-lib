@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <memory>
 
 namespace infra
 {

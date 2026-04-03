@@ -4,8 +4,8 @@
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/Function.hpp"
-#include "infra/util/Optional.hpp"
 #include <cstdint>
+#include <optional>
 
 namespace hal
 {
@@ -14,13 +14,12 @@ namespace hal
     public:
         struct Header
         {
-            infra::Optional<uint8_t> instruction;
+            std::optional<uint8_t> instruction;
             infra::BoundedVector<uint8_t>::WithMaxSize<4> address;
             infra::BoundedVector<uint8_t>::WithMaxSize<4> alternate;
             uint8_t nofDummyCycles;
 
-            bool operator==(const Header& other) const;
-            bool operator!=(const Header& other) const;
+            bool operator==(const Header& other) const = default;
         };
 
         struct Lines
@@ -35,8 +34,7 @@ namespace hal
             static Lines MixedSpeed(uint8_t instructionLines, uint8_t addressLines, uint8_t alternateLines, uint8_t dataLines);
             static Lines MixedSpeed(uint8_t instructionLines, uint8_t addressLines, uint8_t dataLines);
 
-            bool operator==(const Lines& other) const;
-            bool operator!=(const Lines& other) const;
+            bool operator==(const Lines& other) const = default;
 
         private:
             Lines(uint8_t instructionLines, uint8_t addressLines, uint8_t alternateLines, uint8_t dataLines);

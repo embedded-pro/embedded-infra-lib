@@ -5,6 +5,7 @@
 #include "infra/event/ClaimableResource.hpp"
 #include "infra/util/IntrusiveForwardList.hpp"
 #include "infra/util/Sequencer.hpp"
+#include <optional>
 
 namespace services
 {
@@ -140,7 +141,7 @@ namespace services
         uint32_t partialSizeWritten = 0;
         bool partialAddStarted = false;
 
-        infra::Optional<Iterator> erasingPosition;
+        std::optional<Iterator> erasingPosition;
 
         enum class RecoverPhase : uint8_t
         {

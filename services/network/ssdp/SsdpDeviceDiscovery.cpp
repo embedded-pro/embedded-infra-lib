@@ -1,5 +1,6 @@
 #include "services/network/ssdp/SsdpDeviceDiscovery.hpp"
 #include "infra/stream/StringInputStream.hpp"
+#include "services/network/connection/Address.hpp"
 
 namespace services
 {
@@ -119,7 +120,7 @@ namespace services
 
         stream
             << "M-SEARCH * HTTP/1.1\r\n"
-            << "HOST: " << AsCanonicalFormIp(GetSsdpMulticastAddress(ipVersion)) << ":" << ssdpPort << "\r\n"
+            << "HOST: " << infra::AsCanonicalFormIp(GetSsdpMulticastAddress(ipVersion)) << ":" << ssdpPort << "\r\n"
             << "MAN: \"ssdp:discover\"\r\n"
             << "ST: " << discovery.searchTarget << "\r\n"
             << "MX: " << maxWaitResponseTime << "\r\n";

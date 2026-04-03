@@ -1,5 +1,4 @@
 #include "services/tracer/TracerAdapterPrintf.hpp"
-#include "infra/util/Compatibility.hpp"
 
 namespace services
 {
@@ -104,7 +103,7 @@ namespace services
                 break;
             case 'p':
                 tracer.Continue() << "0x";
-                EMIL_FALLTHROUGH;
+                [[fallthrough]];
             case 'X':
             case 'x':
                 if (lengthSpecifier >= 2)

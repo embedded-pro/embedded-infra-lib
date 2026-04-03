@@ -2,7 +2,7 @@
 #define SYNCHRONOUS_HAL_SYNCHRONOUS_FLASH_STUB_HPP
 
 #include "hal/synchronous_interfaces/SynchronousFlash.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 
 namespace hal
 {
@@ -31,7 +31,7 @@ namespace hal
 
     public:
         std::vector<std::vector<uint8_t>> sectors;
-        infra::Optional<uint8_t> stopAfterWriteSteps;
+        std::optional<uint8_t> stopAfterWriteSteps;
     };
 }
 

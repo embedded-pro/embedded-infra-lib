@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
+#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -41,7 +42,7 @@ namespace infra
         const T* operator->() const;
 
     private:
-        typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data = {};
+        alignas(T) unsigned char data[sizeof(T)] = {};
     };
 
     template<class T, std::size_t ExtraSize, class AlignAs = uint64_t>
@@ -67,7 +68,7 @@ namespace infra
 
     private:
         T* dataPtr = nullptr;
-        typename std::aligned_storage<sizeof(T) + ExtraSize, std::alignment_of<AlignAs>::value>::type data;
+        alignas(AlignAs) unsigned char data[sizeof(T) + ExtraSize];
     };
 
     template<class Base, class... Derived>
@@ -95,32 +96,32 @@ namespace infra
     template<class T>
     void StaticStorage<T>::Destruct() const
     {
-        reinterpret_cast<const T&>(data).~T();
+        std::launder(reinterpret_cast<const T*>(&data))->~T(); //NOSONAR
         std::fill(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&data)), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&data)) + sizeof(data), 0xbe);
     }
 
     template<class T>
     T& StaticStorage<T>::operator*()
     {
-        return reinterpret_cast<T&>(data);
+        return *std::launder(reinterpret_cast<T*>(&data));
     }
 
     template<class T>
     const T& StaticStorage<T>::operator*() const
     {
-        return reinterpret_cast<const T&>(data);
+        return *std::launder(reinterpret_cast<const T*>(&data));
     }
 
     template<class T>
     T* StaticStorage<T>::operator->()
     {
-        return reinterpret_cast<T*>(&data);
+        return std::launder(reinterpret_cast<T*>(&data));
     }
 
     template<class T>
     const T* StaticStorage<T>::operator->() const
     {
-        return reinterpret_cast<const T*>(&data);
+        return std::launder(reinterpret_cast<const T*>(&data));
     }
 
     template<class T, std::size_t ExtraSize, class AlignAs>
