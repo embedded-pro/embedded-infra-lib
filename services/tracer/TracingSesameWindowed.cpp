@@ -59,7 +59,7 @@ namespace services
     void TracingSesameWindowed::SettingOperational(std::optional<std::size_t> requestedSize, uint16_t releasedWindow, uint16_t otherWindow)
     {
         tracer.Trace() << "SesameWindowed::SettingOperational requestedSize: ";
-        if (requestedSize)
+        if (requestedSize.has_value())
             tracer.Continue() << *requestedSize;
         else
             tracer.Continue() << "none";

@@ -20,7 +20,7 @@ namespace infra
         template<class U>
         explicit PolymorphicVariant(const U& v);
         template<class U, class... Args>
-        PolymorphicVariant(std::in_place_type_t<U>, Args&&... args);
+        explicit PolymorphicVariant(std::in_place_type_t<U>, Args&&... args);
 
         PolymorphicVariant& operator=(const PolymorphicVariant& other);
         template<class... T2>

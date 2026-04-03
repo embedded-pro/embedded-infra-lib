@@ -1,5 +1,6 @@
 // clang-format off
 #include "hal/windows/UartPortFinder.hpp"
+#include <cassert>
 #include <optional>
 #include <initguid.h>
 #include <devpkey.h>
@@ -167,7 +168,7 @@ namespace hal
         }
 
         if (deviceDescription && friendlyName && physicalDeviceObjectName && hardwareIds)
-            descriptions.push_back({ *deviceDescription, *friendlyName, *physicalDeviceObjectName, *matchingDeviceId, *hardwareIds });
+            descriptions.emplace_back({ *deviceDescription, *friendlyName, *physicalDeviceObjectName, *matchingDeviceId, *hardwareIds });
     }
 
     UartPortFinder::UartNotFound::UartNotFound(const std::string& portName)

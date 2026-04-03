@@ -71,7 +71,11 @@ namespace infra
     public:
         InputStreamWithReader();
         template<class Arg>
-        explicit InputStreamWithReader(Arg&& arg, std::enable_if_t<!std::is_same_v<InputStreamWithReader, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t> = nullptr);
+            requires (!std::is_same_v<InputStreamWithReader, std::remove_cv_t<std::remove_reference_t<Arg>>>)
+        explicit InputStreamWithReader(Arg&& arg)
+            : detail::StorageHolder<ReaderType, InputStreamWithReader<Parent, ReaderType>>(std::forward<Arg>(arg))
+            , Parent(this->storage, errorPolicy)
+        {}
         template<class Arg0, class Arg1, class... Args>
         explicit InputStreamWithReader(Arg0&& arg0, Arg1&& arg1, Args&&... args);
         template<class Storage, class... Args>
@@ -97,6 +101,7 @@ namespace infra
         InputStreamWithErrorPolicy(StreamReader& reader, SoftFail);
         InputStreamWithErrorPolicy(StreamReader& reader, NoFail);
         InputStreamWithErrorPolicy(const InputStreamWithErrorPolicy& other);
+        InputStreamWithErrorPolicy(InputStreamWithErrorPolicy&&) noexcept = default;
         InputStreamWithErrorPolicy& operator=(const InputStreamWithErrorPolicy& other) = delete;
         ~InputStreamWithErrorPolicy() = default;
 
@@ -220,13 +225,6 @@ namespace infra
     template<class Parent, class ReaderType>
     InputStreamWithReader<Parent, ReaderType>::InputStreamWithReader()
         : Parent(this->storage, errorPolicy)
-    {}
-
-    template<class Parent, class ReaderType>
-    template<class Arg>
-    InputStreamWithReader<Parent, ReaderType>::InputStreamWithReader(Arg&& arg, std::enable_if_t<!std::is_same_v<InputStreamWithReader, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t>)
-        : detail::StorageHolder<ReaderType, InputStreamWithReader<Parent, ReaderType>>(std::forward<Arg>(arg))
-        , Parent(this->storage, errorPolicy)
     {}
 
     template<class Parent, class ReaderType>

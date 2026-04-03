@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
+#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -95,32 +96,32 @@ namespace infra
     template<class T>
     void StaticStorage<T>::Destruct() const
     {
-        reinterpret_cast<const T&>(data).~T();
+        std::launder(reinterpret_cast<const T*>(&data))->~T();
         std::fill(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&data)), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&data)) + sizeof(data), 0xbe);
     }
 
     template<class T>
     T& StaticStorage<T>::operator*()
     {
-        return reinterpret_cast<T&>(data);
+        return *std::launder(reinterpret_cast<T*>(&data));
     }
 
     template<class T>
     const T& StaticStorage<T>::operator*() const
     {
-        return reinterpret_cast<const T&>(data);
+        return *std::launder(reinterpret_cast<const T*>(&data));
     }
 
     template<class T>
     T* StaticStorage<T>::operator->()
     {
-        return reinterpret_cast<T*>(&data);
+        return std::launder(reinterpret_cast<T*>(&data));
     }
 
     template<class T>
     const T* StaticStorage<T>::operator->() const
     {
-        return reinterpret_cast<const T*>(&data);
+        return std::launder(reinterpret_cast<const T*>(&data));
     }
 
     template<class T, std::size_t ExtraSize, class AlignAs>

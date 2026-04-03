@@ -64,7 +64,8 @@ namespace infra
             static constexpr bool value = std::is_integral<T>::value || std::is_enum<T>::value;
         };
 
-        template<class T, typename std::enable_if<IntegralOrEnum<T>::value, T>::type* = nullptr>
+        template<class T>
+            requires IntegralOrEnum<T>::value
         void Add(const char* tagName, T v)
         {
             using type = typename infra::NormalizedIntegralType<T>::type;
@@ -72,7 +73,8 @@ namespace infra
             return Add(tagName, static_cast<type>(v));
         }
 
-        template<class T, typename std::enable_if<IntegralOrEnum<T>::value, T>::type* = nullptr>
+        template<class T>
+            requires IntegralOrEnum<T>::value
         void Add(JsonString tagName, T v)
         {
             using type = typename infra::NormalizedIntegralType<T>::type;

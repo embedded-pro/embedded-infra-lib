@@ -66,7 +66,7 @@ namespace infra
             _MSC_VER 1929 is MSVC++ 14.28 that ships with Visual Studio 2019 version 16.11.2
         */
         OutputStream(const OutputStream& other);
-        OutputStream(OutputStream&& other);
+        OutputStream(OutputStream&& other) noexcept;
 
         OutputStream& operator=(const OutputStream&) = delete;
         OutputStream& operator=(OutputStream&&) = delete;
@@ -95,7 +95,11 @@ namespace infra
     public:
         OutputStreamWithWriter();
         template<class Arg>
-        explicit OutputStreamWithWriter(Arg&& arg, std::enable_if_t<!std::is_same_v<OutputStreamWithWriter, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t> = nullptr);
+            requires (!std::is_same_v<OutputStreamWithWriter, std::remove_cv_t<std::remove_reference_t<Arg>>>)
+        explicit OutputStreamWithWriter(Arg&& arg)
+            : detail::StorageHolder<WriterType, OutputStreamWithWriter<Parent, WriterType>>(std::forward<Arg>(arg))
+            , Parent(this->storage, errorPolicy)
+        {}
         template<class Arg0, class Arg1, class... Args>
         explicit OutputStreamWithWriter(Arg0&& arg0, Arg1&& arg1, Args&&... args);
         template<class Storage, class... Args>
@@ -121,6 +125,7 @@ namespace infra
         OutputStreamWithErrorPolicy(StreamWriter& writer, SoftFail);
         OutputStreamWithErrorPolicy(StreamWriter& writer, NoFail);
         OutputStreamWithErrorPolicy(const OutputStreamWithErrorPolicy& other);
+        OutputStreamWithErrorPolicy(OutputStreamWithErrorPolicy&&) noexcept = default;
         OutputStreamWithErrorPolicy& operator=(const OutputStreamWithErrorPolicy& other) = delete;
         ~OutputStreamWithErrorPolicy() = default;
 
@@ -182,7 +187,8 @@ namespace infra
             static constexpr bool value = std::is_integral<T>::value || std::is_enum<T>::value;
         };
 
-        template<class T, typename std::enable_if<IntegralOrEnum<T>::value, T>::type* = nullptr>
+        template<class T>
+            requires IntegralOrEnum<T>::value
         TextOutputStream& operator<<(T v)
         {
             using type = typename infra::NormalizedIntegralType<T>::type;
@@ -377,13 +383,6 @@ namespace infra
     template<class Parent, class WriterType>
     OutputStreamWithWriter<Parent, WriterType>::OutputStreamWithWriter()
         : Parent(this->storage, errorPolicy)
-    {}
-
-    template<class Parent, class WriterType>
-    template<class Arg>
-    OutputStreamWithWriter<Parent, WriterType>::OutputStreamWithWriter(Arg&& arg, std::enable_if_t<!std::is_same_v<OutputStreamWithWriter, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t>)
-        : detail::StorageHolder<WriterType, OutputStreamWithWriter<Parent, WriterType>>(std::forward<Arg>(arg))
-        , Parent(this->storage, errorPolicy)
     {}
 
     template<class Parent, class WriterType>

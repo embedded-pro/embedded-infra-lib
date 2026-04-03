@@ -63,7 +63,7 @@ namespace application
 
     void SupportedTargetsBuilder::AddInOrder(const SupportedTargets::Target& target)
     {
-        if (order)
+        if (order.has_value())
         {
             targets.order[*order].emplace_back(target);
             order = std::nullopt;

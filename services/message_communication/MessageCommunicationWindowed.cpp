@@ -145,7 +145,7 @@ namespace services
             if (receivedData.Empty())
                 state.Emplace<StateSendingInitResponse>(*this);
         }
-        else if (requestedSendMessageSize && WindowSize(*requestedSendMessageSize) <= otherAvailableWindow)
+        else if (requestedSendMessageSize.has_value() && WindowSize(*requestedSendMessageSize) <= otherAvailableWindow)
             state.Emplace<StateSendingMessage>(*this);
         else if (releasedWindow != 0)
             state.Emplace<StateSendingReleaseWindow>(*this);

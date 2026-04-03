@@ -2,10 +2,12 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include <algorithm>
 #include <cctype>
+#include <iterator>
 
 namespace
 {
     template<class Iterator>
+        requires std::derived_from<typename std::iterator_traits<Iterator>::iterator_category, std::forward_iterator_tag>
     bool Equal(Iterator leftBegin, Iterator leftEnd, Iterator rightBegin, Iterator rightEnd)
     {
         while (leftBegin != leftEnd && rightBegin != rightEnd)
@@ -145,11 +147,6 @@ namespace infra
         : source(source)
     {}
 
-    bool JsonString::operator==(const JsonString& other) const
-    {
-        return source == other.source;
-    }
-
     bool JsonString::operator==(infra::BoundedConstString other) const
     {
         auto x = begin();
@@ -278,11 +275,6 @@ namespace infra
         , negative(negative)
     {}
 
-    bool JsonBiggerInt::operator==(const JsonBiggerInt& other) const
-    {
-        return value == other.value && negative == other.negative;
-    }
-
     uint64_t JsonBiggerInt::Value() const
     {
         return value;
@@ -303,41 +295,6 @@ namespace infra
 
     namespace JsonToken
     {
-        bool End::operator==(const End&) const
-        {
-            return true;
-        }
-
-        bool Error::operator==(const Error&) const
-        {
-            return true;
-        }
-
-        bool Colon::operator==(const Colon&) const
-        {
-            return true;
-        }
-
-        bool Comma::operator==(const Comma&) const
-        {
-            return true;
-        }
-
-        bool Dot::operator==(const Dot&) const
-        {
-            return true;
-        }
-
-        bool Null::operator==(const Null&) const
-        {
-            return true;
-        }
-
-        bool LeftBrace::operator==(const LeftBrace& other) const
-        {
-            return index == other.index;
-        }
-
         LeftBrace::LeftBrace(std::size_t index)
             : index(index)
         {}
@@ -345,11 +302,6 @@ namespace infra
         std::size_t LeftBrace::Index() const
         {
             return index;
-        }
-
-        bool RightBrace::operator==(const RightBrace& other) const
-        {
-            return index == other.index;
         }
 
         RightBrace::RightBrace(std::size_t index)
@@ -361,11 +313,6 @@ namespace infra
             return index;
         }
 
-        bool LeftBracket::operator==(const LeftBracket& other) const
-        {
-            return index == other.index;
-        }
-
         LeftBracket::LeftBracket(std::size_t index)
             : index(index)
         {}
@@ -375,11 +322,6 @@ namespace infra
             return index;
         }
 
-        bool RightBracket::operator==(const RightBracket& other) const
-        {
-            return index == other.index;
-        }
-
         RightBracket::RightBracket(std::size_t index)
             : index(index)
         {}
@@ -387,11 +329,6 @@ namespace infra
         std::size_t RightBracket::Index() const
         {
             return index;
-        }
-
-        bool String::operator==(const String& other) const
-        {
-            return value == other.value;
         }
 
         String::String(infra::BoundedConstString value)
@@ -406,11 +343,6 @@ namespace infra
         BoundedConstString String::RawValue() const
         {
             return value.Raw();
-        }
-
-        bool Boolean::operator==(const Boolean& other) const
-        {
-            return value == other.value;
         }
 
         Boolean::Boolean(bool value)
@@ -746,11 +678,6 @@ namespace infra
 
         bool result = Equal(left.begin(), left.end(), right.begin(), right.end());
         return result && !left.Error() && !right.Error();
-    }
-
-    bool JsonKeyValue::operator==(const JsonKeyValue& other) const
-    {
-        return key == other.key && value == other.value;
     }
 
     JsonIterator::JsonIterator(infra::BoundedConstString objectString)

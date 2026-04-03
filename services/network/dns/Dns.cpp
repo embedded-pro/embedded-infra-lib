@@ -157,7 +157,7 @@ namespace services
                 auto offsetLow = stream.Extract<uint8_t>();
                 uint16_t offset = offsetLow + (offsetHigh << 8);
 
-                if (!finalPosition)
+                if (!finalPosition.has_value())
                     finalPosition = reader.ConstructSaveMarker();
 
                 size = 0;

@@ -315,7 +315,7 @@ namespace services
             }
 
             ConnectionObserver::Subject().AckReceived();
-            *contentLength = chunkLength;
+            contentLength = chunkLength;
             firstChunk = false;
             chunkSizeReader = nullptr;
 

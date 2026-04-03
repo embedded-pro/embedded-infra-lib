@@ -45,7 +45,7 @@ namespace infra
         JsonString(infra::BoundedConstString source);
         JsonString(const char* source);
 
-        bool operator==(const JsonString& other) const;
+        bool operator==(const JsonString& other) const = default;
 
         bool operator==(infra::BoundedConstString other) const;
         friend bool operator==(infra::BoundedConstString x, JsonString y);
@@ -95,7 +95,7 @@ namespace infra
         JsonBiggerInt() = default;
         JsonBiggerInt(uint64_t value, bool negative);
 
-        bool operator==(const JsonBiggerInt& other) const;
+        bool operator==(const JsonBiggerInt& other) const = default;
 
         uint64_t Value() const;
         bool Negative() const;
@@ -110,37 +110,37 @@ namespace infra
         class End
         {
         public:
-            bool operator==(const End& other) const;
+            bool operator==(const End& other) const = default;
         };
 
         class Error
         {
         public:
-            bool operator==(const Error& other) const;
+            bool operator==(const Error& other) const = default;
         };
 
         class Colon
         {
         public:
-            bool operator==(const Colon& other) const;
+            bool operator==(const Colon& other) const = default;
         };
 
         class Comma
         {
         public:
-            bool operator==(const Comma& other) const;
+            bool operator==(const Comma& other) const = default;
         };
 
         class Dot
         {
         public:
-            bool operator==(const Dot& other) const;
+            bool operator==(const Dot& other) const = default;
         };
 
         class Null
         {
         public:
-            bool operator==(const Null& other) const;
+            bool operator==(const Null& other) const = default;
         };
 
         class LeftBrace
@@ -148,7 +148,7 @@ namespace infra
         public:
             explicit LeftBrace(std::size_t index);
 
-            bool operator==(const LeftBrace& other) const;
+            bool operator==(const LeftBrace& other) const = default;
 
             std::size_t Index() const;
 
@@ -161,7 +161,7 @@ namespace infra
         public:
             explicit RightBrace(std::size_t index);
 
-            bool operator==(const RightBrace& other) const;
+            bool operator==(const RightBrace& other) const = default;
 
             std::size_t Index() const;
 
@@ -174,7 +174,7 @@ namespace infra
         public:
             explicit LeftBracket(std::size_t index);
 
-            bool operator==(const LeftBracket& other) const;
+            bool operator==(const LeftBracket& other) const = default;
 
             std::size_t Index() const;
 
@@ -187,7 +187,7 @@ namespace infra
         public:
             explicit RightBracket(std::size_t index);
 
-            bool operator==(const RightBracket& other) const;
+            bool operator==(const RightBracket& other) const = default;
 
             std::size_t Index() const;
 
@@ -200,7 +200,7 @@ namespace infra
         public:
             explicit String(infra::BoundedConstString value);
 
-            bool operator==(const String& other) const;
+            bool operator==(const String& other) const = default;
 
             JsonString Value() const;
             BoundedConstString RawValue() const;
@@ -214,7 +214,7 @@ namespace infra
         public:
             explicit Boolean(bool value);
 
-            bool operator==(const Boolean& other) const;
+            bool operator==(const Boolean& other) const = default;
 
             bool Value() const;
 
@@ -328,7 +328,7 @@ namespace infra
 
     struct JsonKeyValue
     {
-        bool operator==(const JsonKeyValue& other) const;
+        bool operator==(const JsonKeyValue& other) const = default;
 
         JsonString key;
         JsonValue value;

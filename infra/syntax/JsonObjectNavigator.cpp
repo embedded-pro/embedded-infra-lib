@@ -10,7 +10,7 @@ namespace infra
         : object(object)
     {}
 
-    JsonObjectNavigator JsonObjectNavigator::operator/(JsonObjectNavigatorToken token) const
+    JsonObjectNavigator JsonObjectNavigator::operator/(const JsonObjectNavigatorToken& token) const
     {
         auto subObject = object.GetOptionalObject(token.name);
         if (subObject == std::nullopt)
@@ -19,7 +19,7 @@ namespace infra
         return { *subObject };
     }
 
-    JsonOptionalObjectNavigator JsonObjectNavigator::operator/(JsonOptionalObjectNavigatorToken token) const
+    JsonOptionalObjectNavigator JsonObjectNavigator::operator/(const JsonOptionalObjectNavigatorToken& token) const
     {
         auto subObject = object.GetOptionalObject(token.name);
         if (subObject == std::nullopt)
@@ -28,7 +28,7 @@ namespace infra
         return { *subObject };
     }
 
-    JsonArrayNavigator JsonObjectNavigator::operator/(JsonArrayNavigatorToken token) const
+    JsonArrayNavigator JsonObjectNavigator::operator/(const JsonArrayNavigatorToken& token) const
     {
         auto subArray = object.GetOptionalArray(token.name);
         if (subArray == std::nullopt)
@@ -37,7 +37,7 @@ namespace infra
         return { *subArray };
     }
 
-    JsonOptionalArrayNavigator JsonObjectNavigator::operator/(JsonOptionalArrayNavigatorToken token) const
+    JsonOptionalArrayNavigator JsonObjectNavigator::operator/(const JsonOptionalArrayNavigatorToken& token) const
     {
         auto subArray = object.GetOptionalArray(token.name);
         if (subArray == std::nullopt)
@@ -46,7 +46,7 @@ namespace infra
         return { *subArray };
     }
 
-    std::string JsonObjectNavigator::operator/(JsonStringNavigatorToken token) const
+    std::string JsonObjectNavigator::operator/(const JsonStringNavigatorToken& token) const
     {
         auto member = object.GetOptionalString(token.name);
         if (member == std::nullopt)
@@ -55,14 +55,14 @@ namespace infra
         return member->ToStdString();
     }
 
-    std::optional<std::string> JsonObjectNavigator::operator/(JsonOptionalStringNavigatorToken token) const
+    std::optional<std::string> JsonObjectNavigator::operator/(const JsonOptionalStringNavigatorToken& token) const
     {
         auto member = object.GetOptionalString(token.name);
 
         return member ? std::make_optional(member->ToStdString()) : std::nullopt;
     }
 
-    int32_t JsonObjectNavigator::operator/(JsonIntegerNavigatorToken token) const
+    int32_t JsonObjectNavigator::operator/(const JsonIntegerNavigatorToken& token) const
     {
         auto member = object.GetOptionalInteger(token.name);
         if (member == std::nullopt)
@@ -71,7 +71,7 @@ namespace infra
         return *member;
     }
 
-    bool JsonObjectNavigator::operator/(JsonBoolNavigatorToken token) const
+    bool JsonObjectNavigator::operator/(const JsonBoolNavigatorToken& token) const
     {
         auto member = object.GetOptionalBoolean(token.name);
         if (member == std::nullopt)
@@ -88,7 +88,7 @@ namespace infra
         : navigator(std::in_place, navigator)
     {}
 
-    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(JsonObjectNavigatorToken token) const
+    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(const JsonObjectNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return *navigator / token;
@@ -96,7 +96,7 @@ namespace infra
             return {};
     }
 
-    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(JsonOptionalObjectNavigatorToken token) const
+    JsonOptionalObjectNavigator JsonOptionalObjectNavigator::operator/(const JsonOptionalObjectNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return *navigator / token;
@@ -104,7 +104,7 @@ namespace infra
             return {};
     }
 
-    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(JsonArrayNavigatorToken token) const
+    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(const JsonArrayNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return *navigator / token;
@@ -112,7 +112,7 @@ namespace infra
             return {};
     }
 
-    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(JsonOptionalArrayNavigatorToken token) const
+    JsonOptionalArrayNavigator JsonOptionalObjectNavigator::operator/(const JsonOptionalArrayNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return *navigator / token;
@@ -120,7 +120,7 @@ namespace infra
             return {};
     }
 
-    std::optional<std::string> JsonOptionalObjectNavigator::operator/(JsonStringNavigatorToken token) const
+    std::optional<std::string> JsonOptionalObjectNavigator::operator/(const JsonStringNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return std::make_optional(*navigator / token);
@@ -128,7 +128,7 @@ namespace infra
             return {};
     }
 
-    std::optional<std::string> JsonOptionalObjectNavigator::operator/(JsonOptionalStringNavigatorToken token) const
+    std::optional<std::string> JsonOptionalObjectNavigator::operator/(const JsonOptionalStringNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return *navigator / token;
@@ -136,7 +136,7 @@ namespace infra
             return {};
     }
 
-    std::optional<int32_t> JsonOptionalObjectNavigator::operator/(JsonIntegerNavigatorToken token) const
+    std::optional<int32_t> JsonOptionalObjectNavigator::operator/(const JsonIntegerNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return std::make_optional(*navigator / token);
@@ -144,7 +144,7 @@ namespace infra
             return {};
     }
 
-    std::optional<bool> JsonOptionalObjectNavigator::operator/(JsonBoolNavigatorToken token) const
+    std::optional<bool> JsonOptionalObjectNavigator::operator/(const JsonBoolNavigatorToken& token) const
     {
         if (navigator != std::nullopt)
             return std::make_optional(*navigator / token);

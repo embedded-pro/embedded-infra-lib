@@ -28,7 +28,10 @@ namespace infra
         template<class T>
         WithStorage(std::in_place_t, std::initializer_list<T> initializerList);
         template<class Arg>
-        WithStorage(Arg&& arg, std::enable_if_t<!std::is_same_v<WithStorage, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t> = nullptr);
+            requires (!std::is_same_v<WithStorage, std::remove_cv_t<std::remove_reference_t<Arg>>>)
+        WithStorage(Arg&& arg)
+            : Base(detail::StorageHolder<StorageType, Base>::storage, std::forward<Arg>(arg))
+        {}
         template<class Arg0, class Arg1, class... Args>
         WithStorage(Arg0&& arg0, Arg1&& arg1, Args&&... args);
         template<class T, class... Args>
@@ -68,7 +71,10 @@ namespace infra
         public:
             StorageHolder() = default;
             template<class Arg>
-            StorageHolder(Arg&& arg, std::enable_if_t<!std::is_same_v<StorageHolder, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t> = nullptr);
+                requires (!std::is_same_v<StorageHolder, std::remove_cv_t<std::remove_reference_t<Arg>>>)
+            StorageHolder(Arg&& arg)
+                : storage(std::forward<Arg>(arg))
+            {}
             template<class Arg0, class Arg1, class... Args>
             StorageHolder(Arg0&& arg0, Arg1&& arg1, Args&&... args);
 
@@ -95,12 +101,6 @@ namespace infra
     WithStorage<Base, StorageType>::WithStorage(std::in_place_t, std::initializer_list<T> initializerList)
         : detail::StorageHolder<StorageType, Base>(initializerList)
         , Base(detail::StorageHolder<StorageType, Base>::storage)
-    {}
-
-    template<class Base, class StorageType>
-    template<class Arg>
-    WithStorage<Base, StorageType>::WithStorage(Arg&& arg, std::enable_if_t<!std::is_same_v<WithStorage, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t>)
-        : Base(detail::StorageHolder<StorageType, Base>::storage, std::forward<Arg>(arg))
     {}
 
     template<class Base, class StorageType>
@@ -163,12 +163,6 @@ namespace infra
 
     namespace detail
     {
-        template<class StorageType, class Base>
-        template<class Arg>
-        StorageHolder<StorageType, Base>::StorageHolder(Arg&& arg, std::enable_if_t<!std::is_same_v<StorageHolder, std::remove_cv_t<std::remove_reference_t<Arg>>>, std::nullptr_t>)
-            : storage(std::forward<Arg>(arg))
-        {}
-
         template<class StorageType, class Base>
         template<class Arg0, class Arg1, class... Args>
         StorageHolder<StorageType, Base>::StorageHolder(Arg0&& arg0, Arg1&& arg1, Args&&... args)

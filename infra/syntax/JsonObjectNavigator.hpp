@@ -100,14 +100,14 @@ namespace infra
         explicit JsonObjectNavigator(const std::string& contents);
         JsonObjectNavigator(const infra::JsonObject& object);
 
-        JsonObjectNavigator operator/(JsonObjectNavigatorToken token) const;
-        JsonOptionalObjectNavigator operator/(JsonOptionalObjectNavigatorToken token) const;
-        JsonArrayNavigator operator/(JsonArrayNavigatorToken token) const;
-        JsonOptionalArrayNavigator operator/(JsonOptionalArrayNavigatorToken token) const;
-        std::string operator/(JsonStringNavigatorToken token) const;
-        std::optional<std::string> operator/(JsonOptionalStringNavigatorToken token) const;
-        int32_t operator/(JsonIntegerNavigatorToken token) const;
-        bool operator/(JsonBoolNavigatorToken token) const;
+        JsonObjectNavigator operator/(const JsonObjectNavigatorToken& token) const;
+        JsonOptionalObjectNavigator operator/(const JsonOptionalObjectNavigatorToken& token) const;
+        JsonArrayNavigator operator/(const JsonArrayNavigatorToken& token) const;
+        JsonOptionalArrayNavigator operator/(const JsonOptionalArrayNavigatorToken& token) const;
+        std::string operator/(const JsonStringNavigatorToken& token) const;
+        std::optional<std::string> operator/(const JsonOptionalStringNavigatorToken& token) const;
+        int32_t operator/(const JsonIntegerNavigatorToken& token) const;
+        bool operator/(const JsonBoolNavigatorToken& token) const;
 
         template<class Result>
         Result operator/(JsonTransformObjectNavigatorToken<Result> token) const;
@@ -133,14 +133,14 @@ namespace infra
         JsonOptionalObjectNavigator(infra::JsonObject& object);
         JsonOptionalObjectNavigator(const JsonObjectNavigator& navigator);
 
-        JsonOptionalObjectNavigator operator/(JsonObjectNavigatorToken token) const;
-        JsonOptionalObjectNavigator operator/(JsonOptionalObjectNavigatorToken token) const;
-        JsonOptionalArrayNavigator operator/(JsonArrayNavigatorToken token) const;
-        JsonOptionalArrayNavigator operator/(JsonOptionalArrayNavigatorToken token) const;
-        std::optional<std::string> operator/(JsonStringNavigatorToken token) const;
-        std::optional<std::string> operator/(JsonOptionalStringNavigatorToken token) const;
-        std::optional<int32_t> operator/(JsonIntegerNavigatorToken token) const;
-        std::optional<bool> operator/(JsonBoolNavigatorToken token) const;
+        JsonOptionalObjectNavigator operator/(const JsonObjectNavigatorToken& token) const;
+        JsonOptionalObjectNavigator operator/(const JsonOptionalObjectNavigatorToken& token) const;
+        JsonOptionalArrayNavigator operator/(const JsonArrayNavigatorToken& token) const;
+        JsonOptionalArrayNavigator operator/(const JsonOptionalArrayNavigatorToken& token) const;
+        std::optional<std::string> operator/(const JsonStringNavigatorToken& token) const;
+        std::optional<std::string> operator/(const JsonOptionalStringNavigatorToken& token) const;
+        std::optional<int32_t> operator/(const JsonIntegerNavigatorToken& token) const;
+        std::optional<bool> operator/(const JsonBoolNavigatorToken& token) const;
 
         template<class Result>
         std::optional<Result> operator/(JsonTransformObjectNavigatorToken<Result> token) const;
