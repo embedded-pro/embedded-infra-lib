@@ -87,9 +87,9 @@ jobs:
         id: cache-winsdk
         with:
           path: /winsdk
-          key: cache-winsdk-10.0.26100-14.42.34433
+          key: cache-winsdk-10.0.26100-14.43.17.13
       - if: ${{ steps.cache-winsdk.outputs.cache-hit != 'true' }}
-        run: xwin --accept-license --sdk-version "10.0.26100" --crt-version "14.42.34433" splat --preserve-ms-arch-notation --include-debug-libs && mv .xwin-cache/splat/ /winsdk
+        run: xwin --accept-license --sdk-version "10.0.26100" --crt-version "14.43.17.13" splat --preserve-ms-arch-notation --include-debug-libs && mv .xwin-cache/splat/ /winsdk
       - uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
         with:
           key: ${{ github.job }}-clang-msvc
