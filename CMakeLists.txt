@@ -100,6 +100,7 @@ set(EMIL_EXTERNAL_MBEDTLS_TARGET "" CACHE STRING "Specify an external MbedTLS ta
 option(EMIL_INCLUDE_FREERTOS "Include FreeRTOS as part of EmIL" Off)
 option(EMIL_INCLUDE_THREADX "Include ThreadX as part of EmIL (Incomplete, experimental)" Off)
 option(EMIL_INCLUDE_SEGGER_RTT "Include support for Segger RTT" Off)
+option(EMIL_INCLUDE_LWIP "Include LwIP TCP/IP stack" On)
 set(EMIL_EXTERNAL_LWIP_TARGET "" CACHE STRING "Specify an external LWIP target")
 
 if (EMIL_ENABLE_DOCKER_TOOLS)

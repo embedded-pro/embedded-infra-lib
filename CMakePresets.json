@@ -65,7 +65,8 @@
         "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
         "EMIL_BUILD_TESTS": "Off",
         "EMIL_BUILD_EXAMPLES": "Off",
-        "EMIL_INCLUDE_ECHO": "Off"
+        "EMIL_INCLUDE_ECHO": "Off",
+        "EMIL_INCLUDE_LWIP": "Off"
       },
       "generator": "Ninja Multi-Config"
     },
