@@ -72,7 +72,7 @@ namespace infra
             StorageHolder() = default;
             template<class Arg>
                 requires (!std::is_same_v<StorageHolder, std::remove_cv_t<std::remove_reference_t<Arg>>>)
-            StorageHolder(Arg&& arg)
+            explicit StorageHolder(Arg&& arg)
                 : storage(std::forward<Arg>(arg))
             {}
             template<class Arg0, class Arg1, class... Args>

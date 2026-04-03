@@ -168,7 +168,7 @@ namespace hal
         }
 
         if (deviceDescription && friendlyName && physicalDeviceObjectName && hardwareIds)
-            descriptions.emplace_back({ *deviceDescription, *friendlyName, *physicalDeviceObjectName, *matchingDeviceId, *hardwareIds });
+            descriptions.emplace_back(*deviceDescription, *friendlyName, *physicalDeviceObjectName, *matchingDeviceId, *hardwareIds);
     }
 
     UartPortFinder::UartNotFound::UartNotFound(const std::string& portName)

@@ -246,14 +246,14 @@ namespace infra
         template<class F>
         Result InvokerFunctions<Result(Args...), ExtraSize>::StaticInvoke(const InvokerFunctionsType& invokerFunctions, Args... args)
         {
-            return (*std::launder(reinterpret_cast<F*>(&const_cast<InvokerFunctionsType&>(invokerFunctions).data)))(std::forward<Args>(args)...);
+            return (*std::launder(const_cast<F*>(reinterpret_cast<const F*>(&invokerFunctions.data))))(std::forward<Args>(args)...);
         }
 
         template<std::size_t ExtraSize, class Result, class... Args>
         template<class F>
         void InvokerFunctions<Result(Args...), ExtraSize>::StaticDestruct(InvokerFunctionsType& invokerFunctions)
         {
-            std::launder(reinterpret_cast<F*>(&invokerFunctions.data))->~F();
+            std::launder(reinterpret_cast<F*>(&invokerFunctions.data))->~F(); //NOSONAR
             invokerFunctions.virtualMethodTable = FunctionType::ReinterpretAbortOnExecuteSentinelTable();
         }
 

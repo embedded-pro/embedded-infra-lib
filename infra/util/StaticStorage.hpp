@@ -96,7 +96,7 @@ namespace infra
     template<class T>
     void StaticStorage<T>::Destruct() const
     {
-        std::launder(reinterpret_cast<const T*>(&data))->~T();
+        std::launder(reinterpret_cast<const T*>(&data))->~T(); //NOSONAR
         std::fill(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&data)), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&data)) + sizeof(data), 0xbe);
     }
 
