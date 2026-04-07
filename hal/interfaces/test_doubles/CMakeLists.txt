@@ -18,6 +18,10 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     DigitalToAnalogPinImplMock.hpp
     FileSystemStub.cpp
     FileSystemStub.hpp
+    EepromMock.cpp
+    EepromMock.hpp
+    EepromStub.cpp
+    EepromStub.hpp
     FlashMock.cpp
     FlashMock.hpp
     FlashStub.cpp

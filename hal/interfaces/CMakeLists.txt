@@ -20,6 +20,7 @@ target_sources(hal.interfaces PRIVATE
     Can.hpp
     CommunicationConfigurator.hpp
     DigitalToAnalogPin.hpp
+    Eeprom.hpp
     Ethernet.hpp
     Flash.cpp
     Flash.hpp
