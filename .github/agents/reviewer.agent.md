@@ -95,7 +95,7 @@ Reference: [CodingStandard.md](../../docs/CodingStandard.md)
 - [ ] **ISP**: Interfaces are small and focused — no God interfaces
 - [ ] **DIP**: Dependencies injected via constructor, depend on abstractions
 - [ ] **Interface classes**: Pure virtual interfaces have no protected members (no ctor, no copy/move functions)
-- [ ] **Virtual destructors**: Avoided as much as possible to minimize memory overhead
+- [ ] **Virtual destructors**: No `virtual ~ClassName() = 0` on interface classes — pure virtual destructors add significant memory overhead
 
 ### 6. DRY (WARNING)
 
@@ -143,7 +143,7 @@ Reference: [ExecutionModel.md](../../docs/ExecutionModel.md)
 
 - [ ] Test files exist at `{module}/test/Test{ComponentName}.cpp`
 - [ ] Tests use GoogleTest (`TEST()` or `TEST_F()`) and GoogleMock
-- [ ] `testing::StrictMock<>` used for mock objects
+- [ ] `testing::StrictMock<>` used for mock objects — **no `testing::NiceMock<>` allowed**
 - [ ] Edge cases and boundary conditions tested
 - [ ] No heap allocation in tests
 - [ ] Tests follow Arrange-Act-Assert pattern

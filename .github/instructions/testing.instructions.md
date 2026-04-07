@@ -46,7 +46,7 @@ TEST(ComponentTest, specific_behavior_description)
 
 ## Rules
 
-- Use `testing::StrictMock<MockType>` for strict mock expectations
+- Use `testing::StrictMock<MockType>` for strict mock expectations — **never use `testing::NiceMock<>`**
 - Test edge cases and boundary conditions
 - Test one behavior per test — keep tests focused
 - Use descriptive test names that explain the scenario
