@@ -51,6 +51,7 @@ For each file to create or modify, specify:
 - Constructor parameters showing dependency injection
 
 #### Test Strategy
+- **TDD order**: Tests are designed and specified BEFORE implementation steps. The plan must list test cases first, then the implementation that satisfies them.
 - Test file locations: `{module}/test/Test{ComponentName}.cpp`
 - Test double locations: `{module}/test_doubles/` if mocks are needed
 - Key test cases to write (including edge cases and boundary conditions)
@@ -105,6 +106,7 @@ Before finalizing, verify the plan against these EmIL constraints:
 
 ### Style — Allman Braces, 4-Space Indent
 - [ ] Opening braces on new lines for classes, namespaces, functions
+- [ ] Brace initialization `{}` preferred over `()` for all variable and object initialization
 - [ ] 4-space indentation (no tabs)
 - [ ] Functions ~30 lines max (hard limit ~50)
 - [ ] No unnecessary comments — self-documenting code

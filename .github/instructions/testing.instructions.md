@@ -17,6 +17,13 @@ applyTo: "**/test/**"
 - GoogleMock for mocking (`testing::StrictMock<>`)
 - No heap allocation in tests — same rules as production code
 
+## TDD Approach
+
+Write tests BEFORE implementation (Red → Green → Refactor):
+1. **Red**: Write a failing test for the behavior you intend to implement
+2. **Green**: Write the minimal implementation to make the test pass
+3. **Refactor**: Clean up code with the tests as a safety net
+
 ## Test Pattern
 
 ```cpp
@@ -45,3 +52,4 @@ TEST(ComponentTest, specific_behavior_description)
 - Use descriptive test names that explain the scenario
 - Allman brace style and PascalCase naming apply to test code too
 - Use `really_assert()` death tests where appropriate
+- Prefer `{}` initialization over `()` for all variable and object initialization in test code
