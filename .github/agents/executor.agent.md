@@ -64,6 +64,8 @@ namespace services
 }
 ```
 
+- **Brace initialization**: Prefer `Type var{value}` over `Type var(value)` — use `{}` for all variable and object initialization
+
 ### Design Principles
 
 - **Single Responsibility**: One class = one concern
@@ -117,16 +119,17 @@ When a class schedules actions via `infra::EventDispatcherWithWeakPtr::Instance(
 - Request-based sending: call `RequestSendStream(size)`, write in `SendStreamAvailable()` callback
 - Never write directly to a connection
 
-## Implementation Workflow
+## Implementation Workflow — TDD (Red → Green → Refactor)
 
 1. **Read the plan or task** carefully
 2. **Search for existing patterns** in the codebase — follow them exactly
-3. **Implement changes** one file at a time, following all rules above
-4. **Create or update tests** for every change
-5. **Update CMakeLists.txt** if new files were added
-6. **Run code quality checks**: Ensure compliance with Sonarqube and Megalinter (clang-format, include ordering)
-7. **Build and test**: run `cmake --build --preset host` and `ctest --preset host`
-8. **Hand off to reviewer** using the handoff button
+3. **RED — Write failing tests first**: Create test files at `{module}/test/Test{ComponentName}.cpp` with all planned test cases before writing any production code. Tests must fail (or not compile) at this stage — this is expected.
+4. **GREEN — Write minimal implementation**: Write only enough production code to make the failing tests pass. Do not over-engineer at this stage.
+5. **REFACTOR — Clean up**: With passing tests as a safety net, improve code structure without changing behavior. Remove duplication, improve naming, extract helpers.
+6. **Update CMakeLists.txt** if new files were added
+7. **Run code quality checks**: Ensure compliance with Sonarqube and Megalinter (clang-format, include ordering)
+8. **Build and test**: `cmake --build --preset host` and `ctest --preset host` — all tests must pass
+9. **Hand off to reviewer** using the handoff button
 
 ## What NOT to Do
 

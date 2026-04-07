@@ -76,6 +76,7 @@ Reference: [CodingStandard.md](../../docs/CodingStandard.md)
 - [ ] 4-space indentation (no tabs)
 - [ ] Consistent with `.clang-format` rules
 - [ ] No trailing whitespace
+- [ ] Brace initialization `{}` preferred over `()` for all variable and object initialization
 - [ ] Blank line between method definitions
 - [ ] `public:` before `private:` in class declarations
 
@@ -146,6 +147,7 @@ Reference: [ExecutionModel.md](../../docs/ExecutionModel.md)
 - [ ] Edge cases and boundary conditions tested
 - [ ] No heap allocation in tests
 - [ ] Tests follow Arrange-Act-Assert pattern
+- [ ] Tests were written before implementation (TDD) — test files should exist alongside or precede production code commits
 
 ### 12. Connection Patterns (CRITICAL — if applicable)
 
