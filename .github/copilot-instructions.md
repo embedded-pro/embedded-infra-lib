@@ -209,7 +209,7 @@ public:
 - Write unit tests using GoogleTest and GoogleMock
 - Test files in `{module}/test/Test{ComponentName}.cpp`
 - Mock objects in `{module}/test_doubles/` directories
-- Use `testing::StrictMock<>` for strict expectations
+- Use `testing::StrictMock<>` — **never use `testing::NiceMock<>`**
 - Aim for high code coverage
 - Test edge cases and boundary conditions
 - Test pattern:
@@ -255,7 +255,7 @@ std::array<uint8_t, 256> buffer;
 ## Additional Guidelines
 
 - **RAII**: Use Resource Acquisition Is Initialization for resource management
-- **INTERFACES**: Define interfaces (pure virtual classes) for testability and flexibility
+- **INTERFACES**: Define interfaces (pure virtual classes) for testability and flexibility — do NOT add `virtual ~ClassName() = 0`; pure virtual destructors add significant memory overhead in embedded systems
 - **NAMESPACES**: Use the appropriate namespace for the module:
   - `infra` — Core utilities, containers, streams, timers
   - `hal` — Hardware abstraction layer

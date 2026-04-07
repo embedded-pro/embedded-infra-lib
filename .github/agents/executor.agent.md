@@ -77,7 +77,7 @@ namespace services
 - **`constexpr`**: Use for compile-time calculations
 - **Fixed-size types**: Prefer `uint8_t`, `int32_t`, etc., over `int`
 - **Interface classes**: Pure virtual interfaces should have no protected members (no ctor, no copy/move functions)
-- **Virtual destructors**: Avoid virtual destructors as much as possible to minimize memory overhead
+- **Virtual destructors**: Do NOT add `virtual ~ClassName() = 0` to interface classes — look for destructor-related bugs during implementation instead. Pure virtual destructors add significant vtable and memory overhead in embedded systems.
 
 ### Error Handling
 
@@ -90,7 +90,7 @@ namespace services
 - Test files: `{module}/test/Test{ComponentName}.cpp`
 - Test doubles: `{module}/test_doubles/`
 - Framework: GoogleTest + GoogleMock
-- Use `testing::StrictMock<>` for strict expectations
+- Use `testing::StrictMock<>` — **never use `testing::NiceMock<>`**
 - Test edge cases and boundary conditions
 - Pattern:
   ```cpp

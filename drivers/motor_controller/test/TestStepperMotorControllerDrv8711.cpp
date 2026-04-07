@@ -20,7 +20,7 @@ class StepperMotorControllerDrv8711Test
     , public infra::ClockFixture
 {
 public:
-    testing::NiceMock<hal::SpiMock> spi;
+    testing::StrictMock<hal::SpiMock> spi;
     hal::GpioPinStub faultPinStub;
     hal::GpioPinStub stallBemfPinStub;
     testing::StrictMock<AnalogToDigitalPinMilliVoltMock> bemfAdcMock;
@@ -32,10 +32,10 @@ class StepperMotorControllerDrv8711WithOptionalPinsTest
     , public infra::ClockFixture
 {
 public:
-    testing::NiceMock<hal::SpiMock> spi;
+    testing::StrictMock<hal::SpiMock> spi;
     hal::GpioPinStub faultPinStub;
     hal::GpioPinStub stallBemfPinStub;
-    testing::NiceMock<AnalogToDigitalPinMilliVoltMock> bemfAdcMock;
+    testing::StrictMock<AnalogToDigitalPinMilliVoltMock> bemfAdcMock;
     hal::GpioPinStub resetPinStub;
     hal::GpioPinStub sleepPinStub;
     drivers::StepperMotorControllerDrv8711 driver{ spi, faultPinStub, stallBemfPinStub, bemfAdcMock, resetPinStub, sleepPinStub };
@@ -256,10 +256,10 @@ TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, SetSleepFalseDrivesHig
 
 TEST_F(StepperMotorControllerDrv8711Test, ConstructorWithDummyResetAndSleepDoesNotCrash)
 {
-    testing::NiceMock<hal::SpiMock> spiLocal;
+    testing::StrictMock<hal::SpiMock> spiLocal;
     hal::GpioPinStub faultPin;
     hal::GpioPinStub stallBemfPin;
-    testing::NiceMock<AnalogToDigitalPinMilliVoltMock> adcMock;
+    testing::StrictMock<AnalogToDigitalPinMilliVoltMock> adcMock;
 
     drivers::StepperMotorControllerDrv8711 driverLocal(spiLocal, faultPin, stallBemfPin, adcMock);
 
@@ -272,10 +272,10 @@ class StepDirStepperMotorDrv8711DecoratorTest
     , public infra::ClockFixture
 {
 public:
-    testing::NiceMock<hal::SpiMock> spi;
+    testing::StrictMock<hal::SpiMock> spi;
     hal::GpioPinStub faultPinStub;
     hal::GpioPinStub stallBemfPinStub;
-    testing::NiceMock<AnalogToDigitalPinMilliVoltMock> bemfAdcMock;
+    testing::StrictMock<AnalogToDigitalPinMilliVoltMock> bemfAdcMock;
 
     hal::GpioPinStub stepPinStub;
     hal::GpioPinStub dirPinStub;
@@ -375,7 +375,7 @@ class DirectPwmStepperMotorDrv8711DecoratorTest
     , public infra::ClockFixture
 {
 public:
-    testing::NiceMock<hal::SpiMock> spi;
+    testing::StrictMock<hal::SpiMock> spi;
     hal::GpioPinStub faultPinStub;
     hal::GpioPinStub stallBemfPinStub;
     testing::StrictMock<AnalogToDigitalPinMilliVoltMock> bemfAdcMock;

@@ -55,7 +55,7 @@ For each file to create or modify, specify:
 - Test file locations: `{module}/test/Test{ComponentName}.cpp`
 - Test double locations: `{module}/test_doubles/` if mocks are needed
 - Key test cases to write (including edge cases and boundary conditions)
-- Use `testing::StrictMock<>` for strict expectations
+- Use `testing::StrictMock<>` — **never use `testing::NiceMock<>`**
 
 #### Build Integration
 - CMakeLists.txt changes needed
