@@ -29,6 +29,7 @@ Replace standard containers:
 ## Style
 
 - Allman braces (opening brace on new line), 4-space indent
+- Prefer `{}` initialization over `()` for all variable and object initialization
 - Functions ~30 lines max
 - Self-documenting code — avoid unnecessary comments
 - `const` on all non-mutating methods, `constexpr` where possible
