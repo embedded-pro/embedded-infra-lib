@@ -1,9 +1,7 @@
 add_library(services.network_instantiations STATIC)
-emil_build_for(services.network_instantiations HOST All PREREQUISITE_BOOL EMIL_STANDALONE)
+emil_build_for(services.network_instantiations HOST All)
 
 target_sources(services.network_instantiations PRIVATE
-    EchoInstantiation.cpp
-    EchoInstantiation.hpp
     NameLookup.cpp
     NameLookup.hpp
     NetworkAdapter.cpp
@@ -11,11 +9,7 @@ target_sources(services.network_instantiations PRIVATE
 )
 
 target_link_libraries(services.network_instantiations PUBLIC
-    services.echo
     services.network.connection
-    services.network.echo
-    services.network.http
-    services.network.websocket
 )
 
 if (EMIL_BUILD_WIN)
