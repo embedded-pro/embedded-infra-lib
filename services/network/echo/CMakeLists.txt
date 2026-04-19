@@ -12,13 +12,18 @@ target_link_libraries(services.network.echo PUBLIC
     services.tracer
 )
 
-target_link_libraries(services.network.echo PRIVATE
-    hal.generic
-)
+if (EMIL_HOST_BUILD)
+    target_link_libraries(services.network.echo PRIVATE
+        hal.generic
+    )
+
+    target_sources(services.network.echo PRIVATE
+        EchoInstantiationOnNetwork.cpp
+        EchoInstantiationOnNetwork.hpp
+    )
+endif()
 
 target_sources(services.network.echo PRIVATE
-    EchoInstantiationOnNetwork.cpp
-    EchoInstantiationOnNetwork.hpp
     EchoOnConnection.cpp
     EchoOnConnection.hpp
     Network.hpp
