@@ -1,4 +1,4 @@
-#include "services/network/echo/EchoInstantiationOnNetwork.hpp"
+#include "services/echo_instantiations/EchoInstantiationOnNetwork.hpp"
 #include "hal/generic/SynchronousRandomDataGeneratorGeneric.hpp"
 #include "infra/timer/Waiting.hpp"
 #include "services/tracer/TracingEchoInstantiation.hpp"
