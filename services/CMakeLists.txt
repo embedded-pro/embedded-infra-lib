@@ -7,16 +7,10 @@ add_subdirectory(synchronous_flash)
 add_subdirectory(synchronous_peripheral)
 add_subdirectory(util)
 
-if (EMIL_INCLUDE_NETWORK)
-    add_subdirectory(network)
-    add_subdirectory(network_instantiations)
-endif()
+add_subdirectory(network)
+add_subdirectory(network_instantiations)
 
 if (EMIL_INCLUDE_ECHO)
-    if (NOT EMIL_INCLUDE_NETWORK)
-        message(FATAL_ERROR "EMIL_INCLUDE_ECHO requires EMIL_INCLUDE_NETWORK to be enabled")
-    endif()
-
     add_subdirectory(ble)
     add_subdirectory(sesame)
     add_subdirectory(echo)
