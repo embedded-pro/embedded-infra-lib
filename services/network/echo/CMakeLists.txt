@@ -7,6 +7,9 @@ protocol_buffer_java(services.network.echo Network.proto)
 target_link_libraries(services.network.echo PUBLIC
     services.network.connection
     services.echo_core
+    services.network.http
+    services.network.websocket
+    services.tracer
 )
 
 target_sources(services.network.echo PRIVATE

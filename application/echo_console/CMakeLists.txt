@@ -10,6 +10,7 @@ if (EMIL_HOST_BUILD AND EMIL_INCLUDE_MBEDTLS)
         services.echo
         services.network_instantiations
         services.sesame
+        services.network.echo
     )
 
     target_sources(application.echo_console PRIVATE
