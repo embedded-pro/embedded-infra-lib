@@ -144,13 +144,13 @@ namespace infra
     }
 
     template<class T>
-    void SharedOptional<T>::Destruct(const void* object)
+    void SharedOptional<T>::Destruct(const void*)
     {
         this->object = std::nullopt;
     }
 
     template<class T>
-    void SharedOptional<T>::Deallocate(void* control)
+    void SharedOptional<T>::Deallocate(void*)
     {
         allocatable = true;
     }
