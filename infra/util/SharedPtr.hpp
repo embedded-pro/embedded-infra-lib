@@ -539,7 +539,7 @@ namespace infra
             static_cast<EnableSharedFromThis<typename T::EnableSharedFromThisType>&>(**object).MakeShared(*object);
         }
 
-        inline void MakeSharedFromThis(void* object)
+        inline void MakeSharedFromThis(void*)
         {}
     }
 
