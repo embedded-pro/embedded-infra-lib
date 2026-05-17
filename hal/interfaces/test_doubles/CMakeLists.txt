@@ -12,6 +12,7 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     AdcMultiChannelMock.hpp
     AdcMultiChannelStub.cpp
     AdcMultiChannelStub.hpp
+    AnalogComparatorMock.hpp
     AnalogToDigitalPinImplMock.hpp
     BleDtmMock.hpp
     CommunicationConfiguratorMock.hpp
