@@ -197,7 +197,7 @@ namespace infra
     template<>
     struct PrintParameterNames<>
     {
-        explicit PrintParameterNames(std::ostream* os)
+        explicit PrintParameterNames(std::ostream*)
         {}
     };
 

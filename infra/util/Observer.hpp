@@ -139,8 +139,8 @@ namespace infra
         ~Subject();
 
         friend class SingleObserver<ObserverType_, ObserverSubjectType>;
-        virtual void RegisterObserver(SingleObserver<ObserverType_, ObserverSubjectType>* observer);
-        virtual void UnregisterObserver(SingleObserver<ObserverType_, ObserverSubjectType>* observer);
+        virtual void RegisterObserver(SingleObserver<ObserverType_, ObserverSubjectType>* newObserver);
+        virtual void UnregisterObserver(SingleObserver<ObserverType_, ObserverSubjectType>* oldObserver);
 
     public:
         bool HasObserver() const;
@@ -179,11 +179,11 @@ namespace infra
     }
 
     template<class Descendant, class SubjectType_>
-    void Observer<Descendant, SubjectType_>::Attach(SubjectType& subject)
+    void Observer<Descendant, SubjectType_>::Attach(SubjectType& subjectToAttach)
     {
         Detach();
-        this->subject = &subject;
-        static_cast<infra::Subject<Descendant>&>(subject).RegisterObserver(this);
+        this->subject = &subjectToAttach;
+        static_cast<infra::Subject<Descendant>&>(subjectToAttach).RegisterObserver(this);
     }
 
     template<class Descendant, class SubjectType_>
@@ -234,10 +234,10 @@ namespace infra
     }
 
     template<class Descendant, class SubjectType_>
-    void SingleObserver<Descendant, SubjectType_>::Attach(SubjectType& subject)
+    void SingleObserver<Descendant, SubjectType_>::Attach(SubjectType& _subject)
     {
         Detach();
-        this->subject = &subject;
+        this->subject = &_subject;
         static_cast<infra::Subject<Descendant>*>(this->subject)->RegisterObserver(this);
     }
 
@@ -363,17 +363,17 @@ namespace infra
     }
 
     template<class ObserverType, class Helper>
-    void Subject<ObserverType, Helper>::RegisterObserver(SingleObserver<ObserverType, ObserverSubjectType>* observer)
+    void Subject<ObserverType, Helper>::RegisterObserver(SingleObserver<ObserverType, ObserverSubjectType>* newObserver)
     {
         assert(this->observer == nullptr);
-        this->observer = observer;
+        this->observer = newObserver;
     }
 
     template<class ObserverType, class Helper>
-    void Subject<ObserverType, Helper>::UnregisterObserver(SingleObserver<ObserverType, ObserverSubjectType>* observer)
+    void Subject<ObserverType, Helper>::UnregisterObserver(SingleObserver<ObserverType, ObserverSubjectType>* oldObserver)
     {
-        (void)observer; // Avoid warning in release mode
-        assert(this->observer == observer);
+        (void)oldObserver; // Avoid warning in release mode
+        assert(this->observer == oldObserver);
         this->observer = nullptr;
     }
 }
