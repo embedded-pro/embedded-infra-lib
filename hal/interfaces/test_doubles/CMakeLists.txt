@@ -33,7 +33,7 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     I2cMock.hpp
     I2cRegisterAccessMock.cpp
     I2cRegisterAccessMock.hpp
-    PulseWidthModulationMock.hpp
+    PwmMock.hpp
     QuadSpiStub.cpp
     QuadSpiStub.hpp
     RandomDataGeneratorMock.hpp
