@@ -11,6 +11,7 @@ target_link_libraries(hal.synchronous_interfaces PUBLIC
 
 target_sources(hal.synchronous_interfaces PRIVATE
     SynchronousAdc.hpp
+    SynchronousAnalogComparator.hpp
     SynchronousEncryptor.hpp
     SynchronousFlash.cpp
     SynchronousFlash.hpp
