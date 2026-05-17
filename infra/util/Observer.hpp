@@ -234,10 +234,10 @@ namespace infra
     }
 
     template<class Descendant, class SubjectType_>
-    void SingleObserver<Descendant, SubjectType_>::Attach(SubjectType& subject)
+    void SingleObserver<Descendant, SubjectType_>::Attach(SubjectType& _subject)
     {
         Detach();
-        this->subject = &subject;
+        this->subject = &_subject;
         static_cast<infra::Subject<Descendant>*>(this->subject)->RegisterObserver(this);
     }
 
