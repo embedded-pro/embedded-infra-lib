@@ -12,6 +12,7 @@ target_link_libraries(hal.interfaces PUBLIC
 
 target_sources(hal.interfaces PRIVATE
     AdcMultiChannel.hpp
+    AnalogComparator.hpp
     AnalogToDigitalPin.hpp
     AsyncGpio.cpp
     AsyncGpio.hpp
@@ -37,7 +38,7 @@ target_sources(hal.interfaces PRIVATE
     I2cRegisterAccess.hpp
     MacAddress.cpp
     MacAddress.hpp
-    PulseWidthModulation.hpp
+    Pwm.hpp
     QuadSpi.cpp
     QuadSpi.hpp
     RandomDataGenerator.hpp
