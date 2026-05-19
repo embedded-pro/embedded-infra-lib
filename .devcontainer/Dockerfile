@@ -1,3 +1,5 @@
 FROM gabrielfrasantos/embedded-devcontainer-cpp:latest@sha256:7a175a091628c1b74de2a0570e49948050f11320eba8709e647ad480a4928086
 
+RUN xwin --accept-license --sdk-version 10.0.26100 --crt-version 14.44.17.14 --timeout 120s splat --preserve-ms-arch-notation --include-debug-libs --output /winsdk
+
 HEALTHCHECK NONE
