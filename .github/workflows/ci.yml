@@ -152,7 +152,7 @@ jobs:
     needs: [host_build_test_ubuntu]
     strategy:
       matrix:
-        gcc: ["13.2.Rel1"]
+        gcc: ["15.2.Rel1"]
         configuration: ["RelWithDebInfo"]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
