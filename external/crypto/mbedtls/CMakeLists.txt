@@ -47,6 +47,8 @@ function(add_mbedtls_target_properties)
             $<$<CXX_COMPILER_ID:AppleClang>:-Wno-documentation -Wno-conversion>
             # Warning treated as error when implicit conversion within mbedtls
             $<$<CXX_COMPILER_ID:GNU>:-Wno-conversion>
+            # Warnings treated as error since gcc-15
+            $<$<CXX_COMPILER_ID:GNU>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15.0.0>:-Wno-unterminated-string-initialization>>
             # Warnings treated as error since clang-22
             $<$<CXX_COMPILER_ID:Clang>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22.0.0>:-Wno-uninitialized-const-pointer>>
             $<$<CXX_COMPILER_ID:Clang>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22.0.0>:-Wno-unterminated-string-initialization>>
