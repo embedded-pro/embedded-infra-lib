@@ -9,7 +9,7 @@
   "runArgs": ["--add-host=host.docker.internal:host-gateway", "--privileged"],
   "customizations": {
     "vscode": {
-      "extensions": ["JacquesLucke.gcov-viewer@0.5.0"],
+      "extensions": ["JacquesLucke.gcov-viewer@0.5.0", "anthropic.claude-code"],
       "settings": {
         "C_Cpp.autoAddFileAssociations": false,
         "cmake.statusbar.visibility": "default",
