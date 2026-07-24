@@ -59,6 +59,7 @@ function(add_mbedtls_target_properties)
             "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>"
         )
 
+        set_target_properties(${target} PROPERTIES COMPILE_WARNING_AS_ERROR Off)
         set_target_properties(${target} PROPERTIES FOLDER External/MbedTLS)
     endforeach()
 endfunction()
