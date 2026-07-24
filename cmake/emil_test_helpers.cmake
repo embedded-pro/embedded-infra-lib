@@ -12,6 +12,13 @@ function(emil_fetch_googletest)
 
     FetchContent_MakeAvailable(googletest)
 
+    foreach(target gtest gtest_main gmock gmock_main)
+        get_target_property(includeDirs ${target} INTERFACE_INCLUDE_DIRECTORIES)
+        if (includeDirs)
+            set_target_properties(${target} PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${includeDirs}")
+        endif()
+    endforeach()
+
     set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES FOLDER External/GoogleTest)
     set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES EXCLUDE_FROM_COVERAGE TRUE)
     mark_as_advanced(BUILD_GMOCK BUILD_GTEST BUILD_SHARED_LIBS gmock_build_tests gtest_build_samples test_build_tests gtest_disable_pthreads gtest_force_shared_crt gtest_hide_internal_symbols)
