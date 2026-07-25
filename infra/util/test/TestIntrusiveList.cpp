@@ -131,8 +131,8 @@ TEST(IntrusiveListTest, TestNotHasElement)
 
 TEST(IntrusiveListTest, TestHasElement)
 {
-    infra::IntrusiveList<ListInt> list;
     ListInt x(3);
+    infra::IntrusiveList<ListInt> list;
     list.push_back(x);
 
     EXPECT_TRUE(list.has_element(x));

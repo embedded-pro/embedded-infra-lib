@@ -166,7 +166,7 @@ namespace infra
 
     bool operator==(infra::BoundedConstString x, JsonString y)
     {
-        return y == x;
+        return y.operator==(x);
     }
 
     bool JsonString::operator==(const char* other) const
@@ -188,7 +188,7 @@ namespace infra
 
     bool operator==(const char* x, JsonString y)
     {
-        return y == x;
+        return y.operator==(x);
     }
 
     bool JsonString::empty() const
