@@ -130,9 +130,9 @@ TEST(IntrusiveListTest, TestNotHasElement)
 }
 
 TEST(IntrusiveListTest, TestHasElement)
-{
-    infra::IntrusiveList<ListInt> list;
+ {
     ListInt x(3);
+    infra::IntrusiveList<ListInt> list;
     list.push_back(x);
 
     EXPECT_TRUE(list.has_element(x));
@@ -141,9 +141,9 @@ TEST(IntrusiveListTest, TestHasElement)
 TEST(IntrusiveListTest, TestAssignRange)
 {
     ListInt range[3] = { 0, 1, 2 };
+    ListInt otherRange[2] = { 4, 5 };
     infra::IntrusiveList<ListInt> list(range, range + 3);
 
-    ListInt otherRange[2] = { 4, 5 };
     list.assign(otherRange, otherRange + 2);
 
     EXPECT_EQ(2, list.size());
@@ -154,9 +154,9 @@ TEST(IntrusiveListTest, TestAssignRange)
 TEST(IntrusiveListTest, TestAssignN)
 {
     ListInt range[3] = { 0, 1, 2 };
+    ListInt range2[2] = { 3, 4 };
     infra::IntrusiveList<ListInt> list(range, range + 3);
 
-    ListInt range2[2] = { 3, 4 };
     list.assign(range2, range2 + 2);
 
     EXPECT_EQ(2, list.size());
@@ -167,8 +167,8 @@ TEST(IntrusiveListTest, TestAssignN)
 TEST(IntrusiveListTest, TestPushFront)
 {
     ListInt range[3] = { 0, 1, 2 };
-    infra::IntrusiveList<ListInt> list(range, range + 3);
     ListInt i1(1);
+    infra::IntrusiveList<ListInt> list(range, range + 3);
     list.push_front(i1);
 
     EXPECT_EQ(4, list.size());
@@ -188,8 +188,8 @@ TEST(IntrusiveListTest, TestPopFront)
 TEST(IntrusiveListTest, TestPushBack)
 {
     ListInt range[3] = { 0, 1, 2 };
-    infra::IntrusiveList<ListInt> list(range, range + 3);
     ListInt i1(1);
+    infra::IntrusiveList<ListInt> list(range, range + 3);
     list.push_back(i1);
 
     EXPECT_EQ(4, list.size());
@@ -209,8 +209,8 @@ TEST(IntrusiveListTest, TestPopBack)
 TEST(IntrusiveListTest, TestSwap)
 {
     ListInt range1[3] = { 0, 1, 2 };
-    infra::IntrusiveList<ListInt> list1(range1, range1 + 3);
     ListInt range2[3] = { 3, 4, 5 };
+    infra::IntrusiveList<ListInt> list1(range1, range1 + 3);
     infra::IntrusiveList<ListInt> list2(range2, range2 + 3);
 
     swap(list1, list2);
@@ -226,8 +226,8 @@ TEST(IntrusiveListTest, TestSwap)
 TEST(IntrusiveListTest, TestSwapDifferentSizes)
 {
     ListInt range1[3] = { 0, 1, 2 };
-    infra::IntrusiveList<ListInt> list1(range1, range1 + 3);
     ListInt range2[2] = { 3, 4 };
+    infra::IntrusiveList<ListInt> list1(range1, range1 + 3);
     infra::IntrusiveList<ListInt> list2(range2, range2 + 2);
 
     swap(list1, list2);
@@ -256,8 +256,8 @@ TEST(IntrusiveListTest, TestClear)
 TEST(IntrusiveListTest, TestInsert)
 {
     ListInt range[3] = { 0, 1, 2 };
-    infra::IntrusiveList<ListInt> list(range, range + 3);
     ListInt i2(2);
+    infra::IntrusiveList<ListInt> list(range, range + 3);
     list.insert(std::next(list.begin()), i2);
 
     EXPECT_EQ(4, list.size());

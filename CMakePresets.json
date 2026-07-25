@@ -215,7 +215,11 @@
       "name": "host-single-Debug",
       "configurePreset": "host-single-Debug",
       "configuration": "Debug",
-      "inherits": "defaults"
+      "inherits": "defaults",
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
     },
     {
       "name": "host-RelWithDebInfo",

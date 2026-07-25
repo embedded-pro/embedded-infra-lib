@@ -273,7 +273,9 @@ namespace infra
         if (!destructed)
         {
             subObjects.clear();
-            destructedIndication = nullptr;
+
+            if (!destructed)
+                destructedIndication = nullptr;
         }
     }
 
@@ -288,7 +290,9 @@ namespace infra
         if (!destructed)
         {
             subObjects.clear();
-            destructedIndication = nullptr;
+
+            if (!destructed)
+                destructedIndication = nullptr;
         }
     }
 
@@ -521,6 +525,9 @@ namespace infra
             else
                 state = State::parseError;
 
+            if (destructed)
+                return;
+
             valueBuffer.clear();
             tokenState = TokenState::open;
         }
@@ -529,6 +536,7 @@ namespace infra
         {
             data.clear();
             ReportParseError();
+            return;
         }
 
         if (state == State::semanticError)
@@ -712,6 +720,9 @@ namespace infra
             else
                 state = State::parseError;
 
+            if (destructed)
+                return;
+
             valueBuffer.clear();
             tokenState = TokenState::open;
         }
@@ -720,6 +731,7 @@ namespace infra
         {
             data.clear();
             ReportParseError();
+            return;
         }
 
         if (state == State::semanticError)

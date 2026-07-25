@@ -122,12 +122,16 @@ jobs:
           buildPreset: "host-single-Debug"
           testPreset: "host-single-Debug"
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
+      - name: Re-run failed tests with verbose output
+        if: ${{ failure() }}
+        run: ctest --preset host-single-Debug --rerun-failed --output-on-failure -VV
+        continue-on-error: true
       - name: Upload test logs
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: test-logs
-          path: build/host/Testing/Temporary/
+          name: test-logs-${{ matrix.os }}
+          path: build/host-single-Debug/Testing/Temporary/
   host_build_no_mbedtls:
     name: Host Build without MbedTLS
     runs-on: ubuntu-latest

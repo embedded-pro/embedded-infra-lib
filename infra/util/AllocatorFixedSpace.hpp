@@ -49,6 +49,9 @@ namespace infra
     UniquePtr<T> AllocatorFixedSpace<T, NumberOfElements, void(ConstructionArgs...)>::Allocate(ConstructionArgs... args)
     {
         Node* node = AllocateNode();
+        if (node == nullptr)
+            return {};
+
         node->Construct(std::forward<ConstructionArgs>(args)...);
 
         return MakeUnique<T>(&**node, *this);
