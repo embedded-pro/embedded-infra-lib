@@ -6,6 +6,7 @@
 #include "infra/util/Compatibility.hpp"
 #include "infra/util/ReverseRange.hpp"
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <variant>
 
@@ -523,9 +524,13 @@ namespace infra
             // the offset first reduces the 9223372036854775808 to 9223372036854775807
             // which can be represented in a int64_t, and the second offset is to
             // convert -9223372036854775807 back to -9223372036854775808
-            const auto signedValue = (static_cast<int64_t>(value - 1) * -1) - 1;
-            if (signedValue < 0 && infra::in_range<T>(signedValue))
-                return static_cast<T>(signedValue);
+            constexpr auto maxNegativeMagnitude = static_cast<std::uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
+            if (value != 0 && value <= maxNegativeMagnitude)
+            {
+                const auto signedValue = (static_cast<int64_t>(value - 1) * -1) - 1;
+                if (signedValue < 0 && infra::in_range<T>(signedValue))
+                    return static_cast<T>(signedValue);
+            }
         }
         else if (infra::in_range<T>(value))
             return static_cast<T>(value);
