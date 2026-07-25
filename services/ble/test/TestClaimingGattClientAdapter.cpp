@@ -154,7 +154,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_read_characteristic)
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_write_characteristic)
 {
-    infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
+    const std::array<uint8_t, 4> dataStorage{ 0x01, 0x02, 0x03, 0x04 };
+    infra::ConstByteRange data = infra::MakeRange(dataStorage);
     const auto result = 123;
     const auto handle = 0x1;
     infra::VerifyingFunction<void(uint8_t)> onDone{ result };
@@ -171,7 +172,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_write_characteristic)
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_write_without_response_characteristic)
 {
-    infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
+    const std::array<uint8_t, 4> dataStorage{ 0x01, 0x02, 0x03, 0x04 };
+    infra::ConstByteRange data = infra::MakeRange(dataStorage);
     const auto handle = 0x1;
     infra::VerifyingFunction<void(services::OperationStatus)> onWriteWithoutResponse{ services::OperationStatus::success };
 
