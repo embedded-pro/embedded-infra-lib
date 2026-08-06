@@ -130,7 +130,7 @@ TEST(IntrusiveListTest, TestNotHasElement)
 }
 
 TEST(IntrusiveListTest, TestHasElement)
- {
+{
     ListInt x(3);
     infra::IntrusiveList<ListInt> list;
     list.push_back(x);
