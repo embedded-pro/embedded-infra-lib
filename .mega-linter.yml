@@ -26,6 +26,7 @@ DISABLE_ERRORS_LINTERS:
   - SPELL_PROSELINT
   - SPELL_LYCHEE
 CPP_CLANG_FORMAT_FILTER_REGEX_EXCLUDE: (external)
+REPOSITORY_BETTERLEAKS_FILTER_REGEX_EXCLUDE: (services/network/tls/CertificatesMbedTls\.cpp|services/network/tls/test_doubles/Certificates\.cpp|services/network/websocket/WebSocket\.cpp)
 SPELL_PROSELINT_FILE_EXTENSIONS: [".md"]
 SARIF_REPORTER: true
 PRINT_ALPACA: false

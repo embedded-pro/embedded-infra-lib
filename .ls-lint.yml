@@ -6,6 +6,7 @@ ls:
 ignore:
   - .claude
   - .devcontainer
+  - .megalinter_github_conf
   - .git
   - .github
   - .gitlab
