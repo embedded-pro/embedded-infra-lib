@@ -4,6 +4,7 @@
 build/
 install/
 megalinter-reports/
+.megalinter_github_conf/
 out/
 reports/
 CMakeSettings.json
