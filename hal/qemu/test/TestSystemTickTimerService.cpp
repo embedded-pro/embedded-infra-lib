@@ -1,5 +1,5 @@
+#include "hal/qemu/cortex/SystemTickTimerService.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
-#include "infra/timer/TickOnInterruptTimerService.hpp"
 #include "infra/timer/Timer.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -10,10 +10,10 @@ class SystemTickTimerServiceTest
 {
 public:
     SystemTickTimerServiceTest()
-        : timerService(infra::systemTimerServiceId, std::chrono::milliseconds(1))
+        : timerService(25000000u)
     {}
 
-    infra::TickOnInterruptTimerService timerService;
+    hal::cortex::SystemTickTimerService timerService;
 };
 
 TEST_F(SystemTickTimerServiceTest, timer_fires_after_two_tick_interrupts)

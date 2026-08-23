@@ -24,7 +24,10 @@ namespace hal
         volatile uint32_t icr;
     };
 
+    // PL011 UART on QEMU 'virt' machine (Cortex-A or M-profile virt).
+    // QEMU MPS2 preset machines (mps2-an385/an386/an500) use CMSDK APB UART at a different address.
     constexpr uintptr_t pl011BaseAddress = 0x09000000;
+    constexpr uint32_t  pl011ClockHz    = 24000000u;
 
     constexpr uint32_t frTxff = 1u << 5;
     constexpr uint32_t frRxfe = 1u << 4;

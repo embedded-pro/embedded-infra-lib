@@ -18,14 +18,15 @@ namespace hal
     public:
         UartQemu(uintptr_t base = pl011BaseAddress,
             int32_t irqNumber = uart0IrqNumber,
-            uint32_t baudrate = 115200);
+            uint32_t baudrate = 115200,
+            uint32_t uartClockHz = pl011ClockHz);
 
         void SendData(infra::ConstByteRange data, infra::Function<void()> actionOnCompletion) override;
         void ReceiveData(infra::Function<void(infra::ConstByteRange)> dataReceived) override;
 
     private:
         void Invoke() override;
-        void Init(uint32_t baudrate);
+        void Init(uint32_t baudrate, uint32_t uartClockHz);
 
     private:
         Pl011Registers& uart;

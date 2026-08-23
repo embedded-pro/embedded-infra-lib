@@ -10,16 +10,18 @@ namespace hal::cortex
         constexpr uintptr_t systRvr = 0xE000E014;
         constexpr uintptr_t systCvr = 0xE000E018;
 
-        constexpr uint32_t csrEnable = 1u << 0;
-        constexpr uint32_t csrTickint = 1u << 1;
+        constexpr uint32_t csrEnable    = 1u << 0;
+        constexpr uint32_t csrTickint   = 1u << 1;
         constexpr uint32_t csrClksource = 1u << 2;
     }
 
     SystemTick::SystemTick(uint32_t coreClockHz, infra::Duration tickDuration)
-        : reload((coreClockHz / 1000000u) *
-                     static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(tickDuration).count()) -
-                 1u)
-    {}
+    {
+        auto ns = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(tickDuration).count());
+        auto cycles = static_cast<uint64_t>(coreClockHz) * ns / 1000000000u;
+        reload = static_cast<uint32_t>(cycles - 1u);
+    }
 
     void SystemTick::Enable()
     {

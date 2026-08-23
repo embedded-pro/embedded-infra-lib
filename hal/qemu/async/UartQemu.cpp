@@ -6,23 +6,31 @@ namespace hal
     namespace
     {
         constexpr uint32_t lcrH8n1 = 0x70u;
-        constexpr uint32_t ibrdValue = 13u;
-        constexpr uint32_t fbrdValue = 1u;
+
+        void ComputePl011Divisors(uint32_t uartClockHz, uint32_t baudrate, uint32_t& ibrd, uint32_t& fbrd)
+        {
+            uint32_t brd64 = (uartClockHz * 4u + baudrate / 2u) / baudrate;
+            ibrd = brd64 >> 6u;
+            fbrd = brd64 & 0x3Fu;
+        }
     }
 
-    UartQemu::UartQemu(uintptr_t base, int32_t irqNumber, uint32_t baudrate)
+    UartQemu::UartQemu(uintptr_t base, int32_t irqNumber, uint32_t baudrate, uint32_t uartClockHz)
         : uart(*reinterpret_cast<Pl011Registers*>(base))
         , irqNumber(irqNumber)
     {
         cortex::InterruptCortexRegisterHandler(irqNumber, *this);
-        Init(baudrate);
+        Init(baudrate, uartClockHz);
     }
 
-    void UartQemu::Init(uint32_t baudrate)
+    void UartQemu::Init(uint32_t baudrate, uint32_t uartClockHz)
     {
+        uint32_t ibrd = 0u;
+        uint32_t fbrd = 0u;
+        ComputePl011Divisors(uartClockHz, baudrate, ibrd, fbrd);
         uart.cr = 0u;
-        uart.ibrd = ibrdValue;
-        uart.fbrd = fbrdValue;
+        uart.ibrd = ibrd;
+        uart.fbrd = fbrd;
         uart.lcr_h = lcrH8n1;
         uart.imsc = 0u;
         uart.cr = crUarten | crTxe | crRxe;
@@ -48,13 +56,13 @@ namespace hal
 
         if ((status & imscRxim) != 0u)
         {
-            receiveBuffer[0] = static_cast<uint8_t>(uart.dr);
+            uint8_t byte = static_cast<uint8_t>(uart.dr);
             if (onReceived)
             {
-                infra::ConstByteRange received{ receiveBuffer.data(), receiveBuffer.data() + 1 };
-                infra::EventDispatcher::Instance().Schedule([this, received]()
+                infra::EventDispatcher::Instance().Schedule([this, byte]()
                     {
-                        onReceived(received);
+                        receiveBuffer[0] = byte;
+                        onReceived(infra::MakeRange(receiveBuffer.data(), receiveBuffer.data() + 1));
                     });
             }
         }

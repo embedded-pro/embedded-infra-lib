@@ -1,340 +1,346 @@
 {
-  "version": 3,
-  "configurePresets": [
-    {
-      "name": "defaults",
-      "hidden": true,
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "installDir": "${sourceDir}/install",
-      "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "On",
-        "CMAKE_COMPILE_WARNING_AS_ERROR": "On"
-      }
-    },
-    {
-      "name": "host",
-      "displayName": "Configuration for Host Tooling and Tests",
-      "inherits": "defaults",
-      "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel"
-      },
-      "generator": "Ninja Multi-Config"
-    },
-    {
-      "name": "host-single-Debug",
-      "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, Debug",
-      "inherits": "defaults",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "EMIL_ENABLE_DOCKER_TOOLS": "Off"
-      }
-    },
-    {
-      "name": "host-single-MinSizeRel",
-      "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, MinSizeRel",
-      "inherits": "defaults",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "MinSizeRel",
-        "EMIL_ENABLE_DOCKER_TOOLS": "Off"
-      }
-    },
-    {
-      "name": "host-no-mbedtls",
-      "displayName": "Configuration without MbedTLS",
-      "inherits": "host",
-      "cacheVariables": {
-        "EMIL_INCLUDE_MBEDTLS": "Off"
-      }
-    },
-    {
-      "name": "coverage",
-      "displayName": "Configuration for Code Coverage",
-      "inherits": "host",
-      "cacheVariables": {
-        "EMIL_ENABLE_COVERAGE": "On"
-      },
-      "generator": "Ninja"
-    },
-    {
-      "name": "host-ClangMsvc",
-      "displayName": "Configuration for Host Tooling using clang-cl to target Windows",
-      "inherits": "defaults",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-clang-x86_64-pc-windows-msvc.cmake",
-      "cacheVariables": {
-        "CMAKE_COMPILE_WARNING_AS_ERROR": "Off",
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
-        "EMIL_BUILD_TESTS": "Off",
-        "EMIL_BUILD_EXAMPLES": "Off",
-        "EMIL_INCLUDE_LWIP": "Off"
-      },
-      "generator": "Ninja Multi-Config"
-    },
-    {
-      "name": "embedded",
-      "displayName": "Configuration for embedded",
-      "inherits": "defaults",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
-      "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
-        "EMIL_INCLUDE_SEGGER_RTT": "On",
-        "TARGET_CORTEX": "m4"
-      },
-      "generator": "Ninja Multi-Config"
-    },
-    {
-      "name": "embedded-FreeRTOS",
-      "displayName": "Configuration for embedded with FreeRTOS",
-      "inherits": "embedded",
-      "cacheVariables": {
-        "EMIL_INCLUDE_FREERTOS": "On",
-        "FREERTOS_CONFIG_FILE_DIRECTORY": "${sourceDir}/examples/threading/config"
-      }
-    },
-    {
-      "name": "embedded-ThreadX",
-      "displayName": "Configuration for embedded with ThreadX",
-      "inherits": "embedded",
-      "cacheVariables": {
-        "EMIL_INCLUDE_THREADX": "On"
-      }
-    },
-    {
-      "name": "qemu-m3",
-      "displayName": "QEMU Cortex-M3",
-      "inherits": "defaults",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m3.cmake",
-      "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
-        "EMIL_BUILD_QEMU": "ON",
-        "TARGET_CORTEX": "m3",
-        "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an385;-nographic;-semihosting-config;enable=on,target=native;-kernel"
-      },
-      "generator": "Ninja Multi-Config"
-    },
-    {
-      "name": "qemu-m4",
-      "displayName": "QEMU Cortex-M4",
-      "inherits": "qemu-m3",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4.cmake",
-      "cacheVariables": {
-        "TARGET_CORTEX": "m4",
-        "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an386;-nographic;-semihosting-config;enable=on,target=native;-kernel"
-      }
-    },
-    {
-      "name": "qemu-m4f",
-      "displayName": "QEMU Cortex-M4F",
-      "inherits": "qemu-m3",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
-      "cacheVariables": {
-        "TARGET_CORTEX": "m4",
-        "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an386;-nographic;-semihosting-config;enable=on,target=native;-kernel"
-      }
-    },
-    {
-      "name": "qemu-m7",
-      "displayName": "QEMU Cortex-M7",
-      "inherits": "qemu-m3",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m7.cmake",
-      "cacheVariables": {
-        "TARGET_CORTEX": "m7",
-        "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an500;-nographic;-semihosting-config;enable=on,target=native;-kernel"
-      }
-    },
-    {
-      "name": "qemu-m7f",
-      "displayName": "QEMU Cortex-M7F",
-      "inherits": "qemu-m3",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m7-fpv5-d16.cmake",
-      "cacheVariables": {
-        "TARGET_CORTEX": "m7",
-        "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an500;-nographic;-semihosting-config;enable=on,target=native;-kernel"
-      }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "host-Debug",
-      "configuration": "Debug",
-      "configurePreset": "host"
-    },
-    {
-      "name": "host-Debug-WithPackage",
-      "configuration": "Debug",
-      "configurePreset": "host",
-      "targets": ["all", "package"]
-    },
-    {
-      "name": "host-Release",
-      "configuration": "Release",
-      "configurePreset": "host"
-    },
-    {
-      "name": "host-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "host"
-    },
-    {
-      "name": "host-MinSizeRel",
-      "configuration": "MinSizeRel",
-      "configurePreset": "host"
-    },
-    {
-      "name": "host-single-Debug",
-      "configuration": "Debug",
-      "configurePreset": "host-single-Debug"
-    },
-    {
-      "name": "host-no-mbedtls-Debug",
-      "configuration": "Debug",
-      "configurePreset": "host-no-mbedtls"
-    },
-    {
-      "name": "release-package",
-      "configuration": "MinSizeRel",
-      "configurePreset": "host-single-MinSizeRel",
-      "targets": ["package"]
-    },
-    {
-      "name": "coverage",
-      "configuration": "Debug",
-      "configurePreset": "coverage"
-    },
-    {
-      "name": "host-ClangMsvc-Debug",
-      "configuration": "Debug",
-      "configurePreset": "host-ClangMsvc"
-    },
-    {
-      "name": "host-ClangMsvc-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "host-ClangMsvc"
-    },
-    {
-      "name": "embedded-Debug",
-      "configuration": "Debug",
-      "configurePreset": "embedded"
-    },
-    {
-      "name": "embedded-Release",
-      "configuration": "Release",
-      "configurePreset": "embedded"
-    },
-    {
-      "name": "embedded-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "embedded"
-    },
-    {
-      "name": "embedded-MinSizeRel",
-      "configuration": "MinSizeRel",
-      "configurePreset": "embedded"
-    },
-    {
-      "name": "embedded-FreeRTOS-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "embedded-FreeRTOS"
-    },
-    {
-      "name": "embedded-ThreadX-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "embedded-ThreadX"
-    },
-    {
-      "name": "qemu-m3-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "qemu-m3"
-    },
-    {
-      "name": "qemu-m4-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "qemu-m4"
-    },
-    {
-      "name": "qemu-m4f-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "qemu-m4f"
-    },
-    {
-      "name": "qemu-m7-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "qemu-m7"
-    },
-    {
-      "name": "qemu-m7f-RelWithDebInfo",
-      "configuration": "RelWithDebInfo",
-      "configurePreset": "qemu-m7f"
-    }
-  ],
-  "testPresets": [
-    {
-      "name": "defaults",
-      "hidden": true,
-      "output": {
-        "outputOnFailure": true
-      },
-      "execution": {
-        "noTestsAction": "error",
-        "stopOnFailure": true
-      }
-    },
-    {
-      "name": "host",
-      "configurePreset": "host",
-      "configuration": "Debug",
-      "inherits": "defaults"
-    },
-    {
-      "name": "host-single-Debug",
-      "configurePreset": "host-single-Debug",
-      "configuration": "Debug",
-      "inherits": "defaults",
-      "execution": {
-        "noTestsAction": "error",
-        "stopOnFailure": false
-      }
-    },
-    {
-      "name": "host-RelWithDebInfo",
-      "configurePreset": "host",
-      "configuration": "RelWithDebInfo",
-      "inherits": "defaults"
-    },
-    {
-      "name": "coverage",
-      "configurePreset": "coverage",
-      "configuration": "Debug",
-      "inherits": "defaults"
-    },
-    {
-      "name": "qemu-m3-RelWithDebInfo",
-      "configurePreset": "qemu-m3",
-      "configuration": "RelWithDebInfo",
-      "inherits": "defaults"
-    },
-    {
-      "name": "qemu-m4-RelWithDebInfo",
-      "configurePreset": "qemu-m4",
-      "configuration": "RelWithDebInfo",
-      "inherits": "defaults"
-    },
-    {
-      "name": "qemu-m4f-RelWithDebInfo",
-      "configurePreset": "qemu-m4f",
-      "configuration": "RelWithDebInfo",
-      "inherits": "defaults"
-    },
-    {
-      "name": "qemu-m7-RelWithDebInfo",
-      "configurePreset": "qemu-m7",
-      "configuration": "RelWithDebInfo",
-      "inherits": "defaults"
-    },
-    {
-      "name": "qemu-m7f-RelWithDebInfo",
-      "configurePreset": "qemu-m7f",
-      "configuration": "RelWithDebInfo",
-      "inherits": "defaults"
-    }
-  ]
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "defaults",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "On",
+                "CMAKE_COMPILE_WARNING_AS_ERROR": "On"
+            }
+        },
+        {
+            "name": "host",
+            "displayName": "Configuration for Host Tooling and Tests",
+            "inherits": "defaults",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel"
+            },
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "host-single-Debug",
+            "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, Debug",
+            "inherits": "defaults",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "EMIL_ENABLE_DOCKER_TOOLS": "Off"
+            }
+        },
+        {
+            "name": "host-single-MinSizeRel",
+            "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, MinSizeRel",
+            "inherits": "defaults",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel",
+                "EMIL_ENABLE_DOCKER_TOOLS": "Off"
+            }
+        },
+        {
+            "name": "host-no-mbedtls",
+            "displayName": "Configuration without MbedTLS",
+            "inherits": "host",
+            "cacheVariables": {
+                "EMIL_INCLUDE_MBEDTLS": "Off"
+            }
+        },
+        {
+            "name": "coverage",
+            "displayName": "Configuration for Code Coverage",
+            "inherits": "host",
+            "cacheVariables": {
+                "EMIL_ENABLE_COVERAGE": "On"
+            },
+            "generator": "Ninja"
+        },
+        {
+            "name": "host-ClangMsvc",
+            "displayName": "Configuration for Host Tooling using clang-cl to target Windows",
+            "inherits": "defaults",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-clang-x86_64-pc-windows-msvc.cmake",
+            "cacheVariables": {
+                "CMAKE_COMPILE_WARNING_AS_ERROR": "Off",
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+                "EMIL_BUILD_TESTS": "Off",
+                "EMIL_BUILD_EXAMPLES": "Off",
+                "EMIL_INCLUDE_LWIP": "Off"
+            },
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "embedded",
+            "displayName": "Configuration for embedded",
+            "inherits": "defaults",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+                "EMIL_INCLUDE_SEGGER_RTT": "On",
+                "TARGET_CORTEX": "m4"
+            },
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "embedded-FreeRTOS",
+            "displayName": "Configuration for embedded with FreeRTOS",
+            "inherits": "embedded",
+            "cacheVariables": {
+                "EMIL_INCLUDE_FREERTOS": "On",
+                "FREERTOS_CONFIG_FILE_DIRECTORY": "${sourceDir}/examples/threading/config"
+            }
+        },
+        {
+            "name": "embedded-ThreadX",
+            "displayName": "Configuration for embedded with ThreadX",
+            "inherits": "embedded",
+            "cacheVariables": {
+                "EMIL_INCLUDE_THREADX": "On"
+            }
+        },
+        {
+            "name": "qemu-m3",
+            "displayName": "QEMU Cortex-M3",
+            "inherits": "defaults",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m3.cmake",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+                "EMIL_BUILD_QEMU": "ON",
+                "TARGET_CORTEX": "m3",
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an385;-nographic;-semihosting-config;enable=on,target=native;-kernel",
+                "EMIL_BUILD_TESTS": "ON"
+            },
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "qemu-m4",
+            "displayName": "QEMU Cortex-M4",
+            "inherits": "qemu-m3",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4.cmake",
+            "cacheVariables": {
+                "TARGET_CORTEX": "m4",
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an386;-nographic;-semihosting-config;enable=on,target=native;-kernel"
+            }
+        },
+        {
+            "name": "qemu-m4f",
+            "displayName": "QEMU Cortex-M4F",
+            "inherits": "qemu-m3",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
+            "cacheVariables": {
+                "TARGET_CORTEX": "m4",
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an386;-nographic;-semihosting-config;enable=on,target=native;-kernel"
+            }
+        },
+        {
+            "name": "qemu-m7",
+            "displayName": "QEMU Cortex-M7",
+            "inherits": "qemu-m3",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m7.cmake",
+            "cacheVariables": {
+                "TARGET_CORTEX": "m7",
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an500;-nographic;-semihosting-config;enable=on,target=native;-kernel"
+            }
+        },
+        {
+            "name": "qemu-m7f",
+            "displayName": "QEMU Cortex-M7F",
+            "inherits": "qemu-m3",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m7-fpv5-d16.cmake",
+            "cacheVariables": {
+                "TARGET_CORTEX": "m7",
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an500;-nographic;-semihosting-config;enable=on,target=native;-kernel"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "host-Debug",
+            "configuration": "Debug",
+            "configurePreset": "host"
+        },
+        {
+            "name": "host-Debug-WithPackage",
+            "configuration": "Debug",
+            "configurePreset": "host",
+            "targets": [
+                "all",
+                "package"
+            ]
+        },
+        {
+            "name": "host-Release",
+            "configuration": "Release",
+            "configurePreset": "host"
+        },
+        {
+            "name": "host-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "host"
+        },
+        {
+            "name": "host-MinSizeRel",
+            "configuration": "MinSizeRel",
+            "configurePreset": "host"
+        },
+        {
+            "name": "host-single-Debug",
+            "configuration": "Debug",
+            "configurePreset": "host-single-Debug"
+        },
+        {
+            "name": "host-no-mbedtls-Debug",
+            "configuration": "Debug",
+            "configurePreset": "host-no-mbedtls"
+        },
+        {
+            "name": "release-package",
+            "configuration": "MinSizeRel",
+            "configurePreset": "host-single-MinSizeRel",
+            "targets": [
+                "package"
+            ]
+        },
+        {
+            "name": "coverage",
+            "configuration": "Debug",
+            "configurePreset": "coverage"
+        },
+        {
+            "name": "host-ClangMsvc-Debug",
+            "configuration": "Debug",
+            "configurePreset": "host-ClangMsvc"
+        },
+        {
+            "name": "host-ClangMsvc-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "host-ClangMsvc"
+        },
+        {
+            "name": "embedded-Debug",
+            "configuration": "Debug",
+            "configurePreset": "embedded"
+        },
+        {
+            "name": "embedded-Release",
+            "configuration": "Release",
+            "configurePreset": "embedded"
+        },
+        {
+            "name": "embedded-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "embedded"
+        },
+        {
+            "name": "embedded-MinSizeRel",
+            "configuration": "MinSizeRel",
+            "configurePreset": "embedded"
+        },
+        {
+            "name": "embedded-FreeRTOS-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "embedded-FreeRTOS"
+        },
+        {
+            "name": "embedded-ThreadX-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "embedded-ThreadX"
+        },
+        {
+            "name": "qemu-m3-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "qemu-m3"
+        },
+        {
+            "name": "qemu-m4-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "qemu-m4"
+        },
+        {
+            "name": "qemu-m4f-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "qemu-m4f"
+        },
+        {
+            "name": "qemu-m7-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "qemu-m7"
+        },
+        {
+            "name": "qemu-m7f-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "qemu-m7f"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "defaults",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "host",
+            "configurePreset": "host",
+            "configuration": "Debug",
+            "inherits": "defaults"
+        },
+        {
+            "name": "host-single-Debug",
+            "configurePreset": "host-single-Debug",
+            "configuration": "Debug",
+            "inherits": "defaults",
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false
+            }
+        },
+        {
+            "name": "host-RelWithDebInfo",
+            "configurePreset": "host",
+            "configuration": "RelWithDebInfo",
+            "inherits": "defaults"
+        },
+        {
+            "name": "coverage",
+            "configurePreset": "coverage",
+            "configuration": "Debug",
+            "inherits": "defaults"
+        },
+        {
+            "name": "qemu-m3-RelWithDebInfo",
+            "configurePreset": "qemu-m3",
+            "configuration": "RelWithDebInfo",
+            "inherits": "defaults"
+        },
+        {
+            "name": "qemu-m4-RelWithDebInfo",
+            "configurePreset": "qemu-m4",
+            "configuration": "RelWithDebInfo",
+            "inherits": "defaults"
+        },
+        {
+            "name": "qemu-m4f-RelWithDebInfo",
+            "configurePreset": "qemu-m4f",
+            "configuration": "RelWithDebInfo",
+            "inherits": "defaults"
+        },
+        {
+            "name": "qemu-m7-RelWithDebInfo",
+            "configurePreset": "qemu-m7",
+            "configuration": "RelWithDebInfo",
+            "inherits": "defaults"
+        },
+        {
+            "name": "qemu-m7f-RelWithDebInfo",
+            "configurePreset": "qemu-m7f",
+            "configuration": "RelWithDebInfo",
+            "inherits": "defaults"
+        }
+    ]
 }
