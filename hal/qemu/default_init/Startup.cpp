@@ -40,10 +40,8 @@ extern "C" void Reset_Handler()
     static char* argv[] = { programName, nullptr };
     int const exitCode = main(1, argv);
 
-    // A32/T32 SYS_EXIT (0x18) only accepts ADP_Stopped_ApplicationExit as a
-    // direct register value and cannot convey an exit code; SYS_EXIT_EXTENDED
-    // (0x20) takes a pointer to this block so QEMU can report exitCode back
-    // to the host as its own process exit status.
+    // SYS_EXIT_EXTENDED is required on Cortex-M targets to report exitCode;
+    // plain SYS_EXIT ignores the parameter block and always reports failure.
     static uint32_t exitBlock[2] = { 0x20026u, 0u };
     exitBlock[1] = static_cast<uint32_t>(exitCode);
     hal::cortex::SemihostingCall(hal::cortex::SemihostingOperation::exitExtended,
