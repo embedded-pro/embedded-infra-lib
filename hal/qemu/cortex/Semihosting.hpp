@@ -12,6 +12,7 @@ namespace hal::cortex
         write0 = 0x04,
         write = 0x05,
         exit = 0x18,
+        exitExtended = 0x20,
     };
 
     uint32_t SemihostingCall(SemihostingOperation operation, void* parameter);

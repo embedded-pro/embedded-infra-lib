@@ -35,11 +35,18 @@ extern "C" void Reset_Handler()
 
     hal::qemu::SystemInit();
     __libc_init_array();
-    int const exitCode = main(0, nullptr);
 
+    static char programName[] = "qemu";
+    static char* argv[] = { programName, nullptr };
+    int const exitCode = main(1, argv);
+
+    // A32/T32 SYS_EXIT (0x18) only accepts ADP_Stopped_ApplicationExit as a
+    // direct register value and cannot convey an exit code; SYS_EXIT_EXTENDED
+    // (0x20) takes a pointer to this block so QEMU can report exitCode back
+    // to the host as its own process exit status.
     static uint32_t exitBlock[2] = { 0x20026u, 0u };
     exitBlock[1] = static_cast<uint32_t>(exitCode);
-    hal::cortex::SemihostingCall(hal::cortex::SemihostingOperation::exit,
+    hal::cortex::SemihostingCall(hal::cortex::SemihostingOperation::exitExtended,
         const_cast<uint32_t*>(exitBlock));
     while (true)
     {}
