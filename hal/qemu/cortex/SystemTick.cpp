@@ -10,8 +10,8 @@ namespace hal::cortex
         constexpr uintptr_t systRvr = 0xE000E014;
         constexpr uintptr_t systCvr = 0xE000E018;
 
-        constexpr uint32_t csrEnable    = 1u << 0;
-        constexpr uint32_t csrTickint   = 1u << 1;
+        constexpr uint32_t csrEnable = 1u << 0;
+        constexpr uint32_t csrTickint = 1u << 1;
         constexpr uint32_t csrClksource = 1u << 2;
     }
 

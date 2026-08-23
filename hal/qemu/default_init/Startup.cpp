@@ -34,13 +34,47 @@ extern "C" void Reset_Handler()
     {}
 }
 
-extern "C" __attribute__((weak)) void NMI_Handler()       { while (true) {} }
-extern "C" __attribute__((weak)) void HardFault_Handler() { while (true) {} }
-extern "C" __attribute__((weak)) void MemManage_Handler() { while (true) {} }
-extern "C" __attribute__((weak)) void BusFault_Handler()  { while (true) {} }
-extern "C" __attribute__((weak)) void UsageFault_Handler(){ while (true) {} }
-extern "C" __attribute__((weak)) void SVC_Handler()       { while (true) {} }
-extern "C" __attribute__((weak)) void PendSV_Handler()    { while (true) {} }
+extern "C" __attribute__((weak)) void NMI_Handler()
+{
+    while (true)
+    {}
+}
+
+extern "C" __attribute__((weak)) void HardFault_Handler()
+{
+    while (true)
+    {}
+}
+
+extern "C" __attribute__((weak)) void MemManage_Handler()
+{
+    while (true)
+    {}
+}
+
+extern "C" __attribute__((weak)) void BusFault_Handler()
+{
+    while (true)
+    {}
+}
+
+extern "C" __attribute__((weak)) void UsageFault_Handler()
+{
+    while (true)
+    {}
+}
+
+extern "C" __attribute__((weak)) void SVC_Handler()
+{
+    while (true)
+    {}
+}
+
+extern "C" __attribute__((weak)) void PendSV_Handler()
+{
+    while (true)
+    {}
+}
 
 extern "C" void SysTick_Handler()
 {
@@ -65,9 +99,13 @@ const uint32_t vectorTable[] = {
     VEC(MemManage_Handler),
     VEC(BusFault_Handler),
     VEC(UsageFault_Handler),
-    0u, 0u, 0u, 0u,
+    0u,
+    0u,
+    0u,
+    0u,
     VEC(SVC_Handler),
-    0u, 0u,
+    0u,
+    0u,
     VEC(PendSV_Handler),
     VEC(SysTick_Handler),
     0u,
