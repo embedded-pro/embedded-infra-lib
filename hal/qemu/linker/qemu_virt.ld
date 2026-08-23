@@ -70,6 +70,8 @@ SECTIONS
         _ebss = .;
     } >RAM
 
+    end = _ebss;
+
     /DISCARD/ :
     {
         *(.ARM.exidx*)

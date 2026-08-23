@@ -8,6 +8,7 @@ target_sources(hal.qemu.test PRIVATE
     TestSystemTickTimerService.cpp)
 
 target_link_libraries(hal.qemu.test PRIVATE
+    hal.qemu.syscalls
     hal.qemu.default_init
     hal.qemu.sync
     hal.qemu.cortex
@@ -15,8 +16,5 @@ target_link_libraries(hal.qemu.test PRIVATE
     infra.timer
     infra.event_test_helper
     gmock_main)
-
-target_link_options(hal.qemu.test PRIVATE
-    -specs=rdimon.specs)
 
 emil_add_test(hal.qemu.test)

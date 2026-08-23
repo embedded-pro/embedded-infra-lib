@@ -14,6 +14,14 @@ extern uint32_t _ebss;
 extern "C" void __libc_init_array();
 int main(int argc, char** argv);
 
+// Required by the C++ ABI for global object lifetime management.
+// Provided here because -nostartfiles suppresses crtbegin.o/crti.o.
+extern "C"
+{
+    __attribute__((weak)) void* __dso_handle = nullptr;
+    void _init() {}
+}
+
 extern "C" void Reset_Handler()
 {
     uint32_t* src = &_sidata;
@@ -25,9 +33,10 @@ extern "C" void Reset_Handler()
 
     hal::qemu::SystemInit();
     __libc_init_array();
-    main(0, nullptr);
+    int const exitCode = main(0, nullptr);
 
-    static const uint32_t exitBlock[2] = { 0x20026u, 0u };
+    static uint32_t exitBlock[2] = { 0x20026u, 0u };
+    exitBlock[1] = static_cast<uint32_t>(exitCode);
     hal::cortex::SemihostingCall(hal::cortex::SemihostingOperation::exit,
         const_cast<uint32_t*>(exitBlock));
     while (true)
