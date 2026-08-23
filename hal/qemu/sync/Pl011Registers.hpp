@@ -26,13 +26,13 @@ namespace hal
 
     constexpr uintptr_t pl011BaseAddress = 0x09000000;
 
-    constexpr uint32_t frTxff  = 1u << 5;
-    constexpr uint32_t frRxfe  = 1u << 4;
+    constexpr uint32_t frTxff = 1u << 5;
+    constexpr uint32_t frRxfe = 1u << 4;
     constexpr uint32_t imscRxim = 1u << 4;
     constexpr uint32_t imscTxim = 1u << 5;
     constexpr uint32_t crUarten = 1u << 0;
-    constexpr uint32_t crTxe   = 1u << 8;
-    constexpr uint32_t crRxe   = 1u << 9;
+    constexpr uint32_t crTxe = 1u << 8;
+    constexpr uint32_t crRxe = 1u << 9;
 
     constexpr int32_t uart0IrqNumber = 1;
 

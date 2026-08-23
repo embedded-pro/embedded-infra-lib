@@ -8,7 +8,7 @@ namespace hal::cortex
     {
         constexpr uintptr_t nvicIser = 0xE000E100;
         constexpr uintptr_t nvicIcer = 0xE000E180;
-        constexpr uintptr_t nvicIpr  = 0xE000E400;
+        constexpr uintptr_t nvicIpr = 0xE000E400;
 
         std::array<InterruptHandler*, 64> handlers{};
         InterruptHandler* sysTickHandler{ nullptr };

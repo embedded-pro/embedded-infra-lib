@@ -4,9 +4,9 @@ namespace hal
 {
     namespace
     {
-        constexpr uint32_t lcrH8n1   = 0x70u;
-        constexpr uint32_t ibrdValue  = 13u;
-        constexpr uint32_t fbrdValue  = 1u;
+        constexpr uint32_t lcrH8n1 = 0x70u;
+        constexpr uint32_t ibrdValue = 13u;
+        constexpr uint32_t fbrdValue = 1u;
     }
 
     SynchronousUartQemu::SynchronousUartQemu(uintptr_t base, uint32_t baudrate)
