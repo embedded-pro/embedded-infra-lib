@@ -117,8 +117,9 @@ if (EMIL_HOST_BUILD)
 
 endif()
 
-if (EMIL_BUILD_QEMU AND EMIL_BUILD_TESTS)
+if (EMIL_BUILD_QEMU)
     set(gtest_disable_pthreads On CACHE BOOL "" FORCE)
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
     enable_testing()
     emil_enable_testing()
 endif()

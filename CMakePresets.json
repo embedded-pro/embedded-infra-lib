@@ -107,8 +107,7 @@
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
                 "EMIL_BUILD_QEMU": "ON",
                 "TARGET_CORTEX": "m3",
-                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an385;-nographic;-semihosting-config;enable=on,target=native;-kernel",
-                "EMIL_BUILD_TESTS": "ON"
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an385;-nographic;-semihosting-config;enable=on,target=native;-kernel"
             },
             "generator": "Ninja Multi-Config"
         },
