@@ -19,7 +19,9 @@ int main(int argc, char** argv);
 extern "C"
 {
     __attribute__((weak)) void* __dso_handle = nullptr;
-    void _init() {}
+
+    void _init()
+    {}
 }
 
 extern "C" void Reset_Handler()
