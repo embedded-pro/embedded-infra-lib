@@ -8,28 +8,15 @@
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/Sequencer.hpp"
+#include "services/flash/FlashGeometry.hpp"
 
 namespace services
 {
-    namespace detail
-    {
-        struct FlashSpiConfig
-        {
-            uint32_t nrOfSubSectors{ 512 };
-            uint32_t sizeSector{ 65536 };
-            uint32_t sizeSubSector{ 4096 };
-            uint32_t sizePage{ 256 };
-            bool extendedAddressing = false;
-        };
-    }
-
     class FlashSpi
         : public hal::FlashHomogeneous
         , public hal::FlashId
     {
     public:
-        using Config = detail::FlashSpiConfig;
-
         static const std::array<uint8_t, 2> commandPageProgram;
         static const std::array<uint8_t, 2> commandReadData;
         static const std::array<uint8_t, 2> commandEraseSubSector;
@@ -41,7 +28,7 @@ namespace services
 
         static const uint8_t statusFlagWriteInProgress = 1;
 
-        explicit FlashSpi(hal::SpiMaster& spi, const Config& config = Config(), uint32_t timerId = infra::systemTimerServiceId, infra::Function<void()> onInitialized = infra::emptyFunction);
+        explicit FlashSpi(hal::SpiMaster& spi, FlashGeometry& geometry, uint32_t timerId = infra::systemTimerServiceId, infra::Function<void()> onInitialized = infra::emptyFunction);
 
     public:
         // implement Flash
@@ -66,7 +53,7 @@ namespace services
 
     private:
         hal::SpiMaster& spi;
-        const Config config;
+        FlashGeometry& geometry;
         infra::Sequencer sequencer;
         infra::TimerSingleShot delayTimer;
         infra::AutoResetFunction<void()> onDone;

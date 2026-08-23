@@ -4,13 +4,40 @@
 #include "services/flash/FlashQuadSpiSingleSpeed.hpp"
 #include "gmock/gmock.h"
 
+namespace
+{
+    class FlashGeometryStub : public services::FlashGeometry
+    {
+    public:
+        FlashGeometryStub(uint32_t nrOfSubSectors = 4096, uint32_t sizeSector = 65536,
+            uint32_t sizeSubSector = 4096, uint32_t sizePage = 256)
+            : nrOfSubSectors(nrOfSubSectors)
+            , sizeSector(sizeSector)
+            , sizeSubSector(sizeSubSector)
+            , sizePage(sizePage)
+        {}
+
+        uint32_t NrOfSubSectors() const override { return nrOfSubSectors; }
+        uint32_t SizeSector() const override { return sizeSector; }
+        uint32_t SizeSubSector() const override { return sizeSubSector; }
+        uint32_t SizePage() const override { return sizePage; }
+        bool ExtendedAddressing() const override { return false; }
+
+    private:
+        uint32_t nrOfSubSectors;
+        uint32_t sizeSector;
+        uint32_t sizeSubSector;
+        uint32_t sizePage;
+    };
+}
+
 class FlashQuadSpiSingleSpeedTest
     : public testing::Test
     , public infra::ClockFixture
 {
 public:
     FlashQuadSpiSingleSpeedTest()
-        : flash(spiStub, onInitialized)
+        : flash(spiStub, geometry, onInitialized)
     {
         ForwardTime(std::chrono::milliseconds(100));
         testing::Mock::VerifyAndClear(&spiStub);
@@ -18,6 +45,7 @@ public:
     }
 
     testing::StrictMock<hal::QuadSpiStub> spiStub;
+    FlashGeometryStub geometry;
     infra::VerifyingFunction<void()> onInitialized;
     services::FlashQuadSpiSingleSpeed flash;
 

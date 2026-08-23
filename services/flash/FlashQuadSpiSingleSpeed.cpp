@@ -11,8 +11,9 @@ namespace services
     const uint8_t FlashQuadSpiSingleSpeed::commandEraseBlock = 0xd8;
     const uint8_t FlashQuadSpiSingleSpeed::commandEraseChip = 0x60;
 
-    FlashQuadSpiSingleSpeed::FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, infra::Function<void()> onInitialized, uint32_t numberOfSectors)
-        : FlashQuadSpi(spi, numberOfSectors, commandPageProgram)
+    FlashQuadSpiSingleSpeed::FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, FlashGeometry& geometry, infra::Function<void()> onInitialized)
+        : FlashQuadSpi(spi, geometry)
+        , geometry(geometry)
         , onInitialized(onInitialized)
         , initDelayTimer(std::chrono::milliseconds(100), [this]()
               {
@@ -31,7 +32,7 @@ namespace services
     {
         hal::QuadSpi::Header pageProgramHeader{ std::make_optional(commandPageProgram), ConvertAddress(address), {}, 0 };
 
-        infra::ConstByteRange currentBuffer = infra::Head(buffer, sizePage - AddressOffsetInSector(address) % sizePage);
+        infra::ConstByteRange currentBuffer = infra::Head(buffer, geometry.SizePage() - AddressOffsetInSector(address) % geometry.SizePage());
         buffer.pop_front(currentBuffer.size());
         address += currentBuffer.size();
 
@@ -52,15 +53,17 @@ namespace services
 
     void FlashQuadSpiSingleSpeed::EraseSomeSectors(uint32_t endIndex)
     {
+        const uint32_t subSectorsPerBlock = sizeBlock / sizeSubSector;
+
         if (sectorIndex == 0 && endIndex == NumberOfSectors())
         {
             SendEraseChip();
             sectorIndex += NumberOfSectors();
         }
-        else if (sectorIndex % (sizeBlock / sizeSector) == 0 && sectorIndex + sizeBlock / sizeSector <= endIndex)
+        else if (sectorIndex % subSectorsPerBlock == 0 && sectorIndex + subSectorsPerBlock <= endIndex)
         {
             SendEraseBlock(sectorIndex);
-            sectorIndex += sizeBlock / sizeSector;
+            sectorIndex += subSectorsPerBlock;
         }
         else
         {

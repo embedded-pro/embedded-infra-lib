@@ -4,6 +4,35 @@
 #include "services/flash/FlashSpi.hpp"
 #include "gmock/gmock.h"
 
+namespace
+{
+    class FlashGeometryStub : public services::FlashGeometry
+    {
+    public:
+        FlashGeometryStub(uint32_t nrOfSubSectors, bool extendedAddressing,
+            uint32_t sizeSector = 65536, uint32_t sizeSubSector = 4096, uint32_t sizePage = 256)
+            : nrOfSubSectors(nrOfSubSectors)
+            , sizeSector(sizeSector)
+            , sizeSubSector(sizeSubSector)
+            , sizePage(sizePage)
+            , extendedAddressing(extendedAddressing)
+        {}
+
+        uint32_t NrOfSubSectors() const override { return nrOfSubSectors; }
+        uint32_t SizeSector() const override { return sizeSector; }
+        uint32_t SizeSubSector() const override { return sizeSubSector; }
+        uint32_t SizePage() const override { return sizePage; }
+        bool ExtendedAddressing() const override { return extendedAddressing; }
+
+    private:
+        uint32_t nrOfSubSectors;
+        uint32_t sizeSector;
+        uint32_t sizeSubSector;
+        uint32_t sizePage;
+        bool extendedAddressing;
+    };
+}
+
 struct FlashSpiTestArguments
 {
     bool extendedAddressing;
@@ -37,16 +66,9 @@ public:
         return result;
     }
 
-    services::FlashSpi::Config FlashSpiConfig()
-    {
-        services::FlashSpi::Config config{};
-        config.extendedAddressing = GetParam().extendedAddressing;
-        config.nrOfSubSectors = GetParam().nrOfSubSectors;
-        return config;
-    }
-
     testing::StrictMock<hal::SpiMock> spiMock;
-    services::FlashSpi flash{ spiMock, FlashSpiConfig() };
+    FlashGeometryStub geometry{ GetParam().nrOfSubSectors, GetParam().extendedAddressing };
+    services::FlashSpi flash{ spiMock, geometry };
 
     testing::StrictMock<infra::MockCallback<void()>> finished;
 };
@@ -57,14 +79,10 @@ TEST_P(FlashSpiTest, Construction)
     EXPECT_EQ(4096, flash.SizeOfSector(0));
 }
 
-TEST_P(FlashSpiTest, ConstructionWithConfig)
+TEST_P(FlashSpiTest, ConstructionWithCustomGeometry)
 {
-    services::FlashSpi::Config config;
-    config.nrOfSubSectors = 1024;
-    config.sizeSector = 8192;
-    config.sizeSubSector = 2048;
-    config.sizePage = 64;
-    services::FlashSpi flashConfigured{ spiMock, config };
+    FlashGeometryStub customGeometry{ 1024, GetParam().extendedAddressing, 8192, 2048, 64 };
+    services::FlashSpi flashConfigured{ spiMock, customGeometry };
 
     EXPECT_EQ(1024, flashConfigured.NumberOfSectors());
     EXPECT_EQ(2048, flashConfigured.SizeOfSector(0));
@@ -317,13 +335,8 @@ TEST_P(FlashSpiTest, EraseAllErasesBulk)
 
 TEST_P(FlashSpiTest, EraseSubSectorWhenSubSectorEqualsSector)
 {
-    services::FlashSpi::Config config;
-    config.nrOfSubSectors = 64;
-    config.sizeSector = 1024;
-    config.sizeSubSector = 1024;
-    config.sizePage = 256;
-    config.extendedAddressing = GetParam().extendedAddressing;
-    services::FlashSpi flashConfigured{ spiMock, config };
+    FlashGeometryStub customGeometry{ 64, GetParam().extendedAddressing, 1024, 1024, 256 };
+    services::FlashSpi flashConfigured{ spiMock, customGeometry };
 
     EXPECT_CALL(spiMock, SendDataMock(CreateInstruction(services::FlashSpi::commandWriteEnable), hal::SpiAction::stop));
     EXPECT_CALL(spiMock, SendDataMock(CreateInstructionAndAddress(services::FlashSpi::commandEraseSector, 0), hal::SpiAction::stop));

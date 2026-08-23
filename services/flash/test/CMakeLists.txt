@@ -12,6 +12,7 @@ target_link_libraries(services.flash_test PUBLIC
 
 target_sources(services.flash_test PRIVATE
     TestFlashAlign.cpp
+    TestFlashGeometrySfdp.cpp
     TestFlashMultipleAccess.cpp
     TestFlashQuadSpiSingleSpeed.cpp
     TestFlashRegion.cpp
