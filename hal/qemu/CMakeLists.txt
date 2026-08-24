@@ -1,0 +1,10 @@
+if(DEFINED TARGET_CORTEX)
+    string(TOUPPER "${TARGET_CORTEX}" _cortex_upper)
+    add_compile_definitions(EMIL_TARGET_CORTEX_${_cortex_upper})
+endif()
+
+add_subdirectory(cortex)
+add_subdirectory(sync)
+add_subdirectory(async)
+add_subdirectory(default_init)
+add_subdirectory(test)

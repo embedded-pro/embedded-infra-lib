@@ -117,6 +117,13 @@ if (EMIL_HOST_BUILD)
 
 endif()
 
+if (EMIL_BUILD_QEMU)
+    set(gtest_disable_pthreads On CACHE BOOL "" FORCE)
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    enable_testing()
+    emil_enable_testing()
+endif()
+
 if (NOT EMIL_STANDALONE)
     set(EMIL_HOST_BUILD "${EMIL_HOST_BUILD}" PARENT_SCOPE)
     set(EMIL_BUILD_WIN "${EMIL_BUILD_WIN}" PARENT_SCOPE)

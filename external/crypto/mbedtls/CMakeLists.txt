@@ -47,14 +47,15 @@ function(add_mbedtls_target_properties)
             $<$<CXX_COMPILER_ID:AppleClang>:-Wno-documentation -Wno-conversion>
             # Warning treated as error when implicit conversion within mbedtls
             $<$<CXX_COMPILER_ID:GNU>:-Wno-conversion>
-            # Warnings treated as error since gcc-15
-            $<$<CXX_COMPILER_ID:GNU>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15.0.0>:-Wno-unterminated-string-initialization>>
+            # Warnings treated as error since gcc-15; C-only flags — guard with COMPILE_LANGUAGE:C
+            # so they are not passed to cc1plus when compiling C++ consumers of this target.
+            $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15.0.0>,$<COMPILE_LANGUAGE:C>>:-Wno-unterminated-string-initialization>
             # Warnings treated as error since clang-22
-            $<$<CXX_COMPILER_ID:Clang>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22.0.0>:-Wno-uninitialized-const-pointer>>
-            $<$<CXX_COMPILER_ID:Clang>:$<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22.0.0>:-Wno-unterminated-string-initialization>>
+            $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22.0.0>,$<COMPILE_LANGUAGE:C>>:-Wno-uninitialized-const-pointer>
+            $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22.0.0>,$<COMPILE_LANGUAGE:C>>:-Wno-unterminated-string-initialization>
             # AppleClang uses a different version scheme; these warnings are already present
-            $<$<CXX_COMPILER_ID:AppleClang>:-Wno-uninitialized-const-pointer>
-            $<$<CXX_COMPILER_ID:AppleClang>:-Wno-unterminated-string-initialization>
+            $<$<AND:$<CXX_COMPILER_ID:AppleClang>,$<COMPILE_LANGUAGE:C>>:-Wno-uninitialized-const-pointer>
+            $<$<AND:$<CXX_COMPILER_ID:AppleClang>,$<COMPILE_LANGUAGE:C>>:-Wno-unterminated-string-initialization>
             $<$<CXX_COMPILER_ID:MSVC>:/wd4244 /wd4267>
         )
 

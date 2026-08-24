@@ -23,6 +23,12 @@ function(emil_fetch_googletest)
     set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES FOLDER External/GoogleTest)
     set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES EXCLUDE_FROM_COVERAGE TRUE)
     mark_as_advanced(BUILD_GMOCK BUILD_GTEST BUILD_SHARED_LIBS gmock_build_tests gtest_build_samples test_build_tests gtest_disable_pthreads gtest_force_shared_crt gtest_hide_internal_symbols)
+
+    if (NOT EMIL_HOST_BUILD)
+        foreach(target gtest gtest_main gmock gmock_main)
+            target_compile_definitions(${target} PUBLIC GTEST_HAS_FILE_SYSTEM=0)
+        endforeach()
+    endif()
 endfunction()
 
 function(emil_enable_testing)
