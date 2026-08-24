@@ -8,6 +8,7 @@ target_sources(hal.qemu.test PRIVATE
     TestSystemTickTimerService.cpp)
 
 target_link_libraries(hal.qemu.test PRIVATE
+    hal.cortex_m.runtime
     hal.qemu.syscalls
     hal.qemu.default_init
     hal.qemu.sync

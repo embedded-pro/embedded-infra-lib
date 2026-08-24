@@ -14,16 +14,6 @@ extern uint32_t _ebss;
 extern "C" void __libc_init_array();
 int main(int argc, char** argv);
 
-// Required by the C++ ABI for global object lifetime management.
-// Provided here because -nostartfiles suppresses crtbegin.o/crti.o.
-extern "C"
-{
-    __attribute__((weak)) void* __dso_handle = nullptr;
-
-    void _init()
-    {}
-}
-
 extern "C" void Reset_Handler()
 {
     uint32_t* src = &_sidata;
