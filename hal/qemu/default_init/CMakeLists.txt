@@ -12,6 +12,8 @@ target_sources(hal.qemu.default_init PRIVATE
     SystemInit.cpp
     Startup.hpp
     Startup.cpp
+    FaultTracerInfrastructure.hpp
+    FaultTracerInfrastructure.cpp
     EventInfrastructure.hpp
     EventInfrastructure.cpp
     TracerOnSemihostingInfrastructure.hpp

@@ -11,6 +11,11 @@ extern uint32_t _edata;
 extern uint32_t _sbss;
 extern uint32_t _ebss;
 
+extern "C" void HardFault_Handler();
+extern "C" void MemManage_Handler();
+extern "C" void BusFault_Handler();
+extern "C" void UsageFault_Handler();
+
 extern "C" void __libc_init_array();
 int main(int argc, char** argv);
 
@@ -41,30 +46,6 @@ extern "C" void Reset_Handler()
 }
 
 extern "C" __attribute__((weak)) void NMI_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void HardFault_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void MemManage_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void BusFault_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void UsageFault_Handler()
 {
     while (true)
     {}

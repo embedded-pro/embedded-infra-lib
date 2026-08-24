@@ -4,6 +4,7 @@ emil_build_for(hal.qemu.test
     BOOL EMIL_BUILD_QEMU)
 
 target_sources(hal.qemu.test PRIVATE
+    TestFaultTracer.cpp
     TestInterruptCortex.cpp
     TestSemihostingWriter.cpp
     TestSystemTickTimerService.cpp)
@@ -18,6 +19,7 @@ target_link_libraries(hal.qemu.test PRIVATE
     infra.event
     infra.timer
     infra.event_test_helper
+    services.tracer
     gmock_main)
 
 emil_add_test(hal.qemu.test)

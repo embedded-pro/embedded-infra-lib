@@ -8,13 +8,16 @@ target_include_directories(hal.cortex_m PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>")
 
 target_sources(hal.cortex_m PRIVATE
+    FaultTracer.hpp
+    FaultTracer.cpp
     InterruptCortex.hpp
     InterruptCortex.cpp)
 
 target_link_libraries(hal.cortex_m PUBLIC
     hal.cortex_m.runtime
     infra.event
-    infra.util)
+    infra.util
+    services.tracer)
 
 # The naked functions and inline assembly in this library produce diagnostics under
 # strict settings that are not actionable.

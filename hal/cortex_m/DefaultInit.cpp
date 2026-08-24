@@ -12,9 +12,17 @@ extern "C"
 
     [[gnu::weak, noreturn]] void abort()
     {
-        // bkpt halts under a debugger; without one the processor continues past it,
-        // so the loop is what actually stops execution.
-        __asm volatile("bkpt 0");
+        // Breaking is only safe once a debugger is attached to service it. Without one,
+        // bkpt raises a debug fault, and aborting from inside a fault handler then
+        // escalates that into lockup, losing the diagnostics that led here. ARMv6-M does
+        // not expose DHCSR to software, so there the breakpoint is skipped entirely.
+#if !defined(__ARM_ARCH_6M__)
+        constexpr uintptr_t dhcsrAddr = 0xE000EDF0u;
+        constexpr uint32_t dhcsrDebugen = 1u << 0;
+
+        if ((*reinterpret_cast<volatile uint32_t*>(dhcsrAddr) & dhcsrDebugen) != 0)
+            __asm volatile("bkpt 0");
+#endif
 
         while (true)
         {}

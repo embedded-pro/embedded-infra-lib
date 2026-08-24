@@ -20,6 +20,7 @@ SECTIONS
     .text :
     {
         . = ALIGN(4);
+        _stext = .;
         *(.text*)
         *(.rodata*)
         . = ALIGN(4);
