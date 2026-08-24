@@ -12,7 +12,7 @@ namespace services
     public:
         static const uint8_t statusFlagWriteInProgress = 1;
 
-        FlashQuadSpiGeneric(hal::QuadSpi& spi, FlashGeometryQuad& geometry);
+        FlashQuadSpiGeneric(hal::QuadSpi& spi, const FlashGeometryQuad& geometry);
 
         void ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone) override;
 
@@ -26,7 +26,7 @@ namespace services
         void HoldWhileWriteInProgress() override;
 
     private:
-        FlashGeometryQuad& geometry;
+        const FlashGeometryQuad& geometry;
     };
 }
 

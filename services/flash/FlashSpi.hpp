@@ -28,7 +28,7 @@ namespace services
 
         static const uint8_t statusFlagWriteInProgress = 1;
 
-        explicit FlashSpi(hal::SpiMaster& spi, FlashGeometry& geometry, uint32_t timerId = infra::systemTimerServiceId, infra::Function<void()> onInitialized = infra::emptyFunction);
+        explicit FlashSpi(hal::SpiMaster& spi, const FlashGeometry& geometry, uint32_t timerId = infra::systemTimerServiceId, infra::Function<void()> onInitialized = infra::emptyFunction);
 
     public:
         // implement Flash
@@ -53,7 +53,7 @@ namespace services
 
     private:
         hal::SpiMaster& spi;
-        FlashGeometry& geometry;
+        const FlashGeometry& geometry;
         infra::Sequencer sequencer;
         infra::TimerSingleShot delayTimer;
         infra::AutoResetFunction<void()> onDone;

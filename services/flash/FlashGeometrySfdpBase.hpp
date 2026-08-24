@@ -27,11 +27,11 @@ namespace services
         virtual void PerformRead(uint32_t address, infra::ByteRange buffer, infra::Function<void()> onDone) = 0;
         virtual void OnBfptParsed(infra::Function<void()> onDone);
 
-        uint8_t eraseSubSectorCommand = 0x20;
-        uint8_t eraseSectorCommand = 0xD8;
-        uint8_t readDataCommand = 0xEB;
-        uint8_t readDummyCycles = 10;
-        uint8_t qer = 0;
+        uint8_t EraseSubSectorCommandValue() const;
+        uint8_t EraseSectorCommandValue() const;
+        uint8_t ReadDataCommandValue() const;
+        uint8_t ReadDummyCyclesValue() const;
+        uint8_t QerValue() const;
 
     private:
         struct ReadingHeader {};
@@ -63,6 +63,12 @@ namespace services
         uint32_t sizeSubSector = 4096;
         uint32_t sizePage = 256;
         bool extendedAddressing = false;
+
+        uint8_t eraseSubSectorCommand = 0x20;
+        uint8_t eraseSectorCommand = 0xD8;
+        uint8_t readDataCommand = 0xEB;
+        uint8_t readDummyCycles = 10;
+        uint8_t qer = 0;
     };
 }
 

@@ -13,7 +13,7 @@ namespace services
     const uint8_t FlashSpi::commandEraseBulk = 0xc7;
     const uint8_t FlashSpi::commandReadId = 0x9f;
 
-    FlashSpi::FlashSpi(hal::SpiMaster& spi, FlashGeometry& geometry, uint32_t timerId, infra::Function<void()> onInitialized)
+    FlashSpi::FlashSpi(hal::SpiMaster& spi, const FlashGeometry& geometry, uint32_t timerId, infra::Function<void()> onInitialized)
         : hal::FlashHomogeneous(geometry.NrOfSubSectors(), geometry.SizeSubSector())
         , spi(spi)
         , geometry(geometry)

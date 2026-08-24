@@ -8,7 +8,7 @@ namespace services
         constexpr uint8_t commandReadStatusRegister = 0x05;
     }
 
-    FlashQuadSpiGeneric::FlashQuadSpiGeneric(hal::QuadSpi& spi, FlashGeometryQuad& geometry)
+    FlashQuadSpiGeneric::FlashQuadSpiGeneric(hal::QuadSpi& spi, const FlashGeometryQuad& geometry)
         : FlashQuadSpi(spi, geometry)
         , geometry(geometry)
     {}

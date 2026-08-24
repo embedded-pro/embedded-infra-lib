@@ -17,17 +17,17 @@ namespace services
         , spi(spi)
     {}
 
-    uint8_t FlashGeometryQuadSfdp::EraseSubSectorCommand() const { return eraseSubSectorCommand; }
+    uint8_t FlashGeometryQuadSfdp::EraseSubSectorCommand() const { return EraseSubSectorCommandValue(); }
 
-    uint8_t FlashGeometryQuadSfdp::EraseSectorCommand() const { return eraseSectorCommand; }
+    uint8_t FlashGeometryQuadSfdp::EraseSectorCommand() const { return EraseSectorCommandValue(); }
 
     uint8_t FlashGeometryQuadSfdp::EraseBulkCommand() const { return commandEraseBulk; }
 
     uint8_t FlashGeometryQuadSfdp::PageProgramCommand() const { return commandPageProgram; }
 
-    uint8_t FlashGeometryQuadSfdp::ReadDataCommand() const { return readDataCommand; }
+    uint8_t FlashGeometryQuadSfdp::ReadDataCommand() const { return ReadDataCommandValue(); }
 
-    uint8_t FlashGeometryQuadSfdp::ReadDummyCycles() const { return readDummyCycles; }
+    uint8_t FlashGeometryQuadSfdp::ReadDummyCycles() const { return ReadDummyCyclesValue(); }
 
     void FlashGeometryQuadSfdp::PerformRead(uint32_t address, infra::ByteRange buffer, infra::Function<void()> onDone)
     {
@@ -39,7 +39,7 @@ namespace services
     void FlashGeometryQuadSfdp::OnBfptParsed(infra::Function<void()> onDone)
     {
         onQuadDone = onDone;
-        switch (qer)
+        switch (QerValue())
         {
             case 1:
             case 5:

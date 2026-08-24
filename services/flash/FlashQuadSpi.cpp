@@ -3,7 +3,7 @@
 
 namespace services
 {
-    FlashQuadSpi::FlashQuadSpi(hal::QuadSpi& spi, FlashGeometry& geometry)
+    FlashQuadSpi::FlashQuadSpi(hal::QuadSpi& spi, const FlashGeometry& geometry)
         : hal::FlashHomogeneous(geometry.NrOfSubSectors(), geometry.SizeSubSector())
         , spi(spi)
     {}

@@ -22,6 +22,16 @@ namespace services
 
     bool FlashGeometrySfdpBase::ExtendedAddressing() const { return extendedAddressing; }
 
+    uint8_t FlashGeometrySfdpBase::EraseSubSectorCommandValue() const { return eraseSubSectorCommand; }
+
+    uint8_t FlashGeometrySfdpBase::EraseSectorCommandValue() const { return eraseSectorCommand; }
+
+    uint8_t FlashGeometrySfdpBase::ReadDataCommandValue() const { return readDataCommand; }
+
+    uint8_t FlashGeometrySfdpBase::ReadDummyCyclesValue() const { return readDummyCycles; }
+
+    uint8_t FlashGeometrySfdpBase::QerValue() const { return qer; }
+
     void FlashGeometrySfdpBase::OnBfptParsed(infra::Function<void()> onDone)
     {
         onDone();
@@ -133,15 +143,17 @@ namespace services
             return { exp == 0 ? 0u : (1u << exp), cmd };
         };
 
-        const EraseType types[4] = {
+        const std::array<EraseType, 4> types = {
             makeEraseType(dword4 & 0xFF, (dword4 >> 8) & 0xFF),
             makeEraseType((dword4 >> 16) & 0xFF, (dword4 >> 24) & 0xFF),
             makeEraseType(dword5 & 0xFF, (dword5 >> 8) & 0xFF),
             makeEraseType((dword5 >> 16) & 0xFF, (dword5 >> 24) & 0xFF),
         };
 
-        uint32_t smallest = 0, largest = 0;
-        uint8_t smallestCmd = eraseSubSectorCommand, largestCmd = eraseSectorCommand;
+        uint32_t smallest = 0;
+        uint32_t largest = 0;
+        uint8_t smallestCmd = eraseSubSectorCommand;
+        uint8_t largestCmd = eraseSectorCommand;
         for (const auto& t : types)
         {
             if (t.size == 0)

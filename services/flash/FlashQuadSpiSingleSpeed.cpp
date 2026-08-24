@@ -11,7 +11,7 @@ namespace services
     const uint8_t FlashQuadSpiSingleSpeed::commandEraseBlock = 0xd8;
     const uint8_t FlashQuadSpiSingleSpeed::commandEraseChip = 0x60;
 
-    FlashQuadSpiSingleSpeed::FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, FlashGeometry& geometry, infra::Function<void()> onInitialized)
+    FlashQuadSpiSingleSpeed::FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, const FlashGeometry& geometry, infra::Function<void()> onInitialized)
         : FlashQuadSpi(spi, geometry)
         , geometry(geometry)
         , onInitialized(onInitialized)

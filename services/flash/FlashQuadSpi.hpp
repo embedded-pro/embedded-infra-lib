@@ -14,7 +14,7 @@ namespace services
         : public hal::FlashHomogeneous
     {
     public:
-        FlashQuadSpi(hal::QuadSpi& spi, FlashGeometry& geometry);
+        FlashQuadSpi(hal::QuadSpi& spi, const FlashGeometry& geometry);
 
         void WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone) override;
         void EraseSectors(uint32_t beginIndex, uint32_t endIndex, infra::Function<void()> onDone) override;

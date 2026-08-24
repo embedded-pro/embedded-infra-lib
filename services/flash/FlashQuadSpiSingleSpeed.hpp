@@ -23,7 +23,7 @@ namespace services
         static constexpr uint32_t sizeBlock = 65536;
         static constexpr uint32_t sizeSubSector = 4096;
 
-        FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, FlashGeometry& geometry, infra::Function<void()> onInitialized);
+        FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, const FlashGeometry& geometry, infra::Function<void()> onInitialized);
 
         void ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone) override;
 
@@ -39,7 +39,7 @@ namespace services
         void HoldWhileWriteInProgress() override;
 
     private:
-        FlashGeometry& geometry;
+        const FlashGeometry& geometry;
         infra::Function<void()> onInitialized;
         infra::TimerSingleShot initDelayTimer;
     };
