@@ -7,8 +7,6 @@
 
 extern "C"
 {
-    // _write is a no-op by default; a target provides a strong definition to route
-    // output to semihosting, a Uart, or an RTT channel.
     [[gnu::weak]] int _write(int, const char*, int count)
     {
         return count;
@@ -55,10 +53,6 @@ extern "C"
         return -1;
     }
 
-    // Grows the heap from the "end" symbol supplied by the linker script towards the
-    // current stack pointer. A failing stub would be preempted over newlib's own
-    // implementation and would break every malloc in the image, so a working default
-    // is provided instead; targets that forbid a heap override it with a failing one.
     [[gnu::weak]] void* _sbrk(intptr_t increment)
     {
         extern char end;
@@ -78,8 +72,6 @@ extern "C"
         return previous;
     }
 
-    // arm-none-eabi 15+ nano.specs omits the wide-character I/O that libg_nano.a and
-    // libstdc++_nano.a reference transitively through strftime and C++ stream initialization.
     [[gnu::weak]] int swprintf(wchar_t*, size_t, const wchar_t*, ...)
     {
         return 0;

@@ -31,9 +31,6 @@ target_link_options(hal.qemu.default_init INTERFACE
     -T "${CMAKE_CURRENT_SOURCE_DIR}/../linker/qemu_virt.ld"
     --specs=nosys.specs)
 
-# The semihosting _write is a strong override of the weak stub archived in
-# hal.cortex_m; it must land directly in the final ELF as an object file, not
-# archived, so it reliably wins regardless of linker archive ordering.
 add_library(hal.qemu.syscalls OBJECT)
 
 emil_build_for(hal.qemu.syscalls

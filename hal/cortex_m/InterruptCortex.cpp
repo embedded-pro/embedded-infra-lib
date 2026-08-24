@@ -3,9 +3,6 @@
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 
-// Number of implemented NVIC priority bits for this target. ARMv6-M implements two bits
-// at minimum, ARMv7-M and ARMv8-M three. Override per target through CMake with
-// target_compile_definitions(... EMIL_NVIC_PRIO_BITS=4).
 #ifndef EMIL_NVIC_PRIO_BITS
 #if defined(__ARM_ARCH_6M__)
 #define EMIL_NVIC_PRIO_BITS 2u
@@ -16,8 +13,6 @@
 
 namespace
 {
-    // NVIC and SCB register addresses. Identical on every Cortex-M family, so no CMSIS
-    // device header is required.
     constexpr uintptr_t nvicIser0 = 0xE000E100u;
     constexpr uintptr_t nvicIcer0 = 0xE000E180u;
     constexpr uintptr_t nvicIcpr0 = 0xE000E280u;
@@ -67,8 +62,6 @@ namespace
         return static_cast<uint8_t>(level << (8u - EMIL_NVIC_PRIO_BITS));
     }
 
-    // The ARMv6-M Private Peripheral Bus only accepts 32-bit accesses; a byte write to
-    // NVIC_IPR is UNPREDICTABLE there. ARMv7-M and ARMv8-M allow byte access.
     void SetNvicPriority(int32_t irq, uint8_t priorityByte)
     {
 #if defined(__ARM_ARCH_6M__)
@@ -91,8 +84,6 @@ namespace
         }
         else if (irq == hal::cortex::sysTickIrq)
             Reg32(systCsr) |= systTickint;
-
-        // NMI, HardFault and PendSV are permanently enabled; nothing to do for those.
     }
 
     void DisableIrq(int32_t irq)
@@ -288,8 +279,6 @@ namespace hal::cortex
         infra::Function<void()> invoke = handler.onInvoke;
         invoke();
 
-        // The callback may have unregistered or replaced this handler, in which case the
-        // interrupt must stay masked.
         if (InterruptTable::Instance().Handler(irq) != &handler)
             return;
 

@@ -7,7 +7,6 @@
 
 namespace
 {
-    // Chosen so that no value coincidentally falls inside the synthetic code range.
     constexpr uint32_t codeRangeBegin = 0x00001000;
     constexpr uint32_t codeRangeEnd = 0x00002000;
 
@@ -15,8 +14,6 @@ namespace
     constexpr uint32_t thumbReturnAddressInCode = 0x00001445;
     constexpr uint32_t addressOutsideCode = 0x20004000;
 
-    // EXC_RETURN values as they appear on exception entry: bit 4 set means no floating
-    // point context was stacked, bit 2 selects the process stack.
     constexpr uint32_t excReturnNoFpu = 0xFFFFFFF9;
     constexpr uint32_t excReturnWithFpu = 0xFFFFFFE9;
 }
@@ -44,8 +41,6 @@ public:
             frame.data() + frame.size(), tracer);
     }
 
-    // gmock's string matchers require a std::string; BoundedString::find keeps the
-    // assertions free of heap allocation.
     bool Traced(const char* text)
     {
         return stream.Storage().find(text) != infra::BoundedString::npos;
@@ -54,7 +49,6 @@ public:
     infra::StringOutputStream::WithStorage<2048> stream;
     services::TracerToStream tracer{ stream };
 
-    // Eight words of exception frame followed by room for a synthetic backtrace.
     std::array<uint32_t, 32> frame{};
 };
 
@@ -162,8 +156,6 @@ TEST_F(FaultTracerTest, the_backtrace_masks_the_thumb_bit_when_matching_the_code
 
 TEST_F(FaultTracerTest, the_backtrace_skips_the_exception_frame_it_already_reported)
 {
-    // The PC value looks like a code address, but it belongs to the frame that was
-    // already reported and must not be repeated as a backtrace entry.
     frame[6] = returnAddressInCode;
     auto faultTracer = Construct();
 
@@ -187,8 +179,6 @@ TEST_F(FaultTracerTest, on_progress_is_invoked_while_dumping)
 
     faultTracer.Dump("HardFault");
 
-    // Once after the header, once after the frame, once after the status registers where
-    // they exist, and once per word scanned for the backtrace.
     auto scannedWords = frame.size() - 8;
 #if defined(__ARM_ARCH_6M__)
     EXPECT_EQ(2u + scannedWords, progressCount);

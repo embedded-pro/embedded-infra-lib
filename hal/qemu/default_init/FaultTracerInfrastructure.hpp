@@ -3,7 +3,7 @@
 
 #include "hal/cortex_m/FaultTracer.hpp"
 
-namespace main_
+namespace bringup
 {
     struct FaultTracerInfrastructure
     {

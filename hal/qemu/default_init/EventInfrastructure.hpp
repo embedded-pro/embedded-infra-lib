@@ -8,7 +8,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace main_
+namespace bringup
 {
     struct EventInfrastructure
     {
@@ -17,7 +17,6 @@ namespace main_
 
         void Run();
 
-        // Declared first so that it outlives every InterruptHandler registered into it.
         hal::cortex::InterruptTable::WithStorage<64> interruptTable;
         hal::cortex::EventDispatcherCortex::WithSize<50> eventDispatcher;
         hal::cortex::SystemTickTimerService systemTick;

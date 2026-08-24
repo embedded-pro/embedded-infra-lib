@@ -4,7 +4,7 @@ extern uint32_t _estack;
 extern uint32_t _stext;
 extern uint32_t _etext;
 
-namespace main_
+namespace bringup
 {
     FaultTracerInfrastructure::FaultTracerInfrastructure(services::Tracer& tracer,
         infra::Function<void()> onProgress)

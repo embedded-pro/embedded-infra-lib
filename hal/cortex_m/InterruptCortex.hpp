@@ -12,8 +12,6 @@
 
 namespace hal::cortex
 {
-    // Exception numbers below zero identify core exceptions; zero and above identify
-    // external interrupts. The exception number of an interrupt is its irq number plus 16.
     constexpr int32_t nmiIrq = -14;
     constexpr int32_t hardFaultIrq = -13;
     constexpr int32_t memManageIrq = -12;
@@ -26,13 +24,6 @@ namespace hal::cortex
     constexpr int32_t firstExternalIrq = 0;
     constexpr std::size_t exceptionOffset = 16;
 
-    // Priority values are logical levels: 0 is the highest, 7 the lowest. The value is
-    // written to NVIC_IPR shifted left by (8 - EMIL_NVIC_PRIO_BITS).
-    //
-    // Implemented bits per family, which determines the effective range:
-    //   ARMv6-M (M0/M0+)      : 2 bits, so levels 0-3; higher values saturate at 3.
-    //   ARMv7-M (M3/M4/M7)    : 3 bits minimum by specification, so levels 0-7.
-    //   ARMv8-M (M33)         : 3 bits minimum by specification, so levels 0-7.
     enum class InterruptPriority : uint8_t
     {
         highest = 0,
@@ -97,8 +88,6 @@ namespace hal::cortex
         infra::MemoryRange<InterruptHandler*> table;
     };
 
-    // Masks its interrupt on arrival and runs the callback from the event dispatcher,
-    // re-enabling the interrupt once the callback has completed.
     class DispatchedInterruptHandler
         : public InterruptHandler
     {
@@ -117,7 +106,6 @@ namespace hal::cortex
         bool pending{ false };
     };
 
-    // Runs the callback directly in interrupt context.
     class ImmediateInterruptHandler
         : public InterruptHandler
     {

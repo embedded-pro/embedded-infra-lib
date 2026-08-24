@@ -5,8 +5,6 @@
 
 namespace
 {
-    // An external interrupt line that the MPS2 machine leaves unwired, so enabling it in
-    // the NVIC has no observable effect while the table logic is exercised.
     constexpr int32_t unwiredIrq = 30;
     constexpr int32_t otherUnwiredIrq = 31;
 

@@ -10,7 +10,6 @@
 
 namespace hal::cortex
 {
-    // Captured by the fault entry stubs before any C++ runs.
     struct FaultContext
     {
         const uint32_t* stack;
@@ -28,12 +27,8 @@ namespace hal::cortex
             services::Tracer& tracer,
             infra::Function<void()> onProgress = infra::Function<void()>());
 
-        // Writes the fault report without terminating, so that the report can be
-        // inspected by tests; the fault entry stubs abort once this returns.
         void Dump(infra::BoundedConstString faultName);
 
-        // Decodes a Configurable Fault Status Register value. Public because the value is
-        // meaningful on its own, for instance when one has been latched for later report.
         void DumpCfsr(uint32_t cfsr);
 
     private:

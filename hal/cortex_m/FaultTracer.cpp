@@ -3,8 +3,6 @@
 
 namespace
 {
-    // System Control Block registers. Identical on every Cortex-M family that implements
-    // them, so no CMSIS device header is required.
     constexpr uintptr_t hfsrAddr = 0xE000ED2Cu;
     constexpr uintptr_t cfsrAddr = 0xE000ED28u;
     constexpr uintptr_t dfsrAddr = 0xE000ED30u;
@@ -44,8 +42,6 @@ namespace
     constexpr uint32_t cfsrUnaligned = 1u << 24;
     constexpr uint32_t cfsrDivbyzero = 1u << 25;
 
-    // The exception frame is eight words, extended by the floating point context and by
-    // the word of padding that xPSR bit 9 reports when the stack needed realignment.
     constexpr std::size_t baseFrameWords = 8;
     constexpr std::size_t fpuFrameWords = 18;
     constexpr uint32_t xpsrStackAlignedMsk = 1u << 9;
@@ -237,8 +233,6 @@ namespace
 
 extern "C"
 {
-    // Entered from the naked stubs below with the faulting stack pointer and EXC_RETURN
-    // already in the argument registers.
     [[noreturn]] void HardFaultEntry(const uint32_t* stack, uint32_t excReturn)
     {
         hal::cortex::faultContext = { stack, excReturn };
@@ -264,8 +258,6 @@ extern "C"
     }
 }
 
-// EXC_RETURN bit 2 selects the stack that was active when the fault was taken. ARMv6-M
-// has neither the IT block nor conditional MRS, so it needs a branch instead.
 #if defined(__ARM_ARCH_6M__)
 #define EMIL_FAULT_HANDLER(name, entry)              \
     extern "C" [[gnu::weak, gnu::naked]] void name() \

@@ -1,11 +1,6 @@
 #include <cstdint>
 #include <cstring>
 
-// On ARMv7-M and ARMv8-M the compiler expands the __atomic builtins inline using
-// LDREX/STREX, so libatomic outline calls are never emitted and defining these
-// symbols would only add dead code. ARMv6-M (Cortex-M0/M0+) has no exclusive
-// monitor instructions; there the compiler emits calls to the __atomic_* runtime,
-// which is supplied below using interrupt-masking critical sections.
 #if !defined(__ARM_FEATURE_LDREX)
 
 namespace
