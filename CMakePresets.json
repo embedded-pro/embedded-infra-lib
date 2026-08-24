@@ -77,7 +77,8 @@
             "cacheVariables": {
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
                 "EMIL_INCLUDE_SEGGER_RTT": "On",
-                "TARGET_CORTEX": "m4"
+                "TARGET_CORTEX": "m4",
+                "EMIL_BUILD_CORTEX_M": "ON"
             },
             "generator": "Ninja Multi-Config"
         },
@@ -99,6 +100,36 @@
             }
         },
         {
+            "name": "cortex-m0plus",
+            "displayName": "Cortex-M0+ compile coverage (ARMv6-M)",
+            "inherits": "defaults",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m0plus.cmake",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+                "EMIL_BUILD_CORTEX_M": "ON",
+                "EMIL_BUILD_QEMU": "OFF",
+                "EMIL_INCLUDE_ECHO": "Off",
+                "EMIL_INCLUDE_MBEDTLS": "Off",
+                "EMIL_INCLUDE_LWIP": "Off"
+            },
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "cortex-m33",
+            "displayName": "Cortex-M33 compile coverage (ARMv8-M)",
+            "inherits": "defaults",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m33.cmake",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+                "EMIL_BUILD_CORTEX_M": "ON",
+                "EMIL_BUILD_QEMU": "OFF",
+                "EMIL_INCLUDE_ECHO": "Off",
+                "EMIL_INCLUDE_MBEDTLS": "Off",
+                "EMIL_INCLUDE_LWIP": "Off"
+            },
+            "generator": "Ninja Multi-Config"
+        },
+        {
             "name": "qemu-m3",
             "displayName": "QEMU Cortex-M3",
             "inherits": "defaults",
@@ -107,7 +138,8 @@
                 "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
                 "EMIL_BUILD_QEMU": "ON",
                 "TARGET_CORTEX": "m3",
-                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an385;-nographic;-semihosting-config;enable=on,target=native;-kernel"
+                "CMAKE_CROSSCOMPILING_EMULATOR": "qemu-system-arm;-M;mps2-an385;-nographic;-semihosting-config;enable=on,target=native;-kernel",
+                "EMIL_BUILD_CORTEX_M": "ON"
             },
             "generator": "Ninja Multi-Config"
         },
@@ -244,6 +276,24 @@
             "name": "embedded-ThreadX-RelWithDebInfo",
             "configuration": "RelWithDebInfo",
             "configurePreset": "embedded-ThreadX"
+        },
+        {
+            "name": "cortex-m0plus-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "cortex-m0plus",
+            "targets": [
+                "hal.cortex_m",
+                "hal.cortex_m.runtime"
+            ]
+        },
+        {
+            "name": "cortex-m33-RelWithDebInfo",
+            "configuration": "RelWithDebInfo",
+            "configurePreset": "cortex-m33",
+            "targets": [
+                "hal.cortex_m",
+                "hal.cortex_m.runtime"
+            ]
         },
         {
             "name": "qemu-m3-RelWithDebInfo",

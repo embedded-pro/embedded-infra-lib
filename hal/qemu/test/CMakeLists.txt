@@ -4,10 +4,14 @@ emil_build_for(hal.qemu.test
     BOOL EMIL_BUILD_QEMU)
 
 target_sources(hal.qemu.test PRIVATE
+    TestFaultTracer.cpp
+    TestInterruptCortex.cpp
     TestSemihostingWriter.cpp
     TestSystemTickTimerService.cpp)
 
 target_link_libraries(hal.qemu.test PRIVATE
+    hal.cortex_m
+    hal.cortex_m.runtime
     hal.qemu.syscalls
     hal.qemu.default_init
     hal.qemu.sync
@@ -15,6 +19,11 @@ target_link_libraries(hal.qemu.test PRIVATE
     infra.event
     infra.timer
     infra.event_test_helper
+    services.tracer
     gmock_main)
 
 emil_add_test(hal.qemu.test)
+
+if (TEST hal.qemu.test)
+    set_tests_properties(hal.qemu.test PROPERTIES TIMEOUT 120)
+endif()

@@ -213,6 +213,34 @@ jobs:
           configurePreset: "embedded-${{ matrix.rtos }}"
           buildPreset: "embedded-${{ matrix.rtos }}-RelWithDebInfo"
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
+  cortex_m_compile:
+    name: Cortex-M Compile Coverage
+    runs-on: ubuntu-latest
+    needs: [host_build_test_ubuntu]
+    strategy:
+      matrix:
+        cpu: ["m0plus", "m33"]
+        gcc: ["15.2.Rel1"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install GNU Arm Embedded Toolchain ${{ matrix.gcc }}
+        uses: carlosperate/arm-none-eabi-gcc-action@98c40e51546516419841748d3210c290df0d2c6c # v1.13.0
+        with:
+          release: ${{ matrix.gcc }}
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03 # v1.2.23
+        with:
+          key: ${{ github.job }}-${{ matrix.cpu }}-${{ matrix.gcc }}
+          max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
+      - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
+        with:
+          configurePreset: "cortex-${{ matrix.cpu }}"
+          buildPreset: "cortex-${{ matrix.cpu }}-RelWithDebInfo"
+          configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
   qemu_build_test:
     name: QEMU Build & Smoke Test
     runs-on: ubuntu-latest

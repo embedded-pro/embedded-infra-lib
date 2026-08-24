@@ -1,7 +1,7 @@
 #ifndef HAL_QEMU_CORTEX_SYSTEM_TICK_TIMER_SERVICE_HPP
 #define HAL_QEMU_CORTEX_SYSTEM_TICK_TIMER_SERVICE_HPP
 
-#include "hal/qemu/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/qemu/cortex/SystemTick.hpp"
 #include "infra/timer/TickOnInterruptTimerService.hpp"
 #include "infra/util/InterfaceConnector.hpp"
@@ -17,6 +17,9 @@ namespace hal::cortex
         explicit SystemTickTimerService(uint32_t coreClockHz,
             infra::Duration tickDuration = std::chrono::milliseconds(1),
             uint32_t id = infra::systemTimerServiceId);
+
+        void Start();
+        void Stop();
 
     private:
         void Invoke() override;
