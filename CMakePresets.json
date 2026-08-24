@@ -282,6 +282,7 @@
             "configuration": "RelWithDebInfo",
             "configurePreset": "cortex-m0plus",
             "targets": [
+                "hal.cortex_m",
                 "hal.cortex_m.runtime"
             ]
         },
@@ -290,6 +291,7 @@
             "configuration": "RelWithDebInfo",
             "configurePreset": "cortex-m33",
             "targets": [
+                "hal.cortex_m",
                 "hal.cortex_m.runtime"
             ]
         },

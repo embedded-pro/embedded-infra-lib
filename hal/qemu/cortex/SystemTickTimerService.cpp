@@ -8,7 +8,7 @@ namespace hal::cortex
         : infra::TickOnInterruptTimerService(id, tickDuration)
         , systemTick(coreClockHz, tickDuration)
     {
-        InterruptCortexRegisterHandler(-1, *this);
+        Register(sysTickIrq, InterruptPriority::lowest);
         systemTick.Enable();
     }
 

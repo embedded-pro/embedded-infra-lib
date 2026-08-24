@@ -18,7 +18,7 @@ target_sources(hal.qemu.default_init PRIVATE
     TracerOnSemihostingInfrastructure.cpp)
 
 target_link_libraries(hal.qemu.default_init PUBLIC
-    hal.cortex_m.runtime
+    hal.cortex_m
     hal.qemu.cortex
     hal.qemu.sync
     services.tracer

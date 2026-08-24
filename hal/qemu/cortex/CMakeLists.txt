@@ -10,8 +10,6 @@ target_include_directories(hal.qemu.cortex PUBLIC
 target_sources(hal.qemu.cortex PRIVATE
     Semihosting.hpp
     Semihosting.cpp
-    InterruptCortex.hpp
-    InterruptCortex.cpp
     SystemTick.hpp
     SystemTick.cpp
     SystemTickTimerService.hpp
@@ -22,6 +20,7 @@ target_sources(hal.qemu.cortex PRIVATE
     Reset.cpp)
 
 target_link_libraries(hal.qemu.cortex PUBLIC
+    hal.cortex_m
     infra.event
     infra.timer
     hal.interfaces)

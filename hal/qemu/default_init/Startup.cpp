@@ -1,4 +1,4 @@
-#include "hal/qemu/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/qemu/cortex/Semihosting.hpp"
 #include "hal/qemu/default_init/SystemInit.hpp"
 #include "hal/qemu/sync/Pl011Registers.hpp"
@@ -82,14 +82,23 @@ extern "C" __attribute__((weak)) void PendSV_Handler()
     {}
 }
 
+namespace
+{
+    void Dispatch(int32_t irq)
+    {
+        if (hal::cortex::InterruptTable::InstanceSet())
+            hal::cortex::InterruptTable::Instance().Invoke(irq);
+    }
+}
+
 extern "C" void SysTick_Handler()
 {
-    hal::cortex::InterruptCortexDispatch(-1);
+    Dispatch(hal::cortex::sysTickIrq);
 }
 
 extern "C" void UART0_IRQHandler()
 {
-    hal::cortex::InterruptCortexDispatch(hal::uart0IrqNumber);
+    Dispatch(hal::uart0IrqNumber);
 }
 
 // Vector entries are function pointer values; cast through uintptr_t avoids

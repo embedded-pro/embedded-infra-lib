@@ -1,3 +1,4 @@
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/qemu/cortex/SystemTickTimerService.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/timer/Timer.hpp"
@@ -13,6 +14,7 @@ public:
         : timerService(25000000u)
     {}
 
+    hal::cortex::InterruptTable::WithStorage<64> interruptTable;
     hal::cortex::SystemTickTimerService timerService;
 };
 

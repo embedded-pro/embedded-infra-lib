@@ -4,10 +4,12 @@ emil_build_for(hal.qemu.test
     BOOL EMIL_BUILD_QEMU)
 
 target_sources(hal.qemu.test PRIVATE
+    TestInterruptCortex.cpp
     TestSemihostingWriter.cpp
     TestSystemTickTimerService.cpp)
 
 target_link_libraries(hal.qemu.test PRIVATE
+    hal.cortex_m
     hal.cortex_m.runtime
     hal.qemu.syscalls
     hal.qemu.default_init
