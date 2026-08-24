@@ -1,8 +1,8 @@
 #ifndef HAL_QEMU_ASYNC_UART_QEMU_HPP
 #define HAL_QEMU_ASYNC_UART_QEMU_HPP
 
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/interfaces/SerialCommunication.hpp"
-#include "hal/qemu/cortex/InterruptCortex.hpp"
 #include "hal/qemu/sync/Pl011Registers.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/Function.hpp"
@@ -30,7 +30,6 @@ namespace hal
 
     private:
         Pl011Registers& uart;
-        int32_t irqNumber;
         infra::ConstByteRange sendBuffer;
         infra::Function<void()> transferDataComplete;
         infra::Function<void(infra::ConstByteRange)> onReceived;

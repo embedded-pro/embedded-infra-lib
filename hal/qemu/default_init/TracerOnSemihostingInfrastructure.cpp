@@ -2,7 +2,7 @@
 #include "hal/qemu/cortex/Semihosting.hpp"
 #include "services/tracer/GlobalTracer.hpp"
 
-namespace main_
+namespace bringup
 {
     TracerOnSemihostingInfrastructure::TracerOnSemihostingInfrastructure()
         : writer(&hal::cortex::SemihostingWrite)

@@ -1,8 +1,21 @@
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/qemu/cortex/SystemTickTimerService.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/timer/Timer.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include <cstdint>
+
+namespace
+{
+    constexpr uintptr_t systCsr = 0xE000E010;
+    constexpr uint32_t csrEnable = 1u << 0;
+
+    bool SysTickCounting()
+    {
+        return (*reinterpret_cast<volatile uint32_t*>(systCsr) & csrEnable) != 0;
+    }
+}
 
 class SystemTickTimerServiceTest
     : public testing::Test
@@ -13,6 +26,7 @@ public:
         : timerService(25000000u)
     {}
 
+    hal::cortex::InterruptTable::WithStorage<64> interruptTable;
     hal::cortex::SystemTickTimerService timerService;
 };
 
@@ -48,4 +62,9 @@ TEST_F(SystemTickTimerServiceTest, multiple_ticks_advance_time)
         ExecuteAllActions();
     }
     EXPECT_EQ(infra::TimePoint() + std::chrono::milliseconds(5), timerService.Now());
+}
+
+TEST_F(SystemTickTimerServiceTest, construction_leaves_the_hardware_timer_stopped)
+{
+    EXPECT_FALSE(SysTickCounting());
 }

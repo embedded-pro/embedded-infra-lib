@@ -4,7 +4,7 @@
 #include "hal/qemu/sync/SemihostingWriter.hpp"
 #include "services/tracer/TracerWithDateTime.hpp"
 
-namespace main_
+namespace bringup
 {
     struct TracerOnSemihostingInfrastructure
     {

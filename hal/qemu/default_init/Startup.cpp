@@ -1,4 +1,4 @@
-#include "hal/qemu/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/qemu/cortex/Semihosting.hpp"
 #include "hal/qemu/default_init/SystemInit.hpp"
 #include "hal/qemu/sync/Pl011Registers.hpp"
@@ -11,18 +11,13 @@ extern uint32_t _edata;
 extern uint32_t _sbss;
 extern uint32_t _ebss;
 
+extern "C" void HardFault_Handler();
+extern "C" void MemManage_Handler();
+extern "C" void BusFault_Handler();
+extern "C" void UsageFault_Handler();
+
 extern "C" void __libc_init_array();
 int main(int argc, char** argv);
-
-// Required by the C++ ABI for global object lifetime management.
-// Provided here because -nostartfiles suppresses crtbegin.o/crti.o.
-extern "C"
-{
-    __attribute__((weak)) void* __dso_handle = nullptr;
-
-    void _init()
-    {}
-}
 
 extern "C" void Reset_Handler()
 {
@@ -56,30 +51,6 @@ extern "C" __attribute__((weak)) void NMI_Handler()
     {}
 }
 
-extern "C" __attribute__((weak)) void HardFault_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void MemManage_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void BusFault_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void UsageFault_Handler()
-{
-    while (true)
-    {}
-}
-
 extern "C" __attribute__((weak)) void SVC_Handler()
 {
     while (true)
@@ -92,14 +63,23 @@ extern "C" __attribute__((weak)) void PendSV_Handler()
     {}
 }
 
+namespace
+{
+    void Dispatch(int32_t irq)
+    {
+        if (hal::cortex::InterruptTable::InstanceSet())
+            hal::cortex::InterruptTable::Instance().Invoke(irq);
+    }
+}
+
 extern "C" void SysTick_Handler()
 {
-    hal::cortex::InterruptCortexDispatch(-1);
+    Dispatch(hal::cortex::sysTickIrq);
 }
 
 extern "C" void UART0_IRQHandler()
 {
-    hal::cortex::InterruptCortexDispatch(hal::uart0IrqNumber);
+    Dispatch(hal::uart0IrqNumber);
 }
 
 // Vector entries are function pointer values; cast through uintptr_t avoids

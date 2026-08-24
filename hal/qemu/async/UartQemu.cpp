@@ -17,10 +17,9 @@ namespace hal
 
     UartQemu::UartQemu(uintptr_t base, int32_t irqNumber, uint32_t baudrate, uint32_t uartClockHz)
         : uart(*reinterpret_cast<Pl011Registers*>(base))
-        , irqNumber(irqNumber)
     {
-        cortex::InterruptCortexRegisterHandler(irqNumber, *this);
         Init(baudrate, uartClockHz);
+        Register(irqNumber);
     }
 
     void UartQemu::Init(uint32_t baudrate, uint32_t uartClockHz)
@@ -34,7 +33,6 @@ namespace hal
         uart.lcr_h = lcrH8n1;
         uart.imsc = 0u;
         uart.cr = crUarten | crTxe | crRxe;
-        cortex::EnableInterrupt(irqNumber);
     }
 
     void UartQemu::SendData(infra::ConstByteRange data, infra::Function<void()> actionOnCompletion)

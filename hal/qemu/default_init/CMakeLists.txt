@@ -12,13 +12,15 @@ target_sources(hal.qemu.default_init PRIVATE
     SystemInit.cpp
     Startup.hpp
     Startup.cpp
-    Atomic.cpp
+    FaultTracerInfrastructure.hpp
+    FaultTracerInfrastructure.cpp
     EventInfrastructure.hpp
     EventInfrastructure.cpp
     TracerOnSemihostingInfrastructure.hpp
     TracerOnSemihostingInfrastructure.cpp)
 
 target_link_libraries(hal.qemu.default_init PUBLIC
+    hal.cortex_m
     hal.qemu.cortex
     hal.qemu.sync
     services.tracer
@@ -29,8 +31,6 @@ target_link_options(hal.qemu.default_init INTERFACE
     -T "${CMAKE_CURRENT_SOURCE_DIR}/../linker/qemu_virt.ld"
     --specs=nosys.specs)
 
-# Syscalls must land directly in the final ELF as object files, not archived,
-# to avoid linker archive-ordering issues with newlib's syscall wrappers.
 add_library(hal.qemu.syscalls OBJECT)
 
 emil_build_for(hal.qemu.syscalls
