@@ -9,24 +9,21 @@
 
 namespace services
 {
-    class FlashGeometrySfdpBase
-        : virtual public FlashGeometry
+    class FlashGeometrySfdpParser
     {
-    public:
-        uint32_t NrOfSubSectors() const final;
-        uint32_t SizeSector() const final;
-        uint32_t SizeSubSector() const final;
-        uint32_t SizePage() const final;
-        bool ExtendedAddressing() const final;
-
     protected:
         static constexpr uint8_t commandReadSfdp = 0x5A;
 
-        explicit FlashGeometrySfdpBase(infra::Function<void()> onInitialized);
+        explicit FlashGeometrySfdpParser(infra::Function<void()> onInitialized);
 
         virtual void PerformRead(uint32_t address, infra::ByteRange buffer, infra::Function<void()> onDone) = 0;
         virtual void OnBfptParsed(infra::Function<void()> onDone);
 
+        uint32_t NrOfSubSectorsValue() const;
+        uint32_t SizeSectorValue() const;
+        uint32_t SizeSubSectorValue() const;
+        uint32_t SizePageValue() const;
+        bool ExtendedAddressingValue() const;
         uint8_t EraseSubSectorCommandValue() const;
         uint8_t EraseSectorCommandValue() const;
         uint8_t ReadDataCommandValue() const;
@@ -34,8 +31,12 @@ namespace services
         uint8_t QerValue() const;
 
     private:
-        struct ReadingHeader {};
-        struct ReadingBfpt {};
+        struct ReadingHeader
+        {};
+
+        struct ReadingBfpt
+        {};
+
         using State = std::variant<ReadingHeader, ReadingBfpt>;
 
         void Transition(State newState);
@@ -70,6 +71,31 @@ namespace services
         uint8_t readDummyCycles = 10;
         uint8_t qer = 0;
     };
+
+    class FlashGeometrySfdpBase
+        : public FlashGeometry
+        , private FlashGeometrySfdpParser
+    {
+    public:
+        using FlashGeometrySfdpParser::FlashGeometrySfdpParser;
+
+        uint32_t NrOfSubSectors() const final;
+        uint32_t SizeSector() const final;
+        uint32_t SizeSubSector() const final;
+        uint32_t SizePage() const final;
+        bool ExtendedAddressing() const final;
+
+    protected:
+        using FlashGeometrySfdpParser::commandReadSfdp;
+        using FlashGeometrySfdpParser::PerformRead;
+        using FlashGeometrySfdpParser::OnBfptParsed;
+        using FlashGeometrySfdpParser::EraseSubSectorCommandValue;
+        using FlashGeometrySfdpParser::EraseSectorCommandValue;
+        using FlashGeometrySfdpParser::ReadDataCommandValue;
+        using FlashGeometrySfdpParser::ReadDummyCyclesValue;
+        using FlashGeometrySfdpParser::QerValue;
+    };
 }
 
 #endif
+

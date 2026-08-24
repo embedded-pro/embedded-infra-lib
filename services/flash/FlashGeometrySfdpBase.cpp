@@ -3,7 +3,7 @@
 
 namespace services
 {
-    FlashGeometrySfdpBase::FlashGeometrySfdpBase(infra::Function<void()> onInitialized)
+    FlashGeometrySfdpParser::FlashGeometrySfdpParser(infra::Function<void()> onInitialized)
         : onInitialized(onInitialized)
     {
         infra::EventDispatcher::Instance().Schedule([this]()
@@ -12,32 +12,62 @@ namespace services
             });
     }
 
-    uint32_t FlashGeometrySfdpBase::NrOfSubSectors() const { return nrOfSubSectors; }
+    uint32_t FlashGeometrySfdpParser::NrOfSubSectorsValue() const
+    {
+        return nrOfSubSectors;
+    }
 
-    uint32_t FlashGeometrySfdpBase::SizeSector() const { return sizeSector; }
+    uint32_t FlashGeometrySfdpParser::SizeSectorValue() const
+    {
+        return sizeSector;
+    }
 
-    uint32_t FlashGeometrySfdpBase::SizeSubSector() const { return sizeSubSector; }
+    uint32_t FlashGeometrySfdpParser::SizeSubSectorValue() const
+    {
+        return sizeSubSector;
+    }
 
-    uint32_t FlashGeometrySfdpBase::SizePage() const { return sizePage; }
+    uint32_t FlashGeometrySfdpParser::SizePageValue() const
+    {
+        return sizePage;
+    }
 
-    bool FlashGeometrySfdpBase::ExtendedAddressing() const { return extendedAddressing; }
+    bool FlashGeometrySfdpParser::ExtendedAddressingValue() const
+    {
+        return extendedAddressing;
+    }
 
-    uint8_t FlashGeometrySfdpBase::EraseSubSectorCommandValue() const { return eraseSubSectorCommand; }
+    uint8_t FlashGeometrySfdpParser::EraseSubSectorCommandValue() const
+    {
+        return eraseSubSectorCommand;
+    }
 
-    uint8_t FlashGeometrySfdpBase::EraseSectorCommandValue() const { return eraseSectorCommand; }
+    uint8_t FlashGeometrySfdpParser::EraseSectorCommandValue() const
+    {
+        return eraseSectorCommand;
+    }
 
-    uint8_t FlashGeometrySfdpBase::ReadDataCommandValue() const { return readDataCommand; }
+    uint8_t FlashGeometrySfdpParser::ReadDataCommandValue() const
+    {
+        return readDataCommand;
+    }
 
-    uint8_t FlashGeometrySfdpBase::ReadDummyCyclesValue() const { return readDummyCycles; }
+    uint8_t FlashGeometrySfdpParser::ReadDummyCyclesValue() const
+    {
+        return readDummyCycles;
+    }
 
-    uint8_t FlashGeometrySfdpBase::QerValue() const { return qer; }
+    uint8_t FlashGeometrySfdpParser::QerValue() const
+    {
+        return qer;
+    }
 
-    void FlashGeometrySfdpBase::OnBfptParsed(infra::Function<void()> onDone)
+    void FlashGeometrySfdpParser::OnBfptParsed(infra::Function<void()> onDone)
     {
         onDone();
     }
 
-    void FlashGeometrySfdpBase::Transition(State newState)
+    void FlashGeometrySfdpParser::Transition(State newState)
     {
         currentState = newState;
         std::visit([this](auto& s)
@@ -47,7 +77,7 @@ namespace services
             currentState);
     }
 
-    void FlashGeometrySfdpBase::Handle(ReadingHeader&)
+    void FlashGeometrySfdpParser::Handle(ReadingHeader&)
     {
         PerformRead(0x000000, infra::MakeByteRange(sfdpAndParamHeader), [this]()
             {
@@ -61,7 +91,7 @@ namespace services
             });
     }
 
-    void FlashGeometrySfdpBase::Handle(ReadingBfpt&)
+    void FlashGeometrySfdpParser::Handle(ReadingBfpt&)
     {
         PerformRead(bfptAddress, infra::MakeByteRange(bfptBuffer), [this]()
             {
@@ -76,7 +106,7 @@ namespace services
             });
     }
 
-    bool FlashGeometrySfdpBase::ParseSfdpHeader()
+    bool FlashGeometrySfdpParser::ParseSfdpHeader()
     {
         static constexpr std::array<uint8_t, 4> signature{ 0x53, 0x46, 0x44, 0x50 };
         if (sfdpAndParamHeader[0] != signature[0] ||
@@ -92,7 +122,7 @@ namespace services
         return bfptAddress != 0;
     }
 
-    void FlashGeometrySfdpBase::ParseBfpt()
+    void FlashGeometrySfdpParser::ParseBfpt()
     {
         const uint64_t totalBytes = ParseDensityAndAddressMode(ReadBfptDword(0), ReadBfptDword(1));
         ParseFastReadQuad(ReadBfptDword(2));
@@ -101,7 +131,7 @@ namespace services
         ParseQer();
     }
 
-    uint64_t FlashGeometrySfdpBase::ParseDensityAndAddressMode(uint32_t dword1, uint32_t dword2)
+    uint64_t FlashGeometrySfdpParser::ParseDensityAndAddressMode(uint32_t dword1, uint32_t dword2)
     {
         const uint8_t addrMode = dword1 & 0x07;
 
@@ -121,7 +151,7 @@ namespace services
         return totalBytes;
     }
 
-    void FlashGeometrySfdpBase::ParseFastReadQuad(uint32_t dword3)
+    void FlashGeometrySfdpParser::ParseFastReadQuad(uint32_t dword3)
     {
         if (dword3 & 0x01)
         {
@@ -130,7 +160,7 @@ namespace services
         }
     }
 
-    void FlashGeometrySfdpBase::ParseEraseTypes(uint32_t dword4, uint32_t dword5, uint64_t totalBytes)
+    void FlashGeometrySfdpParser::ParseEraseTypes(uint32_t dword4, uint32_t dword5, uint64_t totalBytes)
     {
         struct EraseType
         {
@@ -158,19 +188,36 @@ namespace services
         {
             if (t.size == 0)
                 continue;
-            if (smallest == 0 || t.size < smallest) { smallest = t.size; smallestCmd = t.command; }
-            if (t.size > largest) { largest = t.size; largestCmd = t.command; }
+            if (smallest == 0 || t.size < smallest)
+            {
+                smallest = t.size;
+                smallestCmd = t.command;
+            }
+            if (t.size > largest)
+            {
+                largest = t.size;
+                largestCmd = t.command;
+            }
         }
 
-        if (smallest > 0) { sizeSubSector = smallest; eraseSubSectorCommand = smallestCmd; }
-        if (largest > sizeSubSector) { sizeSector = largest; eraseSectorCommand = largestCmd; }
-        else sizeSector = sizeSubSector;
+        if (smallest > 0)
+        {
+            sizeSubSector = smallest;
+            eraseSubSectorCommand = smallestCmd;
+        }
+        if (largest > sizeSubSector)
+        {
+            sizeSector = largest;
+            eraseSectorCommand = largestCmd;
+        }
+        else
+            sizeSector = sizeSubSector;
 
         if (totalBytes > 0 && sizeSubSector > 0)
             nrOfSubSectors = static_cast<uint32_t>(totalBytes / sizeSubSector);
     }
 
-    void FlashGeometrySfdpBase::ParsePageSize()
+    void FlashGeometrySfdpParser::ParsePageSize()
     {
         if (bfptTableLength < 11)
             return;
@@ -181,7 +228,7 @@ namespace services
             sizePage = 1u << pageSizeExp;
     }
 
-    void FlashGeometrySfdpBase::ParseQer()
+    void FlashGeometrySfdpParser::ParseQer()
     {
         if (bfptTableLength < 14)
             return;
@@ -190,12 +237,37 @@ namespace services
         qer = (dword15 >> 20) & 0x07;
     }
 
-    uint32_t FlashGeometrySfdpBase::ReadBfptDword(uint8_t dwordIndex) const
+    uint32_t FlashGeometrySfdpParser::ReadBfptDword(uint8_t dwordIndex) const
     {
         const uint8_t i = dwordIndex * 4;
         return static_cast<uint32_t>(bfptBuffer[i]) |
                (static_cast<uint32_t>(bfptBuffer[i + 1]) << 8) |
                (static_cast<uint32_t>(bfptBuffer[i + 2]) << 16) |
                (static_cast<uint32_t>(bfptBuffer[i + 3]) << 24);
+    }
+
+    uint32_t FlashGeometrySfdpBase::NrOfSubSectors() const
+    {
+        return NrOfSubSectorsValue();
+    }
+
+    uint32_t FlashGeometrySfdpBase::SizeSector() const
+    {
+        return SizeSectorValue();
+    }
+
+    uint32_t FlashGeometrySfdpBase::SizeSubSector() const
+    {
+        return SizeSubSectorValue();
+    }
+
+    uint32_t FlashGeometrySfdpBase::SizePage() const
+    {
+        return SizePageValue();
+    }
+
+    bool FlashGeometrySfdpBase::ExtendedAddressing() const
+    {
+        return ExtendedAddressingValue();
     }
 }

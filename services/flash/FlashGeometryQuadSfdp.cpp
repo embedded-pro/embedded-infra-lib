@@ -13,21 +13,64 @@ namespace services
     }
 
     FlashGeometryQuadSfdp::FlashGeometryQuadSfdp(hal::QuadSpi& spi, infra::Function<void()> onInitialized)
-        : FlashGeometrySfdpBase(onInitialized)
+        : FlashGeometrySfdpParser(onInitialized)
         , spi(spi)
     {}
 
-    uint8_t FlashGeometryQuadSfdp::EraseSubSectorCommand() const { return EraseSubSectorCommandValue(); }
+    uint32_t FlashGeometryQuadSfdp::NrOfSubSectors() const
+    {
+        return NrOfSubSectorsValue();
+    }
 
-    uint8_t FlashGeometryQuadSfdp::EraseSectorCommand() const { return EraseSectorCommandValue(); }
+    uint32_t FlashGeometryQuadSfdp::SizeSector() const
+    {
+        return SizeSectorValue();
+    }
 
-    uint8_t FlashGeometryQuadSfdp::EraseBulkCommand() const { return commandEraseBulk; }
+    uint32_t FlashGeometryQuadSfdp::SizeSubSector() const
+    {
+        return SizeSubSectorValue();
+    }
 
-    uint8_t FlashGeometryQuadSfdp::PageProgramCommand() const { return commandPageProgram; }
+    uint32_t FlashGeometryQuadSfdp::SizePage() const
+    {
+        return SizePageValue();
+    }
 
-    uint8_t FlashGeometryQuadSfdp::ReadDataCommand() const { return ReadDataCommandValue(); }
+    bool FlashGeometryQuadSfdp::ExtendedAddressing() const
+    {
+        return ExtendedAddressingValue();
+    }
 
-    uint8_t FlashGeometryQuadSfdp::ReadDummyCycles() const { return ReadDummyCyclesValue(); }
+    uint8_t FlashGeometryQuadSfdp::EraseSubSectorCommand() const
+    {
+        return EraseSubSectorCommandValue();
+    }
+
+    uint8_t FlashGeometryQuadSfdp::EraseSectorCommand() const
+    {
+        return EraseSectorCommandValue();
+    }
+
+    uint8_t FlashGeometryQuadSfdp::EraseBulkCommand() const
+    {
+        return commandEraseBulk;
+    }
+
+    uint8_t FlashGeometryQuadSfdp::PageProgramCommand() const
+    {
+        return commandPageProgram;
+    }
+
+    uint8_t FlashGeometryQuadSfdp::ReadDataCommand() const
+    {
+        return ReadDataCommandValue();
+    }
+
+    uint8_t FlashGeometryQuadSfdp::ReadDummyCycles() const
+    {
+        return ReadDummyCyclesValue();
+    }
 
     void FlashGeometryQuadSfdp::PerformRead(uint32_t address, infra::ByteRange buffer, infra::Function<void()> onDone)
     {

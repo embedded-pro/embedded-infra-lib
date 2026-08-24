@@ -11,14 +11,20 @@
 namespace services
 {
     class FlashGeometryQuadSfdp
-        : public FlashGeometrySfdpBase
-        , public FlashGeometryQuad
+        : public FlashGeometryQuad
+        , private FlashGeometrySfdpParser
     {
     public:
         static constexpr uint8_t commandEraseBulk = 0xC7;
         static constexpr uint8_t commandPageProgram = 0x32;
 
         FlashGeometryQuadSfdp(hal::QuadSpi& spi, infra::Function<void()> onInitialized);
+
+        uint32_t NrOfSubSectors() const override;
+        uint32_t SizeSector() const override;
+        uint32_t SizeSubSector() const override;
+        uint32_t SizePage() const override;
+        bool ExtendedAddressing() const override;
 
         uint8_t EraseSubSectorCommand() const override;
         uint8_t EraseSectorCommand() const override;
@@ -28,16 +34,35 @@ namespace services
         uint8_t ReadDummyCycles() const override;
 
     private:
-        struct QerReadSr2 {};
-        struct QerReadSr1 {};
-        struct QerWriteEnableFor12 {};
-        struct QerWriteSr12 {};
-        struct QerReadSr1Only {};
-        struct QerWriteEnableFor1 {};
-        struct QerWriteSr1 {};
-        struct QerWriteEnableForAlt {};
-        struct QerWriteSr2Alt {};
-        struct QerWriteSr2 {};
+        struct QerReadSr2
+        {};
+
+        struct QerReadSr1
+        {};
+
+        struct QerWriteEnableFor12
+        {};
+
+        struct QerWriteSr12
+        {};
+
+        struct QerReadSr1Only
+        {};
+
+        struct QerWriteEnableFor1
+        {};
+
+        struct QerWriteSr1
+        {};
+
+        struct QerWriteEnableForAlt
+        {};
+
+        struct QerWriteSr2Alt
+        {};
+
+        struct QerWriteSr2
+        {};
 
         using QerState = std::variant<
             QerReadSr2, QerReadSr1, QerWriteEnableFor12, QerWriteSr12,

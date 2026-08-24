@@ -242,3 +242,50 @@ TEST_F(FlashGeometryQuadSfdpTest, InvalidSfdpSignatureUsesDefaults)
     EXPECT_EQ(256u, geometry.SizePage());
     EXPECT_FALSE(geometry.ExtendedAddressing());
 }
+
+TEST_F(FlashGeometryQuadSfdpTest, UnknownQerValueFiresOnInitializedWithoutExtraSpi)
+{
+    // QER = 7 hits the default case → no extra SPI calls
+    testing::InSequence s;
+    ExpectSfdpRead(7);
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+}
+
+TEST_F(FlashGeometryQuadSfdpTest, FastReadQuadCommandAndDummyCyclesParsedFromDword3)
+{
+    // DW3 bit 0 = 1: fast read 1-4-4 supported.
+    // bits [31:24] = instruction (0xEB), bits [20:16] = wait states (10 = 0x0A)
+    // DW3 = (0xEB << 24) | (0x0A << 16) | 0x01 = 0xEB0A0001
+    // As bytes (little-endian): [0x01, 0x00, 0x0A, 0xEB]
+    static std::vector<uint8_t> bfptWithFastRead;
+
+    testing::InSequence s;
+    EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000000), hal::QuadSpi::Lines::SingleSpeed()))
+        .WillOnce(testing::Return(infra::MakeRange(sfdpHeader.data(), sfdpHeader.data() + sfdpHeader.size())));
+    EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000080), hal::QuadSpi::Lines::SingleSpeed()))
+        .WillOnce([](const hal::QuadSpi::Header&, hal::QuadSpi::Lines) -> infra::ConstByteRange
+            {
+                bfptWithFastRead = MakeBfptWithQer(0);
+                bfptWithFastRead[8] = 0x01;  // DW3 byte 0: bit 0 = 1 (fast read supported)
+                bfptWithFastRead[9] = 0x00;  // DW3 byte 1
+                bfptWithFastRead[10] = 0x0A; // DW3 byte 2: bits [20:16] = wait states = 10
+                bfptWithFastRead[11] = 0xEB; // DW3 byte 3: bits [31:24] = instruction = 0xEB
+                return infra::MakeRange(bfptWithFastRead.data(), bfptWithFastRead.data() + bfptWithFastRead.size());
+            });
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+
+    EXPECT_EQ(0xEB, geometry.ReadDataCommand());
+    EXPECT_EQ(10u, geometry.ReadDummyCycles());
+}
