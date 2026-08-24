@@ -8,8 +8,22 @@ namespace
 {
     // 16 bytes: SFDP header (8) + first parameter header (8), BFPT at 0x000080.
     const std::vector<uint8_t> sfdpHeader = {
-        0x53, 0x46, 0x44, 0x50, 0x06, 0x01, 0x00, 0xFF,
-        0x00, 0x06, 0x01, 0x10, 0x80, 0x00, 0x00, 0xFF,
+        0x53,
+        0x46,
+        0x44,
+        0x50,
+        0x06,
+        0x01,
+        0x00,
+        0xFF,
+        0x00,
+        0x06,
+        0x01,
+        0x10,
+        0x80,
+        0x00,
+        0x00,
+        0xFF,
     };
 
     // 64-byte BFPT: 16 MB chip, 4 KB sub-sector, 64 KB sector, 256-byte page.
@@ -17,10 +31,16 @@ namespace
     std::vector<uint8_t> MakeBfptWithQer(uint8_t qer)
     {
         std::vector<uint8_t> bfpt(64, 0x00);
-        bfpt[4] = 0xFF; bfpt[5] = 0xFF; bfpt[6] = 0xFF; bfpt[7] = 0x07; // DW2: 16 MB
-        bfpt[12] = 0x0C; bfpt[13] = 0x20; bfpt[14] = 0x10; bfpt[15] = 0xD8; // DW4: erase types
-        bfpt[40] = 0x80;                                                       // DW11: 256-byte page
-        bfpt[58] = static_cast<uint8_t>((qer & 0x07) << 4);                  // DW15: QER
+        bfpt[4] = 0xFF;
+        bfpt[5] = 0xFF;
+        bfpt[6] = 0xFF;
+        bfpt[7] = 0x07; // DW2: 16 MB
+        bfpt[12] = 0x0C;
+        bfpt[13] = 0x20;
+        bfpt[14] = 0x10;
+        bfpt[15] = 0xD8;                                    // DW4: erase types
+        bfpt[40] = 0x80;                                    // DW11: 256-byte page
+        bfpt[58] = static_cast<uint8_t>((qer & 0x07) << 4); // DW15: QER
         return bfpt;
     }
 
@@ -61,7 +81,10 @@ TEST_F(FlashGeometryQuadSfdpTest, GeometryParsedCorrectlyFromSfdp)
     ExpectSfdpRead(0);
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 
     EXPECT_EQ(4096u, geometry.NrOfSubSectors());
@@ -81,7 +104,10 @@ TEST_F(FlashGeometryQuadSfdpTest, Qer0DoesNotIssueExtraQuadEnableSpiCalls)
     ExpectSfdpRead(0);
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 }
 
@@ -101,12 +127,15 @@ TEST_F(FlashGeometryQuadSfdpTest, Qer1EnablesQuadViaSr2Sr1WriteEnable)
                              hal::QuadSpi::Lines::SingleSpeed()))
         .WillOnce(testing::Return(infra::MakeByteRange(sr1Val)));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x01 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x01 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 }
 
@@ -121,12 +150,15 @@ TEST_F(FlashGeometryQuadSfdpTest, Qer2EnablesQuadViaSr1WriteEnable)
                              hal::QuadSpi::Lines::SingleSpeed()))
         .WillOnce(testing::Return(infra::MakeByteRange(sr1Val)));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x01 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x01 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 }
 
@@ -135,12 +167,15 @@ TEST_F(FlashGeometryQuadSfdpTest, Qer3EnablesQuadViaWriteEnableAndSr2AltCommand)
     testing::InSequence s;
     ExpectSfdpRead(3);
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x3E }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x3E }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 }
 
@@ -149,10 +184,13 @@ TEST_F(FlashGeometryQuadSfdpTest, Qer4EnablesQuadViaSr2DirectWrite)
     testing::InSequence s;
     ExpectSfdpRead(4);
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x31 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x31 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 }
 
@@ -172,12 +210,15 @@ TEST_F(FlashGeometryQuadSfdpTest, Qer5SameSequenceAsQer1)
                              hal::QuadSpi::Lines::SingleSpeed()))
         .WillOnce(testing::Return(infra::MakeByteRange(sr1Val)));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(spiStub, SendDataMock(
-        hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x01 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x01 }), {}, {}, 0 }, testing::_, hal::QuadSpi::Lines::SingleSpeed()));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 }
 
@@ -190,7 +231,10 @@ TEST_F(FlashGeometryQuadSfdpTest, InvalidSfdpSignatureUsesDefaults)
         .WillOnce(testing::Return(infra::MakeRange(badHeader.data(), badHeader.data() + badHeader.size())));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]() { onInitialized.callback(); } };
+    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+        {
+            onInitialized.callback();
+        } };
     ExecuteAllActions();
 
     EXPECT_EQ(512u, geometry.NrOfSubSectors());

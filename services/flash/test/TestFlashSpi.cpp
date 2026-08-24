@@ -18,11 +18,30 @@ namespace
             , extendedAddressing(extendedAddressing)
         {}
 
-        uint32_t NrOfSubSectors() const override { return nrOfSubSectors; }
-        uint32_t SizeSector() const override { return sizeSector; }
-        uint32_t SizeSubSector() const override { return sizeSubSector; }
-        uint32_t SizePage() const override { return sizePage; }
-        bool ExtendedAddressing() const override { return extendedAddressing; }
+        uint32_t NrOfSubSectors() const override
+        {
+            return nrOfSubSectors;
+        }
+
+        uint32_t SizeSector() const override
+        {
+            return sizeSector;
+        }
+
+        uint32_t SizeSubSector() const override
+        {
+            return sizeSubSector;
+        }
+
+        uint32_t SizePage() const override
+        {
+            return sizePage;
+        }
+
+        bool ExtendedAddressing() const override
+        {
+            return extendedAddressing;
+        }
 
     private:
         uint32_t nrOfSubSectors;

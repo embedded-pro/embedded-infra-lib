@@ -17,11 +17,30 @@ namespace
             , sizePage(sizePage)
         {}
 
-        uint32_t NrOfSubSectors() const override { return nrOfSubSectors; }
-        uint32_t SizeSector() const override { return sizeSector; }
-        uint32_t SizeSubSector() const override { return sizeSubSector; }
-        uint32_t SizePage() const override { return sizePage; }
-        bool ExtendedAddressing() const override { return false; }
+        uint32_t NrOfSubSectors() const override
+        {
+            return nrOfSubSectors;
+        }
+
+        uint32_t SizeSector() const override
+        {
+            return sizeSector;
+        }
+
+        uint32_t SizeSubSector() const override
+        {
+            return sizeSubSector;
+        }
+
+        uint32_t SizePage() const override
+        {
+            return sizePage;
+        }
+
+        bool ExtendedAddressing() const override
+        {
+            return false;
+        }
 
     private:
         uint32_t nrOfSubSectors;

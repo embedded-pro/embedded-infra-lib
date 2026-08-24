@@ -16,7 +16,6 @@
       "Bash(mv *)",
       "Bash(mkdir *)",
       "Bash(rm *)"
-      "Bash(gh *)"
     ]
   }
 }
