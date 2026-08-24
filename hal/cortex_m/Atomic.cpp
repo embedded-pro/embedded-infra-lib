@@ -15,8 +15,7 @@ namespace
     public:
         CriticalSection()
         {
-            __asm volatile("mrs %0, primask"
-                           : "=r"(primask));
+            __asm volatile("mrs %0, primask" : "=r"(primask));
             __asm volatile("cpsid i" ::: "memory");
         }
 

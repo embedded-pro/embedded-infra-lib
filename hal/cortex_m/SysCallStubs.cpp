@@ -65,8 +65,7 @@ extern "C"
         static char* heap = &end;
 
         char* stackPointer = nullptr;
-        __asm volatile("mov %0, sp"
-                       : "=r"(stackPointer));
+        __asm volatile("mov %0, sp" : "=r"(stackPointer));
 
         if (increment > 0 && heap + increment > stackPointer)
         {
