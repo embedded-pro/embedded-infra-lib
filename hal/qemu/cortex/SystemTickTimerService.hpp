@@ -18,6 +18,9 @@ namespace hal::cortex
             infra::Duration tickDuration = std::chrono::milliseconds(1),
             uint32_t id = infra::systemTimerServiceId);
 
+        void Start();
+        void Stop();
+
     private:
         void Invoke() override;
 

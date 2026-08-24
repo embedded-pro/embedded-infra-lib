@@ -23,3 +23,7 @@ target_link_libraries(hal.qemu.test PRIVATE
     gmock_main)
 
 emil_add_test(hal.qemu.test)
+
+if (TEST hal.qemu.test)
+    set_tests_properties(hal.qemu.test PROPERTIES TIMEOUT 120)
+endif()
