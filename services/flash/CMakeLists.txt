@@ -12,8 +12,11 @@ target_sources(services.flash PRIVATE
     FlashAlign.hpp
     FlashDelegate.hpp
     FlashGeometry.hpp
+    FlashGeometryQuad.hpp
     FlashGeometrySfdp.cpp
     FlashGeometrySfdp.hpp
+    FlashGeometrySfdpBase.cpp
+    FlashGeometrySfdpBase.hpp
     FlashGeometryQuadSfdp.cpp
     FlashGeometryQuadSfdp.hpp
     FlashMultipleAccess.cpp

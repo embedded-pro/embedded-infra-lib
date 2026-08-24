@@ -2,7 +2,13 @@
 
 namespace services
 {
-    FlashQuadSpiGeneric::FlashQuadSpiGeneric(hal::QuadSpi& spi, FlashGeometryQuadSfdp& geometry)
+    namespace
+    {
+        constexpr uint8_t commandWriteEnable = 0x06;
+        constexpr uint8_t commandReadStatusRegister = 0x05;
+    }
+
+    FlashQuadSpiGeneric::FlashQuadSpiGeneric(hal::QuadSpi& spi, FlashGeometryQuad& geometry)
         : FlashQuadSpi(spi, geometry)
         , geometry(geometry)
     {}
@@ -29,7 +35,7 @@ namespace services
 
     void FlashQuadSpiGeneric::WriteEnable()
     {
-        static const hal::QuadSpi::Header writeEnableHeader{ std::make_optional(FlashGeometryQuadSfdp::commandWriteEnable), {}, {}, 0 };
+        static const hal::QuadSpi::Header writeEnableHeader{ std::make_optional(commandWriteEnable), {}, {}, 0 };
         spi.SendData(writeEnableHeader, {}, hal::QuadSpi::Lines::QuadSpeed(), [this]()
             {
                 sequencer.Continue();
@@ -86,7 +92,7 @@ namespace services
 
     void FlashQuadSpiGeneric::HoldWhileWriteInProgress()
     {
-        static const hal::QuadSpi::Header pollHeader{ std::make_optional(FlashGeometryQuadSfdp::commandReadStatusRegister1), {}, {}, 0 };
+        static const hal::QuadSpi::Header pollHeader{ std::make_optional(commandReadStatusRegister), {}, {}, 0 };
         spi.PollStatus(pollHeader, 1, 0, statusFlagWriteInProgress, hal::QuadSpi::Lines::QuadSpeed(), [this]()
             {
                 sequencer.Continue();

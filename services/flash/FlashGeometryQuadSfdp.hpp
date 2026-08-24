@@ -3,79 +3,68 @@
 
 #include "hal/interfaces/QuadSpi.hpp"
 #include "infra/util/Function.hpp"
-#include "infra/util/Sequencer.hpp"
-#include "services/flash/FlashGeometry.hpp"
+#include "services/flash/FlashGeometryQuad.hpp"
+#include "services/flash/FlashGeometrySfdpBase.hpp"
 #include <array>
-#include <cstdint>
+#include <variant>
 
 namespace services
 {
     class FlashGeometryQuadSfdp
-        : public FlashGeometry
+        : public FlashGeometrySfdpBase
+        , public FlashGeometryQuad
     {
     public:
-        static constexpr uint8_t commandReadSfdp = 0x5A;
-        static constexpr uint8_t commandWriteEnable = 0x06;
-        static constexpr uint8_t commandReadStatusRegister1 = 0x05;
-        static constexpr uint8_t commandReadStatusRegister2 = 0x35;
-        static constexpr uint8_t commandWriteStatusRegister = 0x01;
-        static constexpr uint8_t commandWriteStatusRegister2 = 0x31;
-        static constexpr uint8_t commandWriteStatusRegister2Alt = 0x3E;
-        static constexpr uint8_t commandReadStatusRegister2Alt = 0x3F;
         static constexpr uint8_t commandEraseBulk = 0xC7;
         static constexpr uint8_t commandPageProgram = 0x32;
 
         FlashGeometryQuadSfdp(hal::QuadSpi& spi, infra::Function<void()> onInitialized);
 
-        // FlashGeometry interface
-        uint32_t NrOfSubSectors() const override;
-        uint32_t SizeSector() const override;
-        uint32_t SizeSubSector() const override;
-        uint32_t SizePage() const override;
-        bool ExtendedAddressing() const override;
-
-        // Extended getters for FlashQuadSpiGeneric
-        uint8_t EraseSubSectorCommand() const;
-        uint8_t EraseSectorCommand() const;
-        uint8_t EraseBulkCommand() const;
-        uint8_t PageProgramCommand() const;
-        uint8_t ReadDataCommand() const;
-        uint8_t ReadDummyCycles() const;
+        uint8_t EraseSubSectorCommand() const override;
+        uint8_t EraseSectorCommand() const override;
+        uint8_t EraseBulkCommand() const override;
+        uint8_t PageProgramCommand() const override;
+        uint8_t ReadDataCommand() const override;
+        uint8_t ReadDummyCycles() const override;
 
     private:
-        void ReadSfdpAndParamHeader();
-        void ReadBfpt();
-        void ParseBfpt();
-        void EnableQuadMode();
-        void EnableQuad_Qer1_5();
-        void EnableQuad_Qer2();
-        void EnableQuad_Qer3();
-        void EnableQuad_Qer4();
+        struct QerReadSr2 {};
+        struct QerReadSr1 {};
+        struct QerWriteEnableFor12 {};
+        struct QerWriteSr12 {};
+        struct QerReadSr1Only {};
+        struct QerWriteEnableFor1 {};
+        struct QerWriteSr1 {};
+        struct QerWriteEnableForAlt {};
+        struct QerWriteSr2Alt {};
+        struct QerWriteSr2 {};
 
-    private:
+        using QerState = std::variant<
+            QerReadSr2, QerReadSr1, QerWriteEnableFor12, QerWriteSr12,
+            QerReadSr1Only, QerWriteEnableFor1, QerWriteSr1,
+            QerWriteEnableForAlt, QerWriteSr2Alt,
+            QerWriteSr2>;
+
+        void PerformRead(uint32_t address, infra::ByteRange buffer, infra::Function<void()> onDone) override;
+        void OnBfptParsed(infra::Function<void()> onDone) override;
+
+        void QerTransition(QerState newState);
+        void Handle(QerReadSr2& state);
+        void Handle(QerReadSr1& state);
+        void Handle(QerWriteEnableFor12& state);
+        void Handle(QerWriteSr12& state);
+        void Handle(QerReadSr1Only& state);
+        void Handle(QerWriteEnableFor1& state);
+        void Handle(QerWriteSr1& state);
+        void Handle(QerWriteEnableForAlt& state);
+        void Handle(QerWriteSr2Alt& state);
+        void Handle(QerWriteSr2& state);
+
         hal::QuadSpi& spi;
-        infra::Function<void()> onInitialized;
-        infra::Sequencer sequencer;
-
-        infra::BoundedVector<uint8_t>::WithMaxSize<4> sfdpAddress;
-        std::array<uint8_t, 16> sfdpAndParamHeader;
-        std::array<uint8_t, 64> bfptBuffer;
-        std::array<uint8_t, 2> statusBuffer;
-
-        uint32_t bfptAddress = 0;
-        uint8_t bfptTableLength = 0;
-        uint8_t qer = 0;
-
-        uint32_t nrOfSubSectors = 512;
-        uint32_t sizeSector = 65536;
-        uint32_t sizeSubSector = 4096;
-        uint32_t sizePage = 256;
-        bool extendedAddressing = false;
-
-        uint8_t eraseSubSectorCommand = 0x20;
-        uint8_t eraseSectorCommand = 0xD8;
-        uint8_t readDataCommand = 0xEB;
-        uint8_t readDummyCycles = 10;
+        infra::BoundedVector<uint8_t>::WithMaxSize<4> sfdpAddressVector;
+        std::array<uint8_t, 2> statusBuffer{};
+        infra::Function<void()> onQuadDone;
+        QerState qerState{ QerReadSr2{} };
     };
 }
 
