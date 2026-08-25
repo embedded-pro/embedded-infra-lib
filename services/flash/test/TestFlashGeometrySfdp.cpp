@@ -221,7 +221,7 @@ TEST_F(FlashGeometrySfdpBranchTest, BitCountDensityFormatParsed)
     // DW2 bit 31 = 1: total bits = 2^exp, exp = 27 → 128 Mbit = 16 MB
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[4] = 27;   // exp = 27 → 2^27 bits = 128 Mbit = 16 MB
+    bfpt[4] = 27; // exp = 27 → 2^27 bits = 128 Mbit = 16 MB
     bfpt[5] = 0x00;
     bfpt[6] = 0x00;
     bfpt[7] = 0x80; // bit 31 set

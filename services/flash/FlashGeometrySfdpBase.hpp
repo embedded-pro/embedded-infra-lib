@@ -87,15 +87,14 @@ namespace services
 
     protected:
         using FlashGeometrySfdpParser::commandReadSfdp;
-        using FlashGeometrySfdpParser::PerformRead;
-        using FlashGeometrySfdpParser::OnBfptParsed;
-        using FlashGeometrySfdpParser::EraseSubSectorCommandValue;
         using FlashGeometrySfdpParser::EraseSectorCommandValue;
+        using FlashGeometrySfdpParser::EraseSubSectorCommandValue;
+        using FlashGeometrySfdpParser::OnBfptParsed;
+        using FlashGeometrySfdpParser::PerformRead;
+        using FlashGeometrySfdpParser::QerValue;
         using FlashGeometrySfdpParser::ReadDataCommandValue;
         using FlashGeometrySfdpParser::ReadDummyCyclesValue;
-        using FlashGeometrySfdpParser::QerValue;
     };
 }
 
 #endif
-
