@@ -8,10 +8,14 @@ target_include_directories(hal.cortex_m PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>")
 
 target_sources(hal.cortex_m PRIVATE
+    DataWatchpointAndTrace.hpp
+    DataWatchpointAndTrace.cpp
     FaultTracer.hpp
     FaultTracer.cpp
     InterruptCortex.hpp
-    InterruptCortex.cpp)
+    InterruptCortex.cpp
+    LowPriorityInterrupt.hpp
+    LowPriorityInterrupt.cpp)
 
 target_link_libraries(hal.cortex_m PUBLIC
     hal.cortex_m.runtime

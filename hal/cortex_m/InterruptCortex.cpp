@@ -21,6 +21,9 @@ namespace
     constexpr uintptr_t scbIcsr = 0xE000ED04u;
     constexpr uint32_t scbIcsrVectactiveMsk = 0x1FFu;
     constexpr uint32_t scbIcsrPendstclr = 1u << 25;
+    constexpr uint32_t scbIcsrPendSvSet = 1u << 28;
+    constexpr uint32_t scbIcsrPendSvClr = 1u << 27;
+    constexpr uintptr_t scbShpr3PendSv = 0xE000ED22u;
 
     constexpr uintptr_t systCsr = 0xE000E010u;
     constexpr uint32_t systTickint = 1u << 1;
@@ -28,6 +31,11 @@ namespace
     volatile uint32_t& Reg32(uintptr_t address)
     {
         return *reinterpret_cast<volatile uint32_t*>(address);
+    }
+
+    volatile uint8_t& Reg8(uintptr_t address)
+    {
+        return *reinterpret_cast<volatile uint8_t*>(address);
     }
 
     void Dmb()
@@ -84,6 +92,11 @@ namespace
         }
         else if (irq == hal::cortex::sysTickIrq)
             Reg32(systCsr) |= systTickint;
+        else if (irq == hal::cortex::pendSvIrq)
+        {
+            Reg8(scbShpr3PendSv) = PriorityByte(priority);
+            Dsb();
+        }
     }
 
     void DisableIrq(int32_t irq)
@@ -98,6 +111,8 @@ namespace
             Reg32(systCsr) &= ~systTickint;
             Reg32(scbIcsr) = scbIcsrPendstclr;
         }
+        else if (irq == hal::cortex::pendSvIrq)
+            Reg32(scbIcsr) = scbIcsrPendSvClr;
     }
 
     void ClearPendingIrq(int32_t irq)
@@ -106,6 +121,8 @@ namespace
             IrqBitBand(nvicIcpr0, irq) = IrqBit(irq);
         else if (irq == hal::cortex::sysTickIrq)
             Reg32(scbIcsr) = scbIcsrPendstclr;
+        else if (irq == hal::cortex::pendSvIrq)
+            Reg32(scbIcsr) = scbIcsrPendSvClr;
     }
 }
 
