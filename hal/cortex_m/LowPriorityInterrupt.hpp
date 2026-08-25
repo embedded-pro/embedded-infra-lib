@@ -10,6 +10,8 @@ namespace hal::cortex
         : private InterruptHandler
     {
     public:
+        LowPriorityInterrupt();
+
         void Trigger();
         void Register(const infra::Function<void()>& handler);
         void Unregister();
