@@ -10,16 +10,28 @@ target_include_directories(hal.cortex_m PUBLIC
 target_sources(hal.cortex_m PRIVATE
     DataWatchpointAndTrace.hpp
     DataWatchpointAndTrace.cpp
+    EventDispatcherCortex.hpp
+    EventDispatcherCortex.cpp
     FaultTracer.hpp
     FaultTracer.cpp
     InterruptCortex.hpp
     InterruptCortex.cpp
     LowPriorityInterrupt.hpp
-    LowPriorityInterrupt.cpp)
+    LowPriorityInterrupt.cpp
+    SystemTick.hpp
+    SystemTick.cpp
+    SystemTickTimerService.hpp
+    SystemTickTimerService.cpp
+    Reset.hpp
+    Reset.cpp
+    Semihosting.hpp
+    Semihosting.cpp)
 
 target_link_libraries(hal.cortex_m PUBLIC
     hal.cortex_m.runtime
+    hal.interfaces
     infra.event
+    infra.timer
     infra.util
     services.tracer)
 

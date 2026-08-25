@@ -1,4 +1,4 @@
-#include "hal/qemu/cortex/SystemTickTimerService.hpp"
+#include "hal/cortex_m/SystemTickTimerService.hpp"
 
 namespace hal::cortex
 {

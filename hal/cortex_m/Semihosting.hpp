@@ -1,5 +1,5 @@
-#ifndef HAL_QEMU_CORTEX_SEMIHOSTING_HPP
-#define HAL_QEMU_CORTEX_SEMIHOSTING_HPP
+#ifndef HAL_CORTEX_M_SEMIHOSTING_HPP
+#define HAL_CORTEX_M_SEMIHOSTING_HPP
 
 #include "infra/util/ByteRange.hpp"
 #include <cstdint>

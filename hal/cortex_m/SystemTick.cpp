@@ -1,4 +1,4 @@
-#include "hal/qemu/cortex/SystemTick.hpp"
+#include "hal/cortex_m/SystemTick.hpp"
 #include <chrono>
 #include <cstdint>
 
