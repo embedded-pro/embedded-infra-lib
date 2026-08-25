@@ -13,10 +13,10 @@ namespace services
     const uint8_t FlashSpi::commandEraseBulk = 0xc7;
     const uint8_t FlashSpi::commandReadId = 0x9f;
 
-    FlashSpi::FlashSpi(hal::SpiMaster& spi, const Config& config, uint32_t timerId, infra::Function<void()> onInitialized)
-        : hal::FlashHomogeneous(config.nrOfSubSectors, config.sizeSubSector)
+    FlashSpi::FlashSpi(hal::SpiMaster& spi, const FlashGeometry& geometry, uint32_t timerId, infra::Function<void()> onInitialized)
+        : hal::FlashHomogeneous(geometry.NrOfSubSectors(), geometry.SizeSubSector())
         , spi(spi)
-        , config(config)
+        , geometry(geometry)
         , delayTimer(timerId)
     {
         onInitialized();
@@ -111,7 +111,7 @@ namespace services
 
     void FlashSpi::PageProgram()
     {
-        writeBuffer = infra::Head(buffer, config.sizePage - AddressOffsetInSector(address) % config.sizePage);
+        writeBuffer = infra::Head(buffer, geometry.SizePage() - AddressOffsetInSector(address) % geometry.SizePage());
         buffer.pop_front(writeBuffer.size());
 
         auto instructionAndAddress = InstructionAndAddress(commandPageProgram, address);
@@ -134,10 +134,10 @@ namespace services
             SendEraseBulk();
             sectorIndex += NumberOfSectors();
         }
-        else if (sectorIndex % (config.sizeSector / config.sizeSubSector) == 0 && sectorIndex + config.sizeSector / config.sizeSubSector <= endIndex)
+        else if (sectorIndex % (geometry.SizeSector() / geometry.SizeSubSector()) == 0 && sectorIndex + geometry.SizeSector() / geometry.SizeSubSector() <= endIndex)
         {
             SendEraseSector(sectorIndex);
-            sectorIndex += config.sizeSector / config.sizeSubSector;
+            sectorIndex += geometry.SizeSector() / geometry.SizeSubSector();
         }
         else
         {
@@ -209,12 +209,12 @@ namespace services
 
     infra::ConstByteRange FlashSpi::InstructionAndAddress(const std::array<uint8_t, 2>& instruction, uint32_t address)
     {
-        auto addressSize = config.extendedAddressing ? 4 : 3;
+        auto addressSize = geometry.ExtendedAddressing() ? 4 : 3;
         address = infra::SwapEndian(address);
         auto addressRange = infra::MakeByteRange(address);
         auto addressRangeInBuffer = infra::ByteRange(instructionAndAddressBuffer.data() + 1, instructionAndAddressBuffer.data() + addressSize + 1);
 
-        if (config.extendedAddressing)
+        if (geometry.ExtendedAddressing())
         {
             instructionAndAddressBuffer[0] = instruction[1];
             std::copy(addressRange.begin(), addressRange.end(), addressRangeInBuffer.begin());

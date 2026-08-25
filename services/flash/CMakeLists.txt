@@ -11,10 +11,20 @@ target_sources(services.flash PRIVATE
     FlashAlign.cpp
     FlashAlign.hpp
     FlashDelegate.hpp
+    FlashGeometry.hpp
+    FlashGeometryQuad.hpp
+    FlashGeometrySfdp.cpp
+    FlashGeometrySfdp.hpp
+    FlashGeometrySfdpBase.cpp
+    FlashGeometrySfdpBase.hpp
+    FlashGeometryQuadSfdp.cpp
+    FlashGeometryQuadSfdp.hpp
     FlashMultipleAccess.cpp
     FlashMultipleAccess.hpp
     FlashQuadSpi.cpp
     FlashQuadSpi.hpp
+    FlashQuadSpiGeneric.cpp
+    FlashQuadSpiGeneric.hpp
     FlashQuadSpiSingleSpeed.cpp
     FlashQuadSpiSingleSpeed.hpp
     FlashRegion.cpp

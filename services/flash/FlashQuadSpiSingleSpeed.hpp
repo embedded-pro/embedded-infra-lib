@@ -1,6 +1,7 @@
 #ifndef SERVICES_FLASH_QUAD_SPI_SINGLE_SPEED_HPP
 #define SERVICES_FLASH_QUAD_SPI_SINGLE_SPEED_HPP
 
+#include "services/flash/FlashGeometry.hpp"
 #include "services/flash/FlashQuadSpi.hpp"
 
 namespace services
@@ -14,15 +15,16 @@ namespace services
         static const uint8_t commandReadStatusRegister;
         static const uint8_t commandWriteEnable;
         static const uint8_t commandEraseSector;
-        static const uint8_t commandEraseHalfBlock;
         static const uint8_t commandEraseBlock;
         static const uint8_t commandEraseChip;
 
         static const uint8_t statusFlagWriteInProgress = 1;
 
-        FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, infra::Function<void()> onInitialized, uint32_t numberOfSectors = 4096);
+        static constexpr uint32_t sizeBlock = 65536;
+        static constexpr uint32_t sizeSubSector = 4096;
 
-    public:
+        FlashQuadSpiSingleSpeed(hal::QuadSpi& spi, const FlashGeometry& geometry, infra::Function<void()> onInitialized);
+
         void ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone) override;
 
     protected:
@@ -37,6 +39,7 @@ namespace services
         void HoldWhileWriteInProgress() override;
 
     private:
+        const FlashGeometry& geometry;
         infra::Function<void()> onInitialized;
         infra::TimerSingleShot initDelayTimer;
     };

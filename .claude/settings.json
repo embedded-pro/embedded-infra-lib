@@ -11,7 +11,11 @@
       "Bash(cat *)",
       "Bash(python3 *)",
       "Bash(apt-get *)",
-      "Bash(gh *)"
+      "Bash(gh *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(mkdir *)",
+      "Bash(rm *)"
     ]
   }
 }

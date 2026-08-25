@@ -3,10 +3,9 @@
 
 namespace services
 {
-    FlashQuadSpi::FlashQuadSpi(hal::QuadSpi& spi, uint32_t numberOfSectors, uint8_t commandPageProgram)
-        : hal::FlashHomogeneous(numberOfSectors, sizeSector)
+    FlashQuadSpi::FlashQuadSpi(hal::QuadSpi& spi, const FlashGeometry& geometry)
+        : hal::FlashHomogeneous(geometry.NrOfSubSectors(), geometry.SizeSubSector())
         , spi(spi)
-        , commandPageProgram(commandPageProgram)
     {}
 
     void FlashQuadSpi::WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone)
@@ -67,20 +66,6 @@ namespace services
                     });
                 sequencer.EndWhile();
                 ScheduleOnDone();
-            });
-    }
-
-    void FlashQuadSpi::PageProgram()
-    {
-        hal::QuadSpi::Header pageProgramHeader{ std::make_optional(commandPageProgram), ConvertAddress(address), {}, 0 };
-
-        infra::ConstByteRange currentBuffer = infra::Head(buffer, sizePage - AddressOffsetInSector(address) % sizePage);
-        buffer.pop_front(currentBuffer.size());
-        address += currentBuffer.size();
-
-        spi.SendData(pageProgramHeader, currentBuffer, hal::QuadSpi::Lines::QuadSpeed(), [this]()
-            {
-                sequencer.Continue();
             });
     }
 

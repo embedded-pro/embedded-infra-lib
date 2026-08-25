@@ -6,6 +6,7 @@
 #include "infra/timer/Timer.hpp"
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/Sequencer.hpp"
+#include "services/flash/FlashGeometry.hpp"
 
 namespace services
 {
@@ -13,22 +14,17 @@ namespace services
         : public hal::FlashHomogeneous
     {
     public:
-        static const uint32_t sizeBlock = 65536;
-        static const uint32_t sizeSector = 4096;
-        static const uint32_t sizePage = 256;
-
-    public:
-        FlashQuadSpi(hal::QuadSpi& spi, uint32_t numberOfSectors, uint8_t commandPageProgram);
+        FlashQuadSpi(hal::QuadSpi& spi, const FlashGeometry& geometry);
 
         void WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone) override;
         void EraseSectors(uint32_t beginIndex, uint32_t endIndex, infra::Function<void()> onDone) override;
 
     protected:
         void WriteBufferSequence();
-        virtual void PageProgram();
         infra::BoundedVector<uint8_t>::WithMaxSize<4> ConvertAddress(uint32_t address) const;
         void ScheduleOnDone();
 
+        virtual void PageProgram() = 0;
         virtual void WriteEnable() = 0;
         virtual void EraseSomeSectors(uint32_t endIndex) = 0;
         virtual void HoldWhileWriteInProgress() = 0;
@@ -40,7 +36,6 @@ namespace services
         infra::ConstByteRange buffer;
         uint32_t address = 0;
         uint32_t sectorIndex = 0;
-        uint8_t commandPageProgram;
     };
 }
 
