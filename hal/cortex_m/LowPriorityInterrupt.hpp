@@ -3,15 +3,15 @@
 
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "infra/util/Function.hpp"
+#include "infra/util/InterfaceConnector.hpp"
 
 namespace hal::cortex
 {
     class LowPriorityInterrupt
-        : private InterruptHandler
+        : public infra::InterfaceConnector<LowPriorityInterrupt>
+        , private InterruptHandler
     {
     public:
-        LowPriorityInterrupt();
-
         void Trigger();
         void Register(const infra::Function<void()>& handler);
         void Unregister();
@@ -20,7 +20,7 @@ namespace hal::cortex
         void Invoke() override;
 
     private:
-        infra::Function<void()> onInvoke;
+        infra::Function<void()> onInvoke{ []() {} };
     };
 }
 

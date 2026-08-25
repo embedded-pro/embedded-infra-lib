@@ -13,11 +13,6 @@ namespace
 
 namespace hal::cortex
 {
-    LowPriorityInterrupt::LowPriorityInterrupt()
-        : onInvoke{ []() {} }
-    {
-    }
-
     void LowPriorityInterrupt::Trigger()
     {
         Reg32(scbIcsr) = scbIcsrPendSvSet;
