@@ -77,7 +77,7 @@ namespace services
         , private FlashGeometrySfdpParser
     {
     public:
-        using FlashGeometrySfdpParser::FlashGeometrySfdpParser;
+        explicit FlashGeometrySfdpBase(infra::Function<void()> onInitialized);
 
         uint32_t NrOfSubSectors() const final;
         uint32_t SizeSector() const final;

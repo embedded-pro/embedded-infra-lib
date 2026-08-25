@@ -246,6 +246,10 @@ namespace services
                (static_cast<uint32_t>(bfptBuffer[i + 3]) << 24);
     }
 
+    FlashGeometrySfdpBase::FlashGeometrySfdpBase(infra::Function<void()> onInitialized)
+        : FlashGeometrySfdpParser(onInitialized)
+    {}
+
     uint32_t FlashGeometrySfdpBase::NrOfSubSectors() const
     {
         return NrOfSubSectorsValue();
