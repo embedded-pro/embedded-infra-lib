@@ -7,7 +7,7 @@
 namespace services
 {
     class FlashGeometryQuad
-        : virtual public FlashGeometry
+        : public FlashGeometry
     {
     public:
         virtual uint8_t EraseSubSectorCommand() const = 0;
