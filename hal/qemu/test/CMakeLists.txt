@@ -4,8 +4,10 @@ emil_build_for(hal.qemu.test
     BOOL EMIL_BUILD_QEMU)
 
 target_sources(hal.qemu.test PRIVATE
+    TestDataWatchpointAndTrace.cpp
     TestFaultTracer.cpp
     TestInterruptCortex.cpp
+    TestLowPriorityInterrupt.cpp
     TestSemihostingWriter.cpp
     TestSystemTickTimerService.cpp)
 
