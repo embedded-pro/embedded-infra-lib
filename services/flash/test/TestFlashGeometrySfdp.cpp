@@ -312,6 +312,7 @@ TEST_F(FlashGeometrySfdpBranchTest, ShortBfptTableLeavesQerAtZero)
         } };
     ExecuteAllActions();
 
-    // No assertion on qer (not exposed by FlashGeometrySfdp), but this exercises the branch
-    EXPECT_EQ(512u, geometry.NrOfSubSectors()); // chip was parsed using short table
+    // No assertion on qer (not exposed by FlashGeometrySfdp), but this exercises the branch.
+    // Density/erase types are still parsed from the short table; only QER (DW15) is skipped.
+    EXPECT_EQ(4096u, geometry.NrOfSubSectors());
 }
