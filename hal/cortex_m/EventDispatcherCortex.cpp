@@ -2,9 +2,20 @@
 
 namespace
 {
-    void Dsb() { __asm volatile("dsb" ::: "memory"); }
-    void Wfe() { __asm volatile("wfe"); }
-    void Sev() { __asm volatile("sev"); }
+    void Dsb()
+    {
+        __asm volatile("dsb" ::: "memory");
+    }
+
+    void Wfe()
+    {
+        __asm volatile("wfe");
+    }
+
+    void Sev()
+    {
+        __asm volatile("sev");
+    }
 }
 
 namespace hal::cortex
