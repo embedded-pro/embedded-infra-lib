@@ -1,4 +1,4 @@
-#include "hal/qemu/cortex/Reset.hpp"
+#include "hal/cortex_m/Reset.hpp"
 #include <cstdint>
 
 namespace hal::cortex
@@ -9,7 +9,7 @@ namespace hal::cortex
         constexpr uint32_t aircrResetValue = (0x5FAu << 16) | (1u << 2);
     }
 
-    void Reset::ResetModule()
+    void Reset::ResetModule(const char* /*resetReason*/)
     {
         *reinterpret_cast<volatile uint32_t*>(aircrAddress) = aircrResetValue;
     }

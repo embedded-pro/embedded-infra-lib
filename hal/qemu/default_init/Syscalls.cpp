@@ -1,4 +1,4 @@
-#include "hal/qemu/cortex/Semihosting.hpp"
+#include "hal/cortex_m/Semihosting.hpp"
 #include "infra/util/ByteRange.hpp"
 #include <cstdint>
 #include <cstdlib>

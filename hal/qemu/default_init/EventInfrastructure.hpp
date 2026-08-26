@@ -2,8 +2,9 @@
 #define HAL_QEMU_DEFAULT_INIT_EVENT_INFRASTRUCTURE_HPP
 
 #include "hal/cortex_m/InterruptCortex.hpp"
-#include "hal/qemu/cortex/EventDispatcherCortex.hpp"
-#include "hal/qemu/cortex/SystemTickTimerService.hpp"
+#include "hal/cortex_m/EventDispatcherCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
+#include "hal/cortex_m/SystemTickTimerService.hpp"
 #include "infra/timer/TimerService.hpp"
 #include <chrono>
 #include <cstdint>

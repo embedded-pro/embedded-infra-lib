@@ -1,5 +1,5 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
-#include "hal/qemu/cortex/Semihosting.hpp"
+#include "hal/cortex_m/Semihosting.hpp"
 #include "hal/qemu/default_init/SystemInit.hpp"
 #include "hal/qemu/sync/Pl011Registers.hpp"
 #include <cstdint>

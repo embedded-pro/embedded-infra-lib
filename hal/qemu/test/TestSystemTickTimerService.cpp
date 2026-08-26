@@ -1,5 +1,5 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
-#include "hal/qemu/cortex/SystemTickTimerService.hpp"
+#include "hal/cortex_m/SystemTickTimerService.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/timer/Timer.hpp"
 #include "gmock/gmock.h"

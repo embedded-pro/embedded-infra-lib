@@ -1,25 +1,9 @@
-add_library(hal.qemu.cortex STATIC)
+add_library(hal.qemu.cortex INTERFACE)
 
-emil_build_for(hal.qemu.cortex
-    BOOL EMIL_BUILD_QEMU
-    HOST Off)
-
-target_include_directories(hal.qemu.cortex PUBLIC
+target_include_directories(hal.qemu.cortex INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>")
 
-target_sources(hal.qemu.cortex PRIVATE
-    Semihosting.hpp
-    Semihosting.cpp
-    SystemTick.hpp
-    SystemTick.cpp
-    SystemTickTimerService.hpp
-    SystemTickTimerService.cpp
-    EventDispatcherCortex.hpp
-    EventDispatcherCortex.cpp
-    Reset.hpp
-    Reset.cpp)
-
-target_link_libraries(hal.qemu.cortex PUBLIC
+target_link_libraries(hal.qemu.cortex INTERFACE
     hal.cortex_m
     infra.event
     infra.timer

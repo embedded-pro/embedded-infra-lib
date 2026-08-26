@@ -1,8 +1,8 @@
-#ifndef HAL_QEMU_CORTEX_SYSTEM_TICK_TIMER_SERVICE_HPP
-#define HAL_QEMU_CORTEX_SYSTEM_TICK_TIMER_SERVICE_HPP
+#ifndef HAL_CORTEX_M_SYSTEM_TICK_TIMER_SERVICE_HPP
+#define HAL_CORTEX_M_SYSTEM_TICK_TIMER_SERVICE_HPP
 
 #include "hal/cortex_m/InterruptCortex.hpp"
-#include "hal/qemu/cortex/SystemTick.hpp"
+#include "hal/cortex_m/SystemTick.hpp"
 #include "infra/timer/TickOnInterruptTimerService.hpp"
 #include "infra/util/InterfaceConnector.hpp"
 

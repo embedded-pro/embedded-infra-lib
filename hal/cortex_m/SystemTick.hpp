@@ -1,5 +1,5 @@
-#ifndef HAL_QEMU_CORTEX_SYSTEM_TICK_HPP
-#define HAL_QEMU_CORTEX_SYSTEM_TICK_HPP
+#ifndef HAL_CORTEX_M_SYSTEM_TICK_HPP
+#define HAL_CORTEX_M_SYSTEM_TICK_HPP
 
 #include "infra/timer/TimerService.hpp"
 #include <cstdint>
