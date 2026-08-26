@@ -3,6 +3,7 @@
 
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/cortex_m/EventDispatcherCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/cortex_m/SystemTickTimerService.hpp"
 #include "infra/timer/TimerService.hpp"
 #include <chrono>
