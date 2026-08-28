@@ -9,7 +9,10 @@ namespace
 {
     void SetNonBlocking(int fileDescriptor)
     {
-        if (fcntl(fileDescriptor, F_SETFL, fcntl(fileDescriptor, F_GETFL, 0) | O_NONBLOCK) == -1)
+        auto statusFlags = fcntl(fileDescriptor, F_GETFL, 0);
+        if (statusFlags == -1)
+            std::abort();
+        if (fcntl(fileDescriptor, F_SETFL, statusFlags | O_NONBLOCK) == -1)
             std::abort();
     }
 }
@@ -19,6 +22,10 @@ namespace services
     ConnectionBsd::ConnectionBsd(EventDispatcherWithNetwork& network, int socket)
         : network(network)
         , socket(socket)
+        , streamReader([this]()
+              {
+                  keepAliveForReader = nullptr;
+              })
     {
         SetNonBlocking(socket);
     }
@@ -49,6 +56,7 @@ namespace services
 
     infra::SharedPtr<infra::StreamReaderWithRewinding> ConnectionBsd::ReceiveStream()
     {
+        keepAliveForReader = SharedFromThis();
         return streamReader.Emplace(*this);
     }
 

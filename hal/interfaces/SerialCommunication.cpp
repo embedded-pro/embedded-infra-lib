@@ -1,4 +1,5 @@
 #include "hal/interfaces/SerialCommunication.hpp"
+#include "infra/util/ReallyAssert.hpp"
 
 namespace hal
 {
@@ -8,6 +9,7 @@ namespace hal
     {
         delegate.ReceiveData([this](infra::ConstByteRange data)
             {
+                really_assert(this->buffer.Size() + data.size() <= this->buffer.MaxSize());
                 this->buffer.Push(data);
                 scheduler.Schedule([this]()
                     {
