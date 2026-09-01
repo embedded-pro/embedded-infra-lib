@@ -9,14 +9,10 @@ namespace hal::cortex
         , systemTick(coreClockHz, tickDuration)
     {
         Register(sysTickIrq, InterruptPriority::lowest);
-    }
-
-    void SystemTickTimerService::Start()
-    {
         systemTick.Enable();
     }
 
-    void SystemTickTimerService::Stop()
+    SystemTickTimerService::~SystemTickTimerService()
     {
         systemTick.Disable();
     }

@@ -7,6 +7,7 @@ target_sources(hal.qemu.test PRIVATE
     TestDataWatchpointAndTrace.cpp
     TestFaultTracer.cpp
     TestInterruptCortex.cpp
+    TestLowPowerStrategyCortex.cpp
     TestLowPriorityInterrupt.cpp
     TestSemihostingWriter.cpp
     TestSystemTickTimerService.cpp)

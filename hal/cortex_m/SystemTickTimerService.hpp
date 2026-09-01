@@ -17,9 +17,7 @@ namespace hal::cortex
         explicit SystemTickTimerService(uint32_t coreClockHz,
             infra::Duration tickDuration = std::chrono::milliseconds(1),
             uint32_t id = infra::systemTimerServiceId);
-
-        void Start();
-        void Stop();
+        ~SystemTickTimerService();
 
     private:
         void Invoke() override;

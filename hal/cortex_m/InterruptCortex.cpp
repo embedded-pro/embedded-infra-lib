@@ -24,6 +24,7 @@ namespace
     constexpr uint32_t scbIcsrPendSvSet = 1u << 28;
     constexpr uint32_t scbIcsrPendSvClr = 1u << 27;
     constexpr uintptr_t scbShpr3PendSv = 0xE000ED22u;
+    constexpr uintptr_t scbShpr3SysTick = 0xE000ED23u;
 
     constexpr uintptr_t systCsr = 0xE000E010u;
     constexpr uint32_t systTickint = 1u << 1;
@@ -91,7 +92,10 @@ namespace
             IrqBitBand(nvicIser0, irq) = IrqBit(irq);
         }
         else if (irq == hal::cortex::sysTickIrq)
-            Reg32(systCsr) |= systTickint;
+        {
+            Reg8(scbShpr3SysTick) = PriorityByte(priority);
+            Dsb();
+        }
         else if (irq == hal::cortex::pendSvIrq)
         {
             Reg8(scbShpr3PendSv) = PriorityByte(priority);
