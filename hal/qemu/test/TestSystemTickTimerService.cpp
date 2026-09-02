@@ -64,7 +64,7 @@ TEST_F(SystemTickTimerServiceTest, multiple_ticks_advance_time)
     EXPECT_EQ(infra::TimePoint() + std::chrono::milliseconds(5), timerService.Now());
 }
 
-TEST_F(SystemTickTimerServiceTest, construction_leaves_the_hardware_timer_stopped)
+TEST_F(SystemTickTimerServiceTest, construction_starts_the_hardware_timer)
 {
-    EXPECT_FALSE(SysTickCounting());
+    EXPECT_TRUE(SysTickCounting());
 }
