@@ -1,12 +1,12 @@
-add_library(emil.services.terminal ${EMIL_EXCLUDE_FROM_ALL})
-emil_build_for(emil.services.terminal HOST All)
+add_library(services.terminal ${EMIL_EXCLUDE_FROM_ALL})
+emil_build_for(services.terminal HOST All)
 
-target_include_directories(emil.services.terminal PUBLIC
+target_include_directories(services.terminal PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-target_sources(emil.services.terminal PRIVATE
+target_sources(services.terminal PRIVATE
     TerminalTypes.hpp
     TerminalScreen.hpp
     TerminalScreen.cpp

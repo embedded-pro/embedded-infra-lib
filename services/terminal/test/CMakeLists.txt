@@ -1,13 +1,13 @@
-add_executable(emil.services.terminal.test)
-emil_build_for(emil.services.terminal.test BOOL EMIL_BUILD_TESTS)
-emil_add_test(emil.services.terminal.test)
+add_executable(services.terminal_test)
+emil_build_for(services.terminal_test BOOL EMIL_BUILD_TESTS)
+emil_add_test(services.terminal_test)
 
-target_link_libraries(emil.services.terminal.test PUBLIC
+target_link_libraries(services.terminal_test PUBLIC
     gmock_main
-    emil.services.terminal
+    services.terminal
 )
 
-target_sources(emil.services.terminal.test PRIVATE
+target_sources(services.terminal_test PRIVATE
     TestTerminalTypes.cpp
     TestVt100Parser.cpp
     TestTerminalScreen.cpp

@@ -505,7 +505,7 @@ TEST_F(TestVt100Parser, del_byte_is_ignored_in_ground_state)
 {
     services::Vt100Parser parser(MakeCallbacks());
 
-    parser.Feed(std::string_view{ "A\x7f" "B" });
+    parser.Feed(std::string_view{ "A\177B" });
 
     ASSERT_EQ(events.size(), 2u);
     EXPECT_EQ(events[0].kind, ParserEvent::Kind::Print);
@@ -518,7 +518,7 @@ TEST_F(TestVt100Parser, del_byte_is_ignored_inside_csi)
 {
     services::Vt100Parser parser(MakeCallbacks());
 
-    parser.Feed(std::string_view{ "\x1B[\x7f" "m" });
+    parser.Feed(std::string_view{ "\x1B[\177m" });
 
     ASSERT_EQ(events.size(), 1u);
     EXPECT_EQ(events[0].kind, ParserEvent::Kind::Csi);

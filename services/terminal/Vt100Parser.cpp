@@ -317,6 +317,7 @@ namespace services
         using enum State;
 
         std::vector<int> values;
+        values.reserve(8);
         int current = 0;
         bool hasDigit = false;
         for (char c : params)
