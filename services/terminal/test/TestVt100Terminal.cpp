@@ -491,7 +491,7 @@ TEST_F(TestVt100Terminal, csi_g_moves_cursor_to_column)
 
 TEST_F(TestVt100Terminal, erase_in_display_mode_3_clears_scrollback)
 {
-    Feed("A\r\nB\r\nC\r\nD\r\nE\r\nF");
+    Feed("A\r\nB\r\nC\r\nD\r\nE\r\nF\r\nG");
     const std::size_t historyBefore = terminal.Screen().History().size();
 
     Feed("\x1B[3J");

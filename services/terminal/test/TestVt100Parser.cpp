@@ -518,18 +518,18 @@ TEST_F(TestVt100Parser, del_byte_is_ignored_inside_csi)
 {
     services::Vt100Parser parser(MakeCallbacks());
 
-    parser.Feed(std::string_view{ "\x1B[\x7f" "Am" });
+    parser.Feed(std::string_view{ "\x1B[\x7f" "m" });
 
     ASSERT_EQ(events.size(), 1u);
     EXPECT_EQ(events[0].kind, ParserEvent::Kind::Csi);
     EXPECT_EQ(events[0].finalByte, 'm');
 }
 
-TEST_F(TestVt100Parser, csi_double_intermediate_enters_ignore_and_recovers)
+TEST_F(TestVt100Parser, param_after_intermediate_enters_ignore_and_recovers)
 {
     services::Vt100Parser parser(MakeCallbacks());
 
-    parser.Feed(std::string_view{ "\x1B[ !qA" });
+    parser.Feed(std::string_view{ "\x1B[ 1mA" });
 
     ASSERT_EQ(events.size(), 1u);
     EXPECT_EQ(events[0].kind, ParserEvent::Kind::Print);
