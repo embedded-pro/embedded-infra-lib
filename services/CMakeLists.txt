@@ -1,3 +1,4 @@
+add_subdirectory(terminal)
 add_subdirectory(tracer)
 add_subdirectory(crypto)
 add_subdirectory(flash)
