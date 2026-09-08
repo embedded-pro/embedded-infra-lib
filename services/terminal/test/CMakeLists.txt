@@ -1,5 +1,5 @@
 add_executable(emil.services.terminal.test)
-emil_build_for(emil.services.terminal.test HOST All BOOL EMIL_BUILD_TESTS)
+emil_build_for(emil.services.terminal.test BOOL EMIL_BUILD_TESTS)
 emil_add_test(emil.services.terminal.test)
 
 target_link_libraries(emil.services.terminal.test PUBLIC

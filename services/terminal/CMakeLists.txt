@@ -1,4 +1,4 @@
-add_library(emil.services.terminal)
+add_library(emil.services.terminal ${EMIL_EXCLUDE_FROM_ALL})
 emil_build_for(emil.services.terminal HOST All)
 
 target_include_directories(emil.services.terminal PUBLIC

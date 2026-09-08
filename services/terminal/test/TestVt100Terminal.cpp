@@ -481,3 +481,35 @@ TEST_F(TestVt100Terminal, embedded_control_inside_csi_does_not_lose_text)
     Feed("X");
     EXPECT_EQ(Line(0), "AX");
 }
+
+TEST_F(TestVt100Terminal, csi_g_moves_cursor_to_column)
+{
+    Feed("\x1B[5G");
+
+    EXPECT_EQ(terminal.Screen().Cursor().column, 4);
+}
+
+TEST_F(TestVt100Terminal, erase_in_display_mode_3_clears_scrollback)
+{
+    Feed("A\r\nB\r\nC\r\nD\r\nE\r\nF");
+    const std::size_t historyBefore = terminal.Screen().History().size();
+
+    Feed("\x1B[3J");
+
+    EXPECT_GT(historyBefore, 0u);
+    EXPECT_TRUE(terminal.Screen().History().empty());
+}
+
+TEST_F(TestVt100Terminal, csi_multiple_intermediates_enters_ignore_state)
+{
+    Feed("A\x1B[ !qB");
+
+    EXPECT_EQ(Line(0), "AB");
+}
+
+TEST_F(TestVt100Terminal, csi_n_with_unrecognised_param_does_nothing)
+{
+    Feed("\x1B[99n");
+
+    EXPECT_EQ(terminal.TakeOutgoing(), "");
+}
