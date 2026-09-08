@@ -1,7 +1,7 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/cortex_m/Semihosting.hpp"
 #include "hal/qemu/default_init/SystemInit.hpp"
-#include "hal/qemu/sync/Pl011Registers.hpp"
+#include "infra/util/ReallyAssert.hpp"
 #include <cstdint>
 
 extern uint32_t _estack;
@@ -18,6 +18,56 @@ extern "C" void UsageFault_Handler();
 
 extern "C" void __libc_init_array();
 int main(int argc, char** argv);
+
+extern "C" void DefaultHandler()
+{
+    really_assert(hal::cortex::InterruptTable::InstanceSet());
+    hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt());
+}
+
+#define EMIL_DEFAULT_HANDLER(name) \
+    extern "C" [[gnu::weak, gnu::alias("DefaultHandler")]] void name()
+
+EMIL_DEFAULT_HANDLER(NMI_Handler);
+EMIL_DEFAULT_HANDLER(SVC_Handler);
+EMIL_DEFAULT_HANDLER(DebugMon_Handler);
+EMIL_DEFAULT_HANDLER(PendSV_Handler);
+EMIL_DEFAULT_HANDLER(SysTick_Handler);
+
+EMIL_DEFAULT_HANDLER(IRQ0_Handler);
+EMIL_DEFAULT_HANDLER(IRQ1_Handler);
+EMIL_DEFAULT_HANDLER(IRQ2_Handler);
+EMIL_DEFAULT_HANDLER(IRQ3_Handler);
+EMIL_DEFAULT_HANDLER(IRQ4_Handler);
+EMIL_DEFAULT_HANDLER(IRQ5_Handler);
+EMIL_DEFAULT_HANDLER(IRQ6_Handler);
+EMIL_DEFAULT_HANDLER(IRQ7_Handler);
+EMIL_DEFAULT_HANDLER(IRQ8_Handler);
+EMIL_DEFAULT_HANDLER(IRQ9_Handler);
+EMIL_DEFAULT_HANDLER(IRQ10_Handler);
+EMIL_DEFAULT_HANDLER(IRQ11_Handler);
+EMIL_DEFAULT_HANDLER(IRQ12_Handler);
+EMIL_DEFAULT_HANDLER(IRQ13_Handler);
+EMIL_DEFAULT_HANDLER(IRQ14_Handler);
+EMIL_DEFAULT_HANDLER(IRQ15_Handler);
+EMIL_DEFAULT_HANDLER(IRQ16_Handler);
+EMIL_DEFAULT_HANDLER(IRQ17_Handler);
+EMIL_DEFAULT_HANDLER(IRQ18_Handler);
+EMIL_DEFAULT_HANDLER(IRQ19_Handler);
+EMIL_DEFAULT_HANDLER(IRQ20_Handler);
+EMIL_DEFAULT_HANDLER(IRQ21_Handler);
+EMIL_DEFAULT_HANDLER(IRQ22_Handler);
+EMIL_DEFAULT_HANDLER(IRQ23_Handler);
+EMIL_DEFAULT_HANDLER(IRQ24_Handler);
+EMIL_DEFAULT_HANDLER(IRQ25_Handler);
+EMIL_DEFAULT_HANDLER(IRQ26_Handler);
+EMIL_DEFAULT_HANDLER(IRQ27_Handler);
+EMIL_DEFAULT_HANDLER(IRQ28_Handler);
+EMIL_DEFAULT_HANDLER(IRQ29_Handler);
+EMIL_DEFAULT_HANDLER(IRQ30_Handler);
+EMIL_DEFAULT_HANDLER(IRQ31_Handler);
+
+#undef EMIL_DEFAULT_HANDLER
 
 extern "C" void Reset_Handler()
 {
@@ -45,51 +95,6 @@ extern "C" void Reset_Handler()
     {}
 }
 
-extern "C" __attribute__((weak)) void NMI_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void SVC_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void PendSV_Handler()
-{
-    while (true)
-    {}
-}
-
-namespace
-{
-    void Dispatch(int32_t irq)
-    {
-        if (hal::cortex::InterruptTable::InstanceSet())
-            hal::cortex::InterruptTable::Instance().Invoke(irq);
-    }
-}
-
-extern "C" void SysTick_Handler()
-{
-    Dispatch(hal::cortex::sysTickIrq);
-}
-
-extern "C" void UART0_IRQHandler()
-{
-    Dispatch(hal::uart0IrqNumber);
-}
-
-// CMSDK APB Timer 0 at 0x40000000 raises IRQ8 (exception 24) on MPS2-AN386.
-constexpr int32_t timer0IrqNumber = 8;
-
-extern "C" void TIMER0_IRQHandler()
-{
-    Dispatch(timer0IrqNumber);
-}
-
 // Vector entries are function pointer values; cast through uintptr_t avoids
 // the -Wpointer-to-int-cast diagnostic on targets where sizeof(void*) == sizeof(uint32_t).
 #define VEC(fn) static_cast<uint32_t>(reinterpret_cast<uintptr_t>(fn))
@@ -97,30 +102,53 @@ extern "C" void TIMER0_IRQHandler()
 __attribute__((section(".isr_vector"), used))
 const uint32_t vectorTable[] = {
     VEC(&_estack),
-    VEC(Reset_Handler),         // exc  1
-    VEC(NMI_Handler),           // exc  2
-    VEC(HardFault_Handler),     // exc  3
-    VEC(MemManage_Handler),     // exc  4
-    VEC(BusFault_Handler),      // exc  5
-    VEC(UsageFault_Handler),    // exc  6
-    0u,                         // exc  7
-    0u,                         // exc  8
-    0u,                         // exc  9
-    0u,                         // exc 10
-    VEC(SVC_Handler),           // exc 11
-    0u,                         // exc 12
-    0u,                         // exc 13
-    VEC(PendSV_Handler),        // exc 14
-    VEC(SysTick_Handler),       // exc 15
-    0u,                         // exc 16  IRQ0
-    VEC(UART0_IRQHandler),      // exc 17  IRQ1
-    0u,                         // exc 18  IRQ2
-    0u,                         // exc 19  IRQ3
-    0u,                         // exc 20  IRQ4
-    0u,                         // exc 21  IRQ5
-    0u,                         // exc 22  IRQ6
-    0u,                         // exc 23  IRQ7
-    VEC(TIMER0_IRQHandler),     // exc 24  IRQ8  CMSDK APB Timer 0
+    VEC(Reset_Handler),
+    VEC(NMI_Handler),
+    VEC(HardFault_Handler),
+    VEC(MemManage_Handler),
+    VEC(BusFault_Handler),
+    VEC(UsageFault_Handler),
+    0u,
+    0u,
+    0u,
+    0u,
+    VEC(SVC_Handler),
+    VEC(DebugMon_Handler),
+    0u,
+    VEC(PendSV_Handler),
+    VEC(SysTick_Handler),
+    VEC(IRQ0_Handler),
+    VEC(IRQ1_Handler),
+    VEC(IRQ2_Handler),
+    VEC(IRQ3_Handler),
+    VEC(IRQ4_Handler),
+    VEC(IRQ5_Handler),
+    VEC(IRQ6_Handler),
+    VEC(IRQ7_Handler),
+    VEC(IRQ8_Handler),
+    VEC(IRQ9_Handler),
+    VEC(IRQ10_Handler),
+    VEC(IRQ11_Handler),
+    VEC(IRQ12_Handler),
+    VEC(IRQ13_Handler),
+    VEC(IRQ14_Handler),
+    VEC(IRQ15_Handler),
+    VEC(IRQ16_Handler),
+    VEC(IRQ17_Handler),
+    VEC(IRQ18_Handler),
+    VEC(IRQ19_Handler),
+    VEC(IRQ20_Handler),
+    VEC(IRQ21_Handler),
+    VEC(IRQ22_Handler),
+    VEC(IRQ23_Handler),
+    VEC(IRQ24_Handler),
+    VEC(IRQ25_Handler),
+    VEC(IRQ26_Handler),
+    VEC(IRQ27_Handler),
+    VEC(IRQ28_Handler),
+    VEC(IRQ29_Handler),
+    VEC(IRQ30_Handler),
+    VEC(IRQ31_Handler),
 };
 
 #undef VEC
