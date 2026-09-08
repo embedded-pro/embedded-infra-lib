@@ -392,7 +392,7 @@ namespace services
         }
     }
 
-    void Vt100Terminal::OnOsc(const std::string& /*payload*/)
+    void Vt100Terminal::OnOsc(const std::string& /*payload*/) const
     {
     }
 

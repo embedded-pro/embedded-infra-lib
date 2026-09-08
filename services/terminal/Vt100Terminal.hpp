@@ -30,7 +30,7 @@ namespace services
         void OnExecute(uint8_t b);
         void OnEsc(char finalByte, char intermediate);
         void OnCsi(char finalByte, const std::vector<int>& params, bool privateMarker, char intermediate);
-        void OnOsc(const std::string& payload);
+        void OnOsc(const std::string& payload) const;
 
         void ApplySgr(const std::vector<int>& params);
         void ApplyMode(const std::vector<int>& params, bool set, bool privateMarker);

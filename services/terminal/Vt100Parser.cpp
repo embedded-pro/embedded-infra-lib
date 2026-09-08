@@ -168,11 +168,8 @@ namespace services
                 callbacks.Execute(b);
             return;
         }
-        if (b >= 0x20)
-        {
-            if (callbacks.Print)
-                callbacks.Print(static_cast<char32_t>(b));
-        }
+        if (b >= 0x20 && callbacks.Print)
+            callbacks.Print(static_cast<char32_t>(b));
     }
 
     void Vt100Parser::HandleEscape(uint8_t b)
