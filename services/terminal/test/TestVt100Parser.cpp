@@ -30,9 +30,9 @@ namespace
     protected:
         std::vector<ParserEvent> events;
 
-        services::terminal::ParserCallbacks MakeCallbacks()
+        services::ParserCallbacks MakeCallbacks()
         {
-            return services::terminal::ParserCallbacks{
+            return services::ParserCallbacks{
                 [this](char32_t c)
                 {
                     events.push_back({ ParserEvent::Kind::Print, c, 0, 0, 0, false, {}, {} });
@@ -60,7 +60,7 @@ namespace
 
 TEST_F(TestVt100Parser, prints_plain_ascii_as_codepoints)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "Hi" });
 
@@ -72,7 +72,7 @@ TEST_F(TestVt100Parser, prints_plain_ascii_as_codepoints)
 
 TEST_F(TestVt100Parser, feed_accepts_byte_ranges)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 'O', 'K' };
 
     parser.Feed(bytes);
@@ -84,7 +84,7 @@ TEST_F(TestVt100Parser, feed_accepts_byte_ranges)
 
 TEST_F(TestVt100Parser, parser_with_empty_callbacks_accepts_all_event_types)
 {
-    services::terminal::Vt100Parser parser(services::terminal::ParserCallbacks{});
+    services::Vt100Parser parser(services::ParserCallbacks{});
 
     parser.Feed(std::string_view{ "A\r\x1B"
                                   "D\x1B[1;2H\x1B]0;x\x07" });
@@ -94,7 +94,7 @@ TEST_F(TestVt100Parser, parser_with_empty_callbacks_accepts_all_event_types)
 
 TEST_F(TestVt100Parser, executes_c0_controls_individually)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\r\n\b\t\x07" });
 
@@ -108,7 +108,7 @@ TEST_F(TestVt100Parser, executes_c0_controls_individually)
 
 TEST_F(TestVt100Parser, executes_less_common_c0_controls)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x19, 0x1C };
 
     parser.Feed(bytes);
@@ -120,7 +120,7 @@ TEST_F(TestVt100Parser, executes_less_common_c0_controls)
 
 TEST_F(TestVt100Parser, ignores_del_and_nul_at_ground)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.FeedByte(0x7F);
     parser.FeedByte('A');
@@ -132,7 +132,7 @@ TEST_F(TestVt100Parser, ignores_del_and_nul_at_ground)
 
 TEST_F(TestVt100Parser, dispatches_simple_esc_final)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B"
                                   "D" });
@@ -145,7 +145,7 @@ TEST_F(TestVt100Parser, dispatches_simple_esc_final)
 
 TEST_F(TestVt100Parser, dispatches_esc_with_intermediate)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B(B" });
 
@@ -157,7 +157,7 @@ TEST_F(TestVt100Parser, dispatches_esc_with_intermediate)
 
 TEST_F(TestVt100Parser, lone_string_terminator_escape_is_ignored)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B\\A" });
 
@@ -168,7 +168,7 @@ TEST_F(TestVt100Parser, lone_string_terminator_escape_is_ignored)
 
 TEST_F(TestVt100Parser, dispatches_csi_with_no_params)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[H" });
 
@@ -181,7 +181,7 @@ TEST_F(TestVt100Parser, dispatches_csi_with_no_params)
 
 TEST_F(TestVt100Parser, dispatches_csi_with_multiple_params)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[12;34H" });
 
@@ -194,7 +194,7 @@ TEST_F(TestVt100Parser, dispatches_csi_with_multiple_params)
 
 TEST_F(TestVt100Parser, treats_colon_csi_separators_as_semicolons)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[12:34H" });
 
@@ -206,7 +206,7 @@ TEST_F(TestVt100Parser, treats_colon_csi_separators_as_semicolons)
 
 TEST_F(TestVt100Parser, treats_omitted_csi_param_as_zero)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[;5H" });
 
@@ -218,7 +218,7 @@ TEST_F(TestVt100Parser, treats_omitted_csi_param_as_zero)
 
 TEST_F(TestVt100Parser, parses_private_marker_csi)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[?25h" });
 
@@ -231,7 +231,7 @@ TEST_F(TestVt100Parser, parses_private_marker_csi)
 
 TEST_F(TestVt100Parser, non_question_private_markers_are_tolerated_without_private_flag)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[>0c" });
 
@@ -244,7 +244,7 @@ TEST_F(TestVt100Parser, non_question_private_markers_are_tolerated_without_priva
 
 TEST_F(TestVt100Parser, csi_intermediate_is_dispatched)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[1 q" });
 
@@ -256,7 +256,7 @@ TEST_F(TestVt100Parser, csi_intermediate_is_dispatched)
 
 TEST_F(TestVt100Parser, can_aborts_in_progress_csi)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[12" });
     parser.FeedByte(0x18);
@@ -269,7 +269,7 @@ TEST_F(TestVt100Parser, can_aborts_in_progress_csi)
 
 TEST_F(TestVt100Parser, sub_aborts_in_progress_escape)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B" });
     parser.FeedByte(0x1A);
@@ -282,7 +282,7 @@ TEST_F(TestVt100Parser, sub_aborts_in_progress_escape)
 
 TEST_F(TestVt100Parser, reset_aborts_in_progress_sequence)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[12" });
     parser.Reset();
@@ -295,7 +295,7 @@ TEST_F(TestVt100Parser, reset_aborts_in_progress_sequence)
 
 TEST_F(TestVt100Parser, esc_in_csi_restarts_sequence)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[12" });
     parser.Feed(std::string_view{ "\x1B"
@@ -308,7 +308,7 @@ TEST_F(TestVt100Parser, esc_in_csi_restarts_sequence)
 
 TEST_F(TestVt100Parser, byte_chunked_csi_is_recovered_correctly)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     const std::string seq = "\x1B[1;2H";
     for (char c : seq)
@@ -324,7 +324,7 @@ TEST_F(TestVt100Parser, byte_chunked_csi_is_recovered_correctly)
 
 TEST_F(TestVt100Parser, embedded_c0_in_csi_executes_inline)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[1\r;2H" });
     ASSERT_EQ(events.size(), 2u);
@@ -338,7 +338,7 @@ TEST_F(TestVt100Parser, embedded_c0_in_csi_executes_inline)
 
 TEST_F(TestVt100Parser, c0_and_del_in_csi_entry_do_not_abort_sequence)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, '[', 0x19, 0x7F, 'H' };
 
     parser.Feed(bytes);
@@ -352,7 +352,7 @@ TEST_F(TestVt100Parser, c0_and_del_in_csi_entry_do_not_abort_sequence)
 
 TEST_F(TestVt100Parser, csi_entry_intermediate_is_dispatched)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B[ q" });
 
@@ -364,7 +364,7 @@ TEST_F(TestVt100Parser, csi_entry_intermediate_is_dispatched)
 
 TEST_F(TestVt100Parser, del_in_csi_param_does_not_abort_sequence)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, '[', '1', 0x7F, ';', '2', 'H' };
 
     parser.Feed(bytes);
@@ -377,7 +377,7 @@ TEST_F(TestVt100Parser, del_in_csi_param_does_not_abort_sequence)
 
 TEST_F(TestVt100Parser, c0_del_and_repeated_intermediate_in_csi_intermediate_are_handled)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, '[', '1', ' ', 0x1C, 0x7F, '!', 'q' };
 
     parser.Feed(bytes);
@@ -392,7 +392,7 @@ TEST_F(TestVt100Parser, c0_del_and_repeated_intermediate_in_csi_intermediate_are
 
 TEST_F(TestVt100Parser, invalid_csi_param_byte_is_ignored_until_final)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, '[', '1', 0x80, 'H', 'A' };
 
     parser.Feed(bytes);
@@ -404,7 +404,7 @@ TEST_F(TestVt100Parser, invalid_csi_param_byte_is_ignored_until_final)
 
 TEST_F(TestVt100Parser, invalid_csi_intermediate_byte_is_ignored_until_final)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, '[', ' ', 0x80, 'H', 'A' };
 
     parser.Feed(bytes);
@@ -416,7 +416,7 @@ TEST_F(TestVt100Parser, invalid_csi_intermediate_byte_is_ignored_until_final)
 
 TEST_F(TestVt100Parser, c0_and_del_inside_escape_are_handled_without_aborting_escape)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, 0x0D, 0x7F, 'D' };
 
     parser.Feed(bytes);
@@ -430,7 +430,7 @@ TEST_F(TestVt100Parser, c0_and_del_inside_escape_are_handled_without_aborting_es
 
 TEST_F(TestVt100Parser, invalid_csi_bytes_are_ignored_until_final)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
     const uint8_t bytes[] = { 0x1B, '[', 0x80, 'A', 'B', 'C' };
 
     parser.Feed(bytes);
@@ -445,7 +445,7 @@ TEST_F(TestVt100Parser, invalid_csi_bytes_are_ignored_until_final)
 
 TEST_F(TestVt100Parser, osc_terminated_by_bel)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B]0;hello\x07" });
 
@@ -456,7 +456,7 @@ TEST_F(TestVt100Parser, osc_terminated_by_bel)
 
 TEST_F(TestVt100Parser, osc_terminated_by_string_terminator)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B]2;title\x1B\\" });
 
@@ -467,7 +467,7 @@ TEST_F(TestVt100Parser, osc_terminated_by_string_terminator)
 
 TEST_F(TestVt100Parser, osc_can_aborts_without_dispatch)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B]0;title" });
     parser.FeedByte(0x18);
@@ -480,7 +480,7 @@ TEST_F(TestVt100Parser, osc_can_aborts_without_dispatch)
 
 TEST_F(TestVt100Parser, osc_escape_non_terminator_is_reinterpreted_as_escape_sequence)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1B]0;title\x1B"
                                   "D" });
@@ -492,7 +492,7 @@ TEST_F(TestVt100Parser, osc_escape_non_terminator_is_reinterpreted_as_escape_seq
 
 TEST_F(TestVt100Parser, dcs_string_is_consumed_until_bel)
 {
-    services::terminal::Vt100Parser parser(MakeCallbacks());
+    services::Vt100Parser parser(MakeCallbacks());
 
     parser.Feed(std::string_view{ "\x1BPignored\x07" });
 

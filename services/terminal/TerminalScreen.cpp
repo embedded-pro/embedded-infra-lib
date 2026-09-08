@@ -1,7 +1,7 @@
 #include "services/terminal/TerminalScreen.hpp"
 #include <algorithm>
 
-namespace services::terminal
+namespace services
 {
     namespace
     {

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace services::terminal
+namespace services
 {
     enum class Color : uint8_t
     {

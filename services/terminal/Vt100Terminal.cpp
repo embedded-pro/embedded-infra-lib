@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-namespace services::terminal
+namespace services
 {
     namespace
     {

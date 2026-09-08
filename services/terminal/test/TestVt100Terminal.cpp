@@ -10,7 +10,7 @@ namespace
     class TestVt100Terminal : public ::testing::Test
     {
     protected:
-        services::terminal::Vt100Terminal terminal{ 6, 20 };
+        services::Vt100Terminal terminal{ 6, 20 };
 
         void Feed(std::string_view s)
         {
@@ -122,12 +122,12 @@ TEST_F(TestVt100Terminal, sgr_zero_resets_attributes)
 {
     Feed("\x1B[1;31mA");
     EXPECT_TRUE(terminal.Screen().At(0, 0).rendition.bold);
-    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, services::terminal::Color::Red);
+    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, services::Color::Red);
 
     Feed("\x1B[0mB");
 
     EXPECT_FALSE(terminal.Screen().At(0, 1).rendition.bold);
-    EXPECT_EQ(terminal.Screen().At(0, 1).rendition.foreground, services::terminal::Color::Default);
+    EXPECT_EQ(terminal.Screen().At(0, 1).rendition.foreground, services::Color::Default);
 }
 
 TEST_F(TestVt100Terminal, sgr_empty_param_means_reset)
@@ -143,7 +143,7 @@ TEST_F(TestVt100Terminal, sgr_unknown_codes_are_ignored)
     Feed("\x1B[1;999;31mA");
 
     EXPECT_TRUE(terminal.Screen().At(0, 0).rendition.bold);
-    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, services::terminal::Color::Red);
+    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, services::Color::Red);
 }
 
 TEST_F(TestVt100Terminal, sgr_sets_and_clears_text_style_flags)
@@ -169,23 +169,23 @@ TEST_F(TestVt100Terminal, sgr_sets_and_clears_text_style_flags)
 
 TEST_F(TestVt100Terminal, sgr_maps_all_foreground_colors)
 {
-    const std::array<std::pair<int, services::terminal::Color>, 16> colors{ {
-        { 30, services::terminal::Color::Black },
-        { 31, services::terminal::Color::Red },
-        { 32, services::terminal::Color::Green },
-        { 33, services::terminal::Color::Yellow },
-        { 34, services::terminal::Color::Blue },
-        { 35, services::terminal::Color::Magenta },
-        { 36, services::terminal::Color::Cyan },
-        { 37, services::terminal::Color::White },
-        { 90, services::terminal::Color::BrightBlack },
-        { 91, services::terminal::Color::BrightRed },
-        { 92, services::terminal::Color::BrightGreen },
-        { 93, services::terminal::Color::BrightYellow },
-        { 94, services::terminal::Color::BrightBlue },
-        { 95, services::terminal::Color::BrightMagenta },
-        { 96, services::terminal::Color::BrightCyan },
-        { 97, services::terminal::Color::BrightWhite },
+    const std::array<std::pair<int, services::Color>, 16> colors{ {
+        { 30, services::Color::Black },
+        { 31, services::Color::Red },
+        { 32, services::Color::Green },
+        { 33, services::Color::Yellow },
+        { 34, services::Color::Blue },
+        { 35, services::Color::Magenta },
+        { 36, services::Color::Cyan },
+        { 37, services::Color::White },
+        { 90, services::Color::BrightBlack },
+        { 91, services::Color::BrightRed },
+        { 92, services::Color::BrightGreen },
+        { 93, services::Color::BrightYellow },
+        { 94, services::Color::BrightBlue },
+        { 95, services::Color::BrightMagenta },
+        { 96, services::Color::BrightCyan },
+        { 97, services::Color::BrightWhite },
     } };
 
     for (std::size_t i = 0; i < colors.size(); ++i)
@@ -195,28 +195,28 @@ TEST_F(TestVt100Terminal, sgr_maps_all_foreground_colors)
     }
 
     Feed("\x1B[39mY");
-    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.foreground, services::terminal::Color::Default);
+    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.foreground, services::Color::Default);
 }
 
 TEST_F(TestVt100Terminal, sgr_maps_all_background_colors)
 {
-    const std::array<std::pair<int, services::terminal::Color>, 16> colors{ {
-        { 40, services::terminal::Color::Black },
-        { 41, services::terminal::Color::Red },
-        { 42, services::terminal::Color::Green },
-        { 43, services::terminal::Color::Yellow },
-        { 44, services::terminal::Color::Blue },
-        { 45, services::terminal::Color::Magenta },
-        { 46, services::terminal::Color::Cyan },
-        { 47, services::terminal::Color::White },
-        { 100, services::terminal::Color::BrightBlack },
-        { 101, services::terminal::Color::BrightRed },
-        { 102, services::terminal::Color::BrightGreen },
-        { 103, services::terminal::Color::BrightYellow },
-        { 104, services::terminal::Color::BrightBlue },
-        { 105, services::terminal::Color::BrightMagenta },
-        { 106, services::terminal::Color::BrightCyan },
-        { 107, services::terminal::Color::BrightWhite },
+    const std::array<std::pair<int, services::Color>, 16> colors{ {
+        { 40, services::Color::Black },
+        { 41, services::Color::Red },
+        { 42, services::Color::Green },
+        { 43, services::Color::Yellow },
+        { 44, services::Color::Blue },
+        { 45, services::Color::Magenta },
+        { 46, services::Color::Cyan },
+        { 47, services::Color::White },
+        { 100, services::Color::BrightBlack },
+        { 101, services::Color::BrightRed },
+        { 102, services::Color::BrightGreen },
+        { 103, services::Color::BrightYellow },
+        { 104, services::Color::BrightBlue },
+        { 105, services::Color::BrightMagenta },
+        { 106, services::Color::BrightCyan },
+        { 107, services::Color::BrightWhite },
     } };
 
     for (std::size_t i = 0; i < colors.size(); ++i)
@@ -226,7 +226,7 @@ TEST_F(TestVt100Terminal, sgr_maps_all_background_colors)
     }
 
     Feed("\x1B[49mY");
-    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.background, services::terminal::Color::Default);
+    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.background, services::Color::Default);
 }
 
 TEST_F(TestVt100Terminal, esc_d_indexes_cursor_down)

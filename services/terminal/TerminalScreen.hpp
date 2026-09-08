@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace services::terminal
+namespace services
 {
     class TerminalScreen;
 

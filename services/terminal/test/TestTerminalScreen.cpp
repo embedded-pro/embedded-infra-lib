@@ -6,13 +6,13 @@ namespace
     class TestTerminalScreen : public ::testing::Test
     {
     protected:
-        services::terminal::TerminalScreen screen{ 5, 10 };
+        services::TerminalScreen screen{ 5, 10 };
     };
 }
 
 TEST_F(TestTerminalScreen, default_size_is_correct)
 {
-    services::terminal::TerminalScreen def;
+    services::TerminalScreen def;
 
     EXPECT_EQ(def.Rows(), 24);
     EXPECT_EQ(def.Cols(), 100);
@@ -20,7 +20,7 @@ TEST_F(TestTerminalScreen, default_size_is_correct)
 
 TEST_F(TestTerminalScreen, invalid_size_uses_public_defaults)
 {
-    services::terminal::TerminalScreen invalid{ 0, -1 };
+    services::TerminalScreen invalid{ 0, -1 };
 
     EXPECT_EQ(invalid.Rows(), 24);
     EXPECT_EQ(invalid.Cols(), 100);
@@ -29,7 +29,7 @@ TEST_F(TestTerminalScreen, invalid_size_uses_public_defaults)
 TEST_F(TestTerminalScreen, const_modes_accessor_returns_mode_state)
 {
     screen.GetModes().cursorVisible = false;
-    const services::terminal::TerminalScreen& constScreen = screen;
+    const services::TerminalScreen& constScreen = screen;
 
     EXPECT_FALSE(constScreen.GetModes().cursorVisible);
 }
@@ -133,7 +133,7 @@ TEST_F(TestTerminalScreen, backspace_does_not_pass_left_margin)
 
 TEST_F(TestTerminalScreen, horizontal_tab_advances_to_next_tab_stop)
 {
-    services::terminal::TerminalScreen wide{ 5, 20 };
+    services::TerminalScreen wide{ 5, 20 };
 
     wide.HorizontalTab();
     EXPECT_EQ(wide.Cursor().column, 8);
@@ -147,7 +147,7 @@ TEST_F(TestTerminalScreen, horizontal_tab_advances_to_next_tab_stop)
 
 TEST_F(TestTerminalScreen, set_and_clear_tab_stops)
 {
-    services::terminal::TerminalScreen wide{ 5, 20 };
+    services::TerminalScreen wide{ 5, 20 };
     wide.TabStops().ClearAll();
 
     wide.CursorOperations().MoveTo(1, 4);
@@ -390,7 +390,7 @@ TEST_F(TestTerminalScreen, line_text_replaces_non_ascii_with_question_mark)
 
 TEST_F(TestTerminalScreen, soft_reset_preserves_screen_and_history_but_resets_modes_and_rendition)
 {
-    services::terminal::Rendition rendition;
+    services::Rendition rendition;
     rendition.bold = true;
     screen.SetRendition(rendition);
     screen.GetModes().lineFeedNewLine = true;
@@ -404,7 +404,7 @@ TEST_F(TestTerminalScreen, soft_reset_preserves_screen_and_history_but_resets_mo
 
     screen.SoftReset();
 
-    EXPECT_EQ(screen.CurrentRendition(), services::terminal::Rendition{});
+    EXPECT_EQ(screen.CurrentRendition(), services::Rendition{});
     EXPECT_FALSE(screen.GetModes().lineFeedNewLine);
     EXPECT_FALSE(screen.History().empty());
     EXPECT_EQ(screen.LineText(0), "");

@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace services::terminal
+namespace services
 {
     class Vt100Terminal
     {

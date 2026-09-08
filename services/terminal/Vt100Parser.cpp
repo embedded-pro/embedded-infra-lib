@@ -1,6 +1,6 @@
 #include "services/terminal/Vt100Parser.hpp"
 
-namespace services::terminal
+namespace services
 {
     namespace
     {
