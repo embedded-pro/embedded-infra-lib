@@ -82,6 +82,14 @@ extern "C" void UART0_IRQHandler()
     Dispatch(hal::uart0IrqNumber);
 }
 
+// CMSDK APB Timer 0 at 0x40000000 raises IRQ8 (exception 24) on MPS2-AN386.
+constexpr int32_t timer0IrqNumber = 8;
+
+extern "C" void TIMER0_IRQHandler()
+{
+    Dispatch(timer0IrqNumber);
+}
+
 // Vector entries are function pointer values; cast through uintptr_t avoids
 // the -Wpointer-to-int-cast diagnostic on targets where sizeof(void*) == sizeof(uint32_t).
 #define VEC(fn) static_cast<uint32_t>(reinterpret_cast<uintptr_t>(fn))
@@ -89,23 +97,30 @@ extern "C" void UART0_IRQHandler()
 __attribute__((section(".isr_vector"), used))
 const uint32_t vectorTable[] = {
     VEC(&_estack),
-    VEC(Reset_Handler),
-    VEC(NMI_Handler),
-    VEC(HardFault_Handler),
-    VEC(MemManage_Handler),
-    VEC(BusFault_Handler),
-    VEC(UsageFault_Handler),
-    0u,
-    0u,
-    0u,
-    0u,
-    VEC(SVC_Handler),
-    0u,
-    0u,
-    VEC(PendSV_Handler),
-    VEC(SysTick_Handler),
-    0u,
-    VEC(UART0_IRQHandler),
+    VEC(Reset_Handler),         // exc  1
+    VEC(NMI_Handler),           // exc  2
+    VEC(HardFault_Handler),     // exc  3
+    VEC(MemManage_Handler),     // exc  4
+    VEC(BusFault_Handler),      // exc  5
+    VEC(UsageFault_Handler),    // exc  6
+    0u,                         // exc  7
+    0u,                         // exc  8
+    0u,                         // exc  9
+    0u,                         // exc 10
+    VEC(SVC_Handler),           // exc 11
+    0u,                         // exc 12
+    0u,                         // exc 13
+    VEC(PendSV_Handler),        // exc 14
+    VEC(SysTick_Handler),       // exc 15
+    0u,                         // exc 16  IRQ0
+    VEC(UART0_IRQHandler),      // exc 17  IRQ1
+    0u,                         // exc 18  IRQ2
+    0u,                         // exc 19  IRQ3
+    0u,                         // exc 20  IRQ4
+    0u,                         // exc 21  IRQ5
+    0u,                         // exc 22  IRQ6
+    0u,                         // exc 23  IRQ7
+    VEC(TIMER0_IRQHandler),     // exc 24  IRQ8  CMSDK APB Timer 0
 };
 
 #undef VEC
