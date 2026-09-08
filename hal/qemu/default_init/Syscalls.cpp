@@ -1,32 +1,30 @@
+#include "hal/cortex_m/FaultTracer.hpp"
 #include "hal/cortex_m/Semihosting.hpp"
+#include "hal/qemu/default_init/FaultTracerInfrastructure.hpp"
+#include "hal/qemu/sync/SemihostingWriter.hpp"
 #include "infra/util/ByteRange.hpp"
+#include "services/tracer/GlobalTracer.hpp"
 #include <array>
 #include <cstdint>
-#include <cstdlib>
 
 namespace
 {
-    constexpr std::array<char, 16> hexDigits{
-        '0', '1', '2', '3', '4', '5', '6', '7',
-        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-    };
-
-    std::array<char, 24> FormatAbortMessage(uint32_t lr)
+    void TraceAbort(const uint32_t* stackPointer, uint32_t linkRegister)
     {
-        std::array<char, 24> msg{};
-        std::size_t pos = 0;
+        if (hal::cortex::FaultTracer::InstanceSet())
+        {
+            hal::cortex::FaultTracer::Instance().DumpAbort(stackPointer, linkRegister);
+            return;
+        }
 
-        for (char c : std::array<char, 13>{
-                 'A', 'B', 'O', 'R', 'T', ' ', '@', ' ', 'L', 'R', '=', '0', 'x' })
-            msg[pos++] = c;
+        hal::SemihostingWriter writer{ &hal::cortex::SemihostingWrite };
+        infra::TextOutputStream::WithErrorPolicy stream{ writer };
+        services::TracerToStream tracerOnSemihosting{ stream };
 
-        for (int shift = 28; shift >= 0; shift -= 4)
-            msg[pos++] = hexDigits[(lr >> shift) & 0xfu];
-
-        msg[pos++] = '\n';
-        msg[pos] = '\0';
-
-        return msg;
+        bringup::FaultTracerInfrastructure infrastructure{
+            services::GlobalTracerSet() ? services::GlobalTracer() : tracerOnSemihosting
+        };
+        infrastructure.faultTracer.DumpAbort(stackPointer, linkRegister);
     }
 }
 
@@ -38,13 +36,10 @@ extern "C" int _write(int, const char* buf, int count)
     return count;
 }
 
-extern "C" void abort()
+extern "C" [[noreturn]] void abort()
 {
-    volatile uint32_t lr = 0;
-    asm volatile("mov %0, lr" : "=r"(lr));
-
-    const auto msg = FormatAbortMessage(lr);
-    hal::cortex::SemihostingWrite0(msg.data());
+    TraceAbort(static_cast<const uint32_t*>(__builtin_frame_address(0)),
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(__builtin_return_address(0))));
 
     static std::array<uint32_t, 2> exitBlock{ 0x20026u, 1u };
     hal::cortex::SemihostingCall(hal::cortex::SemihostingOperation::exitExtended, exitBlock.data());

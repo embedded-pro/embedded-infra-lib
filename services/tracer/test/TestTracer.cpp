@@ -41,5 +41,6 @@ TEST(GlobalTracerTest, global_tracer_streams_text)
 
     services::GlobalTracer().Trace() << "Text";
 
+    EXPECT_TRUE(services::GlobalTracerSet());
     EXPECT_EQ("\r\nText", stream.Storage());
 }

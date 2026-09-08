@@ -166,6 +166,68 @@ TEST_F(FaultTracerTest, the_backtrace_skips_the_exception_frame_it_already_repor
     EXPECT_EQ(infra::BoundedString::npos, backtrace.find("0x00001234"));
 }
 
+TEST_F(FaultTracerTest, dump_abort_reports_the_link_register_and_the_stack_pointer)
+{
+    auto faultTracer = Construct();
+
+    faultTracer.DumpAbort(frame.data(), returnAddressInCode);
+
+    EXPECT_TRUE(Traced("*** Abort ***"));
+    EXPECT_TRUE(Traced("LR   0x00001234"));
+    EXPECT_TRUE(Traced("SP   0x"));
+}
+
+TEST_F(FaultTracerTest, the_abort_backtrace_reports_addresses_inside_the_code_range)
+{
+    frame[4] = returnAddressInCode;
+    auto faultTracer = Construct();
+
+    faultTracer.DumpAbort(frame.data(), 0);
+
+    EXPECT_TRUE(Traced("Backtrace (code addresses on stack):"));
+    EXPECT_TRUE(Traced("0x00001234"));
+}
+
+TEST_F(FaultTracerTest, the_abort_backtrace_skips_addresses_outside_the_code_range)
+{
+    frame[4] = addressOutsideCode;
+    auto faultTracer = Construct();
+
+    faultTracer.DumpAbort(frame.data(), 0);
+
+    EXPECT_FALSE(Traced("0x20004000"));
+}
+
+TEST_F(FaultTracerTest, dump_abort_does_not_need_a_fault_context)
+{
+    hal::cortex::faultContext = { nullptr, 0 };
+    auto faultTracer = Construct();
+
+    faultTracer.DumpAbort(frame.data(), returnAddressInCode);
+
+    EXPECT_TRUE(Traced("*** Abort ***"));
+}
+
+TEST_F(FaultTracerTest, a_fault_occurring_while_dumping_is_not_reported_again)
+{
+    auto faultTracer = Construct();
+    faultTracer.Dump("HardFault");
+
+    faultTracer.Dump("BusFault");
+
+    EXPECT_FALSE(Traced("*** Fault: BusFault ***"));
+}
+
+TEST_F(FaultTracerTest, an_abort_following_a_fault_dump_is_not_reported_again)
+{
+    auto faultTracer = Construct();
+    faultTracer.Dump("HardFault");
+
+    faultTracer.DumpAbort(frame.data(), returnAddressInCode);
+
+    EXPECT_FALSE(Traced("*** Abort ***"));
+}
+
 TEST_F(FaultTracerTest, on_progress_is_invoked_while_dumping)
 {
     uint32_t progressCount = 0;

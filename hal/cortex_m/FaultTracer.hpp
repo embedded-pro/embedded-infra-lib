@@ -29,12 +29,14 @@ namespace hal::cortex
 
         void Dump(infra::BoundedConstString faultName);
 
+        void DumpAbort(const uint32_t* stackPointer, uint32_t linkRegister);
+
         void DumpCfsr(uint32_t cfsr);
 
     private:
         void DumpFrame();
         void DumpFsrFar();
-        void DumpBacktrace();
+        void DumpBacktrace(const uint32_t* from);
 
         void TraceRegister(infra::BoundedConstString name, uint32_t value);
         const uint32_t* FrameEnd() const;
@@ -45,6 +47,7 @@ namespace hal::cortex
         const uint32_t* stackTop;
         services::Tracer& tracer;
         infra::Function<void()> onProgress;
+        bool dumped = false;
     };
 }
 
