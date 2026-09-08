@@ -6,13 +6,13 @@ namespace
     class TestTerminalScreen : public ::testing::Test
     {
     protected:
-        tool::terminal::TerminalScreen screen{ 5, 10 };
+        services::terminal::TerminalScreen screen{ 5, 10 };
     };
 }
 
 TEST_F(TestTerminalScreen, default_size_is_correct)
 {
-    tool::terminal::TerminalScreen def;
+    services::terminal::TerminalScreen def;
 
     EXPECT_EQ(def.Rows(), 24);
     EXPECT_EQ(def.Cols(), 100);
@@ -20,7 +20,7 @@ TEST_F(TestTerminalScreen, default_size_is_correct)
 
 TEST_F(TestTerminalScreen, invalid_size_uses_public_defaults)
 {
-    tool::terminal::TerminalScreen invalid{ 0, -1 };
+    services::terminal::TerminalScreen invalid{ 0, -1 };
 
     EXPECT_EQ(invalid.Rows(), 24);
     EXPECT_EQ(invalid.Cols(), 100);
@@ -29,7 +29,7 @@ TEST_F(TestTerminalScreen, invalid_size_uses_public_defaults)
 TEST_F(TestTerminalScreen, const_modes_accessor_returns_mode_state)
 {
     screen.GetModes().cursorVisible = false;
-    const tool::terminal::TerminalScreen& constScreen = screen;
+    const services::terminal::TerminalScreen& constScreen = screen;
 
     EXPECT_FALSE(constScreen.GetModes().cursorVisible);
 }
@@ -133,7 +133,7 @@ TEST_F(TestTerminalScreen, backspace_does_not_pass_left_margin)
 
 TEST_F(TestTerminalScreen, horizontal_tab_advances_to_next_tab_stop)
 {
-    tool::terminal::TerminalScreen wide{ 5, 20 };
+    services::terminal::TerminalScreen wide{ 5, 20 };
 
     wide.HorizontalTab();
     EXPECT_EQ(wide.Cursor().column, 8);
@@ -147,7 +147,7 @@ TEST_F(TestTerminalScreen, horizontal_tab_advances_to_next_tab_stop)
 
 TEST_F(TestTerminalScreen, set_and_clear_tab_stops)
 {
-    tool::terminal::TerminalScreen wide{ 5, 20 };
+    services::terminal::TerminalScreen wide{ 5, 20 };
     wide.TabStops().ClearAll();
 
     wide.CursorOperations().MoveTo(1, 4);
@@ -184,7 +184,7 @@ TEST_F(TestTerminalScreen, reverse_index_at_top_scrolls_down)
 
     EXPECT_EQ(screen.Cursor().row, 0);
     EXPECT_EQ(screen.LineText(2), "X");
-    screen.ReverseIndex(); // already at top -> scroll down inserts blank
+    screen.ReverseIndex();
     EXPECT_EQ(screen.LineText(0), "");
 }
 
@@ -368,10 +368,6 @@ TEST_F(TestTerminalScreen, scroll_region_limits_index_to_region)
     screen.CarriageReturn();
     screen.Index();
     screen.Write(U'B');
-
-    // Index at scroll bottom shifts rows in the region up: 'A' moves
-    // from row 3 to row 2 (0-based), and 'B' is written at the new
-    // bottom row 3.
     EXPECT_EQ(screen.LineText(2), "A");
     EXPECT_EQ(screen.LineText(3), "B");
 }
@@ -394,7 +390,7 @@ TEST_F(TestTerminalScreen, line_text_replaces_non_ascii_with_question_mark)
 
 TEST_F(TestTerminalScreen, soft_reset_preserves_screen_and_history_but_resets_modes_and_rendition)
 {
-    tool::terminal::Rendition rendition;
+    services::terminal::Rendition rendition;
     rendition.bold = true;
     screen.SetRendition(rendition);
     screen.GetModes().lineFeedNewLine = true;
@@ -408,7 +404,7 @@ TEST_F(TestTerminalScreen, soft_reset_preserves_screen_and_history_but_resets_mo
 
     screen.SoftReset();
 
-    EXPECT_EQ(screen.CurrentRendition(), tool::terminal::Rendition{});
+    EXPECT_EQ(screen.CurrentRendition(), services::terminal::Rendition{});
     EXPECT_FALSE(screen.GetModes().lineFeedNewLine);
     EXPECT_FALSE(screen.History().empty());
     EXPECT_EQ(screen.LineText(0), "");

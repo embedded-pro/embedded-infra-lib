@@ -1,6 +1,6 @@
 #include "services/terminal/Vt100Parser.hpp"
 
-namespace tool::terminal
+namespace services::terminal
 {
     namespace
     {
@@ -12,7 +12,6 @@ namespace tool::terminal
 
         bool IsC0Execute(uint8_t b)
         {
-            // 0x00..0x17, 0x19, 0x1C..0x1F. ESC, CAN, SUB are handled separately.
             if (b == ESC_BYTE || b == CAN_BYTE || b == SUB_BYTE)
                 return false;
             if (b <= 0x17)
@@ -46,7 +45,7 @@ namespace tool::terminal
     }
 
     Vt100Parser::Vt100Parser(ParserCallbacks callbacks)
-        : callbacks_(std::move(callbacks))
+        : callbacks(std::move(callbacks))
     {
     }
 
@@ -54,31 +53,31 @@ namespace tool::terminal
     {
         using enum State;
 
-        state_ = Ground;
-        params_.clear();
-        oscBuffer_.clear();
-        intermediate_ = 0;
-        privateMarker_ = false;
+        state = Ground;
+        params.clear();
+        oscBuffer.clear();
+        intermediate = 0;
+        privateMarker = false;
     }
 
     void Vt100Parser::Transition(State next)
     {
         using enum State;
 
-        state_ = next;
+        state = next;
         if (next == CsiEntry)
         {
-            params_.clear();
-            intermediate_ = 0;
-            privateMarker_ = false;
+            params.clear();
+            intermediate = 0;
+            privateMarker = false;
         }
         else if (next == Escape)
         {
-            intermediate_ = 0;
+            intermediate = 0;
         }
         else if (next == OscString)
         {
-            oscBuffer_.clear();
+            oscBuffer.clear();
         }
     }
 
@@ -101,13 +100,10 @@ namespace tool::terminal
         consumed = true;
         if (b == ESC_BYTE)
         {
-            // ESC always restarts; abandons any in-progress sequence.
             Transition(Escape);
         }
         else if (b == CAN_BYTE || b == SUB_BYTE)
         {
-            // Abort current sequence; SUB conventionally also displays a
-            // substitute character, but we silently drop it for now.
             Transition(Ground);
         }
         else
@@ -119,15 +115,12 @@ namespace tool::terminal
     void Vt100Parser::FeedByte(uint8_t b)
     {
         using enum State;
-
-        // OSC must capture ESC as the first half of ST (ESC \), so handle
-        // OSC states before the generic anywhere transitions.
-        if (state_ == OscString)
+        if (state == OscString)
         {
             HandleOsc(b);
             return;
         }
-        if (state_ == OscStringEsc)
+        if (state == OscStringEsc)
         {
             HandleOscEsc(b);
             return;
@@ -138,7 +131,7 @@ namespace tool::terminal
         if (consumed)
             return;
 
-        switch (state_)
+        switch (state)
         {
             case Ground:
                 HandleGround(b);
@@ -161,7 +154,7 @@ namespace tool::terminal
                 break;
             case OscString:
             case OscStringEsc:
-                break; // handled above
+                break;
         }
     }
 
@@ -171,14 +164,14 @@ namespace tool::terminal
             return;
         if (IsC0Execute(b))
         {
-            if (callbacks_.Execute)
-                callbacks_.Execute(b);
+            if (callbacks.Execute)
+                callbacks.Execute(b);
             return;
         }
         if (b >= 0x20)
         {
-            if (callbacks_.Print)
-                callbacks_.Print(static_cast<char32_t>(b));
+            if (callbacks.Print)
+                callbacks.Print(static_cast<char32_t>(b));
         }
     }
 
@@ -188,17 +181,15 @@ namespace tool::terminal
 
         if (IsC0Execute(b))
         {
-            if (callbacks_.Execute)
-                callbacks_.Execute(b);
+            if (callbacks.Execute)
+                callbacks.Execute(b);
             return;
         }
         if (b == DEL_BYTE)
             return;
         if (IsIntermediate(b))
         {
-            // Collect a single intermediate byte; subsequent intermediates
-            // overwrite for simplicity (sufficient for VT100 sequences).
-            intermediate_ = static_cast<char>(b);
+            intermediate = static_cast<char>(b);
             return;
         }
         if (b == '[')
@@ -213,21 +204,18 @@ namespace tool::terminal
         }
         if (b == 'P' || b == 'X' || b == '^' || b == '_')
         {
-            // DCS/SOS/PM/APC: consume the string until ST or BEL.
             Transition(OscString);
             return;
         }
         if (b == '\\')
         {
-            // Lone ST outside string mode: ignore.
             Transition(Ground);
             return;
         }
         if (IsFinal(b) || (b >= 0x30 && b <= 0x3F))
         {
-            // ESC <intermediate?> <final>
-            if (callbacks_.EscDispatch)
-                callbacks_.EscDispatch(static_cast<char>(b), intermediate_);
+            if (callbacks.EscDispatch)
+                callbacks.EscDispatch(static_cast<char>(b), intermediate);
             Transition(Ground);
             return;
         }
@@ -239,28 +227,27 @@ namespace tool::terminal
 
         if (IsC0Execute(b))
         {
-            if (callbacks_.Execute)
-                callbacks_.Execute(b);
+            if (callbacks.Execute)
+                callbacks.Execute(b);
             return;
         }
         if (b == DEL_BYTE)
             return;
         if (IsPrivateMarker(b))
         {
-            privateMarker_ = b == '?';
-            // Other private markers (=, >, <) are tolerated but not flagged.
+            privateMarker = b == '?';
             Transition(CsiParam);
             return;
         }
         if (IsParameter(b))
         {
-            params_.push_back(static_cast<char>(b == 0x3A ? 0x3B : b));
+            params.push_back(static_cast<char>(b == 0x3A ? 0x3B : b));
             Transition(CsiParam);
             return;
         }
         if (IsIntermediate(b))
         {
-            intermediate_ = static_cast<char>(b);
+            intermediate = static_cast<char>(b);
             Transition(CsiIntermediate);
             return;
         }
@@ -278,20 +265,20 @@ namespace tool::terminal
 
         if (IsC0Execute(b))
         {
-            if (callbacks_.Execute)
-                callbacks_.Execute(b);
+            if (callbacks.Execute)
+                callbacks.Execute(b);
             return;
         }
         if (b == DEL_BYTE)
             return;
         if (IsParameter(b))
         {
-            params_.push_back(static_cast<char>(b == 0x3A ? 0x3B : b));
+            params.push_back(static_cast<char>(b == 0x3A ? 0x3B : b));
             return;
         }
         if (IsIntermediate(b))
         {
-            intermediate_ = static_cast<char>(b);
+            intermediate = static_cast<char>(b);
             Transition(CsiIntermediate);
             return;
         }
@@ -309,15 +296,15 @@ namespace tool::terminal
 
         if (IsC0Execute(b))
         {
-            if (callbacks_.Execute)
-                callbacks_.Execute(b);
+            if (callbacks.Execute)
+                callbacks.Execute(b);
             return;
         }
         if (b == DEL_BYTE)
             return;
         if (IsIntermediate(b))
         {
-            intermediate_ = static_cast<char>(b);
+            intermediate = static_cast<char>(b);
             return;
         }
         if (IsFinal(b))
@@ -335,7 +322,7 @@ namespace tool::terminal
         std::vector<int> values;
         int current = 0;
         bool hasDigit = false;
-        for (char c : params_)
+        for (char c : params)
         {
             if (c >= '0' && c <= '9')
             {
@@ -349,11 +336,11 @@ namespace tool::terminal
                 hasDigit = false;
             }
         }
-        if (hasDigit || !params_.empty())
+        if (hasDigit || !params.empty())
             values.push_back(current);
 
-        if (callbacks_.CsiDispatch)
-            callbacks_.CsiDispatch(finalByte, values, privateMarker_, intermediate_);
+        if (callbacks.CsiDispatch)
+            callbacks.CsiDispatch(finalByte, values, privateMarker, intermediate);
 
         Transition(Ground);
     }
@@ -364,14 +351,14 @@ namespace tool::terminal
 
         if (b == BEL_BYTE)
         {
-            if (callbacks_.OscDispatch)
-                callbacks_.OscDispatch(oscBuffer_);
+            if (callbacks.OscDispatch)
+                callbacks.OscDispatch(oscBuffer);
             Transition(Ground);
             return;
         }
         if (b == ESC_BYTE)
         {
-            state_ = OscStringEsc;
+            state = OscStringEsc;
             return;
         }
         if (b == CAN_BYTE || b == SUB_BYTE)
@@ -379,7 +366,7 @@ namespace tool::terminal
             Transition(Ground);
             return;
         }
-        oscBuffer_.push_back(static_cast<char>(b));
+        oscBuffer.push_back(static_cast<char>(b));
     }
 
     void Vt100Parser::HandleOscEsc(uint8_t b)
@@ -388,13 +375,11 @@ namespace tool::terminal
 
         if (b == '\\')
         {
-            if (callbacks_.OscDispatch)
-                callbacks_.OscDispatch(oscBuffer_);
+            if (callbacks.OscDispatch)
+                callbacks.OscDispatch(oscBuffer);
             Transition(Ground);
             return;
         }
-        // Not a valid ST; abandon the OSC and reinterpret the byte from
-        // the Escape state so the user's intent is not lost.
         Transition(Escape);
         FeedByte(b);
     }

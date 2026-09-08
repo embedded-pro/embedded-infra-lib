@@ -1,4 +1,5 @@
 add_library(emil.services.terminal)
+emil_build_for(emil.services.terminal HOST All)
 
 target_include_directories(emil.services.terminal PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"

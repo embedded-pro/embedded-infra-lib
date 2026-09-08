@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace tool::terminal
+namespace services::terminal
 {
     enum class Color : uint8_t
     {
@@ -49,19 +49,19 @@ namespace tool::terminal
 
     struct CursorPosition
     {
-        int row{ 0 };    // 0-based
-        int column{ 0 }; // 0-based
+        int row{ 0 };
+        int column{ 0 };
 
         bool operator==(const CursorPosition&) const = default;
     };
 
     struct Modes
     {
-        bool autoWrap{ true };               // DECAWM
-        bool originMode{ false };            // DECOM
-        bool lineFeedNewLine{ false };       // LNM
-        bool cursorVisible{ true };          // DECTCEM
-        bool applicationCursorKeys{ false }; // DECCKM
-        bool applicationKeypad{ false };     // DECKPAM
+        bool autoWrap{ true };
+        bool originMode{ false };
+        bool lineFeedNewLine{ false };
+        bool cursorVisible{ true };
+        bool applicationCursorKeys{ false };
+        bool applicationKeypad{ false };
     };
 }

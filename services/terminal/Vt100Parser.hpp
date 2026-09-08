@@ -7,25 +7,14 @@
 #include <string_view>
 #include <vector>
 
-namespace tool::terminal
+namespace services::terminal
 {
-    // Callbacks invoked by the byte-level VT100/ANSI parser.
-    // The parser does not interpret semantics; it only classifies bytes
-    // into print/execute/escape/CSI/OSC events.
     struct ParserCallbacks
     {
-        // Printable character (>= 0x20, excluding 0x7F).
         std::function<void(char32_t)> Print;
-        // C0 control character (< 0x20) including CR, LF, BS, HT, BEL, etc.
-        // Excludes ESC, CAN, SUB, which are handled internally for state
-        // transitions.
         std::function<void(uint8_t)> Execute;
-        // ESC <intermediate?> <finalByte>. For sequences like ESC D, ESC E,
-        // ESC ( B, ESC # 8, ESC 7 / ESC 8, ESC c, ESC =, ESC >.
         std::function<void(char finalByte, char intermediate)> EscDispatch;
-        // CSI (ESC [) <private?> <params> <intermediate?> <finalByte>.
         std::function<void(char finalByte, const std::vector<int>& params, bool privateMarker, char intermediate)> CsiDispatch;
-        // OSC (ESC ] ... ST/BEL): ignored payload-string consumed.
         std::function<void(const std::string& payload)> OscDispatch;
     };
 
@@ -49,8 +38,8 @@ namespace tool::terminal
             CsiParam,
             CsiIntermediate,
             OscString,
-            OscStringEsc, // saw ESC inside OSC, expecting backslash to terminate (ST)
-            Ignore,       // consume bytes until a final terminates the sequence
+            OscStringEsc,
+            Ignore,
         };
 
         void Transition(State next);
@@ -64,11 +53,11 @@ namespace tool::terminal
         void HandleOscEsc(uint8_t b);
         void DispatchCsi(char finalByte);
 
-        ParserCallbacks callbacks_;
-        State state_{ State::Ground };
-        std::string params_;
-        std::string oscBuffer_;
-        char intermediate_{ 0 };
-        bool privateMarker_{ false };
+        ParserCallbacks callbacks;
+        State state{ State::Ground };
+        std::string params;
+        std::string oscBuffer;
+        char intermediate{ 0 };
+        bool privateMarker{ false };
     };
 }

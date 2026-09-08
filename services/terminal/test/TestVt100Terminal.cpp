@@ -10,7 +10,7 @@ namespace
     class TestVt100Terminal : public ::testing::Test
     {
     protected:
-        tool::terminal::Vt100Terminal terminal{ 6, 20 };
+        services::terminal::Vt100Terminal terminal{ 6, 20 };
 
         void Feed(std::string_view s)
         {
@@ -50,7 +50,6 @@ TEST_F(TestVt100Terminal, crlf_starts_a_new_line_with_no_loss)
 
 TEST_F(TestVt100Terminal, byte_chunked_crlf_does_not_lose_characters)
 {
-    // Feed CR then LF as separate Feed() calls (the original failure mode).
     Feed("Hi");
     Feed("\r");
     Feed("\n");
@@ -105,7 +104,7 @@ TEST_F(TestVt100Terminal, cursor_movements_clamp_at_edges)
 TEST_F(TestVt100Terminal, erase_in_line_to_right)
 {
     Feed("12345");
-    Feed("\x1B[3G\x1B[K"); // move to col 3, erase to right
+    Feed("\x1B[3G\x1B[K");
 
     EXPECT_EQ(Line(0), "12");
 }
@@ -123,12 +122,12 @@ TEST_F(TestVt100Terminal, sgr_zero_resets_attributes)
 {
     Feed("\x1B[1;31mA");
     EXPECT_TRUE(terminal.Screen().At(0, 0).rendition.bold);
-    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, tool::terminal::Color::Red);
+    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, services::terminal::Color::Red);
 
     Feed("\x1B[0mB");
 
     EXPECT_FALSE(terminal.Screen().At(0, 1).rendition.bold);
-    EXPECT_EQ(terminal.Screen().At(0, 1).rendition.foreground, tool::terminal::Color::Default);
+    EXPECT_EQ(terminal.Screen().At(0, 1).rendition.foreground, services::terminal::Color::Default);
 }
 
 TEST_F(TestVt100Terminal, sgr_empty_param_means_reset)
@@ -144,7 +143,7 @@ TEST_F(TestVt100Terminal, sgr_unknown_codes_are_ignored)
     Feed("\x1B[1;999;31mA");
 
     EXPECT_TRUE(terminal.Screen().At(0, 0).rendition.bold);
-    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, tool::terminal::Color::Red);
+    EXPECT_EQ(terminal.Screen().At(0, 0).rendition.foreground, services::terminal::Color::Red);
 }
 
 TEST_F(TestVt100Terminal, sgr_sets_and_clears_text_style_flags)
@@ -170,23 +169,23 @@ TEST_F(TestVt100Terminal, sgr_sets_and_clears_text_style_flags)
 
 TEST_F(TestVt100Terminal, sgr_maps_all_foreground_colors)
 {
-    const std::array<std::pair<int, tool::terminal::Color>, 16> colors{ {
-        { 30, tool::terminal::Color::Black },
-        { 31, tool::terminal::Color::Red },
-        { 32, tool::terminal::Color::Green },
-        { 33, tool::terminal::Color::Yellow },
-        { 34, tool::terminal::Color::Blue },
-        { 35, tool::terminal::Color::Magenta },
-        { 36, tool::terminal::Color::Cyan },
-        { 37, tool::terminal::Color::White },
-        { 90, tool::terminal::Color::BrightBlack },
-        { 91, tool::terminal::Color::BrightRed },
-        { 92, tool::terminal::Color::BrightGreen },
-        { 93, tool::terminal::Color::BrightYellow },
-        { 94, tool::terminal::Color::BrightBlue },
-        { 95, tool::terminal::Color::BrightMagenta },
-        { 96, tool::terminal::Color::BrightCyan },
-        { 97, tool::terminal::Color::BrightWhite },
+    const std::array<std::pair<int, services::terminal::Color>, 16> colors{ {
+        { 30, services::terminal::Color::Black },
+        { 31, services::terminal::Color::Red },
+        { 32, services::terminal::Color::Green },
+        { 33, services::terminal::Color::Yellow },
+        { 34, services::terminal::Color::Blue },
+        { 35, services::terminal::Color::Magenta },
+        { 36, services::terminal::Color::Cyan },
+        { 37, services::terminal::Color::White },
+        { 90, services::terminal::Color::BrightBlack },
+        { 91, services::terminal::Color::BrightRed },
+        { 92, services::terminal::Color::BrightGreen },
+        { 93, services::terminal::Color::BrightYellow },
+        { 94, services::terminal::Color::BrightBlue },
+        { 95, services::terminal::Color::BrightMagenta },
+        { 96, services::terminal::Color::BrightCyan },
+        { 97, services::terminal::Color::BrightWhite },
     } };
 
     for (std::size_t i = 0; i < colors.size(); ++i)
@@ -196,28 +195,28 @@ TEST_F(TestVt100Terminal, sgr_maps_all_foreground_colors)
     }
 
     Feed("\x1B[39mY");
-    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.foreground, tool::terminal::Color::Default);
+    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.foreground, services::terminal::Color::Default);
 }
 
 TEST_F(TestVt100Terminal, sgr_maps_all_background_colors)
 {
-    const std::array<std::pair<int, tool::terminal::Color>, 16> colors{ {
-        { 40, tool::terminal::Color::Black },
-        { 41, tool::terminal::Color::Red },
-        { 42, tool::terminal::Color::Green },
-        { 43, tool::terminal::Color::Yellow },
-        { 44, tool::terminal::Color::Blue },
-        { 45, tool::terminal::Color::Magenta },
-        { 46, tool::terminal::Color::Cyan },
-        { 47, tool::terminal::Color::White },
-        { 100, tool::terminal::Color::BrightBlack },
-        { 101, tool::terminal::Color::BrightRed },
-        { 102, tool::terminal::Color::BrightGreen },
-        { 103, tool::terminal::Color::BrightYellow },
-        { 104, tool::terminal::Color::BrightBlue },
-        { 105, tool::terminal::Color::BrightMagenta },
-        { 106, tool::terminal::Color::BrightCyan },
-        { 107, tool::terminal::Color::BrightWhite },
+    const std::array<std::pair<int, services::terminal::Color>, 16> colors{ {
+        { 40, services::terminal::Color::Black },
+        { 41, services::terminal::Color::Red },
+        { 42, services::terminal::Color::Green },
+        { 43, services::terminal::Color::Yellow },
+        { 44, services::terminal::Color::Blue },
+        { 45, services::terminal::Color::Magenta },
+        { 46, services::terminal::Color::Cyan },
+        { 47, services::terminal::Color::White },
+        { 100, services::terminal::Color::BrightBlack },
+        { 101, services::terminal::Color::BrightRed },
+        { 102, services::terminal::Color::BrightGreen },
+        { 103, services::terminal::Color::BrightYellow },
+        { 104, services::terminal::Color::BrightBlue },
+        { 105, services::terminal::Color::BrightMagenta },
+        { 106, services::terminal::Color::BrightCyan },
+        { 107, services::terminal::Color::BrightWhite },
     } };
 
     for (std::size_t i = 0; i < colors.size(); ++i)
@@ -227,7 +226,7 @@ TEST_F(TestVt100Terminal, sgr_maps_all_background_colors)
     }
 
     Feed("\x1B[49mY");
-    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.background, tool::terminal::Color::Default);
+    EXPECT_EQ(terminal.Screen().At(0, 16).rendition.background, services::terminal::Color::Default);
 }
 
 TEST_F(TestVt100Terminal, esc_d_indexes_cursor_down)
@@ -324,8 +323,6 @@ TEST_F(TestVt100Terminal, dsr_6_replies_with_cursor_position)
 {
     Feed("\x1B[3;7HX");
     Feed("\x1B[6n");
-
-    // After writing 'X' at (3,7), cursor advances to column 8 (1-based).
     EXPECT_EQ(terminal.TakeOutgoing(), std::string{ "\x1B[3;8R" });
 }
 
@@ -465,10 +462,6 @@ TEST_F(TestVt100Terminal, malformed_csi_is_recovered)
 
 TEST_F(TestVt100Terminal, regression_help_table_with_color_and_tabs)
 {
-    // Simulates the kind of output the firmware CLI emits: colored
-    // banner, CRLF-terminated rows, and tab-aligned columns. Feed it
-    // byte-by-byte to match the worst-case chunking behavior of a
-    // real serial port.
     const std::string output =
         "\x1B[32m== bridge ==\x1B[0m\r\n"
         "h\thelp\r\n"
@@ -484,13 +477,7 @@ TEST_F(TestVt100Terminal, regression_help_table_with_color_and_tabs)
 
 TEST_F(TestVt100Terminal, embedded_control_inside_csi_does_not_lose_text)
 {
-    // CR embedded mid-CSI must be executed inline; the surrounding
-    // sequence and following text must still arrive intact.
     Feed("AB\x1B[1\r;2H");
     Feed("X");
-
-    // The CR moves cursor to column 0 of row 0 mid-sequence; the CSI
-    // then completes as CUP(1,2) -> 0-based (0,1). 'X' overwrites
-    // column 1, so Line(0) reads "AX".
     EXPECT_EQ(Line(0), "AX");
 }

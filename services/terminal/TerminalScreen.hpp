@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace tool::terminal
+namespace services::terminal
 {
     class TerminalScreen;
 
@@ -26,7 +26,7 @@ namespace tool::terminal
         void Restore();
 
     private:
-        TerminalScreen& screen_;
+        TerminalScreen& screen;
     };
 
     class TerminalTabStops
@@ -39,12 +39,8 @@ namespace tool::terminal
         void ClearAll();
 
     private:
-        TerminalScreen& screen_;
+        TerminalScreen& screen;
     };
-
-    // VT100/VT102-style screen buffer with cursor, scroll region, tab stops,
-    // pending-wrap, and a scrollback history of lines that have scrolled off
-    // the top of the active screen.
     class TerminalScreen
     {
     public:
@@ -52,11 +48,7 @@ namespace tool::terminal
 
         int Rows() const;
         int Cols() const;
-
-        // Reset to power-on state (RIS). Clears history.
         void Reset();
-        // Soft reset (DECSTR). Resets modes/rendition/scroll region but
-        // does not clear screen or history.
         void SoftReset();
 
         const Cell& At(int row, int col) const;
@@ -66,41 +58,23 @@ namespace tool::terminal
 
         const Modes& GetModes() const;
         Modes& GetModes();
-
-        // Scrollback (oldest at front, newest at back).
         const std::deque<std::vector<Cell>>& History() const;
         void ClearHistory();
-
-        // Writing
         void Write(char32_t ch);
-
-        // C0
         void CarriageReturn();
         void LineFeed();
         void Backspace();
         void HorizontalTab();
-
-        // ESC single-character format effectors
-        void Index();        // ESC D
-        void NextLine();     // ESC E
-        void ReverseIndex(); // ESC M
-
-        // Tab stops
+        void Index();
+        void NextLine();
+        void ReverseIndex();
         TerminalTabStops TabStops();
-
-        // Cursor movement
         TerminalCursorOperations CursorOperations();
-
-        // Erase
         void EraseInDisplay(int mode);
         void EraseInLine(int mode);
-
-        // Scroll region (1-based, inclusive). Clamped to screen.
         void SetScrollRegion(int top, int bottom);
-        int ScrollTop() const;    // 0-based
-        int ScrollBottom() const; // 0-based
-
-        // Helpers (testing/rendering)
+        int ScrollTop() const;
+        int ScrollBottom() const;
         std::string LineText(int row) const;
 
     private:
@@ -113,19 +87,19 @@ namespace tool::terminal
         Cell MakeBlankCell() const;
         void ClampCursor();
 
-        int rows_{};
-        int cols_{};
-        std::vector<std::vector<Cell>> grid_;
-        CursorPosition cursor_{};
-        CursorPosition savedCursor_{};
-        Rendition currentRendition_{};
-        Rendition savedRendition_{};
-        std::vector<uint8_t> tabStops_;
-        int scrollTop_{ 0 };
-        int scrollBottom_{ 0 };
-        bool pendingWrap_{ false };
-        Modes modes_{};
-        std::deque<std::vector<Cell>> history_;
-        std::size_t maxHistory_{ 1000 };
+        int rows{};
+        int cols{};
+        std::vector<std::vector<Cell>> grid;
+        CursorPosition cursor{};
+        CursorPosition savedCursor{};
+        Rendition currentRendition{};
+        Rendition savedRendition{};
+        std::vector<uint8_t> tabStops;
+        int scrollTop{ 0 };
+        int scrollBottom{ 0 };
+        bool pendingWrap{ false };
+        Modes modes{};
+        std::deque<std::vector<Cell>> history;
+        std::size_t maxHistory{ 1000 };
     };
 }

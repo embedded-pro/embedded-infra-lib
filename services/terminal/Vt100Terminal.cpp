@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-namespace tool::terminal
+namespace services::terminal
 {
     namespace
     {
@@ -160,8 +160,8 @@ namespace tool::terminal
     }
 
     Vt100Terminal::Vt100Terminal(int rows, int cols)
-        : screen_(rows, cols)
-        , parser_(ParserCallbacks{
+        : screen(rows, cols)
+        , parser(ParserCallbacks{
               [this](char32_t ch)
               {
                   OnPrint(ch);
@@ -188,44 +188,44 @@ namespace tool::terminal
 
     void Vt100Terminal::Feed(std::span<const uint8_t> data)
     {
-        parser_.Feed(data);
+        parser.Feed(data);
     }
 
     void Vt100Terminal::Feed(std::string_view data)
     {
-        parser_.Feed(data);
+        parser.Feed(data);
     }
 
     void Vt100Terminal::FeedByte(uint8_t b)
     {
-        parser_.FeedByte(b);
+        parser.FeedByte(b);
     }
 
     const TerminalScreen& Vt100Terminal::Screen() const
     {
-        return screen_;
+        return screen;
     }
 
     TerminalScreen& Vt100Terminal::Screen()
     {
-        return screen_;
+        return screen;
     }
 
     std::string Vt100Terminal::TakeOutgoing()
     {
-        std::string out = std::move(outgoing_);
-        outgoing_.clear();
+        std::string out = std::move(outgoing);
+        outgoing.clear();
         return out;
     }
 
     void Vt100Terminal::SetDeviceAttributesResponse(std::string response)
     {
-        deviceAttributesResponse_ = std::move(response);
+        deviceAttributesResponse = std::move(response);
     }
 
     void Vt100Terminal::OnPrint(char32_t ch)
     {
-        screen_.Write(ch);
+        screen.Write(ch);
     }
 
     void Vt100Terminal::OnExecute(uint8_t b)
@@ -233,29 +233,29 @@ namespace tool::terminal
         switch (b)
         {
             case 0x08:
-                screen_.Backspace();
-                break; // BS
+                screen.Backspace();
+                break;
             case 0x09:
-                screen_.HorizontalTab();
-                break; // HT
-            case 0x0A: // LF
-            case 0x0B: // VT (treated as LF)
+                screen.HorizontalTab();
+                break;
+            case 0x0A:
+            case 0x0B:
             case 0x0C:
-                screen_.LineFeed();
-                break; // FF (treated as LF)
+                screen.LineFeed();
+                break;
             case 0x0D:
-                screen_.CarriageReturn();
-                break; // CR
+                screen.CarriageReturn();
+                break;
             case 0x07:
-                break; // BEL: silent
+                break;
             case 0x00:
-                break; // NUL: ignored
+                break;
             case 0x05:
-                break; // ENQ: no answerback configured
+                break;
             case 0x11:
-                break; // XON: ignored
+                break;
             case 0x13:
-                break; // XOFF: ignored
+                break;
             default:
                 break;
         }
@@ -265,13 +265,12 @@ namespace tool::terminal
     {
         if (intermediate == '(' || intermediate == ')' || intermediate == '*' || intermediate == '+')
         {
-            // Character set designation; ignored beyond accepting it.
             return;
         }
         if (intermediate == '#')
         {
             if (finalByte == '8')
-                FillScreenWithAlignmentPattern(screen_);
+                FillScreenWithAlignmentPattern(screen);
             return;
         }
         if (intermediate != 0)
@@ -280,35 +279,35 @@ namespace tool::terminal
         switch (finalByte)
         {
             case 'D':
-                screen_.Index();
-                break; // IND
+                screen.Index();
+                break;
             case 'E':
-                screen_.NextLine();
-                break; // NEL
+                screen.NextLine();
+                break;
             case 'M':
-                screen_.ReverseIndex();
-                break; // RI
+                screen.ReverseIndex();
+                break;
             case 'H':
-                screen_.TabStops().SetHere();
-                break; // HTS
+                screen.TabStops().SetHere();
+                break;
             case '7':
-                screen_.CursorOperations().Save();
-                break; // DECSC
+                screen.CursorOperations().Save();
+                break;
             case '8':
-                screen_.CursorOperations().Restore();
-                break; // DECRC
+                screen.CursorOperations().Restore();
+                break;
             case 'c':
-                screen_.Reset();
-                break; // RIS
+                screen.Reset();
+                break;
             case '=':
-                screen_.GetModes().applicationKeypad = true;
-                break; // DECKPAM
+                screen.GetModes().applicationKeypad = true;
+                break;
             case '>':
-                screen_.GetModes().applicationKeypad = false;
-                break; // DECKPNM
+                screen.GetModes().applicationKeypad = false;
+                break;
             case 'Z':
-                outgoing_ += deviceAttributesResponse_;
-                break; // DECID
+                outgoing += deviceAttributesResponse;
+                break;
             default:
                 break;
         }
@@ -317,48 +316,48 @@ namespace tool::terminal
     void Vt100Terminal::OnCsi(char finalByte, const std::vector<int>& params, bool privateMarker, char intermediate)
     {
         if (intermediate != 0)
-            return; // VT100 core does not implement intermediate-CSIs.
+            return;
 
         switch (finalByte)
         {
             case 'A':
-                screen_.CursorOperations().Up(Param(params, 0, 1));
+                screen.CursorOperations().Up(Param(params, 0, 1));
                 break;
             case 'B':
-                screen_.CursorOperations().Down(Param(params, 0, 1));
+                screen.CursorOperations().Down(Param(params, 0, 1));
                 break;
             case 'C':
-                screen_.CursorOperations().Forward(Param(params, 0, 1));
+                screen.CursorOperations().Forward(Param(params, 0, 1));
                 break;
             case 'D':
-                screen_.CursorOperations().Backward(Param(params, 0, 1));
+                screen.CursorOperations().Backward(Param(params, 0, 1));
                 break;
             case 'E':
-                screen_.CursorOperations().Down(Param(params, 0, 1));
-                screen_.CursorOperations().MoveToColumn(1);
+                screen.CursorOperations().Down(Param(params, 0, 1));
+                screen.CursorOperations().MoveToColumn(1);
                 break;
             case 'F':
-                screen_.CursorOperations().Up(Param(params, 0, 1));
-                screen_.CursorOperations().MoveToColumn(1);
+                screen.CursorOperations().Up(Param(params, 0, 1));
+                screen.CursorOperations().MoveToColumn(1);
                 break;
             case 'G':
-                screen_.CursorOperations().MoveToColumn(Param(params, 0, 1));
+                screen.CursorOperations().MoveToColumn(Param(params, 0, 1));
                 break;
             case 'H':
             case 'f':
-                screen_.CursorOperations().MoveTo(Param(params, 0, 1), Param(params, 1, 1));
+                screen.CursorOperations().MoveTo(Param(params, 0, 1), Param(params, 1, 1));
                 break;
             case 'J':
-                screen_.EraseInDisplay(ParamRaw(params, 0, 0));
+                screen.EraseInDisplay(ParamRaw(params, 0, 0));
                 break;
             case 'K':
-                screen_.EraseInLine(ParamRaw(params, 0, 0));
+                screen.EraseInLine(ParamRaw(params, 0, 0));
                 break;
             case 'g':
                 if (ParamRaw(params, 0, 0) == 3)
-                    screen_.TabStops().ClearAll();
+                    screen.TabStops().ClearAll();
                 else
-                    screen_.TabStops().ClearHere();
+                    screen.TabStops().ClearHere();
                 break;
             case 'h':
                 ApplyMode(params, true, privateMarker);
@@ -369,25 +368,25 @@ namespace tool::terminal
             case 'm':
                 ApplySgr(params);
                 break;
-            case 'n': // DSR
+            case 'n':
                 if (ParamRaw(params, 0, 0) == 5)
                     ReportDeviceStatus();
                 else if (ParamRaw(params, 0, 0) == 6)
                     ReportCursorPosition();
                 break;
-            case 'c': // DA
+            case 'c':
                 if (!privateMarker)
                     ReportDeviceAttributes();
                 break;
             case 'r':
-                screen_.SetScrollRegion(ParamRaw(params, 0, 1), ParamRaw(params, 1, screen_.Rows()));
+                screen.SetScrollRegion(ParamRaw(params, 0, 1), ParamRaw(params, 1, screen.Rows()));
                 break;
             case 's':
-                screen_.CursorOperations().Save();
-                break; // SCO save cursor
+                screen.CursorOperations().Save();
+                break;
             case 'u':
-                screen_.CursorOperations().Restore();
-                break; // SCO restore cursor
+                screen.CursorOperations().Restore();
+                break;
             default:
                 break;
         }
@@ -395,22 +394,21 @@ namespace tool::terminal
 
     void Vt100Terminal::OnOsc(const std::string& /*payload*/)
     {
-        // OSC accepted and ignored. Title-setting could be exposed later.
     }
 
     void Vt100Terminal::ApplySgr(const std::vector<int>& params)
     {
-        Rendition r = screen_.CurrentRendition();
+        Rendition r = screen.CurrentRendition();
         if (params.empty())
         {
             r = {};
-            screen_.SetRendition(r);
+            screen.SetRendition(r);
             return;
         }
 
         for (int parameter : params)
             ApplySgrParameter(parameter, r);
-        screen_.SetRendition(r);
+        screen.SetRendition(r);
     }
 
     void Vt100Terminal::ApplyMode(const std::vector<int>& params, bool set, bool privateMarker)
@@ -418,30 +416,29 @@ namespace tool::terminal
         for (int p : params)
         {
             if (privateMarker)
-                ApplyPrivateMode(screen_, p, set);
+                ApplyPrivateMode(screen, p, set);
             else
-                ApplyAnsiMode(screen_, p, set);
+                ApplyAnsiMode(screen, p, set);
         }
     }
 
     void Vt100Terminal::ReportCursorPosition()
     {
-        // 1-based row;column.
-        const auto& c = screen_.Cursor();
-        outgoing_ += "\x1B[";
-        outgoing_ += std::to_string(c.row + 1);
-        outgoing_ += ";";
-        outgoing_ += std::to_string(c.column + 1);
-        outgoing_ += "R";
+        const auto& c = screen.Cursor();
+        outgoing += "\x1B[";
+        outgoing += std::to_string(c.row + 1);
+        outgoing += ";";
+        outgoing += std::to_string(c.column + 1);
+        outgoing += "R";
     }
 
     void Vt100Terminal::ReportDeviceStatus()
     {
-        outgoing_ += "\x1B[0n";
+        outgoing += "\x1B[0n";
     }
 
     void Vt100Terminal::ReportDeviceAttributes()
     {
-        outgoing_ += deviceAttributesResponse_;
+        outgoing += deviceAttributesResponse;
     }
 }
