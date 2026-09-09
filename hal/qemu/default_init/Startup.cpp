@@ -1,7 +1,7 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/cortex_m/Semihosting.hpp"
 #include "hal/qemu/default_init/SystemInit.hpp"
-#include "hal/qemu/sync/Pl011Registers.hpp"
+#include "infra/util/ReallyAssert.hpp"
 #include <cstdint>
 
 extern uint32_t _estack;
@@ -18,6 +18,56 @@ extern "C" void UsageFault_Handler();
 
 extern "C" void __libc_init_array();
 int main(int argc, char** argv);
+
+extern "C" void DefaultHandler()
+{
+    really_assert(hal::cortex::InterruptTable::InstanceSet());
+    hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt());
+}
+
+#define EMIL_DEFAULT_HANDLER(name) \
+    extern "C" [[gnu::weak, gnu::alias("DefaultHandler")]] void name()
+
+EMIL_DEFAULT_HANDLER(NMI_Handler);
+EMIL_DEFAULT_HANDLER(SVC_Handler);
+EMIL_DEFAULT_HANDLER(DebugMon_Handler);
+EMIL_DEFAULT_HANDLER(PendSV_Handler);
+EMIL_DEFAULT_HANDLER(SysTick_Handler);
+
+EMIL_DEFAULT_HANDLER(IRQ0_Handler);
+EMIL_DEFAULT_HANDLER(IRQ1_Handler);
+EMIL_DEFAULT_HANDLER(IRQ2_Handler);
+EMIL_DEFAULT_HANDLER(IRQ3_Handler);
+EMIL_DEFAULT_HANDLER(IRQ4_Handler);
+EMIL_DEFAULT_HANDLER(IRQ5_Handler);
+EMIL_DEFAULT_HANDLER(IRQ6_Handler);
+EMIL_DEFAULT_HANDLER(IRQ7_Handler);
+EMIL_DEFAULT_HANDLER(IRQ8_Handler);
+EMIL_DEFAULT_HANDLER(IRQ9_Handler);
+EMIL_DEFAULT_HANDLER(IRQ10_Handler);
+EMIL_DEFAULT_HANDLER(IRQ11_Handler);
+EMIL_DEFAULT_HANDLER(IRQ12_Handler);
+EMIL_DEFAULT_HANDLER(IRQ13_Handler);
+EMIL_DEFAULT_HANDLER(IRQ14_Handler);
+EMIL_DEFAULT_HANDLER(IRQ15_Handler);
+EMIL_DEFAULT_HANDLER(IRQ16_Handler);
+EMIL_DEFAULT_HANDLER(IRQ17_Handler);
+EMIL_DEFAULT_HANDLER(IRQ18_Handler);
+EMIL_DEFAULT_HANDLER(IRQ19_Handler);
+EMIL_DEFAULT_HANDLER(IRQ20_Handler);
+EMIL_DEFAULT_HANDLER(IRQ21_Handler);
+EMIL_DEFAULT_HANDLER(IRQ22_Handler);
+EMIL_DEFAULT_HANDLER(IRQ23_Handler);
+EMIL_DEFAULT_HANDLER(IRQ24_Handler);
+EMIL_DEFAULT_HANDLER(IRQ25_Handler);
+EMIL_DEFAULT_HANDLER(IRQ26_Handler);
+EMIL_DEFAULT_HANDLER(IRQ27_Handler);
+EMIL_DEFAULT_HANDLER(IRQ28_Handler);
+EMIL_DEFAULT_HANDLER(IRQ29_Handler);
+EMIL_DEFAULT_HANDLER(IRQ30_Handler);
+EMIL_DEFAULT_HANDLER(IRQ31_Handler);
+
+#undef EMIL_DEFAULT_HANDLER
 
 extern "C" void Reset_Handler()
 {
@@ -45,43 +95,6 @@ extern "C" void Reset_Handler()
     {}
 }
 
-extern "C" __attribute__((weak)) void NMI_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void SVC_Handler()
-{
-    while (true)
-    {}
-}
-
-extern "C" __attribute__((weak)) void PendSV_Handler()
-{
-    while (true)
-    {}
-}
-
-namespace
-{
-    void Dispatch(int32_t irq)
-    {
-        if (hal::cortex::InterruptTable::InstanceSet())
-            hal::cortex::InterruptTable::Instance().Invoke(irq);
-    }
-}
-
-extern "C" void SysTick_Handler()
-{
-    Dispatch(hal::cortex::sysTickIrq);
-}
-
-extern "C" void UART0_IRQHandler()
-{
-    Dispatch(hal::uart0IrqNumber);
-}
-
 // Vector entries are function pointer values; cast through uintptr_t avoids
 // the -Wpointer-to-int-cast diagnostic on targets where sizeof(void*) == sizeof(uint32_t).
 #define VEC(fn) static_cast<uint32_t>(reinterpret_cast<uintptr_t>(fn))
@@ -100,12 +113,42 @@ const uint32_t vectorTable[] = {
     0u,
     0u,
     VEC(SVC_Handler),
-    0u,
+    VEC(DebugMon_Handler),
     0u,
     VEC(PendSV_Handler),
     VEC(SysTick_Handler),
-    0u,
-    VEC(UART0_IRQHandler),
+    VEC(IRQ0_Handler),
+    VEC(IRQ1_Handler),
+    VEC(IRQ2_Handler),
+    VEC(IRQ3_Handler),
+    VEC(IRQ4_Handler),
+    VEC(IRQ5_Handler),
+    VEC(IRQ6_Handler),
+    VEC(IRQ7_Handler),
+    VEC(IRQ8_Handler),
+    VEC(IRQ9_Handler),
+    VEC(IRQ10_Handler),
+    VEC(IRQ11_Handler),
+    VEC(IRQ12_Handler),
+    VEC(IRQ13_Handler),
+    VEC(IRQ14_Handler),
+    VEC(IRQ15_Handler),
+    VEC(IRQ16_Handler),
+    VEC(IRQ17_Handler),
+    VEC(IRQ18_Handler),
+    VEC(IRQ19_Handler),
+    VEC(IRQ20_Handler),
+    VEC(IRQ21_Handler),
+    VEC(IRQ22_Handler),
+    VEC(IRQ23_Handler),
+    VEC(IRQ24_Handler),
+    VEC(IRQ25_Handler),
+    VEC(IRQ26_Handler),
+    VEC(IRQ27_Handler),
+    VEC(IRQ28_Handler),
+    VEC(IRQ29_Handler),
+    VEC(IRQ30_Handler),
+    VEC(IRQ31_Handler),
 };
 
 #undef VEC

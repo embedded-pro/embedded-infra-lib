@@ -44,4 +44,8 @@ target_include_directories(hal.qemu.syscalls PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>")
 
 target_link_libraries(hal.qemu.syscalls PUBLIC
-    hal.qemu.cortex)
+    hal.cortex_m
+    hal.qemu.cortex
+    hal.qemu.default_init
+    hal.qemu.sync
+    services.tracer)

@@ -75,6 +75,11 @@ namespace hal::cortex
 
     void FaultTracer::Dump(infra::BoundedConstString faultName)
     {
+        if (dumped)
+            return;
+
+        dumped = true;
+
         tracer.Trace() << "*** Fault: " << faultName << " ***";
         Progress();
 
@@ -86,7 +91,23 @@ namespace hal::cortex
         Progress();
 #endif
 
-        DumpBacktrace();
+        if (faultContext.stack != nullptr)
+            DumpBacktrace(FrameEnd());
+    }
+
+    void FaultTracer::DumpAbort(const uint32_t* stackPointer, uint32_t linkRegister)
+    {
+        if (dumped)
+            return;
+
+        dumped = true;
+
+        tracer.Trace() << "*** Abort ***";
+        TraceRegister("LR  ", linkRegister);
+        TraceRegister("SP  ", static_cast<uint32_t>(reinterpret_cast<uintptr_t>(stackPointer)));
+        Progress();
+
+        DumpBacktrace(stackPointer);
     }
 
     void FaultTracer::DumpFrame()
@@ -177,14 +198,14 @@ namespace hal::cortex
             tracer.Trace() << "    UsageFault: divide by zero";
     }
 
-    void FaultTracer::DumpBacktrace()
+    void FaultTracer::DumpBacktrace(const uint32_t* from)
     {
-        if (faultContext.stack == nullptr)
+        if (from == nullptr)
             return;
 
         tracer.Trace() << "Backtrace (code addresses on stack):";
 
-        for (const uint32_t* entry = FrameEnd(); entry < stackTop; ++entry)
+        for (const uint32_t* entry = from; entry < stackTop; ++entry)
         {
             auto candidate = reinterpret_cast<const uint8_t*>(*entry & ~1u);
 
