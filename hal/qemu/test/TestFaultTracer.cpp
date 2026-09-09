@@ -198,6 +198,16 @@ TEST_F(FaultTracerTest, the_abort_backtrace_skips_addresses_outside_the_code_ran
     EXPECT_FALSE(Traced("0x20004000"));
 }
 
+TEST_F(FaultTracerTest, dump_abort_without_a_stack_pointer_reports_no_backtrace)
+{
+    auto faultTracer = Construct();
+
+    faultTracer.DumpAbort(nullptr, returnAddressInCode);
+
+    EXPECT_TRUE(Traced("LR   0x00001234"));
+    EXPECT_FALSE(Traced("Backtrace"));
+}
+
 TEST_F(FaultTracerTest, dump_abort_does_not_need_a_fault_context)
 {
     hal::cortex::faultContext = { nullptr, 0 };

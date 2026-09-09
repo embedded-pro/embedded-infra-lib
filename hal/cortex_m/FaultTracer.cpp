@@ -200,6 +200,9 @@ namespace hal::cortex
 
     void FaultTracer::DumpBacktrace(const uint32_t* from)
     {
+        if (from == nullptr)
+            return;
+
         tracer.Trace() << "Backtrace (code addresses on stack):";
 
         for (const uint32_t* entry = from; entry < stackTop; ++entry)
