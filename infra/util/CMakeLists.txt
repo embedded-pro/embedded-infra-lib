@@ -76,6 +76,7 @@ target_sources(infra.util PRIVATE
     Unit.hpp
     VariadicTemplates.hpp
     VariantDetail.hpp
+    WithSharedAccess.hpp
     WithStorage.hpp
 )
 
