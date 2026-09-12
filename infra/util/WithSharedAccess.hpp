@@ -11,7 +11,7 @@ namespace infra
     public:
         template<class... Args>
         explicit WithSharedAccess(Args&&... args)
-            : accessedBy([](){})
+            : accessedBy([]() {})
             , object(std::forward<Args>(args)...)
             , sharedPtr(accessedBy.MakeShared(object))
         {}
@@ -19,10 +19,25 @@ namespace infra
         WithSharedAccess(const WithSharedAccess&) = delete;
         WithSharedAccess& operator=(const WithSharedAccess&) = delete;
 
-        T& operator*() { return object; }
-        const T& operator*() const { return object; }
-        T* operator->() { return &object; }
-        const T* operator->() const { return &object; }
+        T& operator*()
+        {
+            return object;
+        }
+
+        const T& operator*() const
+        {
+            return object;
+        }
+
+        T* operator->()
+        {
+            return &object;
+        }
+
+        const T* operator->() const
+        {
+            return &object;
+        }
 
     private:
         // sharedPtr destroyed first, object second (drops EnableSharedFromThis::weakPtr),

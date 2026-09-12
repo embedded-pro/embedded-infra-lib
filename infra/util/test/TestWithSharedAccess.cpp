@@ -11,7 +11,10 @@ namespace
             : v(v)
         {}
 
-        int Get() const { return v; }
+        int Get() const
+        {
+            return v;
+        }
 
     private:
         int v;
