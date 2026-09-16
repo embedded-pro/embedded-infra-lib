@@ -26,6 +26,10 @@ target_sources(services.ble PRIVATE
     BondStorageSynchronizer.hpp
     Gap.cpp
     Gap.hpp
+    GapAdvertisingData.cpp
+    GapAdvertisingData.hpp
+    GapTypes.cpp
+    GapTypes.hpp
     Gatt.cpp
     Gatt.hpp
     GattClient.cpp

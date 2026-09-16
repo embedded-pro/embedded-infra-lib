@@ -1,89 +1,14 @@
 #ifndef SERVICES_GAP_HPP
 #define SERVICES_GAP_HPP
 
-#include "hal/interfaces/MacAddress.hpp"
 #include "infra/timer/Timer.hpp"
-#include "infra/util/BoundedVector.hpp"
-#include "infra/util/EnumCast.hpp"
 #include "infra/util/Observer.hpp"
-#include "services/ble/Att.hpp"
+#include "services/ble/GapAdvertisingData.hpp"
+#include "services/ble/GapTypes.hpp"
 #include <optional>
 
 namespace services
 {
-    enum class GapDeviceAddressType : uint8_t
-    {
-        publicAddress,
-        randomAddress,
-    };
-
-    enum class GapAdvertisementType : uint8_t
-    {
-        advInd,
-        advNonconnInd
-    };
-
-    enum class GapState : uint8_t
-    {
-        standby,
-        scanning,
-        advertising,
-        connected,
-        initiating
-    };
-
-    enum class GapAdvertisingEventType : uint8_t
-    {
-        advInd,
-        advDirectInd,
-        advScanInd,
-        advNonconnInd,
-        scanResponse,
-    };
-
-    enum class GapAdvertisementDataType : uint8_t
-    {
-        unknownType = 0x00u,
-        flags = 0x01u,
-        completeListOf16BitUuids = 0x03u,
-        completeListOf128BitUuids = 0x07u,
-        shortenedLocalName = 0x08u,
-        completeLocalName = 0x09u,
-        publicTargetAddress = 0x17u,
-        appearance = 0x19u,
-        manufacturerSpecificData = 0xffu
-    };
-
-    struct GapConnectionParameters
-    {
-        uint16_t minConnIntMultiplier;
-        uint16_t maxConnIntMultiplier;
-        uint16_t slaveLatency;
-        uint16_t supervisorTimeoutMs;
-
-        static constexpr uint16_t connectionInitialMaxTxOctets = 251;
-        static constexpr uint16_t connectionInitialMaxTxTime = 2120; // (connectionInitialMaxTxOctets + 14) * 8
-    };
-
-    struct GapAddress
-    {
-        hal::MacAddress address;
-        GapDeviceAddressType type;
-
-        bool operator==(GapAddress const& rhs) const
-        {
-            return type == rhs.type && address == rhs.address;
-        }
-    };
-
-    struct GapOutOfBandData
-    {
-        hal::MacAddress macAddress;
-        GapDeviceAddressType addressType;
-        infra::ConstByteRange randomData;
-        infra::ConstByteRange confirmData;
-    };
-
     class GapPairing;
 
     class GapPairingObserver
@@ -234,18 +159,6 @@ namespace services
         static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMin = 0x20u;   // 20 ms
         static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMax = 0x4000u; // 10240 ms
 
-        enum class AdvertisementFlags : uint8_t
-        {
-            leLimitedDiscoverableMode = 0x01u,
-            leGeneralDiscoverableMode = 0x02u,
-            brEdrNotSupported = 0x04u,
-            leBrEdrController = 0x08u,
-            leBrEdrHost = 0x10u
-        };
-
-        static constexpr uint8_t maxAdvertisementDataSize = 31;
-        static constexpr uint8_t maxScanResponseDataSize = 31;
-
     public:
         virtual GapAddress GetAddress() const = 0;
         virtual GapAddress GetIdentityAddress() const = 0;
@@ -279,62 +192,6 @@ namespace services
         void Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier) override;
         void Standby() override;
         void SetConnectionParameters(const services::GapConnectionParameters& connParam) override;
-    };
-
-    inline GapPeripheral::AdvertisementFlags operator|(GapPeripheral::AdvertisementFlags lhs, GapPeripheral::AdvertisementFlags rhs)
-    {
-        return static_cast<GapPeripheral::AdvertisementFlags>(infra::enum_cast(lhs) | infra::enum_cast(rhs));
-    }
-
-    class GapAdvertisingDataParser
-    {
-    public:
-        explicit GapAdvertisingDataParser(infra::ConstByteRange data);
-
-        infra::ConstByteRange LocalName() const;
-        std::optional<std::pair<uint16_t, infra::ConstByteRange>> ManufacturerSpecificData() const;
-        std::optional<GapPeripheral::AdvertisementFlags> Flags() const;
-        infra::MemoryRange<const AttAttribute::Uuid16> CompleteListOf16BitUuids() const;
-        infra::MemoryRange<const AttAttribute::Uuid128> CompleteListOf128BitUuids() const;
-        std::optional<uint16_t> Appearance() const;
-
-    private:
-        infra::ConstByteRange data;
-
-    private:
-        infra::ConstByteRange ParserAdvertisingData(GapAdvertisementDataType type) const;
-    };
-
-    class GapAdvertisementFormatter
-    {
-    public:
-        explicit GapAdvertisementFormatter(infra::BoundedVector<uint8_t>& payload);
-
-        void AppendFlags(GapPeripheral::AdvertisementFlags flags);
-        void AppendCompleteLocalName(const infra::BoundedConstString& name);
-        void AppendShortenedLocalName(const infra::BoundedConstString& name);
-        void AppendManufacturerData(uint16_t manufacturerCode, infra::ConstByteRange data);
-        void AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid16> services);
-        void AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services);
-        void AppendPublicTargetAddress(hal::MacAddress address);
-        void AppendAppearance(uint16_t appearance);
-
-        infra::ConstByteRange FormattedAdvertisementData() const;
-        std::size_t RemainingSpaceAvailable() const;
-
-    private:
-        static constexpr std::size_t headerSize = 2;
-
-        infra::BoundedVector<uint8_t>& payload;
-    };
-
-    struct GapAdvertisingReport
-    {
-        GapAdvertisingEventType eventType;
-        GapDeviceAddressType addressType;
-        hal::MacAddress address;
-        infra::BoundedVector<uint8_t>::WithMaxSize<GapPeripheral::maxAdvertisementDataSize> data;
-        int32_t rssi;
     };
 
     class GapCentral;
@@ -382,13 +239,6 @@ namespace services
         void StopDeviceDiscovery() override;
         std::optional<hal::MacAddress> ResolvePrivateAddress(hal::MacAddress address) const override;
     };
-}
-
-namespace infra
-{
-    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapAdvertisingEventType& eventType);
-    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapDeviceAddressType& addressType);
-    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapState& state);
 }
 
 #endif
