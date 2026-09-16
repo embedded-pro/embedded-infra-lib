@@ -60,6 +60,7 @@ namespace drivers
 
         uint8_t interruptStatus = 0;
         uint16_t remainingBytes = 0;
+        std::size_t framesInBatch = 0;
         bool enabled = false;
     };
 
@@ -68,83 +69,39 @@ namespace drivers
     template<class Base, std::size_t MaxFramesPerBatch>
     void Mpu9250WithFifo<Base, MaxFramesPerBatch>::EnableFifo(const FifoConfig& fifoConfig, const infra::Function<void()>& onDone)
     {
-        really_assert(this->sequencer.Finished());
+        really_assert(!this->runner.Busy());
 
         this->fifoConfig = fifoConfig;
         onFifoConfigured = onDone;
 
-        this->sequencer.Load([this]()
+        this->runner.Clear();
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerFifoEnable, FifoEnableValue() });
+        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerConfiguration, configurationFifoMode, this->fifoConfig.stopWhenFull ? configurationFifoMode : uint8_t(0) });
+        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerUserControl, 0, userControlFifoReset });
+        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerUserControl, 0, userControlFifoEnable });
+
+        this->runner.Start([this]()
             {
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerFifoEnable, FifoEnableValue(), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->ModifyRegister(Base::registerConfiguration, configurationFifoMode, this->fifoConfig.stopWhenFull ? configurationFifoMode : 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->ModifyRegister(Base::registerUserControl, 0, userControlFifoReset, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->ModifyRegister(Base::registerUserControl, 0, userControlFifoEnable, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Execute([this]()
-                    {
-                        enabled = true;
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onFifoConfigured();
-                            });
-                    });
+                enabled = true;
+                onFifoConfigured();
             });
     }
 
     template<class Base, std::size_t MaxFramesPerBatch>
     void Mpu9250WithFifo<Base, MaxFramesPerBatch>::DisableFifo(const infra::Function<void()>& onDone)
     {
-        really_assert(this->sequencer.Finished());
+        really_assert(!this->runner.Busy());
 
         onFifoConfigured = onDone;
 
-        this->sequencer.Load([this]()
+        this->runner.Clear();
+        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerUserControl, userControlFifoEnable, 0 });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerFifoEnable, 0 });
+
+        this->runner.Start([this]()
             {
-                this->sequencer.Step([this]()
-                    {
-                        this->ModifyRegister(Base::registerUserControl, userControlFifoEnable, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerFifoEnable, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Execute([this]()
-                    {
-                        enabled = false;
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onFifoConfigured();
-                            });
-                    });
+                enabled = false;
+                onFifoConfigured();
             });
     }
 
@@ -160,21 +117,21 @@ namespace drivers
         if (!enabled)
             return Base::ReadAndDeliverSamples();
 
-        this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [this]()
+        this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [self = this->KeepAlive(*this)]()
             {
-                if ((interruptStatus & Base::fifoOverflowInterrupt) != 0)
-                    this->ModifyRegister(Base::registerUserControl, 0, userControlFifoReset, [this]()
+                if ((self->interruptStatus & Base::fifoOverflowInterrupt) != 0)
+                    self->ModifyRegister(Base::registerUserControl, 0, userControlFifoReset, [self]()
                         {
-                            if (onOverflow)
-                                onOverflow();
+                            if (self->onOverflow)
+                                self->onOverflow();
                         });
                 else
-                    this->ReadRegister(Base::registerFifoCountHigh, infra::MakeRange(fifoCountBuffer), [this]()
+                    self->ReadRegister(Base::registerFifoCountHigh, infra::MakeRange(self->fifoCountBuffer), [self]()
                         {
-                            uint16_t count = static_cast<uint16_t>((static_cast<uint16_t>(fifoCountBuffer[0] & 0x1f) << 8) | fifoCountBuffer[1]);
-                            remainingBytes = static_cast<uint16_t>(count - count % FrameSize());
+                            uint16_t count = static_cast<uint16_t>((static_cast<uint16_t>(self->fifoCountBuffer[0] & 0x1f) << 8) | self->fifoCountBuffer[1]);
+                            self->remainingBytes = static_cast<uint16_t>(count - count % self->FrameSize());
 
-                            DrainNextBatch();
+                            self->DrainNextBatch();
                         });
             });
     }
@@ -185,14 +142,14 @@ namespace drivers
         if (remainingBytes < FrameSize())
             return;
 
-        std::size_t frames = std::min<std::size_t>(remainingBytes / FrameSize(), MaxFramesPerBatch);
-        std::size_t bytes = frames * FrameSize();
+        framesInBatch = std::min<std::size_t>(remainingBytes / FrameSize(), MaxFramesPerBatch);
+        std::size_t bytes = framesInBatch * FrameSize();
         remainingBytes = static_cast<uint16_t>(remainingBytes - bytes);
 
-        this->ReadRegister(Base::registerFifoReadWrite, infra::Head(infra::MakeRange(fifoBuffer), bytes), [this, frames]()
+        this->ReadRegister(Base::registerFifoReadWrite, infra::Head(infra::MakeRange(fifoBuffer), bytes), [self = this->KeepAlive(*this)]()
             {
-                ConvertAndDeliver(frames);
-                DrainNextBatch();
+                self->ConvertAndDeliver(self->framesInBatch);
+                self->DrainNextBatch();
             });
     }
 

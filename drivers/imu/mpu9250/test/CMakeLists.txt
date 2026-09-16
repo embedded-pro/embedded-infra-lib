@@ -14,6 +14,8 @@ target_sources(drivers.imu.mpu9250_test PRIVATE
     Mpu9250BusAccessMock.hpp
     TestMpu9250BusAccess.cpp
     TestMpu9250Core.cpp
+    TestMpu9250Lifetime.cpp
     TestMpu9250Mixins.cpp
     TestMpu9250SelfTestAndMotion.cpp
+    TestMpu9250StepRunner.cpp
 )

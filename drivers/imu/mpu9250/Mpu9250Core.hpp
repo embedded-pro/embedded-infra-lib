@@ -1,14 +1,14 @@
 #ifndef DRIVERS_IMU_MPU9250_MPU9250_CORE_HPP
 #define DRIVERS_IMU_MPU9250_MPU9250_CORE_HPP
 
-#include "drivers/imu/mpu9250/Mpu9250BusAccess.hpp"
+#include "drivers/imu/mpu9250/Mpu9250StepRunner.hpp"
 #include "hal/interfaces/Accelerometer.hpp"
 #include "hal/interfaces/Gpio.hpp"
 #include "hal/interfaces/Gyroscope.hpp"
-#include "infra/timer/Timer.hpp"
 #include "infra/util/AutoResetFunction.hpp"
-#include "infra/util/Sequencer.hpp"
+#include "infra/util/SharedPtr.hpp"
 #include "infra/util/Unit.hpp"
+#include "services/util/Stoppable.hpp"
 #include <array>
 #include <cstdint>
 
@@ -17,13 +17,17 @@ namespace drivers
     // One bus transaction is outstanding at a time, so Initialize, SetPowerMode, the scale setters,
     // MeasureTemperature, Start and Stop must not be invoked while a previous one is still running.
     // Completions are delivered from the event dispatcher, so calling them from a completion callback is safe.
+    // Call Stop() and destroy only from its callback: an outstanding bus transaction holds a reference,
+    // and destroying while referenced trips the assertion in ~AccessedBySharedPtr.
     class Mpu9250Core
+        : public services::Stoppable
     {
     public:
         using Acceleration = infra::Quantity<infra::MilliMeterPerSecondSquared, int32_t>;
         using AngularVelocity = infra::Quantity<infra::MilliDegreePerSecond, int32_t>;
         using Temperature = infra::Quantity<infra::MilliCelsius, int32_t>;
 
+        using Action = infra::Function<void(), sizeof(void*)>;
         using Accelerometer = hal::Accelerometer<infra::MilliMeterPerSecondSquared, int32_t>;
         using Gyroscope = hal::Gyroscope<infra::MilliDegreePerSecond, int32_t>;
 
@@ -124,6 +128,10 @@ namespace drivers
         explicit Mpu9250Core(Mpu9250BusAccess& bus, hal::GpioPin& dataReadyPin = hal::dummyPin);
         Mpu9250Core(const Mpu9250Core& other) = delete;
         Mpu9250Core& operator=(const Mpu9250Core& other) = delete;
+        ~Mpu9250Core();
+
+        // Implementation of services::Stoppable
+        void Stop(const infra::Function<void()>& onDone) override;
 
         void Initialize(const Config& config, const infra::Function<void(InitializationResult)>& onDone);
         void SetPowerMode(PowerMode mode, const infra::Function<void()>& onDone);
@@ -196,11 +204,17 @@ namespace drivers
 
         hal::InterruptTrigger DataReadyTrigger() const;
 
+        template<class T>
+        infra::SharedPtr<T> KeepAlive(T& object)
+        {
+            return sharedAccess.MakeShared(object);
+        }
+
         Mpu9250BusAccess& bus;
         hal::InputPin dataReadyPin;
         bool dataReadyPinConnected;
-        infra::Sequencer sequencer;
-        infra::TimerSingleShot delayTimer;
+        infra::AccessedBySharedPtr sharedAccess{ infra::emptyFunction };
+        Mpu9250StepRunner runner;
         Config config;
 
     private:
@@ -230,8 +244,13 @@ namespace drivers
             Mpu9250Core& device;
         };
 
-        void ConfigurationSteps();
+        void PushConfigurationSteps();
+        void VerifyWhoAmI();
+        void CompleteInitialization();
         void UpdateSampling();
+        void ReportStopped();
+        void DeliverMeasurement();
+        void DeliverTemperature();
         uint8_t InterruptPinConfigValue() const;
         uint8_t PowerManagement1Value(PowerMode mode) const;
         static uint8_t PowerManagement2Value(PowerMode mode);
@@ -246,6 +265,7 @@ namespace drivers
         infra::AutoResetFunction<void()> onPowerModeSet;
         infra::AutoResetFunction<void(Temperature)> onTemperature;
         infra::AutoResetFunction<void()> onModified;
+        infra::AutoResetFunction<void()> onStopped;
 
         std::array<uint8_t, measurementSize> measurementBuffer = {};
         std::array<Acceleration, 3> accelerationSamples = {};
@@ -258,8 +278,6 @@ namespace drivers
         uint8_t modifyClearMask = 0;
         uint8_t modifySetMask = 0;
         uint8_t writeValue = 0;
-        PowerMode requestedPowerMode = PowerMode::sleep;
-        bool waitForStartUp = false;
         PowerMode powerMode = PowerMode::sleep;
         bool initialized = false;
         bool sampling = false;

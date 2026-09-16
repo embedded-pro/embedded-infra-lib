@@ -36,6 +36,7 @@ namespace drivers
 
     private:
         void OnMotionInterrupt();
+        void ArmMotionInterrupt();
         uint8_t ThresholdRegisterValue() const;
 
         static constexpr uint8_t accelerometerIntelligenceEnable = 0x80;
@@ -57,7 +58,7 @@ namespace drivers
     template<class Base>
     void Mpu9250WithWakeOnMotion<Base>::EnableWakeOnMotion(uint16_t thresholdMilliG, LowPowerOutputDataRate outputDataRate, const infra::Function<void()>& onMotion, const infra::Function<void()>& onDone)
     {
-        really_assert(this->sequencer.Finished());
+        really_assert(!this->runner.Busy());
         really_assert(!this->Sampling());
 
         this->thresholdMilliG = thresholdMilliG;
@@ -65,147 +66,65 @@ namespace drivers
         this->onMotion = onMotion;
         onWakeOnMotionConfigured = onDone;
 
-        this->sequencer.Load([this]()
-            {
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerPowerManagement2, gyroscopeAxesDisabled, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerAccelerometerConfig2, lowPowerAccelerometerFilter, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerInterruptEnable, Base::wakeOnMotionInterrupt, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerMotionDetectControl, accelerometerIntelligenceEnable | accelerometerIntelligenceMode, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerWakeOnMotionThreshold, ThresholdRegisterValue(), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerLowPowerAccelerometerOutputDataRate, static_cast<uint8_t>(this->outputDataRate), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->ModifyRegister(Base::registerPowerManagement1, 0, Base::cycleEnable, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Execute([this]()
-                    {
-                        if (this->dataReadyPinConnected)
-                            this->dataReadyPin.EnableInterrupt([this]()
-                                {
-                                    OnMotionInterrupt();
-                                },
-                                this->DataReadyTrigger(), hal::InterruptType::dispatched);
+        this->runner.Clear();
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource) });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement2, gyroscopeAxesDisabled });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig2, lowPowerAccelerometerFilter });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerInterruptEnable, Base::wakeOnMotionInterrupt });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerMotionDetectControl, accelerometerIntelligenceEnable | accelerometerIntelligenceMode });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerWakeOnMotionThreshold, ThresholdRegisterValue() });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerLowPowerAccelerometerOutputDataRate, static_cast<uint8_t>(this->outputDataRate) });
+        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerPowerManagement1, 0, Base::cycleEnable });
 
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onWakeOnMotionConfigured();
-                            });
-                    });
+        this->runner.Start([this]()
+            {
+                ArmMotionInterrupt();
+                onWakeOnMotionConfigured();
             });
+    }
+
+    template<class Base>
+    void Mpu9250WithWakeOnMotion<Base>::ArmMotionInterrupt()
+    {
+        if (this->dataReadyPinConnected)
+            this->dataReadyPin.EnableInterrupt([self = this->KeepAlive(*this)]()
+                {
+                    self->OnMotionInterrupt();
+                },
+                this->DataReadyTrigger(), hal::InterruptType::dispatched);
     }
 
     template<class Base>
     void Mpu9250WithWakeOnMotion<Base>::DisableWakeOnMotion(const infra::Function<void()>& onDone)
     {
-        really_assert(this->sequencer.Finished());
+        really_assert(!this->runner.Busy());
 
         onWakeOnMotionConfigured = onDone;
 
         if (this->dataReadyPinConnected)
             this->dataReadyPin.DisableInterrupt();
 
-        this->sequencer.Load([this]()
-            {
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerMotionDetectControl, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerInterruptEnable, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerPowerManagement2, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerAccelerometerConfig2, static_cast<uint8_t>(this->config.accelerometerLowPassFilter), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Execute([this]()
-                    {
-                        onMotion = nullptr;
+        this->runner.Clear();
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource) });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerMotionDetectControl, 0 });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerInterruptEnable, 0 });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement2, 0 });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig2, static_cast<uint8_t>(this->config.accelerometerLowPassFilter) });
 
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onWakeOnMotionConfigured();
-                            });
-                    });
+        this->runner.Start([this]()
+            {
+                onMotion = nullptr;
+                onWakeOnMotionConfigured();
             });
     }
 
     template<class Base>
     void Mpu9250WithWakeOnMotion<Base>::OnMotionInterrupt()
     {
-        this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [this]()
+        this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [self = this->KeepAlive(*this)]()
             {
-                if (onMotion)
-                    onMotion();
+                if (self->onMotion)
+                    self->onMotion();
             });
     }
 

@@ -77,12 +77,12 @@ namespace drivers
 
         reading = true;
 
-        this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [this]()
+        this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [self = this->KeepAlive(*this)]()
             {
-                reading = false;
+                self->reading = false;
 
-                if ((interruptStatus & Base::rawDataReadyInterrupt) != 0)
-                    onSampleAvailable();
+                if ((self->interruptStatus & Base::rawDataReadyInterrupt) != 0)
+                    self->onSampleAvailable();
             });
     }
 }

@@ -42,195 +42,127 @@ namespace drivers
         : bus(bus)
         , dataReadyPin(dataReadyPin)
         , dataReadyPinConnected(&dataReadyPin != &hal::dummyPin)
+        , runner(bus, sharedAccess)
     {}
+
+    Mpu9250Core::~Mpu9250Core()
+    {
+        if (dataReadyPinConnected)
+            this->dataReadyPin.DisableInterrupt();
+    }
+
+    void Mpu9250Core::Stop(const infra::Function<void()>& onDone)
+    {
+        if (dataReadyPinConnected)
+            dataReadyPin.DisableInterrupt();
+
+        StopSampling();
+
+        onAccelerometerMeasurement = nullptr;
+        onGyroscopeMeasurement = nullptr;
+        sampling = false;
+
+        runner.Abort();
+
+        onStopped = onDone;
+        sharedAccess.SetAction([this]()
+            {
+                ReportStopped();
+            });
+
+        if (!sharedAccess.Referenced())
+            infra::EventDispatcher::Instance().Schedule([self = KeepAlive(*this)]() {});
+    }
+
+    void Mpu9250Core::ReportStopped()
+    {
+        sharedAccess.SetAction(infra::emptyFunction);
+
+        if (onStopped)
+            onStopped();
+    }
 
     void Mpu9250Core::Initialize(const Config& config, const infra::Function<void(InitializationResult)>& onDone)
     {
-        really_assert(sequencer.Finished());
+        really_assert(!runner.Busy());
 
         this->config = config;
         onInitialized = onDone;
 
-        sequencer.Load([this]()
+        runner.Clear();
+        runner.Push(Mpu9250StepRunner::ReadBurst{ registerWhoAmI, infra::MakeByteRange(scratch) });
+        runner.Push(Mpu9250StepRunner::Invoke{ [this]()
             {
-                sequencer.Step([this]()
-                    {
-                        ReadRegister(registerWhoAmI, infra::MakeByteRange(scratch), [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.If([this]()
-                    {
-                        return scratch == this->config.expectedWhoAmI;
-                    });
-                sequencer.Step([this]()
-                    {
-                        WriteRegister(registerPowerManagement1, deviceReset, [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.Step([this]()
-                    {
-                        delayTimer.Start(std::chrono::milliseconds(100), [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.If([this]()
-                    {
-                        return bus.RequiresI2cSlaveInterfaceDisabled();
-                    });
-                sequencer.Step([this]()
-                    {
-                        WriteRegister(registerUserControl, i2cInterfaceDisable, [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.EndIf();
-                ConfigurationSteps();
-                sequencer.Execute([this]()
-                    {
-                        initialized = true;
-                        powerMode = PowerMode::normal;
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onInitialized(InitializationResult::success);
-                            });
-                    });
-                sequencer.Else();
-                sequencer.Execute([this]()
-                    {
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onInitialized(InitializationResult::deviceNotFound);
-                            });
-                    });
-                sequencer.EndIf();
+                VerifyWhoAmI();
+            } });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement1, deviceReset });
+        runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(100) });
+
+        if (bus.RequiresI2cSlaveInterfaceDisabled())
+            runner.Push(Mpu9250StepRunner::WriteRegister{ registerUserControl, i2cInterfaceDisable });
+
+        PushConfigurationSteps();
+
+        runner.Start([this]()
+            {
+                CompleteInitialization();
             });
     }
 
-    void Mpu9250Core::ConfigurationSteps()
+    void Mpu9250Core::VerifyWhoAmI()
     {
-        sequencer.Step([this]()
+        if (scratch == config.expectedWhoAmI)
+            return;
+
+        runner.Abort();
+
+        infra::EventDispatcher::Instance().Schedule([self = KeepAlive(*this)]()
             {
-                WriteRegister(registerPowerManagement1, static_cast<uint8_t>(config.clockSource), [this]()
-                    {
-                        sequencer.Continue();
-                    });
+                self->onInitialized(InitializationResult::deviceNotFound);
             });
-        sequencer.Step([this]()
-            {
-                delayTimer.Start(std::chrono::milliseconds(1), [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerPowerManagement2, 0, [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerSampleRateDivider, config.sampleRateDivider, [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerConfiguration, static_cast<uint8_t>(config.gyroscopeLowPassFilter), [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerGyroscopeConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.gyroscopeFullScale) << 3), [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerAccelerometerConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.accelerometerFullScale) << 3), [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerAccelerometerConfig2, static_cast<uint8_t>(config.accelerometerLowPassFilter), [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerInterruptPinConfig, InterruptPinConfigValue(), [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
-        sequencer.Step([this]()
-            {
-                WriteRegister(registerInterruptEnable, 0, [this]()
-                    {
-                        sequencer.Continue();
-                    });
-            });
+    }
+
+    void Mpu9250Core::CompleteInitialization()
+    {
+        initialized = true;
+        powerMode = PowerMode::normal;
+
+        onInitialized(InitializationResult::success);
+    }
+
+    void Mpu9250Core::PushConfigurationSteps()
+    {
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement1, static_cast<uint8_t>(config.clockSource) });
+        runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(1) });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement2, 0 });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerSampleRateDivider, config.sampleRateDivider });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerConfiguration, static_cast<uint8_t>(config.gyroscopeLowPassFilter) });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerGyroscopeConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.gyroscopeFullScale) << 3) });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerAccelerometerConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.accelerometerFullScale) << 3) });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerAccelerometerConfig2, static_cast<uint8_t>(config.accelerometerLowPassFilter) });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerInterruptPinConfig, InterruptPinConfigValue() });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerInterruptEnable, 0 });
     }
 
     void Mpu9250Core::SetPowerMode(PowerMode mode, const infra::Function<void()>& onDone)
     {
         really_assert(initialized);
-        really_assert(sequencer.Finished());
+        really_assert(!runner.Busy());
 
-        requestedPowerMode = mode;
-        waitForStartUp = powerMode == PowerMode::sleep && mode != PowerMode::sleep;
+        bool waitForStartUp = powerMode == PowerMode::sleep && mode != PowerMode::sleep;
         onPowerModeSet = onDone;
 
-        sequencer.Load([this]()
+        runner.Clear();
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement2, PowerManagement2Value(mode) });
+        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement1, PowerManagement1Value(mode) });
+
+        if (waitForStartUp)
+            runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(35) });
+
+        runner.Start([this, mode]()
             {
-                sequencer.Step([this]()
-                    {
-                        WriteRegister(registerPowerManagement2, PowerManagement2Value(requestedPowerMode), [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.Step([this]()
-                    {
-                        WriteRegister(registerPowerManagement1, PowerManagement1Value(requestedPowerMode), [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.If([this]()
-                    {
-                        return waitForStartUp;
-                    });
-                sequencer.Step([this]()
-                    {
-                        delayTimer.Start(std::chrono::milliseconds(35), [this]()
-                            {
-                                sequencer.Continue();
-                            });
-                    });
-                sequencer.EndIf();
-                sequencer.Execute([this]()
-                    {
-                        powerMode = requestedPowerMode;
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onPowerModeSet();
-                            });
-                    });
+                powerMode = mode;
+                onPowerModeSet();
             });
     }
 
@@ -260,9 +192,9 @@ namespace drivers
         really_assert(initialized);
         onTemperature = onDone;
 
-        ReadRegister(registerTemperatureOutHigh, infra::MakeRange(temperatureBuffer), [this]()
+        ReadRegister(registerTemperatureOutHigh, infra::MakeRange(temperatureBuffer), [self = KeepAlive(*this)]()
             {
-                onTemperature(ToTemperature(RawSample(temperatureBuffer.data())));
+                self->DeliverTemperature();
             });
     }
 
@@ -296,11 +228,11 @@ namespace drivers
         modifySetMask = setMask;
         onModified = onDone;
 
-        bus.ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [this]()
+        bus.ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [self = KeepAlive(*this)]()
             {
-                WriteRegister(modifyAddress, static_cast<uint8_t>((modifyValue & ~modifyClearMask) | modifySetMask), [this]()
+                self->WriteRegister(self->modifyAddress, static_cast<uint8_t>((self->modifyValue & ~self->modifyClearMask) | self->modifySetMask), [self]()
                     {
-                        onModified();
+                        self->onModified();
                     });
             });
     }
@@ -319,17 +251,27 @@ namespace drivers
 
     void Mpu9250Core::ReadAndDeliverSamples()
     {
-        ReadRegister(registerAccelerometerXOutHigh, infra::MakeRange(measurementBuffer), [this]()
+        ReadRegister(registerAccelerometerXOutHigh, infra::MakeRange(measurementBuffer), [self = KeepAlive(*this)]()
             {
-                for (std::size_t index = 0; index != accelerationSamples.size(); ++index)
-                    accelerationSamples[index] = ToAcceleration(RawSample(&measurementBuffer[2 * index]));
-
-                for (std::size_t index = 0; index != angularVelocitySamples.size(); ++index)
-                    angularVelocitySamples[index] = ToAngularVelocity(RawSample(&measurementBuffer[8 + 2 * index]));
-
-                DeliverAcceleration(infra::MakeRange(accelerationSamples));
-                DeliverAngularVelocity(infra::MakeRange(angularVelocitySamples));
+                self->DeliverMeasurement();
             });
+    }
+
+    void Mpu9250Core::DeliverMeasurement()
+    {
+        for (std::size_t index = 0; index != accelerationSamples.size(); ++index)
+            accelerationSamples[index] = ToAcceleration(RawSample(&measurementBuffer[2 * index]));
+
+        for (std::size_t index = 0; index != angularVelocitySamples.size(); ++index)
+            angularVelocitySamples[index] = ToAngularVelocity(RawSample(&measurementBuffer[8 + 2 * index]));
+
+        DeliverAcceleration(infra::MakeRange(accelerationSamples));
+        DeliverAngularVelocity(infra::MakeRange(angularVelocitySamples));
+    }
+
+    void Mpu9250Core::DeliverTemperature()
+    {
+        onTemperature(ToTemperature(RawSample(temperatureBuffer.data())));
     }
 
     void Mpu9250Core::DeliverAcceleration(infra::MemoryRange<const Acceleration> samples)
@@ -413,9 +355,9 @@ namespace drivers
 
         if (sampling)
         {
-            StartSampling([this]()
+            StartSampling([self = KeepAlive(*this)]()
                 {
-                    ReadAndDeliverSamples();
+                    self->ReadAndDeliverSamples();
                 });
             WriteRegister(registerInterruptEnable, rawDataReadyInterrupt, infra::emptyFunction);
         }

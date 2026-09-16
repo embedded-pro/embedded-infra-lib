@@ -37,7 +37,9 @@ namespace drivers
         static bool WithinAcceptanceWindow(int32_t response, uint32_t factoryTrim);
 
     private:
-        void EmitAverageSteps();
+        void PushAverageSteps(bool withSelfTestEnabled);
+        void BeginAveraging();
+        void ReadNextSample();
         void AccumulateSample();
         void StoreAverage(std::array<int32_t, 6>& destination);
         void EvaluateResult();
@@ -56,6 +58,7 @@ namespace drivers
         std::array<int32_t, 6> withoutSelfTest = {};
         std::array<int32_t, 6> withSelfTest = {};
         uint32_t sampleIndex = 0;
+        bool measuringWithSelfTest = false;
         SelfTestResult result;
     };
 
@@ -64,130 +67,83 @@ namespace drivers
     template<class Base>
     void Mpu9250WithSelfTest<Base>::SelfTest(const infra::Function<void(SelfTestResult)>& onDone)
     {
-        really_assert(this->sequencer.Finished());
+        really_assert(!this->runner.Busy());
         really_assert(!this->Sampling());
 
         onSelfTestDone = onDone;
         result = SelfTestResult();
 
-        this->sequencer.Load([this]()
-            {
-                this->sequencer.Step([this]()
-                    {
-                        this->bus.ReadRegister(Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->bus.WriteRegister(Base::registerSampleRateDivider, infra::MakeRange(selfTestConfiguration), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                EmitAverageSteps();
-                this->sequencer.Execute([this]()
-                    {
-                        StoreAverage(withoutSelfTest);
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerGyroscopeConfig, selfTestEnableAllAxes, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerAccelerometerConfig, selfTestEnableAllAxes, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->delayTimer.Start(std::chrono::milliseconds(20), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                EmitAverageSteps();
-                this->sequencer.Execute([this]()
-                    {
-                        StoreAverage(withSelfTest);
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerGyroscopeConfig, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->WriteRegister(Base::registerAccelerometerConfig, 0, [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->delayTimer.Start(std::chrono::milliseconds(20), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->bus.ReadRegister(Base::registerSelfTestXAccelerometer, infra::MakeRange(accelerometerTrim), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->bus.ReadRegister(Base::registerSelfTestXGyroscope, infra::MakeRange(gyroscopeTrim), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Step([this]()
-                    {
-                        this->bus.WriteRegister(Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration), [this]()
-                            {
-                                this->sequencer.Continue();
-                            });
-                    });
-                this->sequencer.Execute([this]()
-                    {
-                        EvaluateResult();
+        this->runner.Clear();
+        this->runner.Push(Mpu9250StepRunner::ReadBurst{ Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration) });
+        this->runner.Push(Mpu9250StepRunner::WriteBurst{ Base::registerSampleRateDivider, infra::MakeRange(selfTestConfiguration) });
 
-                        infra::EventDispatcher::Instance().Schedule([this]()
-                            {
-                                onSelfTestDone(result);
-                            });
-                    });
+        PushAverageSteps(false);
+
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerGyroscopeConfig, selfTestEnableAllAxes });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig, selfTestEnableAllAxes });
+        this->runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(20) });
+
+        PushAverageSteps(true);
+
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerGyroscopeConfig, 0 });
+        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig, 0 });
+        this->runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(20) });
+        this->runner.Push(Mpu9250StepRunner::ReadBurst{ Base::registerSelfTestXAccelerometer, infra::MakeRange(accelerometerTrim) });
+        this->runner.Push(Mpu9250StepRunner::ReadBurst{ Base::registerSelfTestXGyroscope, infra::MakeRange(gyroscopeTrim) });
+        this->runner.Push(Mpu9250StepRunner::WriteBurst{ Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration) });
+
+        this->runner.Start([this]()
+            {
+                EvaluateResult();
+                onSelfTestDone(result);
             });
     }
 
     template<class Base>
-    void Mpu9250WithSelfTest<Base>::EmitAverageSteps()
+    void Mpu9250WithSelfTest<Base>::PushAverageSteps(bool withSelfTestEnabled)
     {
-        this->sequencer.Execute([this]()
+        if (withSelfTestEnabled)
+            this->runner.Push(Mpu9250StepRunner::Invoke{ [this]()
+                {
+                    measuringWithSelfTest = true;
+                } });
+        else
+            this->runner.Push(Mpu9250StepRunner::Invoke{ [this]()
+                {
+                    measuringWithSelfTest = false;
+                } });
+
+        this->runner.Push(Mpu9250StepRunner::Await{ [this]()
             {
-                accumulator.fill(0);
-            });
-        this->sequencer.ForEach(sampleIndex, 0, sampleCount);
-        this->sequencer.Step([this]()
+                BeginAveraging();
+            } });
+    }
+
+    template<class Base>
+    void Mpu9250WithSelfTest<Base>::BeginAveraging()
+    {
+        sampleIndex = 0;
+        accumulator.fill(0);
+
+        ReadNextSample();
+    }
+
+    template<class Base>
+    void Mpu9250WithSelfTest<Base>::ReadNextSample()
+    {
+        this->ReadRegister(Base::registerAccelerometerXOutHigh, infra::MakeRange(selfTestBuffer), [self = this->KeepAlive(*this)]()
             {
-                this->bus.ReadRegister(Base::registerAccelerometerXOutHigh, infra::MakeRange(selfTestBuffer), [this]()
-                    {
-                        AccumulateSample();
-                        this->sequencer.Continue();
-                    });
+                self->AccumulateSample();
+                ++self->sampleIndex;
+
+                if (self->sampleIndex != sampleCount)
+                    self->ReadNextSample();
+                else
+                {
+                    self->StoreAverage(self->measuringWithSelfTest ? self->withSelfTest : self->withoutSelfTest);
+                    self->runner.Continue();
+                }
             });
-        this->sequencer.EndForEach(sampleIndex);
     }
 
     template<class Base>
