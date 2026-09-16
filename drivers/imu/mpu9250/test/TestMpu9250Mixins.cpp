@@ -1,5 +1,6 @@
 #include "drivers/imu/mpu9250/Mpu9250WithFifo.hpp"
 #include "drivers/imu/mpu9250/Mpu9250WithPolling.hpp"
+#include "drivers/imu/mpu9250/Mpu9250WithSelfTest.hpp"
 #include "drivers/imu/mpu9250/test/Mpu9250BusAccessMock.hpp"
 #include "hal/interfaces/test_doubles/GpioStub.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
@@ -113,6 +114,12 @@ namespace
 
     class Mpu9250WithPollingTest
         : public Mpu9250MixinFixture<drivers::Mpu9250WithPolling<drivers::Mpu9250Core>>
+    {};
+
+    using PolledFifoDevice = drivers::Mpu9250WithFifo<drivers::Mpu9250WithPolling<drivers::Mpu9250Core>>;
+
+    class Mpu9250CompositionTest
+        : public Mpu9250MixinFixture<PolledFifoDevice>
     {};
 }
 
@@ -357,4 +364,47 @@ TEST_F(Mpu9250WithPollingTest, stopping_cancels_the_poll_timer)
     ExecuteAllActions();
 
     ForwardTime(std::chrono::milliseconds(50));
+}
+
+TEST_F(Mpu9250CompositionTest, fifo_over_polling_drains_the_buffer_on_a_timer_tick)
+{
+    Initialize();
+
+    {
+        testing::InSequence sequence;
+
+        EXPECT_CALL(bus, WriteRegisterMock(0x23, std::vector<uint8_t>{ 0x78 }));
+        ExpectModifyRegister(0x1a, 0x03, 0x43);
+        ExpectModifyRegister(0x6a, 0x00, 0x04);
+        ExpectModifyRegister(0x6a, 0x00, 0x40);
+    }
+
+    infra::VerifyingFunction<void()> fifoEnabled;
+    device.EnableFifo(PolledFifoDevice::FifoConfig(), fifoEnabled);
+    ExecuteAllActions();
+
+    EXPECT_CALL(bus, WriteRegisterMock(0x38, std::vector<uint8_t>{ 0x01 }));
+
+    device.SetPollingInterval(std::chrono::milliseconds(10));
+    device.AsAccelerometer().Start([this](drivers::Mpu9250Core::Accelerometer::Samples samples)
+        {
+            for (auto sample : samples)
+                acceleration.push_back(sample.Value());
+        });
+
+    ExecuteAllActions();
+
+    dataReadyPin.SetStubState(true);
+    ExecuteAllActions();
+
+    EXPECT_TRUE(acceleration.empty());
+
+    EXPECT_CALL(bus, ReadRegisterMock(0x3a, 1)).Times(2).WillRepeatedly(testing::Return(std::vector<uint8_t>{ 0x01 }));
+    EXPECT_CALL(bus, ReadRegisterMock(0x72, 2)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x00, 0x0c }));
+    EXPECT_CALL(bus, ReadRegisterMock(0x74, 12)).WillOnce(testing::Return(Frames({ 16384, 0, 0, 0, 0, 0 })));
+
+    ForwardTime(std::chrono::milliseconds(10));
+
+    ASSERT_EQ(3u, acceleration.size());
+    EXPECT_EQ(9807, acceleration[0]);
 }

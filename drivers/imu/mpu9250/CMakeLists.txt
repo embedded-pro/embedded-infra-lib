@@ -16,6 +16,8 @@ target_sources(drivers.imu.mpu9250 PRIVATE
     Mpu9250Core.hpp
     Mpu9250WithFifo.hpp
     Mpu9250WithPolling.hpp
+    Mpu9250WithSelfTest.hpp
+    Mpu9250WithWakeOnMotion.hpp
 )
 
 add_subdirectory(test)
