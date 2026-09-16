@@ -10,13 +10,13 @@ namespace services
         : public GapCentral
     {
     public:
-        MOCK_METHOD(void, Connect, (hal::MacAddress macAddress, GapDeviceAddressType addressType, infra::Duration initiatingTimeout));
-        MOCK_METHOD(void, CancelConnect, ());
-        MOCK_METHOD(void, Disconnect, ());
-        MOCK_METHOD(void, SetAddress, (hal::MacAddress macAddress, GapDeviceAddressType addressType));
-        MOCK_METHOD(void, StartDeviceDiscovery, ());
-        MOCK_METHOD(void, StopDeviceDiscovery, ());
         MOCK_METHOD(std::optional<hal::MacAddress>, ResolvePrivateAddress, (hal::MacAddress address), (const));
+        MOCK_METHOD(GapRequestStatus, Connect, (hal::MacAddress macAddress, GapDeviceAddressType addressType, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone));
+        MOCK_METHOD(GapRequestStatus, CancelConnect, (const infra::Function<void(Result)>& onDone));
+        MOCK_METHOD(GapRequestStatus, Disconnect, (const infra::Function<void(Result)>& onDone));
+        MOCK_METHOD(GapRequestStatus, SetAddress, (hal::MacAddress macAddress, GapDeviceAddressType addressType, const infra::Function<void(Result)>& onDone));
+        MOCK_METHOD(GapRequestStatus, StartDeviceDiscovery, (const infra::Function<void(Result)>& onDone));
+        MOCK_METHOD(GapRequestStatus, StopDeviceDiscovery, (const infra::Function<void(Result)>& onDone));
 
         void ChangeState(GapState newState)
         {

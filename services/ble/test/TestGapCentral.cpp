@@ -1,4 +1,5 @@
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
+#include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/GapCentral.hpp"
 #include "services/ble/test_doubles/GapCentralMock.hpp"
 #include "services/ble/test_doubles/GapCentralObserverMock.hpp"
@@ -13,9 +14,20 @@ namespace services
             : public testing::Test
         {
         public:
-            GapCentralMock gap;
+            testing::StrictMock<GapCentralMock> gap;
             GapCentralDecorator decorator{ gap };
-            GapCentralObserverMock gapObserver{ decorator };
+            testing::StrictMock<GapCentralObserverMock> gapObserver{ decorator };
+
+            hal::MacAddress macAddress{ 0, 1, 2, 3, 4, 5 };
+            testing::StrictMock<infra::MockCallback<void(GapCentral::Result)>> onDoneNotExpected;
+
+            infra::Function<void(GapCentral::Result)> RejectedCallback()
+            {
+                return [this](GapCentral::Result result)
+                {
+                    onDoneNotExpected.callback(result);
+                };
+            }
         };
     }
 
@@ -57,33 +69,110 @@ namespace services
             });
     }
 
-    TEST_F(GapCentralDecoratorTest, forward_all_calls_to_subject)
+    TEST_F(GapCentralDecoratorTest, forward_resolve_private_address_to_subject)
     {
-        hal::MacAddress macAddress{ 0, 1, 2, 3, 4, 5 };
+        EXPECT_CALL(gap, ResolvePrivateAddress(macAddress)).WillOnce(testing::Return(std::nullopt));
+        EXPECT_EQ(decorator.ResolvePrivateAddress(macAddress), std::nullopt);
 
-        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), services::GapDeviceAddressType::publicAddress, infra::Duration{ 0 }));
-        decorator.Connect(macAddress, services::GapDeviceAddressType::publicAddress, std::chrono::seconds(0));
+        EXPECT_CALL(gap, ResolvePrivateAddress(macAddress)).WillOnce(testing::Return(std::make_optional(macAddress)));
+        EXPECT_EQ(decorator.ResolvePrivateAddress(macAddress), macAddress);
+    }
 
-        EXPECT_CALL(gap, CancelConnect());
-        decorator.CancelConnect();
+    TEST_F(GapCentralDecoratorTest, connect_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_CALL(gap, Disconnect());
-        decorator.Disconnect();
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(macAddress, GapDeviceAddressType::publicAddress, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
 
-        EXPECT_CALL(gap, SetAddress(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress));
-        decorator.SetAddress(macAddress, GapDeviceAddressType::publicAddress);
+    TEST_F(GapCentralDecoratorTest, connect_forwards_timeout_result)
+    {
+        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::timeout), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_CALL(gap, StartDeviceDiscovery());
-        decorator.StartDeviceDiscovery();
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(macAddress, GapDeviceAddressType::publicAddress, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::timeout)));
+    }
 
-        EXPECT_CALL(gap, StopDeviceDiscovery());
-        decorator.StopDeviceDiscovery();
+    TEST_F(GapCentralDecoratorTest, connect_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress, infra::Duration{ 0 }, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
-        hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
-        EXPECT_CALL(gap, ResolvePrivateAddress(mac)).WillOnce(testing::Return(std::nullopt));
-        EXPECT_EQ(decorator.ResolvePrivateAddress(mac), std::nullopt);
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.Connect(macAddress, GapDeviceAddressType::publicAddress, std::chrono::seconds(0), RejectedCallback()));
+    }
 
-        EXPECT_CALL(gap, ResolvePrivateAddress(mac)).WillOnce(testing::Return(std::make_optional(mac)));
-        EXPECT_EQ(decorator.ResolvePrivateAddress(mac), mac);
+    TEST_F(GapCentralDecoratorTest, cancel_connect_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, CancelConnect(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::cancelled), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.CancelConnect(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::cancelled)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, cancel_connect_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, CancelConnect(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.CancelConnect(RejectedCallback()));
+    }
+
+    TEST_F(GapCentralDecoratorTest, disconnect_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, Disconnect(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Disconnect(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, disconnect_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, Disconnect(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.Disconnect(RejectedCallback()));
+    }
+
+    TEST_F(GapCentralDecoratorTest, set_address_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, SetAddress(MacAddressContentsEqual(macAddress), GapDeviceAddressType::randomAddress, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetAddress(macAddress, GapDeviceAddressType::randomAddress, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, set_address_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, SetAddress(MacAddressContentsEqual(macAddress), GapDeviceAddressType::randomAddress, testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetAddress(macAddress, GapDeviceAddressType::randomAddress, RejectedCallback()));
+    }
+
+    TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StartDeviceDiscovery(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));
+
+        EXPECT_EQ(GapRequestStatus::busy, decorator.StartDeviceDiscovery(RejectedCallback()));
+    }
+
+    TEST_F(GapCentralDecoratorTest, stop_device_discovery_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, StopDeviceDiscovery(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StopDeviceDiscovery(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, stop_device_discovery_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, StopDeviceDiscovery(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.StopDeviceDiscovery(RejectedCallback()));
     }
 }

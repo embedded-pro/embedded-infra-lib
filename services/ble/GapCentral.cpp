@@ -18,38 +18,38 @@ namespace services
             });
     }
 
-    void GapCentralDecorator::Connect(hal::MacAddress macAddress, GapDeviceAddressType addressType, infra::Duration initiatingTimeout)
-    {
-        GapCentralObserver::Subject().Connect(macAddress, addressType, initiatingTimeout);
-    }
-
-    void GapCentralDecorator::CancelConnect()
-    {
-        GapCentralObserver::Subject().CancelConnect();
-    }
-
-    void GapCentralDecorator::Disconnect()
-    {
-        GapCentralObserver::Subject().Disconnect();
-    }
-
-    void GapCentralDecorator::SetAddress(hal::MacAddress macAddress, GapDeviceAddressType addressType)
-    {
-        GapCentralObserver::Subject().SetAddress(macAddress, addressType);
-    }
-
-    void GapCentralDecorator::StartDeviceDiscovery()
-    {
-        GapCentralObserver::Subject().StartDeviceDiscovery();
-    }
-
-    void GapCentralDecorator::StopDeviceDiscovery()
-    {
-        GapCentralObserver::Subject().StopDeviceDiscovery();
-    }
-
     std::optional<hal::MacAddress> GapCentralDecorator::ResolvePrivateAddress(hal::MacAddress address) const
     {
         return GapCentralObserver::Subject().ResolvePrivateAddress(address);
+    }
+
+    GapRequestStatus GapCentralDecorator::Connect(hal::MacAddress macAddress, GapDeviceAddressType addressType, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().Connect(macAddress, addressType, initiatingTimeout, onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::CancelConnect(const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().CancelConnect(onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::Disconnect(const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().Disconnect(onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::SetAddress(hal::MacAddress macAddress, GapDeviceAddressType addressType, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().SetAddress(macAddress, addressType, onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::StartDeviceDiscovery(const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().StartDeviceDiscovery(onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::StopDeviceDiscovery(const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().StopDeviceDiscovery(onDone);
     }
 }
