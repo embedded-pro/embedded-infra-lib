@@ -450,6 +450,7 @@ namespace infra
     typedef Joule::Scale<StaticRational<3600, 1000>> KiloWattHour;
 
     typedef BaseUnit<5> Celsius;
+    typedef Celsius::Scale<StaticRational<1, 1000>> MilliCelsius;
 
     typedef BaseUnit<6>::Scale<StaticRational<0, 100>> Percent;
 
