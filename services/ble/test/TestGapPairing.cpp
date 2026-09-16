@@ -1,7 +1,7 @@
 #include "hal/interfaces/MacAddress.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapPairing.hpp"
 #include "services/ble/test_doubles/GapPairingMock.hpp"
 #include "services/ble/test_doubles/GapPairingObserverMock.hpp"
 #include "gmock/gmock.h"

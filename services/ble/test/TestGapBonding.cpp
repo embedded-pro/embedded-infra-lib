@@ -1,5 +1,5 @@
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapBonding.hpp"
 #include "services/ble/test_doubles/GapBondingMock.hpp"
 #include "services/ble/test_doubles/GapBondingObserverMock.hpp"
 #include "gmock/gmock.h"

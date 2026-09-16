@@ -1,7 +1,7 @@
 #ifndef SERVICES_GAP_PERIPHERALOBSERVER_MOCK_HPP
 #define SERVICES_GAP_PERIPHERALOBSERVER_MOCK_HPP
 
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapPeripheral.hpp"
 #include "gmock/gmock.h"
 
 namespace services
