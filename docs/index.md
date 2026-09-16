@@ -2,7 +2,7 @@
 
 ## Introduction
 
-embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, [STL](https://en.wikipedia.org/wiki/Standard_Template_Library) like, infrastructure for embedded software development. It includes, amongst others; a hardware abstraction layer (HAL), a [remote procedure call](Echo.md) (RPC) implementation for TCP/IP and [Serial communication](Sesame.md), a [networking layer](NetworkConnections.md), a secure upgrade mechanism and several other re-usable utility classes.
+embedded-infra-lib is a set of C++ libraries and headers that provide heap-less, [STL](https://en.wikipedia.org/wiki/Standard_Template_Library) like, infrastructure for embedded software development. It includes, amongst others; a hardware abstraction layer (HAL), a [remote procedure call](Echo.md) (RPC) implementation for TCP/IP and [Serial communication](Sesame.md), a [networking layer](NetworkConnections.md), a [Bluetooth Low Energy](Ble.md) stack, a secure upgrade mechanism and several other re-usable utility classes.
 
 ## Overview
 
