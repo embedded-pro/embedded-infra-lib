@@ -11,6 +11,7 @@ target_link_libraries(hal.interfaces PUBLIC
 )
 
 target_sources(hal.interfaces PRIVATE
+    Accelerometer.hpp
     AdcMultiChannel.hpp
     AnalogComparator.hpp
     AnalogToDigitalPin.hpp
@@ -32,12 +33,14 @@ target_sources(hal.interfaces PRIVATE
     FlashId.hpp
     Gpio.cpp
     Gpio.hpp
+    Gyroscope.hpp
     I2c.cpp
     I2c.hpp
     I2cRegisterAccess.cpp
     I2cRegisterAccess.hpp
     MacAddress.cpp
     MacAddress.hpp
+    Magnetometer.hpp
     Pwm.hpp
     QuadSpi.cpp
     QuadSpi.hpp

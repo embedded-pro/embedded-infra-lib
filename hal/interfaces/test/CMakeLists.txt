@@ -10,14 +10,17 @@ target_link_libraries(hal.interfaces_test PUBLIC
 )
 
 target_sources(hal.interfaces_test PRIVATE
+    TestAccelerometer.cpp
     TestCan.cpp
     TestEeprom.cpp
     TestFlash.cpp
     TestFlashHeterogeneous.cpp
     TestFlashHomogeneous.cpp
     TestGpio.cpp
+    TestGyroscope.cpp
     TestI2cRegisterAccess.cpp
     TestMacAddress.cpp
+    TestMagnetometer.cpp
     TestQuadSpi.cpp
     TestSerialCommunication.cpp
 )
