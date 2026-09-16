@@ -153,6 +153,33 @@ message UInt32Value
     uint32 value = 1;
 }
 
+message Completion
+{
+    enum RequestStatus
+    {
+        accepted = 0;
+        invalidState = 1;
+        invalidParameter = 2;
+        busy = 3;
+        notSupported = 4;
+    }
+
+    enum Result
+    {
+        success = 0;
+        cancelled = 1;
+        timeout = 2;
+        failed = 3;
+        controllerError = 4;
+    }
+
+    // A request that is not accepted reports its reason in requestStatus and
+    // leaves result unset; an accepted request reports accepted and the outcome
+    // of the procedure in result.
+    RequestStatus requestStatus = 1;
+    Result result = 2;
+}
+
 service GapCentral
 {
     option (service_id) = 33;
@@ -199,7 +226,7 @@ service GapCentralResponse
 {
     option (service_id) = 35;
 
-    rpc Done(Nothing) returns (Nothing) { option (method_id) = 1; }
+    // method_id 1 was Done; it reported no procedure and is not reused.
     rpc DeviceDiscovered(DiscoveredDevice) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
     rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) =  4; }
@@ -210,4 +237,17 @@ service GapCentralResponse
     rpc ResolvePrivateAddressFailed(Nothing) returns (Nothing) { option (method_id) = 9; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 10; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 11; }
+
+    rpc StartDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 12; }
+    rpc StopDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 13; }
+    rpc ConnectComplete(Completion) returns (Nothing) { option (method_id) = 14; }
+    rpc CancelConnectComplete(Completion) returns (Nothing) { option (method_id) = 15; }
+    rpc DisconnectComplete(Completion) returns (Nothing) { option (method_id) = 16; }
+    rpc PairAndBondComplete(Completion) returns (Nothing) { option (method_id) = 17; }
+    rpc SetSecurityModeComplete(Completion) returns (Nothing) { option (method_id) = 18; }
+    rpc SetIoCapabilitiesComplete(Completion) returns (Nothing) { option (method_id) = 19; }
+    rpc AuthenticateWithPasskeyComplete(Completion) returns (Nothing) { option (method_id) = 20; }
+    rpc NumericComparisonConfirmComplete(Completion) returns (Nothing) { option (method_id) = 21; }
+    rpc RemoveAllBondsComplete(Completion) returns (Nothing) { option (method_id) = 22; }
+    rpc SetDeviceDiscoveryFilterComplete(Completion) returns (Nothing) { option (method_id) = 23; }
 }

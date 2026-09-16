@@ -135,6 +135,33 @@ message UInt32Value
     uint32 value = 1;
 }
 
+message Completion
+{
+    enum RequestStatus
+    {
+        accepted = 0;
+        invalidState = 1;
+        invalidParameter = 2;
+        busy = 3;
+        notSupported = 4;
+    }
+
+    enum Result
+    {
+        success = 0;
+        cancelled = 1;
+        timeout = 2;
+        failed = 3;
+        controllerError = 4;
+    }
+
+    // A request that is not accepted reports its reason in requestStatus and
+    // leaves result unset; an accepted request reports accepted and the outcome
+    // of the procedure in result.
+    RequestStatus requestStatus = 1;
+    Result result = 2;
+}
+
 service GapPeripheral
 {
     option (service_id) = 32;
@@ -164,11 +191,21 @@ service GapPeripheralResponse
 {
     option (service_id) = 34;
 
-    rpc Done(Nothing) returns (Nothing) { option (method_id) = 1; }
+    // method_id 1 was Done; it reported no procedure and is not reused.
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
     rpc ResolvableAddress(Address) returns (Nothing) { option (method_id) = 4; }
     rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 5; }
     rpc IdentityAddress(Address) returns (Nothing) { option (method_id) = 6; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 7; }
+
+    rpc AdvertiseComplete(Completion) returns (Nothing) { option (method_id) = 8; }
+    rpc StandbyComplete(Completion) returns (Nothing) { option (method_id) = 9; }
+    rpc SetAdvertisementDataComplete(Completion) returns (Nothing) { option (method_id) = 10; }
+    rpc SetScanResponseDataComplete(Completion) returns (Nothing) { option (method_id) = 11; }
+    rpc SetAllowPairingComplete(Completion) returns (Nothing) { option (method_id) = 12; }
+    rpc SetSecurityModeComplete(Completion) returns (Nothing) { option (method_id) = 13; }
+    rpc SetIoCapabilitiesComplete(Completion) returns (Nothing) { option (method_id) = 14; }
+    rpc RemoveAllBondsComplete(Completion) returns (Nothing) { option (method_id) = 15; }
+    rpc SetOutOfBandDataComplete(Completion) returns (Nothing) { option (method_id) = 16; }
 }
