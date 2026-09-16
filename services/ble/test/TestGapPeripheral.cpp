@@ -1,7 +1,6 @@
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
+#include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/GapPeripheral.hpp"
-#include "services/ble/test_doubles/GapCentralMock.hpp"
-#include "services/ble/test_doubles/GapCentralObserverMock.hpp"
 #include "services/ble/test_doubles/GapPeripheralMock.hpp"
 #include "services/ble/test_doubles/GapPeripheralObserverMock.hpp"
 #include "gmock/gmock.h"
@@ -14,9 +13,21 @@ namespace services
             : public testing::Test
         {
         public:
-            GapPeripheralMock gap;
+            testing::StrictMock<GapPeripheralMock> gap;
             GapPeripheralDecorator decorator{ gap };
-            GapPeripheralObserverMock gapObserver{ decorator };
+            testing::StrictMock<GapPeripheralObserverMock> gapObserver{ decorator };
+
+            std::array<uint8_t, 6> data{ 0, 1, 2, 3, 4, 5 };
+            GapConnectionParameters connectionParameters{ 10, 20, 30, 40 };
+            testing::StrictMock<infra::MockCallback<void(GapPeripheral::Result)>> onDoneNotExpected;
+
+            infra::Function<void(GapPeripheral::Result)> RejectedCallback()
+            {
+                return [this](GapPeripheral::Result result)
+                {
+                    onDoneNotExpected.callback(result);
+                };
+            }
         };
     }
 
@@ -32,43 +43,102 @@ namespace services
             });
     }
 
-    TEST_F(GapPeripheralDecoratorTest, forward_all_calls_to_subject)
+    TEST_F(GapPeripheralDecoratorTest, forward_all_getters_to_subject)
     {
-        services::GapAddress address = { hal::MacAddress({ 5, 4, 3, 2, 1, 0 }), services::GapDeviceAddressType::publicAddress };
+        GapAddress address{ hal::MacAddress({ 5, 4, 3, 2, 1, 0 }), GapDeviceAddressType::publicAddress };
         EXPECT_CALL(gap, GetAddress()).WillOnce(testing::Return(address));
         EXPECT_THAT(decorator.GetAddress(), testing::Eq(address));
 
-        services::GapAddress identityAddress = { hal::MacAddress({ 0, 1, 2, 3, 4, 5 }), services::GapDeviceAddressType::publicAddress };
+        GapAddress identityAddress{ hal::MacAddress({ 0, 1, 2, 3, 4, 5 }), GapDeviceAddressType::publicAddress };
         EXPECT_CALL(gap, GetIdentityAddress()).WillOnce(testing::Return(identityAddress));
         EXPECT_THAT(decorator.GetIdentityAddress(), testing::Eq(identityAddress));
 
-        std::array<uint8_t, 6> data{ 0, 1, 2, 3, 4, 5 };
-        EXPECT_CALL(gap, SetAdvertisementData(infra::ContentsEqual(data)));
-        decorator.SetAdvertisementData(data);
+        EXPECT_CALL(gap, GetAdvertisementData()).WillOnce(testing::Return(infra::MakeConstByteRange(data)));
+        EXPECT_THAT(decorator.GetAdvertisementData(), infra::ContentsEqual(data));
 
-        EXPECT_CALL(gap, GetAdvertisementData());
-        decorator.GetAdvertisementData();
+        EXPECT_CALL(gap, GetScanResponseData()).WillOnce(testing::Return(infra::MakeConstByteRange(data)));
+        EXPECT_THAT(decorator.GetScanResponseData(), infra::ContentsEqual(data));
+    }
 
-        EXPECT_CALL(gap, SetScanResponseData(infra::ContentsEqual(data)));
-        decorator.SetScanResponseData(data);
+    TEST_F(GapPeripheralDecoratorTest, set_advertisement_data_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, SetAdvertisementData(infra::ContentsEqual(data), testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_CALL(gap, GetScanResponseData());
-        decorator.GetScanResponseData();
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetAdvertisementData(data, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
 
-        EXPECT_CALL(gap, Advertise(services::GapAdvertisementType::advNonconnInd, 32));
-        decorator.Advertise(services::GapAdvertisementType::advNonconnInd, 32);
+    TEST_F(GapPeripheralDecoratorTest, set_advertisement_data_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, SetAdvertisementData(infra::ContentsEqual(data), testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
-        EXPECT_CALL(gap, Standby());
-        decorator.Standby();
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.SetAdvertisementData(data, RejectedCallback()));
+    }
 
-        services::GapConnectionParameters connParam{ 10, 20, 30, 40 };
-        EXPECT_CALL(gap, SetConnectionParameters(testing::_)).WillOnce(testing::Invoke([connParam](const services::GapConnectionParameters& param)
-            {
-                EXPECT_EQ(param.maxConnIntMultiplier, connParam.maxConnIntMultiplier);
-                EXPECT_EQ(param.minConnIntMultiplier, connParam.minConnIntMultiplier);
-                EXPECT_EQ(param.slaveLatency, connParam.slaveLatency);
-                EXPECT_EQ(param.supervisorTimeoutMs, connParam.supervisorTimeoutMs);
-            }));
-        decorator.SetConnectionParameters(connParam);
+    TEST_F(GapPeripheralDecoratorTest, set_scan_response_data_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, SetScanResponseData(infra::ContentsEqual(data), testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPeripheral::Result::controllerError), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetScanResponseData(data, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::controllerError)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, set_scan_response_data_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, SetScanResponseData(infra::ContentsEqual(data), testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));
+
+        EXPECT_EQ(GapRequestStatus::busy, decorator.SetScanResponseData(data, RejectedCallback()));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, advertise_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, Advertise(GapAdvertisementType::advNonconnInd, 32, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Advertise(GapAdvertisementType::advNonconnInd, 32, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, advertise_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, Advertise(GapAdvertisementType::advInd, 16, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidParameter));
+
+        EXPECT_EQ(GapRequestStatus::invalidParameter, decorator.Advertise(GapAdvertisementType::advInd, 16, RejectedCallback()));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, standby_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, Standby(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Standby(infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, standby_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, Standby(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.Standby(RejectedCallback()));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, set_connection_parameters_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, SetConnectionParameters(testing::_, testing::_))
+            .WillOnce(testing::DoAll(testing::Invoke([this](const GapConnectionParameters& param, const infra::Function<void(GapPeripheral::Result)>&)
+                                         {
+                                             EXPECT_EQ(connectionParameters.minConnIntMultiplier, param.minConnIntMultiplier);
+                                             EXPECT_EQ(connectionParameters.maxConnIntMultiplier, param.maxConnIntMultiplier);
+                                             EXPECT_EQ(connectionParameters.slaveLatency, param.slaveLatency);
+                                             EXPECT_EQ(connectionParameters.supervisorTimeoutMs, param.supervisorTimeoutMs);
+                                         }),
+                testing::InvokeArgument<1>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetConnectionParameters(connectionParameters, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, set_connection_parameters_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, SetConnectionParameters(testing::_, testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetConnectionParameters(connectionParameters, RejectedCallback()));
     }
 }

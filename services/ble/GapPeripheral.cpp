@@ -20,19 +20,9 @@ namespace services
         return GapPeripheralObserver::Subject().GetIdentityAddress();
     }
 
-    void GapPeripheralDecorator::SetAdvertisementData(infra::ConstByteRange data)
-    {
-        GapPeripheralObserver::Subject().SetAdvertisementData(data);
-    }
-
     infra::ConstByteRange GapPeripheralDecorator::GetAdvertisementData() const
     {
         return GapPeripheralObserver::Subject().GetAdvertisementData();
-    }
-
-    void GapPeripheralDecorator::SetScanResponseData(infra::ConstByteRange data)
-    {
-        GapPeripheralObserver::Subject().SetScanResponseData(data);
     }
 
     infra::ConstByteRange GapPeripheralDecorator::GetScanResponseData() const
@@ -40,18 +30,28 @@ namespace services
         return GapPeripheralObserver::Subject().GetScanResponseData();
     }
 
-    void GapPeripheralDecorator::Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier)
+    GapRequestStatus GapPeripheralDecorator::SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone)
     {
-        GapPeripheralObserver::Subject().Advertise(type, multiplier);
+        return GapPeripheralObserver::Subject().SetAdvertisementData(data, onDone);
     }
 
-    void GapPeripheralDecorator::Standby()
+    GapRequestStatus GapPeripheralDecorator::SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone)
     {
-        GapPeripheralObserver::Subject().Standby();
+        return GapPeripheralObserver::Subject().SetScanResponseData(data, onDone);
     }
 
-    void GapPeripheralDecorator::SetConnectionParameters(const GapConnectionParameters& connParam)
+    GapRequestStatus GapPeripheralDecorator::Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone)
     {
-        GapPeripheralObserver::Subject().SetConnectionParameters(connParam);
+        return GapPeripheralObserver::Subject().Advertise(type, multiplier, onDone);
+    }
+
+    GapRequestStatus GapPeripheralDecorator::Standby(const infra::Function<void(Result)>& onDone)
+    {
+        return GapPeripheralObserver::Subject().Standby(onDone);
+    }
+
+    GapRequestStatus GapPeripheralDecorator::SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone)
+    {
+        return GapPeripheralObserver::Subject().SetConnectionParameters(connParam, onDone);
     }
 }

@@ -1,6 +1,7 @@
 #ifndef SERVICES_GAP_PERIPHERAL_HPP
 #define SERVICES_GAP_PERIPHERAL_HPP
 
+#include "infra/util/Function.hpp"
 #include "infra/util/Observer.hpp"
 #include "services/ble/GapTypes.hpp"
 
@@ -25,16 +26,28 @@ namespace services
         static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMin = 0x20u;   // 20 ms
         static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMax = 0x4000u; // 10240 ms
 
+        enum class Result : uint8_t
+        {
+            success = 0,
+            invalidParameter,
+            controllerError
+        };
+
     public:
         virtual GapAddress GetAddress() const = 0;
         virtual GapAddress GetIdentityAddress() const = 0;
-        virtual void SetAdvertisementData(infra::ConstByteRange data) = 0;
         virtual infra::ConstByteRange GetAdvertisementData() const = 0;
-        virtual void SetScanResponseData(infra::ConstByteRange data) = 0;
         virtual infra::ConstByteRange GetScanResponseData() const = 0;
-        virtual void Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier) = 0;
-        virtual void Standby() = 0;
-        virtual void SetConnectionParameters(const GapConnectionParameters& connParam) = 0;
+
+        // Each procedure below reports whether the request is accepted through its
+        // return value, and its outcome through onDone. onDone is never invoked from
+        // within the call itself; it is scheduled on the event dispatcher. A request
+        // that is not accepted never results in a call to onDone.
+        virtual GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
+        virtual GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
+        virtual GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) = 0;
+        virtual GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) = 0;
+        virtual GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) = 0;
     };
 
     class GapPeripheralDecorator
@@ -50,13 +63,13 @@ namespace services
         // Implementation of GapPeripheral
         GapAddress GetAddress() const override;
         GapAddress GetIdentityAddress() const override;
-        void SetAdvertisementData(infra::ConstByteRange data) override;
         infra::ConstByteRange GetAdvertisementData() const override;
-        void SetScanResponseData(infra::ConstByteRange data) override;
         infra::ConstByteRange GetScanResponseData() const override;
-        void Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier) override;
-        void Standby() override;
-        void SetConnectionParameters(const GapConnectionParameters& connParam) override;
+        GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) override;
     };
 }
 
