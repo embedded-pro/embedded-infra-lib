@@ -40,6 +40,7 @@ target_sources(hal.interfaces PRIVATE
     I2cRegisterAccess.hpp
     MacAddress.cpp
     MacAddress.hpp
+    Magnetometer.hpp
     Pwm.hpp
     QuadSpi.cpp
     QuadSpi.hpp

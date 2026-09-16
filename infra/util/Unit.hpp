@@ -443,6 +443,11 @@ namespace infra
     typedef BaseUnit<8> Degree;
     typedef Degree::Div<Second> DegreePerSecond;
     typedef DegreePerSecond::Scale<StaticRational<1, 1000>> MilliDegreePerSecond;
+
+    typedef BaseUnit<9> Tesla;
+    typedef Tesla::Scale<StaticRational<1, 1000000>> MicroTesla;
+    typedef Tesla::Scale<StaticRational<1, 10000>> Gauss;
+    typedef Gauss::Scale<StaticRational<1, 1000>> MilliGauss;
 }
 
 #endif

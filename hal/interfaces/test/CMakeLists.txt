@@ -20,6 +20,7 @@ target_sources(hal.interfaces_test PRIVATE
     TestGyroscope.cpp
     TestI2cRegisterAccess.cpp
     TestMacAddress.cpp
+    TestMagnetometer.cpp
     TestQuadSpi.cpp
     TestSerialCommunication.cpp
 )

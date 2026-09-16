@@ -19,6 +19,11 @@ typedef infra::Quantity<infra::Degree, int> Degree;
 typedef infra::Quantity<infra::DegreePerSecond, int> DegreePerSecond;
 typedef infra::Quantity<infra::MilliDegreePerSecond, int> MilliDegreePerSecond;
 
+typedef infra::Quantity<infra::Tesla, int> Tesla;
+typedef infra::Quantity<infra::MicroTesla, int> MicroTesla;
+typedef infra::Quantity<infra::Gauss, int> Gauss;
+typedef infra::Quantity<infra::MilliGauss, int> MilliGauss;
+
 typedef infra::Quantity<infra::MilliVolt, int> MilliVolt;
 typedef infra::Quantity<infra::MicroVolt, int> MicroVolt;
 typedef infra::Quantity<infra::MilliAmpere, int> MilliAmpere;
@@ -250,4 +255,16 @@ TEST(UnitTest, ImuUseCase)
     Second duration(5);
     Degree rotation = angularVelocity * duration;
     EXPECT_EQ(16, rotation.Value());
+}
+
+TEST(UnitTest, MagneticFluxDensityConversionBetweenGaussAndTesla)
+{
+    MicroTesla fromGauss(Gauss(1));
+    EXPECT_EQ(100, fromGauss.Value());
+
+    MicroTesla earthField(MilliGauss(500));
+    EXPECT_EQ(50, earthField.Value());
+
+    MicroTesla fromTesla(Tesla(3));
+    EXPECT_EQ(3000000, fromTesla.Value());
 }
