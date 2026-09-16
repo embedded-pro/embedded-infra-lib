@@ -14,6 +14,9 @@
 
 namespace drivers
 {
+    // One bus transaction is outstanding at a time, so Initialize, SetPowerMode, the scale setters,
+    // MeasureTemperature, Start and Stop must not be invoked while a previous one is still running.
+    // Completions are delivered from the event dispatcher, so calling them from a completion callback is safe.
     class Mpu9250Core
     {
     public:
