@@ -10,11 +10,11 @@ namespace services
         : public GapBonding
     {
     public:
-        MOCK_METHOD(void, RemoveAllBonds, ());
-        MOCK_METHOD(void, RemoveOldestBond, ());
         MOCK_METHOD(std::size_t, GetMaxNumberOfBonds, (), (const));
         MOCK_METHOD(std::size_t, GetNumberOfBonds, (), (const));
         MOCK_METHOD(bool, IsDeviceBonded, (hal::MacAddress deviceAddress, GapDeviceAddressType addressType), (const));
+        MOCK_METHOD(GapRequestStatus, RemoveAllBonds, (const infra::Function<void()>& onDone));
+        MOCK_METHOD(GapRequestStatus, RemoveOldestBond, (const infra::Function<void()>& onDone));
     };
 }
 

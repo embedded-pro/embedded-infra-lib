@@ -18,7 +18,7 @@ namespace services
             });
     }
 
-    void GapPairingDecorator::PairingFailed(PairingErrorType error)
+    void GapPairingDecorator::PairingFailed(GapPairingResult error)
     {
         GapPairing::NotifyObservers([&error](auto& obs)
             {
@@ -34,43 +34,43 @@ namespace services
             });
     }
 
-    void GapPairingDecorator::PairAndBond()
+    GapRequestStatus GapPairingDecorator::PairAndBond(const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().PairAndBond();
+        return GapPairingObserver::Subject().PairAndBond(onDone);
     }
 
-    void GapPairingDecorator::AllowPairing(bool allow)
+    GapRequestStatus GapPairingDecorator::AllowPairing(bool allow, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().AllowPairing(allow);
+        return GapPairingObserver::Subject().AllowPairing(allow, onDone);
     }
 
-    void GapPairingDecorator::SetSecurityMode(SecurityMode mode, SecurityLevel level)
+    GapRequestStatus GapPairingDecorator::SetSecurityMode(SecurityMode mode, SecurityLevel level, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().SetSecurityMode(mode, level);
+        return GapPairingObserver::Subject().SetSecurityMode(mode, level, onDone);
     }
 
-    void GapPairingDecorator::SetIoCapabilities(IoCapabilities caps)
+    GapRequestStatus GapPairingDecorator::SetIoCapabilities(IoCapabilities caps, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().SetIoCapabilities(caps);
+        return GapPairingObserver::Subject().SetIoCapabilities(caps, onDone);
     }
 
-    void GapPairingDecorator::GenerateOutOfBandData()
+    GapRequestStatus GapPairingDecorator::GenerateOutOfBandData(const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().GenerateOutOfBandData();
+        return GapPairingObserver::Subject().GenerateOutOfBandData(onDone);
     }
 
-    void GapPairingDecorator::SetOutOfBandData(const GapOutOfBandData& outOfBandData)
+    GapRequestStatus GapPairingDecorator::SetOutOfBandData(const GapOutOfBandData& outOfBandData, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().SetOutOfBandData(outOfBandData);
+        return GapPairingObserver::Subject().SetOutOfBandData(outOfBandData, onDone);
     }
 
-    void GapPairingDecorator::AuthenticateWithPasskey(uint32_t passkey)
+    GapRequestStatus GapPairingDecorator::AuthenticateWithPasskey(uint32_t passkey, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().AuthenticateWithPasskey(passkey);
+        return GapPairingObserver::Subject().AuthenticateWithPasskey(passkey, onDone);
     }
 
-    void GapPairingDecorator::NumericComparisonConfirm(bool accept)
+    GapRequestStatus GapPairingDecorator::NumericComparisonConfirm(bool accept, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        GapPairingObserver::Subject().NumericComparisonConfirm(accept);
+        return GapPairingObserver::Subject().NumericComparisonConfirm(accept, onDone);
     }
 }

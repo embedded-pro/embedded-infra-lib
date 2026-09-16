@@ -10,14 +10,14 @@ namespace services
         : public GapPairing
     {
     public:
-        MOCK_METHOD(void, PairAndBond, ());
-        MOCK_METHOD(void, AllowPairing, (bool allow));
-        MOCK_METHOD(void, SetSecurityMode, (SecurityMode mode, SecurityLevel level));
-        MOCK_METHOD(void, SetIoCapabilities, (IoCapabilities caps));
-        MOCK_METHOD(void, GenerateOutOfBandData, ());
-        MOCK_METHOD(void, SetOutOfBandData, (const GapOutOfBandData& outOfBandData));
-        MOCK_METHOD(void, AuthenticateWithPasskey, (uint32_t passkey));
-        MOCK_METHOD(void, NumericComparisonConfirm, (bool accept));
+        MOCK_METHOD(GapRequestStatus, PairAndBond, (const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, AllowPairing, (bool allow, const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, SetSecurityMode, (SecurityMode mode, SecurityLevel level, const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, SetIoCapabilities, (IoCapabilities caps, const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, GenerateOutOfBandData, (const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, SetOutOfBandData, (const GapOutOfBandData& outOfBandData, const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, AuthenticateWithPasskey, (uint32_t passkey, const infra::Function<void(GapPairingResult)>& onDone));
+        MOCK_METHOD(GapRequestStatus, NumericComparisonConfirm, (bool accept, const infra::Function<void(GapPairingResult)>& onDone));
     };
 }
 

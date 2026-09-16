@@ -10,16 +10,6 @@ namespace services
             });
     }
 
-    void GapBondingDecorator::RemoveAllBonds()
-    {
-        GapBondingObserver::Subject().RemoveAllBonds();
-    }
-
-    void GapBondingDecorator::RemoveOldestBond()
-    {
-        GapBondingObserver::Subject().RemoveOldestBond();
-    }
-
     std::size_t GapBondingDecorator::GetMaxNumberOfBonds() const
     {
         return GapBondingObserver::Subject().GetMaxNumberOfBonds();
@@ -33,5 +23,15 @@ namespace services
     bool GapBondingDecorator::IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const
     {
         return GapBondingObserver::Subject().IsDeviceBonded(address, addressType);
+    }
+
+    GapRequestStatus GapBondingDecorator::RemoveAllBonds(const infra::Function<void()>& onDone)
+    {
+        return GapBondingObserver::Subject().RemoveAllBonds(onDone);
+    }
+
+    GapRequestStatus GapBondingDecorator::RemoveOldestBond(const infra::Function<void()>& onDone)
+    {
+        return GapBondingObserver::Subject().RemoveOldestBond(onDone);
     }
 }
