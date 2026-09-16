@@ -11,5 +11,7 @@ target_link_libraries(drivers.imu.mpu9250_test PUBLIC
 )
 
 target_sources(drivers.imu.mpu9250_test PRIVATE
+    Mpu9250BusAccessMock.hpp
     TestMpu9250BusAccess.cpp
+    TestMpu9250Core.cpp
 )

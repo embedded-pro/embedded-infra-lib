@@ -12,6 +12,8 @@ target_sources(drivers.imu.mpu9250 PRIVATE
     Mpu9250BusAccessI2c.hpp
     Mpu9250BusAccessSpi.cpp
     Mpu9250BusAccessSpi.hpp
+    Mpu9250Core.cpp
+    Mpu9250Core.hpp
 )
 
 add_subdirectory(test)
