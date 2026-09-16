@@ -12,6 +12,12 @@ typedef infra::Quantity<infra::MilliSecond, int> MilliSecond;
 typedef infra::Quantity<infra::MicroSecond, int> MicroSecond;
 
 typedef infra::Quantity<infra::MeterPerSecond, int> MeterPerSecond;
+typedef infra::Quantity<infra::MeterPerSecondSquared, int> MeterPerSecondSquared;
+typedef infra::Quantity<infra::MilliMeterPerSecondSquared, int> MilliMeterPerSecondSquared;
+
+typedef infra::Quantity<infra::Degree, int> Degree;
+typedef infra::Quantity<infra::DegreePerSecond, int> DegreePerSecond;
+typedef infra::Quantity<infra::MilliDegreePerSecond, int> MilliDegreePerSecond;
 
 typedef infra::Quantity<infra::MilliVolt, int> MilliVolt;
 typedef infra::Quantity<infra::MicroVolt, int> MicroVolt;
@@ -188,4 +194,60 @@ TEST(UnitTest, Division)
     distance = Meter(20);
     time = distance / speed;
     EXPECT_EQ(5, time.Value());
+}
+
+TEST(UnitTest, AccelerationIsSpeedDividedByTime)
+{
+    MeterPerSecond speed(20);
+    Second time(4);
+
+    MeterPerSecondSquared acceleration = speed / time;
+    EXPECT_EQ(5, acceleration.Value());
+}
+
+TEST(UnitTest, SpeedIsAccelerationMultipliedByTime)
+{
+    MeterPerSecondSquared acceleration(5);
+    Second time(4);
+
+    MeterPerSecond speed = acceleration * time;
+    EXPECT_EQ(20, speed.Value());
+}
+
+TEST(UnitTest, AccelerationConversionToSmallerUnit)
+{
+    MilliMeterPerSecondSquared acceleration(MeterPerSecondSquared(2));
+    EXPECT_EQ(2000, acceleration.Value());
+}
+
+TEST(UnitTest, AngularVelocityIsAngleDividedByTime)
+{
+    Degree angle(180);
+    Second time(2);
+
+    DegreePerSecond angularVelocity = angle / time;
+    EXPECT_EQ(90, angularVelocity.Value());
+
+    angle = angularVelocity * time;
+    EXPECT_EQ(180, angle.Value());
+}
+
+TEST(UnitTest, AngularVelocityConversionToSmallerUnit)
+{
+    MilliDegreePerSecond angularVelocity(DegreePerSecond(3));
+    EXPECT_EQ(3000, angularVelocity.Value());
+}
+
+TEST(UnitTest, ImuUseCase)
+{
+    // A gyroscope with a sensitivity of 8 mdps per LSB, reporting a raw count of 400
+    MilliDegreePerSecond sensitivity(8);
+    int rawCount = 400;
+    MilliDegreePerSecond angularVelocity = rawCount * sensitivity;
+    EXPECT_EQ(3200, angularVelocity.Value());
+
+    // Rotating at that rate for 5 seconds
+    Second duration(5);
+    Degree rotation = angularVelocity * duration;
+    EXPECT_EQ(16, rotation.Value());
 }

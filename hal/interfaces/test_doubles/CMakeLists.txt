@@ -9,6 +9,7 @@ target_link_libraries(hal.interfaces_test_doubles PRIVATE
 )
 
 target_sources(hal.interfaces_test_doubles PRIVATE
+    AccelerometerMock.hpp
     AdcMultiChannelMock.hpp
     AdcMultiChannelStub.cpp
     AdcMultiChannelStub.hpp
@@ -30,6 +31,7 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     GpioMock.hpp
     GpioStub.cpp
     GpioStub.hpp
+    GyroscopeMock.hpp
     I2cMock.cpp
     I2cMock.hpp
     I2cRegisterAccessMock.cpp

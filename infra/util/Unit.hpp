@@ -417,6 +417,8 @@ namespace infra
     typedef MilliSecond::Scale<StaticRational<1, 1000>> MicroSecond;
 
     typedef Second::Div<Meter>::Inverse MeterPerSecond;
+    typedef MeterPerSecond::Div<Second> MeterPerSecondSquared;
+    typedef MeterPerSecondSquared::Scale<StaticRational<1, 1000>> MilliMeterPerSecondSquared;
 
     typedef BaseUnit<3> Ohm;
     typedef Ohm::Scale<StaticRational<1000, 1>> KiloOhm;
@@ -437,6 +439,10 @@ namespace infra
     typedef BaseUnit<7> Hertz;
 
     typedef Second::Inverse PulsesPerSecond;
+
+    typedef BaseUnit<8> Degree;
+    typedef Degree::Div<Second> DegreePerSecond;
+    typedef DegreePerSecond::Scale<StaticRational<1, 1000>> MilliDegreePerSecond;
 }
 
 #endif
