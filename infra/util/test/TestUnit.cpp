@@ -268,3 +268,18 @@ TEST(UnitTest, MagneticFluxDensityConversionBetweenGaussAndTesla)
     MicroTesla fromTesla(Tesla(3));
     EXPECT_EQ(3000000, fromTesla.Value());
 }
+
+TEST(UnitTest, ConversionOfNegativeValueToLargerUnit)
+{
+    Meter distance(MilliMeter(-20999));
+    EXPECT_EQ(-20, distance.Value());
+
+    MicroTesla field(MilliGauss(-500));
+    EXPECT_EQ(-50, field.Value());
+}
+
+TEST(UnitTest, ConversionOfNegativeValueToSmallerUnit)
+{
+    MilliMeter distance(Meter(-20));
+    EXPECT_EQ(-20000, distance.Value());
+}

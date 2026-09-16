@@ -3,6 +3,7 @@
 
 #include "infra/util/VariadicTemplates.hpp"
 #include <cstdint>
+#include <type_traits>
 #include <utility>
 
 namespace infra
@@ -204,6 +205,22 @@ namespace infra
         : UnitBase<List<>, StaticRational<1, 1>>
     {};
 
+    template<class StorageType>
+    struct ConversionStorage
+    {
+        using Type = typename std::conditional<std::is_integral<StorageType>::value,
+            typename std::conditional<std::is_signed<StorageType>::value, int64_t, uint64_t>::type,
+            StorageType>::type;
+    };
+
+    template<class UnitType, class OtherUnit, class StorageType>
+    StorageType ConvertQuantityValue(StorageType value)
+    {
+        using Intermediate = typename ConversionStorage<StorageType>::Type;
+
+        return static_cast<StorageType>(static_cast<Intermediate>(value) * static_cast<Intermediate>(OtherUnit::Factor::n) * static_cast<Intermediate>(UnitType::Factor::d) / static_cast<Intermediate>(OtherUnit::Factor::d) / static_cast<Intermediate>(UnitType::Factor::n));
+    }
+
     template<class UnitType, class StorageType>
     class Quantity
     {
@@ -259,14 +276,14 @@ namespace infra
     template<class UnitType, class StorageType>
     template<class OtherUnit>
     Quantity<UnitType, StorageType>::Quantity(Quantity<OtherUnit, StorageType> other, typename std::enable_if<UnitSame<OtherUnit, UnitType>::value>::type*)
-        : value(other.value * OtherUnit::Factor::n * UnitType::Factor::d / OtherUnit::Factor::d / UnitType::Factor::n)
+        : value(ConvertQuantityValue<UnitType, OtherUnit>(other.value))
     {}
 
     template<class UnitType, class StorageType>
     template<class OtherUnit>
     typename std::enable_if<UnitSame<OtherUnit, UnitType>::value, Quantity<UnitType, StorageType>&>::type Quantity<UnitType, StorageType>::operator=(const Quantity<OtherUnit, StorageType>& other)
     {
-        value = other.value * OtherUnit::Factor::n * UnitType::Factor::d / OtherUnit::Factor::d / UnitType::Factor::n;
+        value = ConvertQuantityValue<UnitType, OtherUnit>(other.value);
         return *this;
     }
 
