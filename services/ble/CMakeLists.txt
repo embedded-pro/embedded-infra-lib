@@ -8,9 +8,13 @@ protocol_buffer_echo_all(services.ble GapPeripheral.proto)
 protocol_buffer_csharp(services.ble GapPeripheral.proto)
 protocol_buffer_java(services.ble GapPeripheral.proto)
 
-protocol_buffer_echo_all(services.ble Gatt.proto)
-protocol_buffer_csharp(services.ble Gatt.proto)
-protocol_buffer_java(services.ble Gatt.proto)
+protocol_buffer_echo_all(services.ble GattClient.proto)
+protocol_buffer_csharp(services.ble GattClient.proto)
+protocol_buffer_java(services.ble GattClient.proto)
+
+protocol_buffer_echo_all(services.ble GattServer.proto)
+protocol_buffer_csharp(services.ble GattServer.proto)
+protocol_buffer_java(services.ble GattServer.proto)
 
 protocol_buffer_echo_all(services.ble Dtm.proto)
 protocol_buffer_csharp(services.ble Dtm.proto)

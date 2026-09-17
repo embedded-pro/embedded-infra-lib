@@ -1,0 +1,182 @@
+syntax = "proto3";
+
+import "EchoAttributes.proto";
+
+package gatt.client;
+option java_package = "com.philips.emil.protobufEcho";
+option java_outer_classname = "GattClientProto";
+
+// Identifies one of the connections a GATT client holds. Every request and every response
+// carries it, so that a single ECHO link can drive several connections at once.
+message ConnectionId
+{
+    uint32 value = 1;
+}
+
+message Handle
+{
+    uint32 value = 1;
+}
+
+message Address
+{
+    bytes address = 1 [(bytes_size) = 6];
+}
+
+message Connection
+{
+    ConnectionId connection = 1;
+    Address address = 2;
+}
+
+message CharacteristicHandle
+{
+    ConnectionId connection = 1;
+    Handle handle = 2;
+}
+
+message CharacteristicData
+{
+    ConnectionId connection = 1;
+    Handle handle = 2;
+    bytes data = 3 [(bytes_size) = 512];
+}
+
+message HandleRange
+{
+    ConnectionId connection = 1;
+    Handle startHandle = 2;
+    Handle endHandle = 3;
+}
+
+message MtuSize
+{
+    ConnectionId connection = 1;
+    uint32 value = 2;
+}
+
+message Service
+{
+    ConnectionId connection = 1;
+    bytes uuid = 2 [(bytes_size) = 16];
+    Handle startHandle = 3;
+    Handle endHandle = 4;
+}
+
+message Characteristic
+{
+    ConnectionId connection = 1;
+    bytes uuid = 2 [(bytes_size) = 16];
+    Handle handle = 3;
+    Handle valueHandle = 4;
+    uint32 properties = 5;
+}
+
+// Not 'Descriptor': protoc generates a static Descriptor member on every C# message, which
+// a message of that name would collide with (CS0542). Verified against the generated C#.
+message Descriptr
+{
+    ConnectionId connection = 1;
+    bytes uuid = 2 [(bytes_size) = 16];
+    Handle handle = 3;
+}
+
+message RequestStatus
+{
+    enum Status
+    {
+        accepted = 0;
+        invalidState = 1;
+        invalidParameter = 2;
+        busy = 3;
+        notSupported = 4;
+    }
+
+    Status status = 1;
+}
+
+message Completion
+{
+    enum Result
+    {
+        success = 0;
+        invalidHandle = 1;
+        notPermitted = 2;
+        insufficientAuthentication = 3;
+        insufficientAuthorization = 4;
+        insufficientEncryption = 5;
+        insufficientResources = 6;
+        invalidLength = 7;
+        unsupported = 8;
+        disconnected = 9;
+        timeout = 10;
+        unknown = 11;
+    }
+
+    ConnectionId connection = 1;
+    RequestStatus requestStatus = 2;
+    Result result = 3;
+}
+
+message ReadCompletion
+{
+    Completion completion = 1;
+    bytes data = 2 [(bytes_size) = 512];
+}
+
+// Method ids 1 to 15 were used by the single connection interface and are left unused, so
+// that a peer speaking that version fails on an unknown method rather than misreading one.
+service GattClient
+{
+    option (service_id) = 134;
+
+    rpc ExchangeMtu(ConnectionId) returns (Nothing) { option (method_id) = 16; }
+
+    rpc DiscoverServices(ConnectionId) returns (Nothing) { option (method_id) = 17; }
+    rpc DiscoverCharacteristics(HandleRange) returns (Nothing) { option (method_id) = 18; }
+    rpc DiscoverDescriptors(HandleRange) returns (Nothing) { option (method_id) = 19; }
+
+    rpc Read(CharacteristicHandle) returns (Nothing) { option (method_id) = 20; }
+    rpc Write(CharacteristicData) returns (Nothing) { option (method_id) = 21; }
+    rpc WriteWithoutResponse(CharacteristicData) returns (Nothing) { option (method_id) = 22; }
+
+    rpc EnableNotification(CharacteristicHandle) returns (Nothing) { option (method_id) = 23; }
+    rpc DisableNotification(CharacteristicHandle) returns (Nothing) { option (method_id) = 24; }
+    rpc EnableIndication(CharacteristicHandle) returns (Nothing) { option (method_id) = 25; }
+    rpc DisableIndication(CharacteristicHandle) returns (Nothing) { option (method_id) = 26; }
+
+    // IndicationDone shall be called for every IndicationReceived
+    rpc IndicationDone(ConnectionId) returns (Nothing) { option (method_id) = 27; }
+}
+
+// Method ids 1 to 12 were used by the single connection interface and are left unused.
+service GattClientResponse
+{
+    option (service_id) = 135;
+
+    rpc ConnectionEstablished(Connection) returns (Nothing) { option (method_id) = 16; }
+    rpc ConnectionReleased(ConnectionId) returns (Nothing) { option (method_id) = 17; }
+
+    rpc MtuChanged(MtuSize) returns (Nothing) { option (method_id) = 18; }
+    rpc ExchangeMtuComplete(Completion) returns (Nothing) { option (method_id) = 19; }
+
+    rpc ServiceDiscovered(Service) returns (Nothing) { option (method_id) = 20; }
+    rpc DiscoverServicesComplete(Completion) returns (Nothing) { option (method_id) = 21; }
+
+    rpc CharacteristicDiscovered(Characteristic) returns (Nothing) { option (method_id) = 22; }
+    rpc DiscoverCharacteristicsComplete(Completion) returns (Nothing) { option (method_id) = 23; }
+
+    rpc DescriptorDiscovered(Descriptr) returns (Nothing) { option (method_id) = 24; }
+    rpc DiscoverDescriptorsComplete(Completion) returns (Nothing) { option (method_id) = 25; }
+
+    rpc ReadComplete(ReadCompletion) returns (Nothing) { option (method_id) = 26; }
+    rpc WriteComplete(Completion) returns (Nothing) { option (method_id) = 27; }
+
+    rpc EnableNotificationComplete(Completion) returns (Nothing) { option (method_id) = 28; }
+    rpc DisableNotificationComplete(Completion) returns (Nothing) { option (method_id) = 29; }
+    rpc EnableIndicationComplete(Completion) returns (Nothing) { option (method_id) = 30; }
+    rpc DisableIndicationComplete(Completion) returns (Nothing) { option (method_id) = 31; }
+
+    rpc IndicationReceived(CharacteristicData) returns (Nothing) { option (method_id) = 32; }
+    rpc NotificationReceived(CharacteristicData) returns (Nothing) { option (method_id) = 33; }
+}
