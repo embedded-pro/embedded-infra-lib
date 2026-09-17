@@ -3,7 +3,6 @@
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/EnumCast.hpp"
-#include "infra/util/Observer.hpp"
 #include "services/ble/Att.hpp"
 
 namespace services
@@ -134,28 +133,6 @@ namespace services
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle endHandle;
-    };
-
-    class AttMtuExchange;
-
-    class AttMtuExchangeObserver
-        : public infra::Observer<AttMtuExchangeObserver, AttMtuExchange>
-    {
-    public:
-        using infra::Observer<AttMtuExchangeObserver, AttMtuExchange>::Observer;
-
-        virtual void ExchangedMaxAttMtuSize() = 0;
-    };
-
-    class AttMtuExchange
-        : public infra::Subject<AttMtuExchangeObserver>
-    {
-    public:
-        virtual uint16_t EffectiveMaxAttMtuSize() const = 0;
-        virtual void MtuExchange() = 0;
-
-    protected:
-        static constexpr uint16_t defaultMaxAttMtuSize = 23;
     };
 
     inline GattCharacteristic::PropertyFlags operator|(GattCharacteristic::PropertyFlags lhs, GattCharacteristic::PropertyFlags rhs)

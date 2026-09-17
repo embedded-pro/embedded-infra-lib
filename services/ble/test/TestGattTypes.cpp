@@ -110,6 +110,7 @@ TEST(GattInsertionOperatorUuidTest, uuid_overload_operator)
 
     EXPECT_EQ("Uuid16: [42], Uuid128: [100f0e0d0c0b0a090807060504030201]", stream.Storage());
 }
+
 TEST(GattResultFromAttErrorCodeTest, maps_every_specified_error_code)
 {
     using services::AttErrorCode;

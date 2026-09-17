@@ -1,32 +1,19 @@
-#ifndef SERVICES_RETRY_GATT_CHARACTERISTIC_IMPL_HPP
-#define SERVICES_RETRY_GATT_CHARACTERISTIC_IMPL_HPP
+#ifndef SERVICES_RETRY_GATT_CLIENT_CHARACTERISTICS_OPERATIONS_HPP
+#define SERVICES_RETRY_GATT_CLIENT_CHARACTERISTICS_OPERATIONS_HPP
 
-#include "services/ble/GattClient.hpp"
+#include "services/ble/GattClientConnection.hpp"
 #include <optional>
 
 namespace services
 {
     class RetryGattClientCharacteristicsOperations
-        : public GattClientCharacteristicOperations
-        , public GattClientStackUpdateObserver
+        : public GattClientConnectionDecorator
     {
     public:
-        explicit RetryGattClientCharacteristicsOperations(GattClientCharacteristicOperations& gattClient);
+        using GattClientConnectionDecorator::GattClientConnectionDecorator;
 
-        // Implementation of GattClientCharacteristicOperations
-        void Read(AttAttribute::Handle handle, const infra::Function<void(const infra::ConstByteRange&)>& onRead, const infra::Function<void(uint8_t)>& onDone) override;
-        void Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone) override;
+        // Implementation of GattClientConnection
         void WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone) override;
-
-        void EnableNotification(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-        void DisableNotification(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-
-        void EnableIndication(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-        void DisableIndication(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-
-        // Implementation of GattClientStackUpdateObserver
-        void NotificationReceived(AttAttribute::Handle handle, infra::ConstByteRange data) override;
-        void IndicationReceived(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone) override;
 
     private:
         void TryWriteWithoutResponse();
@@ -39,8 +26,8 @@ namespace services
             const infra::Function<void(OperationStatus)> onDone;
         };
 
-        GattClientCharacteristicOperations& gattClient;
         std::optional<Operation> operationWriteWithoutResponse;
     };
 }
+
 #endif

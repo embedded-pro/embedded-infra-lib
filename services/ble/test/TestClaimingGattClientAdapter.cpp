@@ -4,10 +4,8 @@
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/Att.hpp"
 #include "services/ble/ClaimingGattClientAdapter.hpp"
-#include "services/ble/GattClient.hpp"
 #include "services/ble/test_doubles/GapCentralMock.hpp"
-#include "services/ble/test_doubles/GattClientMock.hpp"
-#include "services/ble/test_doubles/GattMock.hpp"
+#include "services/ble/test_doubles/GattClientConnectionMock.hpp"
 #include "gmock/gmock.h"
 #include <array>
 #include <cstdint>
@@ -20,19 +18,17 @@ namespace
         , public infra::EventDispatcherFixture
     {
     public:
-        testing::StrictMock<services::GattClientMock> gattClient;
-        testing::StrictMock<services::AttMtuExchangeMock> attMtuExchange;
+        testing::StrictMock<services::GattClientConnectionMock> connection;
         testing::StrictMock<services::GapCentralMock> gapCentral;
-        services::ClaimingGattClientAdapter adapter{ gattClient, attMtuExchange, gapCentral };
-        testing::StrictMock<services::GattClientDiscoveryObserverMock> discoveryObserver{ adapter };
-        testing::StrictMock<services::GattClientStackUpdateObserverMock> stackUpdateObserver{ adapter };
-        testing::StrictMock<services::AttMtuExchangeObserverMock> attMtuExchangeObserver{ adapter };
+        services::ClaimingGattClientAdapter adapter{ connection, gapCentral };
+        testing::StrictMock<services::GattClientConnectionObserverMock> connectionObserver{ adapter };
+        testing::StrictMock<services::GattClientUpdateObserverMock> updateObserver{ adapter };
     };
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_start_service_discovery)
 {
-    EXPECT_CALL(gattClient, StartServiceDiscovery());
+    EXPECT_CALL(connection, StartServiceDiscovery());
     adapter.StartServiceDiscovery();
     ExecuteAllActions();
 }
@@ -42,7 +38,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_start_characteristic_discovery
     const auto handle = 0x1;
     const auto endHandle = 0x2;
 
-    EXPECT_CALL(gattClient, StartCharacteristicDiscovery(handle, endHandle));
+    EXPECT_CALL(connection, StartCharacteristicDiscovery(handle, endHandle));
     adapter.StartCharacteristicDiscovery(handle, endHandle);
     ExecuteAllActions();
 }
@@ -52,7 +48,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_start_descriptor_discovery)
     const auto handle = 0x1;
     const auto endHandle = 0x2;
 
-    EXPECT_CALL(gattClient, StartDescriptorDiscovery(handle, endHandle));
+    EXPECT_CALL(connection, StartDescriptorDiscovery(handle, endHandle));
     adapter.StartDescriptorDiscovery(handle, endHandle);
     ExecuteAllActions();
 }
@@ -63,8 +59,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_service_discovered)
     static const auto handle = 0x1;
     static const auto endHandle = 0x2;
 
-    EXPECT_CALL(discoveryObserver, ServiceDiscovered(type, handle, endHandle));
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, ServiceDiscovered(type, handle, endHandle));
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.ServiceDiscovered(type, handle, endHandle);
         });
@@ -78,8 +74,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_characteristic_discovered)
     static const auto valueHandle = 0x2;
     static const auto properties = services::GattCharacteristic::PropertyFlags::read | services::GattCharacteristic::PropertyFlags::notify;
 
-    EXPECT_CALL(discoveryObserver, CharacteristicDiscovered(type, handle, valueHandle, properties));
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, CharacteristicDiscovered(type, handle, valueHandle, properties));
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.CharacteristicDiscovered(type, handle, valueHandle, properties);
         });
@@ -91,8 +87,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_descriptor_discovered)
     static const services::AttAttribute::Uuid type = services::AttAttribute::Uuid16{ 0x180D };
     static const auto handle = 0x1;
 
-    EXPECT_CALL(discoveryObserver, DescriptorDiscovered(type, handle));
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, DescriptorDiscovered(type, handle));
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.DescriptorDiscovered(type, handle);
         });
@@ -101,8 +97,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_descriptor_discovered)
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_service_discovery_complete)
 {
-    EXPECT_CALL(discoveryObserver, ServiceDiscoveryComplete());
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, ServiceDiscoveryComplete());
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.ServiceDiscoveryComplete();
         });
@@ -111,8 +107,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_service_discovery_complete)
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_characteristic_discovery_complete)
 {
-    EXPECT_CALL(discoveryObserver, CharacteristicDiscoveryComplete());
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, CharacteristicDiscoveryComplete());
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.CharacteristicDiscoveryComplete();
         });
@@ -121,8 +117,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_characteristic_discovery_compl
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_descriptor_discovery_complete)
 {
-    EXPECT_CALL(discoveryObserver, DescriptorDiscoveryComplete());
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, DescriptorDiscoveryComplete());
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.DescriptorDiscoveryComplete();
         });
@@ -135,7 +131,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_read_characteristic)
     const auto result = 123;
     const auto handle = 0x1;
 
-    EXPECT_CALL(gattClient, Read(handle, testing::_, testing::_))
+    EXPECT_CALL(connection, Read(handle, testing::_, testing::_))
         .WillOnce([&readResult, handle, result](services::AttAttribute::Handle passedHandle,
                       infra::Function<void(const infra::ConstByteRange&)> onRead,
                       infra::Function<void(uint8_t)> onDone)
@@ -160,7 +156,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_write_characteristic)
     const auto handle = 0x1;
     infra::VerifyingFunction<void(uint8_t)> onDone{ result };
 
-    EXPECT_CALL(gattClient, Write(handle, infra::ByteRangeContentsEqual(data), testing::_)).WillOnce([handle, data, result, &onDone](services::AttAttribute::Handle passedHandle, infra::ConstByteRange writeData, const infra::Function<void(uint8_t)>& onWriteDone)
+    EXPECT_CALL(connection, Write(handle, infra::ByteRangeContentsEqual(data), testing::_)).WillOnce([handle, data, result, &onDone](services::AttAttribute::Handle passedHandle, infra::ConstByteRange writeData, const infra::Function<void(uint8_t)>& onWriteDone)
         {
             EXPECT_EQ(passedHandle, handle);
             onWriteDone(result);
@@ -177,7 +173,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_write_without_response_charact
     const auto handle = 0x1;
     infra::VerifyingFunction<void(services::OperationStatus)> onWriteWithoutResponse{ services::OperationStatus::success };
 
-    EXPECT_CALL(gattClient, WriteWithoutResponse(testing::_, infra::ByteRangeContentsEqual(data), testing::_))
+    EXPECT_CALL(connection, WriteWithoutResponse(testing::_, infra::ByteRangeContentsEqual(data), testing::_))
         .WillOnce([handle](services::AttAttribute::Handle passedHandle,
                       infra::ConstByteRange data,
                       const infra::Function<void(services::OperationStatus)>& onDone)
@@ -195,7 +191,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_enable_notification_characteri
     const auto result = 123;
     const auto handle = 0x1;
 
-    EXPECT_CALL(gattClient, EnableNotification(handle, testing::_))
+    EXPECT_CALL(connection, EnableNotification(handle, testing::_))
         .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
                       infra::Function<void(uint8_t)> onDone)
             {
@@ -212,7 +208,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_disable_notification_character
     const auto result = 123;
     const auto handle = 0x1;
 
-    EXPECT_CALL(gattClient, DisableNotification(handle, testing::_))
+    EXPECT_CALL(connection, DisableNotification(handle, testing::_))
         .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
                       infra::Function<void(uint8_t)> onDone)
             {
@@ -229,7 +225,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_enable_indication_characterist
     const auto result = 123;
     const auto handle = 0x1;
 
-    EXPECT_CALL(gattClient, EnableIndication(handle, testing::_))
+    EXPECT_CALL(connection, EnableIndication(handle, testing::_))
         .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
                       infra::Function<void(uint8_t)> onDone)
             {
@@ -246,7 +242,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_disable_indication_characteris
     const auto result = 123;
     const auto handle = 0x1;
 
-    EXPECT_CALL(gattClient, DisableIndication(handle, testing::_))
+    EXPECT_CALL(connection, DisableIndication(handle, testing::_))
         .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
                       infra::Function<void(uint8_t)> onDone)
             {
@@ -260,17 +256,17 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_disable_indication_characteris
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_mtu_exchange)
 {
-    EXPECT_CALL(attMtuExchange, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
+    EXPECT_CALL(connection, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
     EXPECT_EQ(200, adapter.EffectiveMaxAttMtuSize());
 
-    EXPECT_CALL(attMtuExchange, MtuExchange());
-    adapter.MtuExchange();
+    EXPECT_CALL(connection, ExchangeMtu());
+    adapter.ExchangeMtu();
     ExecuteAllActions();
 
-    EXPECT_CALL(attMtuExchangeObserver, ExchangedMaxAttMtuSize());
-    attMtuExchange.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, MtuChanged());
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
-            observer.ExchangedMaxAttMtuSize();
+            observer.MtuChanged();
         });
 }
 
@@ -279,7 +275,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_block_discovery_while_characteristi
     const auto handle = 0x1;
     const auto endHandle = 0x2;
 
-    EXPECT_CALL(gattClient, StartCharacteristicDiscovery(handle, endHandle));
+    EXPECT_CALL(connection, StartCharacteristicDiscovery(handle, endHandle));
     adapter.StartCharacteristicDiscovery(handle, endHandle);
     ExecuteAllActions();
 
@@ -288,13 +284,13 @@ TEST_F(ClaimingGattClientAdapterTest, should_block_discovery_while_characteristi
     adapter.DisableIndication(handle, infra::MockFunction<void(uint8_t)>(result));
     ExecuteAllActions();
 
-    EXPECT_CALL(discoveryObserver, CharacteristicDiscoveryComplete());
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(connectionObserver, CharacteristicDiscoveryComplete());
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
             observer.CharacteristicDiscoveryComplete();
         });
 
-    EXPECT_CALL(gattClient, DisableIndication(handle, testing::_))
+    EXPECT_CALL(connection, DisableIndication(handle, testing::_))
         .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
                       infra::Function<void(uint8_t)> onDone)
             {
@@ -309,8 +305,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_notification_received)
     static const auto handle = 0x1;
     static const infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
 
-    EXPECT_CALL(stackUpdateObserver, NotificationReceived(handle, data));
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(updateObserver, NotificationReceived(handle, data));
+    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
         {
             observer.NotificationReceived(handle, data);
         });
@@ -322,8 +318,8 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_indication_received)
     static const auto handle = 0x1;
     static const infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
 
-    EXPECT_CALL(stackUpdateObserver, IndicationReceived(handle, data, testing::_)).WillOnce(testing::InvokeArgument<2>());
-    gattClient.NotifyObservers([](auto& observer)
+    EXPECT_CALL(updateObserver, IndicationReceived(handle, data, testing::_)).WillOnce(testing::InvokeArgument<2>());
+    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
         {
             observer.IndicationReceived(handle, data, infra::MockFunction<void()>());
         });
@@ -340,9 +336,9 @@ TEST_F(ClaimingGattClientAdapterTest, can_write_without_response_while_awaiting_
     infra::Function<void(const infra::ConstByteRange&)> onRead;
     infra::Function<void(uint8_t)> onDone;
 
-    EXPECT_CALL(gattClient, Read(handle, testing::_, testing::_))
+    EXPECT_CALL(connection, Read(handle, testing::_, testing::_))
         .WillOnce(::testing::DoAll(::testing::SaveArg<1>(&onRead), ::testing::SaveArg<2>(&onDone)));
-    EXPECT_CALL(gattClient, WriteWithoutResponse(handleWrite, testing::_, testing::_)).WillOnce(::testing::InvokeArgument<2>(services::OperationStatus::success));
+    EXPECT_CALL(connection, WriteWithoutResponse(handleWrite, testing::_, testing::_)).WillOnce(::testing::InvokeArgument<2>(services::OperationStatus::success));
 
     adapter.Read(handle,
         infra::MockFunction<void(const infra::ConstByteRange&)>(readResult),
@@ -360,16 +356,16 @@ TEST_F(ClaimingGattClientAdapterTest, can_write_without_response_while_awaiting_
 
 TEST_F(ClaimingGattClientAdapterTest, should_release_claimer_when_disconnected)
 {
-    EXPECT_CALL(attMtuExchange, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
+    EXPECT_CALL(connection, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
     EXPECT_EQ(200, adapter.EffectiveMaxAttMtuSize());
 
-    EXPECT_CALL(attMtuExchange, MtuExchange());
-    adapter.MtuExchange();
+    EXPECT_CALL(connection, ExchangeMtu());
+    adapter.ExchangeMtu();
     ExecuteAllActions();
 
     gapCentral.ChangeState(services::GapCentralState::standby);
 
-    EXPECT_CALL(attMtuExchange, MtuExchange());
-    adapter.MtuExchange();
+    EXPECT_CALL(connection, ExchangeMtu());
+    adapter.ExchangeMtu();
     ExecuteAllActions();
 }

@@ -17,6 +17,8 @@ namespace services
         using Handle = uint16_t;
     };
 
+    constexpr uint16_t attDefaultMaxMtuSize = 23;
+
     // Values taken from Bluetooth Core Specification
     // Volume 3, Part F, section 3.4.1.1
     enum class AttErrorCode : uint8_t

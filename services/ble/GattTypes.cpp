@@ -35,6 +35,7 @@ namespace services
                 return GattResult::unknown;
         }
     }
+
     GattDescriptor::GattDescriptor(const AttAttribute::Uuid& type, AttAttribute::Handle handle)
         : type(type)
         , handle(handle)
