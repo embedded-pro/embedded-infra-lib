@@ -8,6 +8,33 @@
 
 namespace services
 {
+    enum class GattRequestStatus : uint8_t
+    {
+        accepted = 0,
+        invalidState,
+        invalidParameter,
+        busy,
+        notSupported
+    };
+
+    enum class GattResult : uint8_t
+    {
+        success = 0,
+        invalidHandle,
+        notPermitted,
+        insufficientAuthentication,
+        insufficientAuthorization,
+        insufficientEncryption,
+        insufficientResources,
+        invalidLength,
+        unsupported,
+        disconnected,
+        timeout,
+        unknown
+    };
+
+    GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
+
     struct GattDescriptor
     {
         struct ClientCharacteristicConfiguration

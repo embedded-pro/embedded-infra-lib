@@ -2,6 +2,39 @@
 
 namespace services
 {
+    GattResult GattResultFromAttErrorCode(uint8_t attErrorCode)
+    {
+        switch (static_cast<AttErrorCode>(attErrorCode))
+        {
+            case AttErrorCode::success:
+                return GattResult::success;
+            case AttErrorCode::invalidHandle:
+            case AttErrorCode::attributeNotFound:
+                return GattResult::invalidHandle;
+            case AttErrorCode::readNotPermitted:
+            case AttErrorCode::writeNotPermitted:
+                return GattResult::notPermitted;
+            case AttErrorCode::insufficientAuthentication:
+                return GattResult::insufficientAuthentication;
+            case AttErrorCode::insufficientAuthorization:
+                return GattResult::insufficientAuthorization;
+            case AttErrorCode::insufficientEncryptionKeySize:
+            case AttErrorCode::insufficientEncryption:
+                return GattResult::insufficientEncryption;
+            case AttErrorCode::prepareQueueFull:
+            case AttErrorCode::insufficientResources:
+                return GattResult::insufficientResources;
+            case AttErrorCode::invalidOffset:
+            case AttErrorCode::attributeNotLong:
+            case AttErrorCode::invalidAttributeValueLength:
+                return GattResult::invalidLength;
+            case AttErrorCode::requestNotSupported:
+            case AttErrorCode::unsupportedGroupType:
+                return GattResult::unsupported;
+            default:
+                return GattResult::unknown;
+        }
+    }
     GattDescriptor::GattDescriptor(const AttAttribute::Uuid& type, AttAttribute::Handle handle)
         : type(type)
         , handle(handle)
