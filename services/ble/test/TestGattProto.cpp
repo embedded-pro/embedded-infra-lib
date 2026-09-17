@@ -164,3 +164,24 @@ TEST(GattProtoTest, round_trip_a_long_read_completion)
     EXPECT_EQ(gatt::client::Completion::Result::success, parsed.completion.result);
     EXPECT_EQ(completion.data, parsed.data);
 }
+
+TEST(GattProtoTest, round_trip_included_service_carries_its_connection)
+{
+    const std::array<uint8_t, 2> uuid{ 0x0A, 0x18 };
+    gatt::client::IncludedService includedService{ ConnectionId(4), infra::MakeRange(uuid), gatt::client::Handle{ 0x5 }, gatt::client::Handle{ 0x20 }, gatt::client::Handle{ 0x2F } };
+
+    auto parsed = RoundTrip(includedService);
+
+    EXPECT_EQ(4, parsed.connection.value);
+    EXPECT_EQ(0x5, parsed.handle.value);
+    EXPECT_EQ(0x20, parsed.serviceStartHandle.value);
+    EXPECT_EQ(0x2F, parsed.serviceEndHandle.value);
+    EXPECT_EQ(includedService.uuid, parsed.uuid);
+}
+
+TEST(GattProtoTest, the_included_service_discovery_takes_new_method_ids)
+{
+    EXPECT_EQ(30u, gatt::client::GattClientProxy::idDiscoverIncludedServices);
+    EXPECT_EQ(36u, gatt::client::GattClientResponseProxy::idIncludedServiceDiscovered);
+    EXPECT_EQ(37u, gatt::client::GattClientResponseProxy::idDiscoverIncludedServicesComplete);
+}

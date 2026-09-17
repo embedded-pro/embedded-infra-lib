@@ -116,6 +116,48 @@ namespace services
         return valueHandle;
     }
 
+    GattIncludedService::GattIncludedService(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle serviceHandle, AttAttribute::Handle serviceEndHandle)
+        : type(type)
+        , handle(handle)
+        , serviceHandle(serviceHandle)
+        , serviceEndHandle(serviceEndHandle)
+    {}
+
+    const AttAttribute::Uuid& GattIncludedService::Type() const
+    {
+        return type;
+    }
+
+    AttAttribute::Handle GattIncludedService::Handle() const
+    {
+        return handle;
+    }
+
+    AttAttribute::Handle& GattIncludedService::Handle()
+    {
+        return handle;
+    }
+
+    AttAttribute::Handle GattIncludedService::ServiceHandle() const
+    {
+        return serviceHandle;
+    }
+
+    AttAttribute::Handle& GattIncludedService::ServiceHandle()
+    {
+        return serviceHandle;
+    }
+
+    AttAttribute::Handle GattIncludedService::ServiceEndHandle() const
+    {
+        return serviceEndHandle;
+    }
+
+    AttAttribute::Handle& GattIncludedService::ServiceEndHandle()
+    {
+        return serviceEndHandle;
+    }
+
     GattService::GattService(const AttAttribute::Uuid& type)
         : GattService(type, 0, 0)
     {}

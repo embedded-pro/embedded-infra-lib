@@ -81,6 +81,15 @@ message Descriptr
     Handle handle = 3;
 }
 
+message IncludedService
+{
+    ConnectionId connection = 1;
+    bytes uuid = 2 [(bytes_size) = 16];
+    Handle handle = 3;
+    Handle serviceStartHandle = 4;
+    Handle serviceEndHandle = 5;
+}
+
 message RequestStatus
 {
     enum Status
@@ -147,6 +156,8 @@ service GattClient
     // PDU, and would let that peer leave a half built prepare queue open on a bearer it does not
     // own. CharacteristicData and ReadCompletion are already bounded to the 512 octets of the
     // largest attribute value, so they carry a long value unchanged.
+    rpc DiscoverIncludedServices(HandleRange) returns (Nothing) { option (method_id) = 30; }
+
     rpc ReadLong(CharacteristicHandle) returns (Nothing) { option (method_id) = 28; }
     rpc WriteLong(CharacteristicData) returns (Nothing) { option (method_id) = 29; }
 
@@ -181,6 +192,9 @@ service GattClientResponse
 
     rpc ReadComplete(ReadCompletion) returns (Nothing) { option (method_id) = 26; }
     rpc WriteComplete(Completion) returns (Nothing) { option (method_id) = 27; }
+
+    rpc IncludedServiceDiscovered(IncludedService) returns (Nothing) { option (method_id) = 36; }
+    rpc DiscoverIncludedServicesComplete(Completion) returns (Nothing) { option (method_id) = 37; }
 
     rpc ReadLongComplete(ReadCompletion) returns (Nothing) { option (method_id) = 34; }
     rpc WriteLongComplete(Completion) returns (Nothing) { option (method_id) = 35; }

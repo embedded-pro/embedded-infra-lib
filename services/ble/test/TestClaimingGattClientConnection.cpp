@@ -600,3 +600,38 @@ TEST_F(LongOperationsTest, should_report_disconnected_when_the_underlying_read_i
                                                          }));
     ExecuteAllActions();
 }
+
+TEST_F(ClaimingGattClientConnectionTest, should_call_discover_included_services)
+{
+    EXPECT_CALL(connection, DiscoverIncludedServices(handle, endHandle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverIncludedServices(handle, endHandle, ignoredResult));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_discover_the_included_services_of_a_whole_service)
+{
+    const services::GattService service{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x10, 0x1F };
+
+    EXPECT_CALL(connection, DiscoverIncludedServices(0x10, 0x1F, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverIncludedServices(service, ignoredResult));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_forward_an_included_service_discovered)
+{
+    const services::GattIncludedService includedService{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x5, 0x20, 0x2F };
+
+    EXPECT_CALL(connectionObserver, IncludedServiceDiscovered(includedService));
+    adapter.IncludedServiceDiscovered(includedService);
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_queue_an_included_service_discovery_behind_another_discovery)
+{
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(ignoredResult));
+    ExecuteAllActions();
+
+    EXPECT_EQ(services::GattRequestStatus::busy, adapter.DiscoverIncludedServices(handle, endHandle, ignoredResult));
+}

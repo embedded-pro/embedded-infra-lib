@@ -76,6 +76,14 @@ namespace services
             });
     }
 
+    GattRequestStatus ClaimingGattClientConnection::DiscoverIncludedServices(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
+    {
+        return ClaimDiscovery(handle, endHandle, onDone, [this](const infra::Function<void(GattResult)>& callback)
+            {
+                return GattClientConnectionDecorator::DiscoverIncludedServices(discoveryContext->handle, discoveryContext->endHandle, callback);
+            });
+    }
+
     GattRequestStatus ClaimingGattClientConnection::ClaimDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone, const DiscoveryProcedure& procedure)
     {
         if (discoveryClaimer.IsClaimed() || discoveryClaimer.IsQueued())

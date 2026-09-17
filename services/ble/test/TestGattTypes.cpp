@@ -252,3 +252,23 @@ TEST(GattServiceChangedTest, rejects_an_empty_value)
 {
     EXPECT_FALSE(services::GattServiceChangedFromValue(infra::ConstByteRange()));
 }
+
+TEST(GattIncludedServiceTest, holds_the_handle_range_of_the_included_service)
+{
+    services::GattIncludedService includedService{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x5, 0x20, 0x2F };
+
+    EXPECT_EQ(0x5, includedService.Handle());
+    EXPECT_EQ(0x20, includedService.ServiceHandle());
+    EXPECT_EQ(0x2F, includedService.ServiceEndHandle());
+    EXPECT_EQ(services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), includedService.Type());
+}
+
+TEST(GattIncludedServiceTest, compares_by_value)
+{
+    services::GattIncludedService first{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x5, 0x20, 0x2F };
+    services::GattIncludedService same{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x5, 0x20, 0x2F };
+    services::GattIncludedService different{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x5, 0x20, 0x30 };
+
+    EXPECT_EQ(first, same);
+    EXPECT_NE(first, different);
+}

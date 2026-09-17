@@ -207,6 +207,35 @@ namespace services
         AttAttribute::Handle endHandle;
     };
 
+    // An Include declaration, 0x2802. Its value carries the included service's handle range, and
+    // its UUID only when that service is 16-bit; for a 128-bit service a client must read the
+    // included service's own declaration to learn it. The type therefore carries a Uuid that the
+    // port fills in after that extra read, which is not modelled here.
+    // Bluetooth Core Specification, Volume 3, Part G, section 3.2
+    class GattIncludedService
+    {
+    public:
+        GattIncludedService(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle serviceHandle, AttAttribute::Handle serviceEndHandle);
+        GattIncludedService() = default;
+
+        const AttAttribute::Uuid& Type() const;
+
+        AttAttribute::Handle Handle() const;
+        AttAttribute::Handle& Handle();
+        AttAttribute::Handle ServiceHandle() const;
+        AttAttribute::Handle& ServiceHandle();
+        AttAttribute::Handle ServiceEndHandle() const;
+        AttAttribute::Handle& ServiceEndHandle();
+
+        bool operator==(const GattIncludedService& other) const = default;
+
+    private:
+        AttAttribute::Uuid type;
+        AttAttribute::Handle handle{};
+        AttAttribute::Handle serviceHandle{};
+        AttAttribute::Handle serviceEndHandle{};
+    };
+
     // The bits of the Characteristic Extended Properties descriptor, 0x2900, which is present
     // exactly when GattCharacteristic::PropertyFlags::extended is set.
     // Values taken from Bluetooth Core Specification

@@ -22,12 +22,14 @@ namespace services
 
         using GattClientConnectionDecorator::DiscoverCharacteristics;
         using GattClientConnectionDecorator::DiscoverDescriptors;
+        using GattClientConnectionDecorator::DiscoverIncludedServices;
 
         // Implementation of GattClientConnection
         GattRequestStatus ExchangeMtu(const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DiscoverServices(const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DiscoverCharacteristics(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DiscoverDescriptors(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus DiscoverIncludedServices(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone) override;
         GattRequestStatus Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;

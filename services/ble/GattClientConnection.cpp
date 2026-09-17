@@ -12,6 +12,11 @@ namespace services
         return DiscoverDescriptors(service.Handle(), service.EndHandle(), onDone);
     }
 
+    GattRequestStatus GattClientConnection::DiscoverIncludedServices(const GattService& service, const infra::Function<void(GattResult)>& onDone)
+    {
+        return DiscoverIncludedServices(service.Handle(), service.EndHandle(), onDone);
+    }
+
     void GattIndicationFanOut::Deliver(infra::Subject<GattClientUpdateObserver>& observers, AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone)
     {
         this->onDone = onDone;
@@ -47,6 +52,14 @@ namespace services
         infra::Subject<GattClientConnectionObserver>::NotifyObservers([&service](auto& observer)
             {
                 observer.ServiceDiscovered(service);
+            });
+    }
+
+    void GattClientConnectionDecorator::IncludedServiceDiscovered(const GattIncludedService& includedService)
+    {
+        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&includedService](auto& observer)
+            {
+                observer.IncludedServiceDiscovered(includedService);
             });
     }
 
@@ -110,6 +123,11 @@ namespace services
     GattRequestStatus GattClientConnectionDecorator::DiscoverDescriptors(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
     {
         return GattClientConnectionObserver::Subject().DiscoverDescriptors(handle, endHandle, onDone);
+    }
+
+    GattRequestStatus GattClientConnectionDecorator::DiscoverIncludedServices(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
+    {
+        return GattClientConnectionObserver::Subject().DiscoverIncludedServices(handle, endHandle, onDone);
     }
 
     GattRequestStatus GattClientConnectionDecorator::Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone)
