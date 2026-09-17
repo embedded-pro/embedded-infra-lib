@@ -122,9 +122,9 @@ jobs:
           buildPreset: "host-single-Debug"
           testPreset: "host-single-Debug"
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
-      - name: Re-run failed tests with verbose output
+      - name: Re-run failed tests
         if: ${{ failure() }}
-        run: ctest --preset host-single-Debug --rerun-failed --output-on-failure -VV
+        run: ctest --preset host-single-Debug --rerun-failed --output-on-failure
         continue-on-error: true
       - name: Upload test logs
         if: ${{ failure() }}
