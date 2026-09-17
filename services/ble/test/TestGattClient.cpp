@@ -5,6 +5,7 @@
 #include "services/ble/test_doubles/GattClientConnectionMock.hpp"
 #include "services/ble/test_doubles/GattClientMock.hpp"
 #include "gmock/gmock.h"
+#include <algorithm>
 
 namespace
 {
