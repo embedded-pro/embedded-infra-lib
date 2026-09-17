@@ -8,14 +8,14 @@ The `services/ble` package provides the Generic Access Profile (GAP), the Generi
 
 The Bluetooth specification separates what a device may do by the role it plays in a connection. The interfaces follow that separation, so a device includes only what its role needs:
 
-| Header | Contents |
-| --- | --- |
-| `GapTypes.hpp` | Value types shared by both roles: `GapAddress`, `GapState`, `GapConnectionParameters`, `GapAdvertisingReport`, `GapRequestStatus` |
-| `GapAdvertisingData.hpp` | `GapAdvertisingDataParser` and `GapAdvertisementFormatter` |
-| `GapPeripheral.hpp` | `GapPeripheral`, its observer and its decorator: advertising and standby |
-| `GapCentral.hpp` | `GapCentral`, its observer and its decorator: scanning, connecting and disconnecting |
-| `GapPairing.hpp` | `GapPairing`, its observer and its decorator: the Security Manager procedures, used by both roles |
-| `GapBonding.hpp` | `GapBonding`, its observer and its decorator: stored bonds, used by both roles |
+| Header                   | Contents                                                                                                                          |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `GapTypes.hpp`           | Value types shared by both roles: `GapAddress`, `GapState`, `GapConnectionParameters`, `GapAdvertisingReport`, `GapRequestStatus` |
+| `GapAdvertisingData.hpp` | `GapAdvertisingDataParser` and `GapAdvertisementFormatter`                                                                        |
+| `GapPeripheral.hpp`      | `GapPeripheral`, its observer and its decorator: advertising and standby                                                          |
+| `GapCentral.hpp`         | `GapCentral`, its observer and its decorator: scanning, connecting and disconnecting                                              |
+| `GapPairing.hpp`         | `GapPairing`, its observer and its decorator: the Security Manager procedures, used by both roles                                 |
+| `GapBonding.hpp`         | `GapBonding`, its observer and its decorator: stored bonds, used by both roles                                                    |
 
 `GapCentral.hpp` and `GapPeripheral.hpp` do not include each other.
 
