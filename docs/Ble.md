@@ -10,13 +10,13 @@ The `services/ble` package provides the Generic Access Profile (GAP) and the Gen
 
 **HCI and the Link Layer** are out of scope. No opcodes, no transport, no Link Layer control PDUs. Only the vocabulary appears, in the connection state enums.
 
-**Direct Test Mode** is part of this package, as `services::BleDtm`. It used to sit in `hal/` while its ECHO
-service sat here, which left the two halves of one interface in different layers. It is a Bluetooth procedure
-described by the Core Specification, Volume 6, Part F, not a hardware abstraction, and like everything else
-here it is asynchronous: each procedure returns a `DtmRequestStatus` and reports through `onDone`. Its channel
-numbers, packet payloads and PHYs are the ones the specification defines. The unmodulated carrier it also
-exposes is *not* Direct Test Mode — controllers offer it through vendor-specific commands — and is named so
-that this is visible.
+**Direct Test Mode** is part of this package, as `services::DirectTestMode`. It used to sit in `hal/` while
+its ECHO service sat here, which left the two halves of one interface in different layers. It is a Bluetooth
+procedure described by the Core Specification, Volume 6, Part F, not a hardware abstraction, and like
+everything else here it is asynchronous: each procedure returns a `DirectTestMode::RequestStatus` and reports
+through `onDone`. Its channel numbers, packet payloads and PHYs are the ones the specification defines. The
+unmodulated carrier it also exposes is *not* Direct Test Mode — controllers offer it through vendor-specific
+commands — and is named so that this is visible.
 
 **L2CAP is a non-goal.** LE Credit Based Flow Control channels, connection-oriented channels and signalling
 are all delegated to the vendor stack and are not modelled here. This is a decision rather than an oversight:

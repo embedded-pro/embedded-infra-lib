@@ -7,7 +7,7 @@ target_link_libraries(services.ble_test_doubles INTERFACE
 )
 
 target_sources(services.ble_test_doubles PRIVATE
-    BleDtmMock.hpp
+    DirectTestModeMock.hpp
     BondStorageSynchronizerMock.hpp
     GapCentralMock.hpp
     GapCentralObserverMock.hpp

@@ -10,7 +10,7 @@ target_link_libraries(services.ble_test PUBLIC
 )
 
 target_sources(services.ble_test PRIVATE
-    TestBleDtm.cpp
+    TestDirectTestMode.cpp
     TestBondBlobPersistence.cpp
     TestBondStorageSynchronizer.cpp
     TestGapAdvertisingData.cpp
