@@ -142,6 +142,14 @@ service GattClient
     rpc Write(CharacteristicData) returns (Nothing) { option (method_id) = 21; }
     rpc WriteWithoutResponse(CharacteristicData) returns (Nothing) { option (method_id) = 22; }
 
+    // Only the composed procedures cross ECHO. Read Blob, Prepare Write and Execute Write are
+    // deliberately absent: driving them from a remote peer would cost a link round trip per ATT
+    // PDU, and would let that peer leave a half built prepare queue open on a bearer it does not
+    // own. CharacteristicData and ReadCompletion are already bounded to the 512 octets of the
+    // largest attribute value, so they carry a long value unchanged.
+    rpc ReadLong(CharacteristicHandle) returns (Nothing) { option (method_id) = 28; }
+    rpc WriteLong(CharacteristicData) returns (Nothing) { option (method_id) = 29; }
+
     rpc EnableNotification(CharacteristicHandle) returns (Nothing) { option (method_id) = 23; }
     rpc DisableNotification(CharacteristicHandle) returns (Nothing) { option (method_id) = 24; }
     rpc EnableIndication(CharacteristicHandle) returns (Nothing) { option (method_id) = 25; }
@@ -173,6 +181,9 @@ service GattClientResponse
 
     rpc ReadComplete(ReadCompletion) returns (Nothing) { option (method_id) = 26; }
     rpc WriteComplete(Completion) returns (Nothing) { option (method_id) = 27; }
+
+    rpc ReadLongComplete(ReadCompletion) returns (Nothing) { option (method_id) = 34; }
+    rpc WriteLongComplete(Completion) returns (Nothing) { option (method_id) = 35; }
 
     rpc EnableNotificationComplete(Completion) returns (Nothing) { option (method_id) = 28; }
     rpc DisableNotificationComplete(Completion) returns (Nothing) { option (method_id) = 29; }

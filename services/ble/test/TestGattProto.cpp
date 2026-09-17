@@ -129,3 +129,38 @@ TEST(GattProtoTest, round_trip_read_completion)
     EXPECT_EQ(gatt::client::Completion::Result::success, parsed.completion.result);
     EXPECT_EQ(readCompletion.data, parsed.data);
 }
+
+TEST(GattProtoTest, the_long_operations_take_new_method_ids)
+{
+    // A changed payload moves to a new id and the old id is left unused, so a peer speaking an
+    // older version fails on an unknown method rather than misreading a known one. These four
+    // are additions, so they simply continue past the previous maxima of 27 and 33.
+    EXPECT_EQ(28u, gatt::client::GattClientProxy::idReadLong);
+    EXPECT_EQ(29u, gatt::client::GattClientProxy::idWriteLong);
+    EXPECT_EQ(34u, gatt::client::GattClientResponseProxy::idReadLongComplete);
+    EXPECT_EQ(35u, gatt::client::GattClientResponseProxy::idWriteLongComplete);
+}
+
+TEST(GattProtoTest, round_trip_a_long_read_completion)
+{
+    std::array<uint8_t, 300> storage{};
+    for (std::size_t i = 0; i != storage.size(); ++i)
+        storage[i] = static_cast<uint8_t>(i);
+
+    gatt::client::ReadCompletion completion{
+        gatt::client::Completion{ ConnectionId(3), gatt::client::RequestStatus{ gatt::client::RequestStatus::Status::accepted }, gatt::client::Completion::Result::success },
+        infra::MakeRange(storage)
+    };
+
+    infra::ByteOutputStream::WithStorage<512> stream;
+    infra::ProtoFormatter formatter(stream);
+    completion.Serialize(formatter);
+
+    infra::ByteInputStream inputStream(stream.Writer().Processed());
+    infra::ProtoParser parser(inputStream);
+    gatt::client::ReadCompletion parsed(parser);
+
+    EXPECT_EQ(3, parsed.completion.connection.value);
+    EXPECT_EQ(gatt::client::Completion::Result::success, parsed.completion.result);
+    EXPECT_EQ(completion.data, parsed.data);
+}
