@@ -25,6 +25,11 @@ namespace services
         return GapBondingObserver::Subject().IsDeviceBonded(address, addressType);
     }
 
+    std::optional<GapBondStrength> GapBondingDecorator::BondStrength(hal::MacAddress address, GapDeviceAddressType addressType) const
+    {
+        return GapBondingObserver::Subject().BondStrength(address, addressType);
+    }
+
     GapRequestStatus GapBondingDecorator::RemoveAllBonds(const infra::Function<void()>& onDone)
     {
         return GapBondingObserver::Subject().RemoveAllBonds(onDone);

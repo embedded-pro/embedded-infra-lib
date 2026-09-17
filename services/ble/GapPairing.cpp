@@ -10,11 +10,11 @@ namespace services
             });
     }
 
-    void GapPairingDecorator::PairingSuccessfullyCompleted()
+    void GapPairingDecorator::PairingSuccessfullyCompleted(const GapBondStrength& strength)
     {
-        GapPairing::NotifyObservers([](auto& obs)
+        GapPairing::NotifyObservers([&strength](auto& obs)
             {
-                obs.PairingSuccessfullyCompleted();
+                obs.PairingSuccessfullyCompleted(strength);
             });
     }
 

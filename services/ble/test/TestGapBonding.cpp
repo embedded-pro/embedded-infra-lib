@@ -80,6 +80,60 @@ namespace services
         EXPECT_EQ(GapRequestStatus::accepted, decorator.RemoveOldestBond(infra::VerifyingFunction<void()>()));
     }
 
+    TEST_F(GapBondingDecoratorTest, reports_the_strength_of_a_bonded_device)
+    {
+        const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
+        const GapBondStrength lesc{ true, true, 16 };
+
+        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::publicAddress)).WillOnce(testing::Return(lesc));
+
+        auto strength = decorator.BondStrength(mac, GapDeviceAddressType::publicAddress);
+
+        ASSERT_TRUE(strength);
+        EXPECT_TRUE(strength->secureConnections);
+        EXPECT_TRUE(strength->authenticated);
+        EXPECT_EQ(16, strength->encryptionKeySize);
+    }
+
+    TEST_F(GapBondingDecoratorTest, reports_no_strength_for_a_device_that_is_not_bonded)
+    {
+        const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
+
+        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::publicAddress)).WillOnce(testing::Return(std::nullopt));
+
+        EXPECT_FALSE(decorator.BondStrength(mac, GapDeviceAddressType::publicAddress));
+    }
+
+    TEST_F(GapBondingDecoratorTest, distinguishes_a_legacy_bond_from_a_secure_connections_one)
+    {
+        const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
+
+        // The distinction an application needs before trusting a bonded peer with a privileged
+        // operation, and the one IsDeviceBonded cannot express.
+        const GapBondStrength legacyUnauthenticated{ false, false, 16 };
+
+        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::randomAddress)).WillOnce(testing::Return(legacyUnauthenticated));
+
+        auto strength = decorator.BondStrength(mac, GapDeviceAddressType::randomAddress);
+
+        ASSERT_TRUE(strength);
+        EXPECT_FALSE(strength->secureConnections);
+        EXPECT_FALSE(strength->authenticated);
+    }
+
+    TEST_F(GapBondingDecoratorTest, reports_a_short_encryption_key)
+    {
+        const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
+
+        // A 7-octet key is the specification's minimum and is worth far less than a 16-octet one,
+        // which a bonded-or-not answer cannot convey.
+        const GapBondStrength shortKey{ true, true, 7 };
+
+        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::publicAddress)).WillOnce(testing::Return(shortKey));
+
+        EXPECT_EQ(7, decorator.BondStrength(mac, GapDeviceAddressType::publicAddress)->encryptionKeySize);
+    }
+
     TEST_F(GapBondingDecoratorTest, remove_oldest_bond_forwards_rejection_without_invoking_callback)
     {
         EXPECT_CALL(gapBonding, RemoveOldestBond(testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));

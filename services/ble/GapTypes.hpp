@@ -5,6 +5,7 @@
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/EnumCast.hpp"
+#include <optional>
 
 namespace services
 {
@@ -102,6 +103,20 @@ namespace services
         {
             return phy == GapPhy::leCoded ? 17040u : static_cast<uint16_t>((initialMaxTxOctets + 14u) * 8u);
         }
+    };
+
+    // How much a bond is actually worth: whether it came from LE Secure Connections or legacy
+    // pairing, whether its key is authenticated, and the negotiated key size. An application
+    // deciding whether to trust a bonded peer with a privileged operation has no other basis for
+    // the decision; Mode 1 Level 4 exists precisely to mean authenticated LESC with a 128-bit key.
+    // Bluetooth Core Specification, Volume 3, Part H, section 2.4.5
+    struct GapBondStrength
+    {
+        bool secureConnections;
+        bool authenticated;
+        uint8_t encryptionKeySize;
+
+        bool operator==(const GapBondStrength& other) const = default;
     };
 
     struct GapAddress

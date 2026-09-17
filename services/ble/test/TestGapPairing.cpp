@@ -43,14 +43,14 @@ namespace services
     TEST_F(GapPairingDecoratorTest, forward_all_events_to_observers)
     {
         EXPECT_CALL(gapPairingObserver, DisplayPasskey(::testing::Eq(11111), ::testing::IsTrue()));
-        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted());
+        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(GapBondStrength{ true, true, 16 }));
         EXPECT_CALL(gapPairingObserver, PairingFailed(::testing::TypedEq<GapPairingResult>(GapPairingResult::numericComparisonFailed)));
         EXPECT_CALL(gapPairingObserver, OutOfBandDataGenerated(OutOfBandDataContentsEqual(GapOutOfBandData{ macAddress, GapDeviceAddressType::publicAddress, infra::MakeByteRange(random), infra::MakeByteRange(confirm) })));
 
         gapPairing.NotifyObservers([this](GapPairingObserver& obs)
             {
                 obs.DisplayPasskey(11111, true);
-                obs.PairingSuccessfullyCompleted();
+                obs.PairingSuccessfullyCompleted(GapBondStrength{ true, true, 16 });
                 obs.PairingFailed(GapPairingResult::numericComparisonFailed);
                 obs.OutOfBandDataGenerated(GapOutOfBandData{ macAddress, GapDeviceAddressType::publicAddress, infra::MakeByteRange(random), infra::MakeByteRange(confirm) });
             });
@@ -92,6 +92,36 @@ namespace services
         EXPECT_CALL(gapPairing, AllowPairing(::testing::IsFalse(), testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
 
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.AllowPairing(false, RejectedCallback()));
+    }
+
+    TEST_F(GapPairingDecoratorTest, reports_the_bond_strength_when_pairing_completes)
+    {
+        // An application that has just paired should not have to go back and query how strong
+        // the bond it just formed is.
+        const GapBondStrength lesc{ true, true, 16 };
+
+        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(lesc));
+
+        gapPairing.NotifyObservers([&lesc](GapPairingObserver& obs)
+            {
+                obs.PairingSuccessfullyCompleted(lesc);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, distinguishes_a_just_works_bond_from_an_authenticated_one)
+    {
+        const GapBondStrength justWorks{ true, false, 16 };
+
+        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(justWorks));
+
+        gapPairing.NotifyObservers([&justWorks](GapPairingObserver& obs)
+            {
+                obs.PairingSuccessfullyCompleted(justWorks);
+            });
+
+        EXPECT_NE((GapBondStrength{ true, true, 16 }), justWorks);
+        EXPECT_NE((GapBondStrength{ false, false, 16 }), justWorks);
+        EXPECT_NE((GapBondStrength{ true, false, 7 }), justWorks);
     }
 
     TEST_F(GapPairingDecoratorTest, set_security_mode_forwards_request_and_result)

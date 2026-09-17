@@ -29,7 +29,7 @@ namespace services
         using infra::Observer<GapPairingObserver, GapPairing>::Observer;
 
         virtual void DisplayPasskey(int32_t passkey, bool numericComparison) = 0;
-        virtual void PairingSuccessfullyCompleted() = 0;
+        virtual void PairingSuccessfullyCompleted(const GapBondStrength& strength) = 0;
         virtual void PairingFailed(GapPairingResult error) = 0;
         virtual void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) = 0;
     };
@@ -91,7 +91,7 @@ namespace services
 
         // Implementation of GapPairingObserver
         void DisplayPasskey(int32_t passkey, bool numericComparison) override;
-        void PairingSuccessfullyCompleted() override;
+        void PairingSuccessfullyCompleted(const GapBondStrength& strength) override;
         void PairingFailed(GapPairingResult error) override;
         void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) override;
 
