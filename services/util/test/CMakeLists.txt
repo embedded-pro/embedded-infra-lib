@@ -10,6 +10,7 @@ target_link_libraries(services.util_test PUBLIC
     gmock_main
     services.tracer
     services.util
+    services.util.register_access
     services.util_test_doubles
     hal.interfaces_test_doubles
     infra.timer_test_helper

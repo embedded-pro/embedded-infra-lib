@@ -4,6 +4,7 @@ target_link_libraries(drivers.imu.mpu9250 PUBLIC
     hal.interfaces
     infra.timer
     infra.util
+    services.util.register_access
 )
 
 target_sources(drivers.imu.mpu9250 PRIVATE

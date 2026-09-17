@@ -4,6 +4,7 @@ target_link_libraries(drivers.imu.lsm303dlhc PUBLIC
     hal.interfaces
     infra.timer
     infra.util
+    services.util.register_access
 )
 
 target_sources(drivers.imu.lsm303dlhc PRIVATE
