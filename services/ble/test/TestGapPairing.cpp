@@ -98,9 +98,7 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, displays_a_passkey_without_a_comparison_flag)
     {
-        // Passkey Entry and Numeric Comparison are distinct Security Manager procedures. They
-        // used to share one callback discriminated by a bool at the call site, which made the two
-        // indistinguishable to read and easy to confuse.
+        // Passkey Entry and Numeric Comparison are distinct Security Manager procedures.
         EXPECT_CALL(gapPairingObserver, DisplayPasskey(123456u));
 
         gapPairing.NotifyObservers([](GapPairingObserver& obs)
@@ -121,8 +119,7 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, carries_the_whole_six_digit_passkey_range)
     {
-        // 000000 to 999999 does not fit the sign of the int32_t this used to be, and the largest
-        // value is the one a narrowing mistake would show up on.
+        // A passkey is six digits, 000000 to 999999.
         EXPECT_CALL(gapPairingObserver, DisplayPasskey(0u));
         EXPECT_CALL(gapPairingObserver, DisplayPasskey(999999u));
 
@@ -135,8 +132,6 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, reports_the_bond_strength_when_pairing_completes)
     {
-        // An application that has just paired should not have to go back and query how strong
-        // the bond it just formed is.
         const GapBondStrength lesc{ true, true, 16 };
 
         EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(lesc));
@@ -181,8 +176,7 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, offers_every_mode_and_level_the_specification_defines_and_no_others)
     {
-        // Mode 2 stops at level 2. The pair that used to make SetSecurityMode(mode2, level4)
-        // expressible, and answerable only with notSupported at run time, no longer compiles.
+        // Mode 2 stops at level 2.
         for (auto modeAndLevel : { GapPairing::SecurityModeAndLevel::mode1Level1, GapPairing::SecurityModeAndLevel::mode1Level2,
                  GapPairing::SecurityModeAndLevel::mode1Level3, GapPairing::SecurityModeAndLevel::mode1Level4,
                  GapPairing::SecurityModeAndLevel::mode2Level1, GapPairing::SecurityModeAndLevel::mode2Level2 })

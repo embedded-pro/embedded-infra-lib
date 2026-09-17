@@ -108,8 +108,6 @@ namespace services
     {
         const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
 
-        // The distinction an application needs before trusting a bonded peer with a privileged
-        // operation, and the one IsDeviceBonded cannot express.
         const GapBondStrength legacyUnauthenticated{ false, false, 16 };
 
         EXPECT_CALL(gapBonding, BondStrength(GapAddress{ mac, GapDeviceAddressType::randomAddress })).WillOnce(testing::Return(legacyUnauthenticated));
@@ -125,8 +123,7 @@ namespace services
     {
         const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
 
-        // A 7-octet key is the specification's minimum and is worth far less than a 16-octet one,
-        // which a bonded-or-not answer cannot convey.
+        // A 7-octet key is the specification's minimum.
         const GapBondStrength shortKey{ true, true, 7 };
 
         EXPECT_CALL(gapBonding, BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress })).WillOnce(testing::Return(shortKey));

@@ -172,8 +172,8 @@ namespace services
 
     TEST_F(GapPeripheralDecoratorTest, advertise_directed_at_high_duty_cycle)
     {
-        // The standard mechanism for fast reconnection to a known peer, which the transmit side
-        // could not express at all before.
+        // High duty cycle directed advertising is the standard mechanism for fast reconnection to a
+        // known peer.
         const GapAddress peer{ hal::MacAddress{ 5, 4, 3, 2, 1, 0 }, GapDeviceAddressType::randomAddress };
 
         EXPECT_CALL(gap, AdvertiseDirected(GapDirectedAdvertisementType::highDutyCycle, peer, testing::_, testing::_))

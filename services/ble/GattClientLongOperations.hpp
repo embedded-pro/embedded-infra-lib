@@ -6,10 +6,6 @@
 
 namespace services
 {
-    // Reading or writing a characteristic value larger than the ATT MTU allows takes several
-    // round trips. Composing them is kept apart from GattClientConnection so that a port whose
-    // stack performs these natively implements this interface directly instead of having its
-    // single-PDU primitives driven from here.
     class GattClientLongOperations
     {
     public:

@@ -42,18 +42,14 @@ namespace services
             controllerError
         };
 
-        // Returns the identity address, which is public or static random, so the type is part of
-        // the answer rather than something the caller has to assume. The parameter stays a bare
-        // address: a resolvable private address is by definition random, so carrying a type in
-        // would add no information.
+        // An identity address is public or static random. A resolvable private address is by
+        // definition random, so the parameter carries no type.
         virtual std::optional<GapAddress> ResolvePrivateAddress(hal::MacAddress address) const = 0;
 
         virtual GapRequestStatus Connect(const GapAddress& peer, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetAddress(const GapAddress& address, const infra::Function<void(Result)>& onDone) = 0;
-        // 10 ms of every 10 ms, actively scanning: the abstraction's one documented default,
-        // rather than each port inventing its own.
         static constexpr GapScanParameters defaultScanParameters{ 0x0010u, 0x0010u, GapScanType::active };
 
         virtual GapRequestStatus StartDeviceDiscovery(const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone) = 0;

@@ -79,8 +79,6 @@ namespace services
 
         EXPECT_CALL(gapObserver, DeviceDiscovered(testing::_)).WillOnce(testing::Invoke([&payload](const GapAdvertisingReport& forwarded)
             {
-                // The view reaches the observer intact rather than being truncated into a
-                // fixed-size member on the way.
                 EXPECT_TRUE(infra::ContentsEqual(infra::MakeConstByteRange(payload), forwarded.data));
             }));
 
@@ -108,8 +106,7 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, carries_the_whole_signed_rssi_range)
     {
-        // Specification RSSI is signed 8-bit; -127 is the far end of it and the value an
-        // unsigned or narrowed type would mangle.
+        // Specification RSSI is signed 8-bit; -127 is the far end of it.
         GapAdvertisingReport report{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress,
             hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::ConstByteRange(), -127 };
 
@@ -137,7 +134,6 @@ namespace services
 
         ASSERT_TRUE(resolved);
         EXPECT_EQ(macAddress, resolved->address);
-        // The kind of identity address it resolved to, which the bare address could not carry.
         EXPECT_EQ(GapDeviceAddressType::publicAddress, resolved->type);
     }
 
@@ -260,8 +256,6 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, start_device_discovery_without_parameters_uses_the_default)
     {
-        // The one-argument overload is the abstraction's documented default rather than whatever
-        // a port would otherwise pick, and it must reach the subject as real parameters.
         EXPECT_CALL(gap, StartDeviceDiscovery(GapCentral::defaultScanParameters, testing::_))
             .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
@@ -270,8 +264,7 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, start_a_passive_device_discovery)
     {
-        // Passive scanning is how a central declines to send scan requests, which it could not
-        // express at all before.
+        // Passive scanning is how a central declines to send scan requests.
         const GapScanParameters passive{ 0x0010, 0x0010, GapScanType::passive };
 
         EXPECT_CALL(gap, StartDeviceDiscovery(passive, testing::_))
@@ -285,8 +278,6 @@ namespace services
         EXPECT_EQ(0x0004u, GapScanParameters::intervalMultiplierMin);
         EXPECT_EQ(0x4000u, GapScanParameters::intervalMultiplierMax);
 
-        // The default must itself be inside the range it documents, and its window must not
-        // exceed its interval.
         EXPECT_GE(GapCentral::defaultScanParameters.interval, GapScanParameters::intervalMultiplierMin);
         EXPECT_LE(GapCentral::defaultScanParameters.interval, GapScanParameters::intervalMultiplierMax);
         EXPECT_LE(GapCentral::defaultScanParameters.window, GapCentral::defaultScanParameters.interval);

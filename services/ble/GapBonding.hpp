@@ -26,9 +26,6 @@ namespace services
         virtual std::size_t GetNumberOfBonds() const = 0;
         virtual bool IsDeviceBonded(const GapAddress& address) const = 0;
 
-        // Absent when the device is not bonded, which makes this strictly more informative than
-        // IsDeviceBonded. That one stays for now: removing it is purely subtractive and belongs
-        // with the other cleanups rather than in this change.
         virtual std::optional<GapBondStrength> BondStrength(const GapAddress& address) const = 0;
 
         virtual GapRequestStatus RemoveAllBonds(const infra::Function<void()>& onDone) = 0;
