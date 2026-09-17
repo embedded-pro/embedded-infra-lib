@@ -201,4 +201,31 @@ namespace services
 
         EXPECT_EQ(formatter.RemainingSpaceAvailable(), gapMaxScanResponseDataSize - 4);
     }
+
+    TEST_F(GapAdvertisementFormatterTest, append_tx_power_level)
+    {
+        formatter.AppendTxPowerLevel(-6);
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(3u, data.size());
+        EXPECT_EQ(2, data[0]);
+        EXPECT_EQ(0x0A, data[1]);
+        EXPECT_EQ(0xFA, data[2]);
+    }
+
+    TEST_F(GapAdvertisementFormatterTest, append_service_data_for_a_16_bit_uuid)
+    {
+        const std::array<uint8_t, 2> serviceData{ 0x63, 0x64 };
+
+        formatter.AppendServiceData(0x180F, infra::MakeConstByteRange(serviceData));
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(6u, data.size());
+        EXPECT_EQ(5, data[0]);
+        EXPECT_EQ(0x16, data[1]);
+        EXPECT_EQ(0x0F, data[2]); // little-endian UUID
+        EXPECT_EQ(0x18, data[3]);
+        EXPECT_EQ(0x63, data[4]);
+        EXPECT_EQ(0x64, data[5]);
+    }
 }

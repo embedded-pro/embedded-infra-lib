@@ -165,4 +165,57 @@ namespace services
         EXPECT_TRUE(gapAdvertisingDataParser.Flags());
         EXPECT_EQ(GapAdvertisementFlags::leGeneralDiscoverableMode | GapAdvertisementFlags::brEdrNotSupported, *gapAdvertisingDataParser.Flags());
     }
+
+    TEST(GapAdvertisingDataParserTest, tx_power_level)
+    {
+        // TX Power Level is signed dBm: -6 on air is 0xFA.
+        const std::array<uint8_t, 3> data{ { 0x02, 0x0A, 0xFA } };
+        services::GapAdvertisingDataParser parser(infra::MakeConstByteRange(data));
+
+        auto txPower = parser.TxPowerLevel();
+
+        ASSERT_TRUE(txPower);
+        EXPECT_EQ(-6, *txPower);
+    }
+
+    TEST(GapAdvertisingDataParserTest, absent_tx_power_level)
+    {
+        const std::array<uint8_t, 3> data{ { 0x02, 0x01, 0x06 } };
+        services::GapAdvertisingDataParser parser(infra::MakeConstByteRange(data));
+
+        EXPECT_FALSE(parser.TxPowerLevel());
+    }
+
+    TEST(GapAdvertisingDataParserTest, service_data_for_a_16_bit_uuid)
+    {
+        // Flags, then Service Data for UUID 0x180F carrying two bytes.
+        const std::array<uint8_t, 8> data{ { 0x02, 0x01, 0x06, 0x04, 0x16, 0x0F, 0x18, 0x63 } };
+        services::GapAdvertisingDataParser parser(infra::MakeConstByteRange(data));
+
+        auto serviceData = parser.ServiceData16BitUuid();
+
+        ASSERT_TRUE(serviceData);
+        EXPECT_EQ(0x180F, serviceData->first);
+        ASSERT_EQ(1u, serviceData->second.size());
+        EXPECT_EQ(0x63, serviceData->second[0]);
+    }
+
+    TEST(GapAdvertisingDataParserTest, service_data_uuid_is_decoded_little_endian)
+    {
+        const std::array<uint8_t, 5> data{ { 0x04, 0x16, 0x34, 0x12, 0xAA } };
+        services::GapAdvertisingDataParser parser(infra::MakeConstByteRange(data));
+
+        auto serviceData = parser.ServiceData16BitUuid();
+
+        ASSERT_TRUE(serviceData);
+        EXPECT_EQ(0x1234, serviceData->first);
+    }
+
+    TEST(GapAdvertisingDataParserTest, service_data_too_short_to_hold_a_uuid)
+    {
+        const std::array<uint8_t, 3> data{ { 0x02, 0x16, 0x0F } };
+        services::GapAdvertisingDataParser parser(infra::MakeConstByteRange(data));
+
+        EXPECT_FALSE(parser.ServiceData16BitUuid());
+    }
 }

@@ -26,6 +26,8 @@ namespace services
         void CompleteListOf16BitUuids(ListOf16BitUuids& result) const;
         infra::MemoryRange<const AttAttribute::Uuid128> CompleteListOf128BitUuids() const;
         std::optional<uint16_t> Appearance() const;
+        std::optional<int8_t> TxPowerLevel() const;
+        std::optional<std::pair<AttAttribute::Uuid16, infra::ConstByteRange>> ServiceData16BitUuid() const;
 
     private:
         infra::ConstByteRange data;
@@ -47,6 +49,10 @@ namespace services
         void AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services);
         void AppendPublicTargetAddress(hal::MacAddress address);
         void AppendAppearance(uint16_t appearance);
+
+        // TX Power Level is a signed value in dBm, Assigned Numbers section 2.3.
+        void AppendTxPowerLevel(int8_t txPowerLevel);
+        void AppendServiceData(AttAttribute::Uuid16 uuid, infra::ConstByteRange data);
 
         infra::ConstByteRange FormattedAdvertisementData() const;
         std::size_t RemainingSpaceAvailable() const;

@@ -94,6 +94,28 @@ namespace services
         return infra::ConstCastMemoryRange<AttAttribute::Uuid128>(infra::ReinterpretCastMemoryRange<const AttAttribute::Uuid128>(uuidData));
     }
 
+    std::optional<int8_t> GapAdvertisingDataParser::TxPowerLevel() const
+    {
+        auto txPowerData = ParserAdvertisingData(GapAdvertisementDataType::txPowerLevel);
+
+        if (txPowerData.size() != 1)
+            return std::nullopt;
+
+        return std::make_optional(static_cast<int8_t>(txPowerData[0]));
+    }
+
+    std::optional<std::pair<AttAttribute::Uuid16, infra::ConstByteRange>> GapAdvertisingDataParser::ServiceData16BitUuid() const
+    {
+        infra::ByteInputStream stream(ParserAdvertisingData(GapAdvertisementDataType::serviceData16BitUuid), infra::softFail);
+        auto uuid = infra::FromLittleEndian(stream.Extract<AttAttribute::Uuid16>());
+        auto serviceData = stream.Reader().Remaining();
+
+        if (stream.Failed())
+            return std::nullopt;
+
+        return std::make_optional(std::make_pair(uuid, serviceData));
+    }
+
     std::optional<uint16_t> GapAdvertisingDataParser::Appearance() const
     {
         auto appearanceData = ParserAdvertisingData(GapAdvertisementDataType::appearance);
@@ -205,6 +227,23 @@ namespace services
 
         AddHeader(payload, sizeof(appearance), GapAdvertisementDataType::appearance);
         AddLittleEndian(payload, appearance);
+    }
+
+    void GapAdvertisementFormatter::AppendTxPowerLevel(int8_t txPowerLevel)
+    {
+        really_assert(sizeof(txPowerLevel) + headerSize <= RemainingSpaceAvailable());
+
+        AddHeader(payload, sizeof(txPowerLevel), GapAdvertisementDataType::txPowerLevel);
+        payload.push_back(static_cast<uint8_t>(txPowerLevel));
+    }
+
+    void GapAdvertisementFormatter::AppendServiceData(AttAttribute::Uuid16 uuid, infra::ConstByteRange data)
+    {
+        really_assert(data.size() + headerSize + sizeof(uuid) <= RemainingSpaceAvailable());
+
+        AddHeader(payload, data.size() + sizeof(uuid), GapAdvertisementDataType::serviceData16BitUuid);
+        AddLittleEndian(payload, uuid);
+        AddData(payload, data);
     }
 
     infra::ConstByteRange GapAdvertisementFormatter::FormattedAdvertisementData() const

@@ -31,16 +31,23 @@ namespace services
     };
 
     // Values taken from Assigned Numbers, section 2.3 (Common Data Types)
+    // Every value here is an assigned number; there is deliberately no sentinel among them.
+    // ParserAdvertisingData already signals "not present" with an empty range.
     enum class GapAdvertisementDataType : uint8_t
     {
-        unknownType = 0x00u,
         flags = 0x01u,
+        incompleteListOf16BitUuids = 0x02u,
         completeListOf16BitUuids = 0x03u,
+        incompleteListOf128BitUuids = 0x06u,
         completeListOf128BitUuids = 0x07u,
         shortenedLocalName = 0x08u,
         completeLocalName = 0x09u,
+        txPowerLevel = 0x0au,
+        serviceData16BitUuid = 0x16u,
         publicTargetAddress = 0x17u,
         appearance = 0x19u,
+        serviceData32BitUuid = 0x20u,
+        serviceData128BitUuid = 0x21u,
         manufacturerSpecificData = 0xffu
     };
 
