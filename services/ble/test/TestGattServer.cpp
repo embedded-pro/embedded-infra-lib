@@ -133,7 +133,6 @@ TEST_F(GattServerCharacteristicTest, should_add_descriptor_to_list_with_16_bit_u
     services::GattServerDescriptor descriptor(descriptorUuid, infra::MakeConstByteRange(descriptorData));
     characteristic.AddDescriptor(descriptor);
 
-    // Verify descriptor is in the list
     auto& descriptors = characteristic.Descriptors();
     EXPECT_EQ(std::distance(descriptors.begin(), descriptors.end()), 1);
     EXPECT_EQ(std::get<services::AttAttribute::Uuid16>(descriptors.begin()->Type()), 0x2908);
@@ -148,7 +147,6 @@ TEST_F(GattServerCharacteristicTest, should_add_descriptor_to_list_with_128_bit_
     services::GattServerDescriptor descriptor(descriptorUuid, infra::MakeConstByteRange(descriptorData));
     characteristic.AddDescriptor(descriptor);
 
-    // Verify descriptor is in the list
     auto& descriptors = characteristic.Descriptors();
     EXPECT_EQ(std::distance(descriptors.begin(), descriptors.end()), 1);
     EXPECT_TRUE(std::holds_alternative<services::AttAttribute::Uuid128>(descriptors.begin()->Type()));
@@ -176,7 +174,6 @@ TEST_F(GattServerCharacteristicTest, should_add_descriptor_with_custom_access_fl
         infra::MakeConstByteRange(descriptorData));
     characteristic.AddDescriptor(descriptor);
 
-    // Verify custom access flag is set
     auto& descriptors = characteristic.Descriptors();
     EXPECT_EQ(descriptors.begin()->Access(), services::GattServerDescriptor::AccessFlags::readWrite);
 }
@@ -245,8 +242,7 @@ TEST(GattServerServiceTest, an_included_service_refers_to_the_service_it_include
 
 TEST(GattServerServiceTest, should_count_beyond_what_a_byte_could_hold)
 {
-    // 128 characteristics are 256 attributes on top of the service declaration, which overflowed
-    // the uint8_t this count used to be.
+    // 128 characteristics are 256 attributes on top of the service declaration.
     services::GattServerService service{ uuid16 };
 
     std::array<std::optional<services::GattServerCharacteristicImpl>, 128> characteristics;

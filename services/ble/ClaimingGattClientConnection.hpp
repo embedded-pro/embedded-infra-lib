@@ -9,10 +9,6 @@
 
 namespace services
 {
-    // The long operations are composed here, rather than above this decorator, because they hold
-    // one claim for their whole sequence. A long write builds a prepare queue that belongs to the
-    // bearer, not to the caller: releasing the claim between its Prepare Writes would let another
-    // caller queue a fragment of its own, which this connection's Execute Write would then commit.
     class ClaimingGattClientConnection
         : public GattClientConnectionDecorator
         , public GattClientLongOperations
@@ -49,6 +45,10 @@ namespace services
         GattRequestStatus PerformCharacteristicOperation();
         void ReportCharacteristicOperationRefused(GattResult result);
 
+        uint16_t MaximumWritePayloadSize() const;
+        uint16_t LongReadChunkSize() const;
+        uint16_t LongWriteChunkSize() const;
+
         GattRequestStatus ContinueLongRead();
         void LongReadChunkReceived(GattResult result, infra::ConstByteRange data);
         void CompleteLongRead(GattResult result);
@@ -60,8 +60,6 @@ namespace services
         void CompleteLongWrite(GattResult result);
 
     private:
-        // These hold an infra::Function, which declares a copy constructor and a destructor and so
-        // has no move constructor at all, leaving nothing that holds one nothrow movable.
         struct DiscoveryOperation //NOSONAR
         {
             AttAttribute::Handle handle;
@@ -90,7 +88,6 @@ namespace services
         struct LongReadOperation //NOSONAR
         {
             infra::BoundedVector<uint8_t>* value;
-            uint16_t chunkSize;
             infra::Function<void(GattResult, infra::ConstByteRange)> onDone;
         };
 
@@ -98,7 +95,6 @@ namespace services
         {
             infra::ConstByteRange data;
             uint16_t offset;
-            uint16_t chunkSize;
             GattResult pendingResult;
             infra::Function<void(GattResult)> onDone;
         };

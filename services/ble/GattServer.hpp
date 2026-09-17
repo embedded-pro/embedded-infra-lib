@@ -121,9 +121,6 @@ namespace services
 
     class GattServerService;
 
-    // An Include declaration needs its own node type: GattServerService is already a node of the
-    // server's own list of services, and one object cannot be a node of two lists of the same
-    // type. This refers to the included service rather than owning it.
     class GattServerIncludedService
         : public infra::IntrusiveForwardList<GattServerIncludedService>::NodeType
     {

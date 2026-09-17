@@ -31,10 +31,11 @@ namespace services
         disconnected,
         timeout,
         unknown,
-        // Appended rather than inserted: TestGattProto asserts these values against their
-        // proto counterparts, so renumbering any of them silently breaks every port.
         databaseOutOfSync,
-        valueNotAllowed
+        valueNotAllowed,
+
+        // A Read Blob Request past the end of a value is answered with this.
+        invalidOffset
     };
 
     GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
@@ -57,9 +58,6 @@ namespace services
         bool operator==(const GattServiceChanged& other) const = default;
     };
 
-    // A client receives this value through GattClientUpdateObserver::IndicationReceived after
-    // subscribing to 0x2A05, so no separate procedure is needed to obtain it. What to
-    // re-discover on receiving one is application policy and is deliberately not decided here.
     std::optional<GattServiceChanged> GattServiceChangedFromValue(infra::ConstByteRange value);
 
     namespace uuid
@@ -199,8 +197,6 @@ namespace services
         AttAttribute::Handle& Handle();
         AttAttribute::Handle EndHandle() const;
         AttAttribute::Handle& EndHandle();
-        // Wide enough for the whole ATT handle space; an included service pushes a service
-        // closer to what a uint8_t could hold.
         uint16_t GetAttributeCount() const;
 
     private:

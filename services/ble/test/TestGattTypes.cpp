@@ -124,7 +124,7 @@ TEST(GattResultFromAttErrorCodeTest, maps_every_specified_error_code)
         { AttErrorCode::invalidPdu, GattResult::unknown },
         { AttErrorCode::insufficientAuthentication, GattResult::insufficientAuthentication },
         { AttErrorCode::requestNotSupported, GattResult::unsupported },
-        { AttErrorCode::invalidOffset, GattResult::invalidLength },
+        { AttErrorCode::invalidOffset, GattResult::invalidOffset },
         { AttErrorCode::insufficientAuthorization, GattResult::insufficientAuthorization },
         { AttErrorCode::prepareQueueFull, GattResult::insufficientResources },
         { AttErrorCode::attributeNotFound, GattResult::invalidHandle },

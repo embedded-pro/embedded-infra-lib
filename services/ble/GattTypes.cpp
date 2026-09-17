@@ -26,6 +26,7 @@ namespace services
             case AttErrorCode::insufficientResources:
                 return GattResult::insufficientResources;
             case AttErrorCode::invalidOffset:
+                return GattResult::invalidOffset;
             case AttErrorCode::attributeNotLong:
             case AttErrorCode::invalidAttributeValueLength:
                 return GattResult::invalidLength;
@@ -45,8 +46,6 @@ namespace services
 
     std::optional<GattServiceChanged> GattServiceChangedFromValue(infra::ConstByteRange value)
     {
-        // Decoded byte-wise through the stream rather than by casting the payload, so that this
-        // is correct on a big-endian host and cannot fault on an unaligned payload.
         infra::ByteInputStream stream(value, infra::softFail);
 
         GattServiceChanged serviceChanged{};

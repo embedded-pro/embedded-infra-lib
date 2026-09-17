@@ -41,23 +41,18 @@ namespace services
 
     uint16_t GattServerCharacteristic::GetAttributeCount() const
     {
-        constexpr uint8_t attributeCountWithoutCCCD = 2;
-        constexpr uint8_t attributeCountWithCCCD = 3;
+        constexpr uint16_t attributeCountWithoutCCCD = 2;
+        constexpr uint16_t attributeCountWithCCCD = 3;
 
-        uint8_t baseAttributeCount;
+        uint16_t baseAttributeCount;
         if ((Properties() & (GattCharacteristic::PropertyFlags::notify | GattCharacteristic::PropertyFlags::indicate)) == GattCharacteristic::PropertyFlags::none)
             baseAttributeCount = attributeCountWithoutCCCD;
         else
             baseAttributeCount = attributeCountWithCCCD;
 
-        uint8_t descriptorCount = 0;
-        for (const auto& descriptor : descriptors)
-        {
-            (void)descriptor;
-            ++descriptorCount;
-        }
+        auto descriptorCount = static_cast<uint16_t>(std::distance(descriptors.begin(), descriptors.end()));
 
-        return baseAttributeCount + descriptorCount;
+        return static_cast<uint16_t>(baseAttributeCount + descriptorCount);
     }
 
     void GattServerCharacteristic::AddDescriptor(GattServerDescriptor& descriptor)

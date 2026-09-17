@@ -6,8 +6,6 @@ package gatt.client;
 option java_package = "com.philips.emil.protobufEcho";
 option java_outer_classname = "GattClientProto";
 
-// Identifies one of the connections a GATT client holds. Every request and every response
-// carries it, so that a single ECHO link can drive several connections at once.
 message ConnectionId
 {
     uint32 value = 1;
@@ -72,8 +70,6 @@ message Characteristic
     uint32 properties = 5;
 }
 
-// Not 'Descriptor': protoc generates a static Descriptor member on every C# message, which
-// a message of that name would collide with (CS0542). Verified against the generated C#.
 message Descriptr
 {
     ConnectionId connection = 1;
@@ -122,6 +118,7 @@ message Completion
         unknown = 11;
         databaseOutOfSync = 12;
         valueNotAllowed = 13;
+        invalidOffset = 14;
     }
 
     ConnectionId connection = 1;
@@ -135,8 +132,6 @@ message ReadCompletion
     bytes data = 2 [(bytes_size) = 512];
 }
 
-// Method ids 1 to 15 were used by the single connection interface and are left unused, so
-// that a peer speaking that version fails on an unknown method rather than misreading one.
 service GattClient
 {
     option (service_id) = 134;
@@ -151,11 +146,6 @@ service GattClient
     rpc Write(CharacteristicData) returns (Nothing) { option (method_id) = 21; }
     rpc WriteWithoutResponse(CharacteristicData) returns (Nothing) { option (method_id) = 22; }
 
-    // Only the composed procedures cross ECHO. Read Blob, Prepare Write and Execute Write are
-    // deliberately absent: driving them from a remote peer would cost a link round trip per ATT
-    // PDU, and would let that peer leave a half built prepare queue open on a bearer it does not
-    // own. CharacteristicData and ReadCompletion are already bounded to the 512 octets of the
-    // largest attribute value, so they carry a long value unchanged.
     rpc DiscoverIncludedServices(HandleRange) returns (Nothing) { option (method_id) = 30; }
 
     rpc ReadLong(CharacteristicHandle) returns (Nothing) { option (method_id) = 28; }
@@ -170,7 +160,6 @@ service GattClient
     rpc IndicationDone(ConnectionId) returns (Nothing) { option (method_id) = 27; }
 }
 
-// Method ids 1 to 12 were used by the single connection interface and are left unused.
 service GattClientResponse
 {
     option (service_id) = 135;

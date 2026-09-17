@@ -192,9 +192,7 @@ namespace services
 
         value.clear();
 
-        // ExchangeMtu claims the same resource, so the MTU cannot change while this sequence
-        // holds the claim and may be read once here.
-        characteristicOperationContext.emplace(LongReadOperation{ &value, static_cast<uint16_t>(EffectiveMaxAttMtuSize() - 1), onDone }, handle);
+        characteristicOperationContext.emplace(LongReadOperation{ &value, onDone }, handle);
 
         return ClaimCharacteristicOperation();
     }
@@ -204,10 +202,31 @@ namespace services
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
 
-        // Opcode, handle and offset occupy five octets of the Prepare Write request.
-        characteristicOperationContext.emplace(LongWriteOperation{ data, 0, static_cast<uint16_t>(EffectiveMaxAttMtuSize() - 5), GattResult::success, onDone }, handle);
+        // The offset carried in a Prepare Write Request is sixteen bits.
+        if (data.size() > attMaxAttributeValueSize)
+            return GattRequestStatus::invalidParameter;
+
+        characteristicOperationContext.emplace(LongWriteOperation{ data, 0, GattResult::success, onDone }, handle);
 
         return ClaimCharacteristicOperation();
+    }
+
+    uint16_t ClaimingGattClientConnection::MaximumWritePayloadSize() const
+    {
+        // Opcode and handle occupy three octets of a Write Request.
+        return static_cast<uint16_t>(EffectiveMaxAttMtuSize() - 3);
+    }
+
+    uint16_t ClaimingGattClientConnection::LongReadChunkSize() const
+    {
+        // The opcode occupies one octet of a Read Blob Response.
+        return static_cast<uint16_t>(EffectiveMaxAttMtuSize() - 1);
+    }
+
+    uint16_t ClaimingGattClientConnection::LongWriteChunkSize() const
+    {
+        // Opcode, handle and offset occupy five octets of a Prepare Write Request.
+        return static_cast<uint16_t>(EffectiveMaxAttMtuSize() - 5);
     }
 
     GattRequestStatus ClaimingGattClientConnection::ContinueLongRead()
@@ -230,9 +249,10 @@ namespace services
     {
         auto& operation = std::get<LongReadOperation>(characteristicOperationContext->operation);
 
-        // An exact multiple of the chunk size makes the peer reject the next offset. That is the
-        // end of the value, not a failure.
-        if (result == GattResult::invalidLength && !operation.value->empty())
+        // A Read Blob Request past the end of the value is answered with Invalid Offset, which is
+        // the end of the value rather than a failure. attributeNotLong is a peer refusing Read Blob
+        // outright and must not be read as one.
+        if (result == GattResult::invalidOffset && !operation.value->empty())
             return CompleteLongRead(GattResult::success);
 
         if (result != GattResult::success)
@@ -246,7 +266,7 @@ namespace services
 
         operation.value->insert(operation.value->end(), data.begin(), data.end());
 
-        if (data.size() < operation.chunkSize || operation.value->full())
+        if (data.size() < LongReadChunkSize())
             return CompleteLongRead(GattResult::success);
 
         auto status = ContinueLongRead();
@@ -269,7 +289,7 @@ namespace services
         const auto& operation = std::get<LongWriteOperation>(characteristicOperationContext->operation);
         auto remaining = operation.data.size() - operation.offset;
 
-        return infra::ConstByteRange(operation.data.begin() + operation.offset, operation.data.begin() + operation.offset + std::min<std::size_t>(remaining, operation.chunkSize));
+        return infra::ConstByteRange(operation.data.begin() + operation.offset, operation.data.begin() + operation.offset + std::min<std::size_t>(remaining, LongWriteChunkSize()));
     }
 
     GattRequestStatus ClaimingGattClientConnection::ContinueLongWrite()
@@ -291,8 +311,8 @@ namespace services
 
         auto expected = CurrentLongWriteChunk();
 
-        // The specification requires the client to verify the echo and to cancel the queue when
-        // it does not match, so that a peer cannot commit something other than what was sent.
+        // The specification requires the client to verify the echo and to cancel the queue when it
+        // does not match.
         if (offset != operation.offset || !infra::ContentsEqual(expected, echoed))
             return CancelLongWrite(GattResult::unknown);
 
@@ -314,8 +334,6 @@ namespace services
         auto& operation = std::get<LongWriteOperation>(characteristicOperationContext->operation);
         operation.pendingResult = result;
 
-        // The cancel's own outcome is discarded: a failed cancel has nothing to tell the caller
-        // that the original failure did not.
         auto status = GattClientConnectionDecorator::ExecuteWrite(GattExecuteWriteFlag::cancel, [this](GattResult)
             {
                 CompleteLongWrite(std::get<LongWriteOperation>(characteristicOperationContext->operation).pendingResult);
@@ -381,9 +399,7 @@ namespace services
                               },
                               [this](const LongWriteOperation& longWrite)
                               {
-                                  // Nothing to prepare, so this degenerates to an ordinary write
-                                  // rather than opening a prepare queue for one chunk.
-                                  if (longWrite.data.size() <= longWrite.chunkSize)
+                                  if (longWrite.data.size() <= MaximumWritePayloadSize())
                                       return GattClientConnectionDecorator::Write(characteristicOperationContext->handle, longWrite.data, [this](GattResult result)
                                           {
                                               CompleteLongWrite(result);
