@@ -2,7 +2,25 @@
 
 ## Introduction
 
-The `services/ble` package provides the Generic Access Profile (GAP), the Generic Attribute Profile (GATT) and Direct Test Mode (DTM). This chapter describes the GAP and GATT interfaces: how they are split per role and per connection, and how their procedures report their outcome.
+The `services/ble` package provides the Generic Access Profile (GAP) and the Generic Attribute Profile (GATT). This chapter describes those interfaces: how they are split per role and per connection, and how their procedures report their outcome.
+
+## Scope and boundaries
+
+`services/ble` is not a Bluetooth stack. It is an abstraction over a vendor controller and host stack, and it has no consumers inside this repository — it exists to be implemented by downstream ports. What it deliberately leaves to the layer below is recorded here, so that an absence can be told apart from a gap.
+
+**HCI and the Link Layer** are out of scope. No opcodes, no transport, no Link Layer control PDUs. Only the vocabulary appears, in the connection state enums.
+
+**Direct Test Mode** is out of scope of this package. Its interface is `hal::BleDtm`, in `hal/`, which is the right home for it: DTM drives the controller directly and has nothing to say about GAP or GATT.
+
+**L2CAP is a non-goal.** LE Credit Based Flow Control channels, connection-oriented channels and signalling are all delegated to the vendor stack and are not modelled here. This is a decision rather than an oversight: a port that needs a CoC uses its stack's own API for it. The connection-parameter update path, which an application does need, is served by `GapPeripheral::SetConnectionParameters`.
+
+**Enhanced ATT (EATT)** follows from that. It is multiple concurrent L2CAP CoC bearers per connection, so it presupposes the L2CAP layer above, and it would turn the single claim per connection described under GATT into a pool with a bearer-selection policy. It is not modelled.
+
+### Citing the specification
+
+Any constant that claims a specification value carries a comment naming its source, in the form `// Vol 3, Part F, section 3.4.1.1` or `// Assigned Numbers, section 3.7`. A bare literal is indistinguishable from a guess, and a reviewer has no way to check it or to notice when an edit makes it wrong.
+
+The comment must name a source that actually assigns the value. A section that describes a concept without giving it an encoding is not a value source, and citing one is worse than citing nothing, because it invites a reader to trust a number the specification never fixed. Where values are this library's own, the comment says so.
 
 ## GAP
 

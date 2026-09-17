@@ -57,9 +57,17 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
 - `infra::BoundedString::WithStorage<N>` instead of `std::string`
 - `infra::BoundedDeque<T>::WithMaxSize<N>` instead of `std::deque<T>`
 - `infra::BoundedList<T>::WithMaxSize<N>` or `infra::IntrusiveList<T>` instead of `std::list<T>`
-- `infra::Optional<T>` instead of pointer-as-optional or `std::optional<T>`
-- `std::array<T, N>` for fixed-size arrays
+- `infra::Optional<T>` instead of pointer-as-optional
 - Stack or static allocation only
+
+**PERMITTED** — these are standard types that do not allocate; their storage is inline and
+fixed-size, so they are fine on embedded targets:
+- `std::array<T, N>` for fixed-size arrays
+- `std::optional<T>`
+- `std::variant<...>`
+
+The organising principle is allocation, not provenance: the forbidden list is forbidden
+because those types reach for the heap, not because they are standard.
 
 > **Exception**: `services/network_instantiations/`, `infra/stream/Std*`, and `infra/util/AllocatorHeap*` intentionally use heap-based STL types for host-platform (Linux/Windows) implementations only. These are not embedded targets.
 
