@@ -4,6 +4,8 @@
 
 The `services/ble` package provides the Generic Access Profile (GAP), the Generic Attribute Profile (GATT) and Direct Test Mode (DTM). This chapter describes the GAP and GATT interfaces: how they are split per role and per connection, and how their procedures report their outcome.
 
+For how closely these interfaces follow the Bluetooth Core Specification, and where they depart from it, see the [BLE Conformance Assessment](BleConformanceAssessment.md).
+
 ## GAP
 
 ### Roles
