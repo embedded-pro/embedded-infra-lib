@@ -114,8 +114,9 @@ message ConnectionParameterUpdate
 
 message Passkey
 {
-    int32 passkey = 1;
-    bool numericComparison = 2;
+    // Six digits, 000000 to 999999. The numericComparison discriminator is gone: numeric
+    // comparison is its own method now.
+    uint32 passkey = 1;
 }
 
 message PairingStatus
@@ -133,6 +134,15 @@ message PairingStatus
         timeout = 6;
         encryptionFailed = 7;
         unknown = 8;
+        oobNotAvailable = 9;
+        confirmValueFailed = 10;
+        commandNotSupported = 11;
+        repeatedAttempts = 12;
+        invalidParameters = 13;
+        dhKeyCheckFailed = 14;
+        brEdrPairingInProgress = 15;
+        crossTransportKeyDerivationNotAllowed = 16;
+        keyRejected = 17;
     }
 
     Result result = 1;
@@ -239,7 +249,11 @@ service GapPeripheralResponse
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
     rpc ResolvableAddress(Address) returns (Nothing) { option (method_id) = 4; }
-    rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 5; }
+    // Method id 5 carried a passkey with a numericComparison flag and is left unused, so that a
+    // peer speaking that version fails on an unknown method rather than reading a passkey as a
+    // comparison value.
+    rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 27; }
+    rpc ConfirmNumericComparison(UInt32Value) returns (Nothing) { option (method_id) = 28; }
     rpc IdentityAddress(Address) returns (Nothing) { option (method_id) = 6; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 7; }
 

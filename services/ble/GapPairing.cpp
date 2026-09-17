@@ -2,11 +2,19 @@
 
 namespace services
 {
-    void GapPairingDecorator::DisplayPasskey(int32_t passkey, bool numericComparison)
+    void GapPairingDecorator::DisplayPasskey(uint32_t passkey)
     {
-        GapPairing::NotifyObservers([&passkey, &numericComparison](auto& obs)
+        GapPairing::NotifyObservers([passkey](auto& obs)
             {
-                obs.DisplayPasskey(passkey, numericComparison);
+                obs.DisplayPasskey(passkey);
+            });
+    }
+
+    void GapPairingDecorator::ConfirmNumericComparison(uint32_t value)
+    {
+        GapPairing::NotifyObservers([value](auto& obs)
+            {
+                obs.ConfirmNumericComparison(value);
             });
     }
 

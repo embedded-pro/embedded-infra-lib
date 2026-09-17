@@ -12,7 +12,8 @@ namespace services
     public:
         using GapPairingObserver::GapPairingObserver;
 
-        MOCK_METHOD(void, DisplayPasskey, (int32_t passkey, bool numericComparison), (override));
+        MOCK_METHOD(void, DisplayPasskey, (uint32_t passkey), (override));
+        MOCK_METHOD(void, ConfirmNumericComparison, (uint32_t value), (override));
         MOCK_METHOD(void, PairingSuccessfullyCompleted, (const GapBondStrength& strength), (override));
         MOCK_METHOD(void, PairingFailed, (GapPairingResult error), (override));
         MOCK_METHOD(void, OutOfBandDataGenerated, (const GapOutOfBandData& outOfBandData), (override));

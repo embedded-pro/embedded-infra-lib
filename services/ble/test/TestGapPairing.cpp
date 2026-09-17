@@ -42,14 +42,16 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, forward_all_events_to_observers)
     {
-        EXPECT_CALL(gapPairingObserver, DisplayPasskey(::testing::Eq(11111), ::testing::IsTrue()));
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(::testing::Eq(11111u)));
+        EXPECT_CALL(gapPairingObserver, ConfirmNumericComparison(::testing::Eq(222222u)));
         EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(GapBondStrength{ true, true, 16 }));
         EXPECT_CALL(gapPairingObserver, PairingFailed(::testing::TypedEq<GapPairingResult>(GapPairingResult::numericComparisonFailed)));
         EXPECT_CALL(gapPairingObserver, OutOfBandDataGenerated(OutOfBandDataContentsEqual(GapOutOfBandData{ macAddress, GapDeviceAddressType::publicAddress, infra::MakeByteRange(random), infra::MakeByteRange(confirm) })));
 
         gapPairing.NotifyObservers([this](GapPairingObserver& obs)
             {
-                obs.DisplayPasskey(11111, true);
+                obs.DisplayPasskey(11111);
+                obs.ConfirmNumericComparison(222222);
                 obs.PairingSuccessfullyCompleted(GapBondStrength{ true, true, 16 });
                 obs.PairingFailed(GapPairingResult::numericComparisonFailed);
                 obs.OutOfBandDataGenerated(GapOutOfBandData{ macAddress, GapDeviceAddressType::publicAddress, infra::MakeByteRange(random), infra::MakeByteRange(confirm) });
@@ -92,6 +94,43 @@ namespace services
         EXPECT_CALL(gapPairing, AllowPairing(::testing::IsFalse(), testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
 
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.AllowPairing(false, RejectedCallback()));
+    }
+
+    TEST_F(GapPairingDecoratorTest, displays_a_passkey_without_a_comparison_flag)
+    {
+        // Passkey Entry and Numeric Comparison are distinct Security Manager procedures. They
+        // used to share one callback discriminated by a bool at the call site, which made the two
+        // indistinguishable to read and easy to confuse.
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(123456u));
+
+        gapPairing.NotifyObservers([](GapPairingObserver& obs)
+            {
+                obs.DisplayPasskey(123456);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, confirms_a_numeric_comparison_through_its_own_callback)
+    {
+        EXPECT_CALL(gapPairingObserver, ConfirmNumericComparison(654321u));
+
+        gapPairing.NotifyObservers([](GapPairingObserver& obs)
+            {
+                obs.ConfirmNumericComparison(654321);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, carries_the_whole_six_digit_passkey_range)
+    {
+        // 000000 to 999999 does not fit the sign of the int32_t this used to be, and the largest
+        // value is the one a narrowing mistake would show up on.
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(0u));
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(999999u));
+
+        gapPairing.NotifyObservers([](GapPairingObserver& obs)
+            {
+                obs.DisplayPasskey(0);
+                obs.DisplayPasskey(999999);
+            });
     }
 
     TEST_F(GapPairingDecoratorTest, reports_the_bond_strength_when_pairing_completes)
