@@ -57,9 +57,21 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
 - `infra::BoundedString::WithStorage<N>` instead of `std::string`
 - `infra::BoundedDeque<T>::WithMaxSize<N>` instead of `std::deque<T>`
 - `infra::BoundedList<T>::WithMaxSize<N>` or `infra::IntrusiveList<T>` instead of `std::list<T>`
-- `infra::Optional<T>` instead of pointer-as-optional or `std::optional<T>`
-- `std::array<T, N>` for fixed-size arrays
+- `std::optional<T>` instead of pointer-as-optional
 - Stack or static allocation only
+
+**PERMITTED** — these are standard types that do not allocate; their storage is inline and
+fixed-size, so they are fine on embedded targets:
+- `std::array<T, N>` for fixed-size arrays
+- `std::optional<T>`
+- `std::variant<...>`
+
+The organising principle is allocation, not provenance: the forbidden list is forbidden
+because those types reach for the heap, not because they are standard.
+
+Note that there is no `infra::Optional`. `std::optional` is the optional type this repository
+uses; `infra::OptionalForPolymorphicObjects` is a separate thing, for storing a derived object
+in storage sized for a base, and it takes `std::nullopt_t`.
 
 > **Exception**: `services/network_instantiations/`, `infra/stream/Std*`, and `infra/util/AllocatorHeap*` intentionally use heap-based STL types for host-platform (Linux/Windows) implementations only. These are not embedded targets.
 
@@ -143,6 +155,11 @@ Prefer `{}` initialization over `()` for all variable and object initialization.
 - Use `testing::StrictMock<>` — **never `testing::NiceMock<>`**
 - TDD: write tests before implementation (Red → Green → Refactor)
 - No heap allocation in tests — same rules as production code
+- Build a range with `infra::MakeRange`, `infra::Head` and `infra::DiscardHead`, never from
+  `std::array::begin()`/`end()`. Those iterators are raw pointers in libstdc++ and libc++ but
+  checked class types in the Microsoft STL, so `infra::ConstByteRange(a.begin(), a.end())`
+  compiles on Linux and macOS and fails on MSVC. `infra::MemoryRange` and
+  `infra::BoundedVector` iterators are pointers everywhere and are safe to pass
 - Test pattern:
   ```cpp
   TEST(ComponentTest, specific_behavior_description)

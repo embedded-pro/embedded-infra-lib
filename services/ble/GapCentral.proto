@@ -34,36 +34,49 @@ message State
 
 message IoCapabilities
 {
+    // Values taken from Bluetooth Core Specification
+    // Volume 3, Part H, section 3.3.1, Table 3.4 (IO Capability)
     enum IoCapabilitiesEnum
     {
-        none = 0;
-        display = 1;
-        displayYesNo = 2;
-        keyboard = 3;
+        display = 0;
+        displayYesNo = 1;
+        keyboard = 2;
+        none = 3;
         keyboardDisplay = 4;
     }
 
     IoCapabilitiesEnum ioCaps = 1;
 }
 
+message ScanParameters
+{
+    enum ScanType
+    {
+        passive = 0;
+        active = 1;
+    }
+
+    uint32 interval = 1; // Interval = value * 0.625 ms
+    uint32 window = 2;   // Window   = value * 0.625 ms
+    ScanType type = 3;
+}
+
 message SecurityModeAndLevel
 {
-    enum SecurityLevelEnum
+    // Ordered to match services::GapPairing::SecurityModeAndLevel. The six combinations the
+    // specification defines and no others; mode 2 has levels 1 and 2 only.
+    // Bluetooth Core Specification, Volume 3, Part C, sections 10.2.1 and 10.2.2
+    enum ModeAndLevel
     {
-        none = 0;
-        unauthenticatedPairing = 1;
-        authenticatedPairing = 2;
-        authenticatedPairingWithLE = 3;
+        mode1Level1 = 0;
+        mode1Level2 = 1;
+        mode1Level3 = 2;
+        mode1Level4 = 3;
+        mode2Level1 = 4;
+        mode2Level2 = 5;
     }
 
-    enum SecurityModeEnum
-    {
-        mode1 = 0;
-        mode2 = 1;
-    }
-
-    SecurityModeEnum mode = 1;
-    SecurityLevelEnum level = 2;
+    ModeAndLevel value = 1;
 }
 
 message AddressType
@@ -97,26 +110,55 @@ message AdvertisingEventType
     AdvertisingEventTypeEnum type = 1;
 }
 
+// The parameters of the link itself, which the initiator chooses and carries in CONNECT_IND.
+// Bluetooth Core Specification, Volume 6, Part B, sections 2.3.3.1 and 4.5
+message LinkParameters
+{
+    uint32 minConnectionInterval = 1; // Interval = value * 1.25 ms, range 0x0006 to 0x0C80
+    uint32 maxConnectionInterval = 2; // Interval = value * 1.25 ms, range 0x0006 to 0x0C80
+    uint32 peripheralLatency = 3;
+    uint32 supervisionTimeout = 4;    // Timeout = value * 10 ms, range 0x000A to 0x0C80
+}
+
 message ConnectionParameters
 {
     Address address = 1;
     AddressType addressType = 2;
     uint32 initiatingTimeoutInMs = 3;
+    LinkParameters link = 4;
+}
+
+// Bluetooth Core Specification, Volume 3, Part H, section 2.3.1
+message BondStrength
+{
+    bool bonded = 1;
+    bool secureConnections = 2;
+    bool authenticated = 3;
+    uint32 encryptionKeySize = 4;
 }
 
 message PairingStatus
 {
     enum Result
     {
-        passkeyEntryFailed = 0;
-        authenticationRequirementsNotMet = 1;
-        pairingNotSupported = 2;
-        insufficientEncryptionKeySize = 3;
-        numericComparisonFailed = 4;
-        timeout = 5;
-        encryptionFailed = 6;
-        unknown = 7;
-        success = 8;
+        success = 0;
+        passkeyEntryFailed = 1;
+        authenticationRequirementsNotMet = 2;
+        pairingNotSupported = 3;
+        insufficientEncryptionKeySize = 4;
+        numericComparisonFailed = 5;
+        timeout = 6;
+        encryptionFailed = 7;
+        unknown = 8;
+        oobNotAvailable = 9;
+        confirmValueFailed = 10;
+        commandNotSupported = 11;
+        repeatedAttempts = 12;
+        invalidParameters = 13;
+        dhKeyCheckFailed = 14;
+        brEdrPairingInProgress = 15;
+        crossTransportKeyDerivationNotAllowed = 16;
+        keyRejected = 17;
     }
 
     Result result = 1;
@@ -209,7 +251,7 @@ service GapCentral
     option (service_id) = 33;
 
     // Allowed states: standby
-    rpc StartDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 1; }
+    rpc StartDeviceDiscovery(ScanParameters) returns (Nothing) { option (method_id) = 21; }
 
     // Allowed states: scanning
     rpc StopDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 2; }
@@ -217,7 +259,11 @@ service GapCentral
     // Allowed states: standby
     // For successful connection establishment, state will follow: standby -> initiating -> connected
     // For failed connection establishment, state will follow: standby -> initiating -> standby
-    rpc Connect(ConnectionParameters) returns (Nothing) { option (method_id) = 3; }
+    // Method id 3 carried no link parameters, so a peer speaking that version would connect with
+    // whatever the port happened to default to rather than with what was asked for. It is left
+    // unused so that such a peer fails on an unknown method instead.
+    rpc Connect(ConnectionParameters) returns (Nothing) { option (method_id) = 23; }
+    rpc UpdateConnectionParameters(LinkParameters) returns (Nothing) { option (method_id) = 24; }
 
     // Allowed states: initiating
     rpc CancelConnect(Nothing) returns (Nothing) { option (method_id) = 4; }
@@ -230,7 +276,8 @@ service GapCentral
     // 2. If there is no pre-existing bond, then pairing, encrypting, and bonding (storing the keys) will take place.
     rpc PairAndBond(Nothing) returns (Nothing) { option (method_id) = 6; }
 
-    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 7; }
+    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 19; }
+    rpc SetSecureConnectionsOnly(BoolValue) returns (Nothing) { option (method_id) = 20; }
     rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 8; }
     rpc AuthenticateWithPasskey(UInt32Value) returns (Nothing) { option (method_id) = 9; }
     rpc NumericComparisonConfirm(BoolValue) returns (Nothing) { option (method_id) = 10; }
@@ -246,6 +293,8 @@ service GapCentral
     // This will work with both public and random addresses
     rpc IsDeviceBonded(DeviceAddress) returns (Nothing) { option (method_id) = 17; }
     rpc RemoveOldestBond(Nothing) returns (Nothing) { option (method_id) = 18; }
+
+    rpc GetBondStrength(DeviceAddress) returns (Nothing) { option (method_id) = 22; }
 }
 
 service GapCentralResponse
@@ -255,19 +304,21 @@ service GapCentralResponse
     rpc DeviceDiscovered(DiscoveredDevice) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
 
-    rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) =  4; }
+    rpc PairingSuccessfullyCompleted(BondStrength) returns (Nothing) { option (method_id) = 29; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 5; }
 
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 6; }
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 7; }
-    rpc ResolvedPrivateAddress(Address) returns (Nothing) { option (method_id) = 8; }
+    rpc ResolvedPrivateAddress(DeviceAddress) returns (Nothing) { option (method_id) = 27; }
     rpc ResolvePrivateAddressFailed(Nothing) returns (Nothing) { option (method_id) = 9; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 10; }
+    rpc BondStrengthReported(BondStrength) returns (Nothing) { option (method_id) = 28; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 11; }
 
     rpc StartDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 12; }
     rpc StopDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 13; }
     rpc ConnectComplete(Completion) returns (Nothing) { option (method_id) = 14; }
+    rpc UpdateConnectionParametersComplete(Completion) returns (Nothing) { option (method_id) = 30; }
     rpc CancelConnectComplete(Completion) returns (Nothing) { option (method_id) = 15; }
     rpc DisconnectComplete(Completion) returns (Nothing) { option (method_id) = 16; }
     rpc PairAndBondComplete(PairingCompletion) returns (Nothing) { option (method_id) = 17; }
@@ -279,4 +330,5 @@ service GapCentralResponse
     rpc SetDeviceDiscoveryFilterComplete(Completion) returns (Nothing) { option (method_id) = 23; }
     rpc RemoveOldestBondComplete(BondCompletion) returns (Nothing) { option (method_id) = 24; }
     rpc SetOutOfBandDataComplete(PairingCompletion) returns (Nothing) { option (method_id) = 25; }
+    rpc SetSecureConnectionsOnlyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 26; }
 }

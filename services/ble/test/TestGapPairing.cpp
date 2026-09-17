@@ -42,15 +42,17 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, forward_all_events_to_observers)
     {
-        EXPECT_CALL(gapPairingObserver, DisplayPasskey(::testing::Eq(11111), ::testing::IsTrue()));
-        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted());
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(::testing::Eq(11111u)));
+        EXPECT_CALL(gapPairingObserver, ConfirmNumericComparison(::testing::Eq(222222u)));
+        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(GapBondStrength{ true, true, 16 }));
         EXPECT_CALL(gapPairingObserver, PairingFailed(::testing::TypedEq<GapPairingResult>(GapPairingResult::numericComparisonFailed)));
         EXPECT_CALL(gapPairingObserver, OutOfBandDataGenerated(OutOfBandDataContentsEqual(GapOutOfBandData{ macAddress, GapDeviceAddressType::publicAddress, infra::MakeByteRange(random), infra::MakeByteRange(confirm) })));
 
         gapPairing.NotifyObservers([this](GapPairingObserver& obs)
             {
-                obs.DisplayPasskey(11111, true);
-                obs.PairingSuccessfullyCompleted();
+                obs.DisplayPasskey(11111);
+                obs.ConfirmNumericComparison(222222);
+                obs.PairingSuccessfullyCompleted(GapBondStrength{ true, true, 16 });
                 obs.PairingFailed(GapPairingResult::numericComparisonFailed);
                 obs.OutOfBandDataGenerated(GapOutOfBandData{ macAddress, GapDeviceAddressType::publicAddress, infra::MakeByteRange(random), infra::MakeByteRange(confirm) });
             });
@@ -94,20 +96,112 @@ namespace services
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.AllowPairing(false, RejectedCallback()));
     }
 
+    TEST_F(GapPairingDecoratorTest, displays_a_passkey_without_a_comparison_flag)
+    {
+        // Passkey Entry and Numeric Comparison are distinct Security Manager procedures.
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(123456u));
+
+        gapPairing.NotifyObservers([](GapPairingObserver& obs)
+            {
+                obs.DisplayPasskey(123456);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, confirms_a_numeric_comparison_through_its_own_callback)
+    {
+        EXPECT_CALL(gapPairingObserver, ConfirmNumericComparison(654321u));
+
+        gapPairing.NotifyObservers([](GapPairingObserver& obs)
+            {
+                obs.ConfirmNumericComparison(654321);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, carries_the_whole_six_digit_passkey_range)
+    {
+        // A passkey is six digits, 000000 to 999999.
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(0u));
+        EXPECT_CALL(gapPairingObserver, DisplayPasskey(999999u));
+
+        gapPairing.NotifyObservers([](GapPairingObserver& obs)
+            {
+                obs.DisplayPasskey(0);
+                obs.DisplayPasskey(999999);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, reports_the_bond_strength_when_pairing_completes)
+    {
+        const GapBondStrength lesc{ true, true, 16 };
+
+        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(lesc));
+
+        gapPairing.NotifyObservers([&lesc](GapPairingObserver& obs)
+            {
+                obs.PairingSuccessfullyCompleted(lesc);
+            });
+    }
+
+    TEST_F(GapPairingDecoratorTest, distinguishes_a_just_works_bond_from_an_authenticated_one)
+    {
+        const GapBondStrength justWorks{ true, false, 16 };
+
+        EXPECT_CALL(gapPairingObserver, PairingSuccessfullyCompleted(justWorks));
+
+        gapPairing.NotifyObservers([&justWorks](GapPairingObserver& obs)
+            {
+                obs.PairingSuccessfullyCompleted(justWorks);
+            });
+
+        EXPECT_NE((GapBondStrength{ true, true, 16 }), justWorks);
+        EXPECT_NE((GapBondStrength{ false, false, 16 }), justWorks);
+        EXPECT_NE((GapBondStrength{ true, false, 7 }), justWorks);
+    }
+
     TEST_F(GapPairingDecoratorTest, set_security_mode_forwards_request_and_result)
     {
-        EXPECT_CALL(gapPairing, SetSecurityMode(::testing::TypedEq<GapPairing::SecurityMode>(GapPairing::SecurityMode::mode1), ::testing::TypedEq<GapPairing::SecurityLevel>(GapPairing::SecurityLevel::level1), testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gapPairing, SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level1, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecurityMode(GapPairing::SecurityMode::mode1, GapPairing::SecurityLevel::level1, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level1, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
     }
 
     TEST_F(GapPairingDecoratorTest, set_security_mode_forwards_rejection_without_invoking_callback)
     {
-        EXPECT_CALL(gapPairing, SetSecurityMode(::testing::TypedEq<GapPairing::SecurityMode>(GapPairing::SecurityMode::mode2), ::testing::TypedEq<GapPairing::SecurityLevel>(GapPairing::SecurityLevel::level4), testing::_))
+        EXPECT_CALL(gapPairing, SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level4, testing::_))
             .WillOnce(testing::Return(GapRequestStatus::notSupported));
 
-        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetSecurityMode(GapPairing::SecurityMode::mode2, GapPairing::SecurityLevel::level4, RejectedCallback()));
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level4, RejectedCallback()));
+    }
+
+    TEST_F(GapPairingDecoratorTest, offers_every_mode_and_level_the_specification_defines_and_no_others)
+    {
+        // Mode 2 stops at level 2.
+        for (auto modeAndLevel : { GapPairing::SecurityModeAndLevel::mode1Level1, GapPairing::SecurityModeAndLevel::mode1Level2,
+                 GapPairing::SecurityModeAndLevel::mode1Level3, GapPairing::SecurityModeAndLevel::mode1Level4,
+                 GapPairing::SecurityModeAndLevel::mode2Level1, GapPairing::SecurityModeAndLevel::mode2Level2 })
+        {
+            EXPECT_CALL(gapPairing, SetSecurityMode(modeAndLevel, testing::_))
+                .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
+
+            EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecurityMode(modeAndLevel, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
+        }
+    }
+
+    TEST_F(GapPairingDecoratorTest, set_secure_connections_only_forwards_request_and_result)
+    {
+        EXPECT_CALL(gapPairing, SetSecureConnectionsOnly(true, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecureConnectionsOnly(true, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
+    }
+
+    TEST_F(GapPairingDecoratorTest, set_secure_connections_only_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gapPairing, SetSecureConnectionsOnly(false, testing::_))
+            .WillOnce(testing::Return(GapRequestStatus::notSupported));
+
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetSecureConnectionsOnly(false, RejectedCallback()));
     }
 
     TEST_F(GapPairingDecoratorTest, set_io_capabilities_forwards_request_and_result)

@@ -19,6 +19,9 @@ namespace services
 
     constexpr uint16_t attDefaultMaxMtuSize = 23;
 
+    // Bluetooth Core Specification, Volume 3, Part F, section 3.2.9
+    constexpr uint16_t attMaxAttributeValueSize = 512;
+
     // Values taken from Bluetooth Core Specification
     // Volume 3, Part F, section 3.4.1.1
     enum class AttErrorCode : uint8_t

@@ -20,48 +20,69 @@ message ToneParams
 }
 
 // TxPowerParams: Input parameter to set the transmit power
-//   - txPower      : Power amplifier output level (Range: 0x00 - 0x23)
+//   - txPower      : Transmit power in dBm, as LE Transmitter Test v4 carries it
+// Bluetooth Core Specification, Volume 4, Part E, section 7.8.29
 message TxPowerParams
 {
-    uint32 txPower = 1;
+    int32 txPower = 1;
 }
 
-// RxParams: Input parameters for the receive Test
-//   - frequency    : Frequency (F - 2402)/2 (Range: 0x00 - 0x27)
-//   - phy          : 0x01 - LE 1M
-//                    0x02 - LE 2M
-//                    0x03 - LE Coded PHY S=8
-//                    0x04 - LE Coded PHY S=2
+// The PHY a test packet is sent or received on. A test distinguishes the two LE Coded coding
+// schemes, where a connection only selects a PHY.
+// Bluetooth Core Specification, Volume 4, Part E, sections 7.8.28 and 7.8.29
+message Phy
+{
+    enum PhyEnum
+    {
+        unspecified = 0;
+        le1M = 1;
+        le2M = 2;
+        leCodedS8 = 3;
+        leCodedS2 = 4;
+    }
+
+    PhyEnum phy = 1;
+}
+
+// Bluetooth Core Specification, Volume 6, Part F, section 4.1.4
+message PacketPayload
+{
+    enum PacketPayloadEnum
+    {
+        pseudoRandom9 = 0;
+        alternating11110000 = 1;
+        alternating10101010 = 2;
+        pseudoRandom15 = 3;
+        allOnes = 4;
+        allZeroes = 5;
+        alternating00001111 = 6;
+        alternating0101 = 7;
+    }
+
+    PacketPayloadEnum payload = 1;
+}
+
+// RxParams: Input parameters for the receive test
+//   - channel      : Channel N, where the centre frequency is 2402 + 2 * N MHz (range 0x00 - 0x27)
 //   - durationMs   : Duration in milliseconds
+// Bluetooth Core Specification, Volume 6, Part F, section 4.1.1
 message RxParams
 {
-    uint32 frequency = 1;
-    uint32 phy = 2;
+    uint32 channel = 1;
+    Phy phy = 2;
     uint32 durationMs = 3;
 }
 
-// TxParams: Input parameters for the transmit Test
-//   - frequency    : Frequency (F - 2402)/2 (Range: 0x00 - 0x27)
-//   - dataLength   : Length in bytes of the payload data in each packet
-//   - packetPayload: 0x00 - Pseudo random bit sequence 9
-//                    0x01 - Pattern of alternating bits 11110000
-//                    0x02 - Pattern of alternating bits 10101010
-//                    0x03 - Pseudo random bit sequence 15
-//                    0x04 - Pattern of all 1 bits
-//                    0x05 - Pattern of all 0 bits
-//                    0x06 - Pattern of alternating bits 00001111
-//                    0x07 - Pattern of alternating bits 0101
-//   - phy          : 0x01 - LE 1M
-//                    0x02 - LE 2M
-//                    0x03 - LE Coded PHY S=8
-//                    0x04 - LE Coded PHY S=2
+// TxParams: Input parameters for the transmit test
+//   - channel      : Channel N, where the centre frequency is 2402 + 2 * N MHz (range 0x00 - 0x27)
+//   - dataLength   : Length in octets of the payload data in each packet
 //   - durationMs   : Duration in milliseconds
 message TxParams
 {
-    uint32 frequency = 1;
+    uint32 channel = 1;
     uint32 dataLength = 2;
-    uint32 packetPayload = 3;
-    uint32 phy = 4;
+    PacketPayload packetPayload = 3;
+    Phy phy = 4;
     uint32 durationMs = 5;
 }
 
@@ -69,12 +90,14 @@ service Dtm
 {
     option (service_id) = 232;
 
-    rpc StartTone(ToneParams) returns(Nothing) { option (method_id) = 1; }
-    rpc StopTone(Nothing) returns(Nothing) { option (method_id) = 2; }
-    rpc SetTxPowerLevel(TxPowerParams) returns(Nothing) { option (method_id) = 3; }
-    rpc StartRxTest(RxParams) returns(Nothing) { option (method_id) = 4; }
-    rpc StartTxTest(TxParams) returns(Nothing) { option (method_id) = 5; }
-    rpc StopTest(Nothing) returns(Nothing) { option (method_id) = 6; }
+    rpc StartUnmodulatedCarrier(ToneParams) returns(Nothing) { option (method_id) = 1; }
+    rpc StopUnmodulatedCarrier(Nothing) returns(Nothing) { option (method_id) = 2; }
+    // Method id 3 carried a vendor power index rather than dBm, so a peer speaking that version
+    // would read a level it could not interpret. It is left unused.
+    rpc SetTxPowerLevel(TxPowerParams) returns(Nothing) { option (method_id) = 7; }
+    rpc StartReceiverTest(RxParams) returns(Nothing) { option (method_id) = 4; }
+    rpc StartTransmitterTest(TxParams) returns(Nothing) { option (method_id) = 5; }
+    rpc EndTest(Nothing) returns(Nothing) { option (method_id) = 6; }
 }
 
 message Result

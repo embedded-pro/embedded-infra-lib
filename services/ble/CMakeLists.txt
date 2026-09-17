@@ -29,6 +29,7 @@ target_link_libraries(services.ble PUBLIC
 
 target_sources(services.ble PRIVATE
     Att.hpp
+    DirectTestMode.hpp
     BondBlobPersistence.cpp
     BondBlobPersistence.hpp
     BondStorageSynchronizer.cpp
@@ -52,6 +53,7 @@ target_sources(services.ble PRIVATE
     GattClientCharacteristic.hpp
     GattClientConnection.cpp
     GattClientConnection.hpp
+    GattClientLongOperations.hpp
     ClaimingGattClientConnection.cpp
     ClaimingGattClientConnection.hpp
     GattServer.cpp

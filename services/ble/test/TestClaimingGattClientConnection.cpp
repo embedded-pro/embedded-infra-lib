@@ -362,3 +362,351 @@ TEST_F(ClaimingGattClientConnectionTest, should_drain_a_queued_operation_when_th
     onDiscoveryDone(services::GattResult::disconnected);
     ExecuteAllActions();
 }
+
+namespace
+{
+    // A stack whose MTU is 23 gives a 20-byte read chunk and a 18-byte prepare chunk.
+    constexpr uint16_t testMtu = 23;
+    constexpr std::size_t readChunk = testMtu - 1;
+    constexpr std::size_t writeChunk = testMtu - 5;
+    constexpr std::size_t writePayload = testMtu - 3;
+
+    class LongOperationsTest
+        : public ClaimingGattClientConnectionTest
+    {
+    public:
+        LongOperationsTest()
+        {
+            EXPECT_CALL(connection, EffectiveMaxAttMtuSize()).WillRepeatedly(testing::Return(testMtu));
+        }
+
+        static std::array<uint8_t, readChunk> FullChunk(uint8_t first)
+        {
+            std::array<uint8_t, readChunk> chunk{};
+            for (std::size_t i = 0; i != chunk.size(); ++i)
+                chunk[i] = static_cast<uint8_t>(first + i);
+            return chunk;
+        }
+
+        infra::BoundedVector<uint8_t>::WithMaxSize<64> value;
+    };
+}
+
+TEST_F(LongOperationsTest, should_read_a_short_value_without_a_blob_request)
+{
+    const std::array<uint8_t, 3> stored{ 0xA, 0xB, 0xC };
+
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(stored)), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::success, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+
+    EXPECT_THAT(value, testing::ElementsAreArray(stored));
+}
+
+TEST_F(LongOperationsTest, should_read_a_blob_when_the_first_response_fills_the_mtu)
+{
+    auto first = FullChunk(0);
+    const std::array<uint8_t, 2> second{ 0xEE, 0xFF };
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(first)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ReadBlob(handle, readChunk, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::success, infra::MakeRange(second)), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::success, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+
+    EXPECT_EQ(readChunk + 2, value.size());
+    EXPECT_EQ(0xEE, value[readChunk]);
+}
+
+TEST_F(LongOperationsTest, should_treat_an_invalid_offset_after_a_full_chunk_as_the_end_of_the_value)
+{
+    auto first = FullChunk(0);
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(first)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ReadBlob(handle, readChunk, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::invalidOffset, infra::ConstByteRange()), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::success, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+
+    EXPECT_EQ(readChunk, value.size());
+}
+
+TEST_F(LongOperationsTest, should_report_a_peer_refusing_a_blob_read_rather_than_ending_the_value)
+{
+    // attributeNotLong is a peer declining Read Blob, not the end of the value.
+    auto first = FullChunk(0);
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(first)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ReadBlob(handle, readChunk, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::invalidLength, infra::ConstByteRange()), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::invalidLength, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_read_on_when_the_buffer_is_exactly_full)
+{
+    infra::BoundedVector<uint8_t>::WithMaxSize<readChunk> exact;
+    auto first = FullChunk(0);
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(first)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ReadBlob(handle, readChunk, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::invalidOffset, infra::ConstByteRange()), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::success, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, exact, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+
+    EXPECT_THAT(exact, testing::ElementsAreArray(first));
+}
+
+TEST_F(LongOperationsTest, should_report_insufficient_resources_when_the_value_is_one_octet_past_the_buffer)
+{
+    infra::BoundedVector<uint8_t>::WithMaxSize<readChunk> exact;
+    auto first = FullChunk(0);
+    const std::array<uint8_t, 1> second{ 0xEE };
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(first)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ReadBlob(handle, readChunk, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::success, infra::MakeRange(second)), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::insufficientResources, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, exact, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_report_a_read_failure_that_is_not_an_end_of_value)
+{
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::insufficientAuthentication, infra::ConstByteRange()), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::insufficientAuthentication, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+
+    EXPECT_TRUE(value.empty());
+}
+
+TEST_F(LongOperationsTest, should_report_insufficient_resources_when_the_value_does_not_fit)
+{
+    infra::BoundedVector<uint8_t>::WithMaxSize<readChunk + 1> small;
+    auto first = FullChunk(0);
+    const std::array<uint8_t, 4> second{ 1, 2, 3, 4 };
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success, infra::MakeRange(first)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ReadBlob(handle, readChunk, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::success, infra::MakeRange(second)), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::insufficientResources, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, small, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+
+    EXPECT_TRUE(small.full());
+}
+
+TEST_F(LongOperationsTest, should_refuse_a_second_operation_while_a_long_read_is_outstanding)
+{
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, ignoredReadResult));
+    ExecuteAllActions();
+
+    EXPECT_EQ(services::GattRequestStatus::busy, adapter.Read(handle, ignoredReadResult));
+    EXPECT_EQ(services::GattRequestStatus::busy, adapter.WriteLong(handle, infra::MakeRange(dataStorage), ignoredResult));
+}
+
+TEST_F(LongOperationsTest, should_write_a_short_value_without_preparing)
+{
+    EXPECT_CALL(connection, Write(handle, testing::ElementsAreArray(dataStorage), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::success), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> onDone(services::GattResult::success);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(dataStorage), onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_write_a_value_that_fills_a_write_request_without_preparing)
+{
+    std::array<uint8_t, writePayload> payload{};
+
+    EXPECT_CALL(connection, Write(handle, testing::ElementsAreArray(payload), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::success), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> onDone(services::GattResult::success);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(payload), onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_refuse_a_value_larger_than_an_attribute)
+{
+    std::array<uint8_t, services::attMaxAttributeValueSize + 1> tooLarge{};
+
+    EXPECT_EQ(services::GattRequestStatus::invalidParameter, adapter.WriteLong(handle, infra::MakeRange(tooLarge), ignoredResult));
+}
+
+TEST_F(LongOperationsTest, should_prepare_one_write_per_chunk_then_execute)
+{
+    std::array<uint8_t, writeChunk + 3> payload{};
+    for (std::size_t i = 0; i != payload.size(); ++i)
+        payload[i] = static_cast<uint8_t>(i);
+
+    const infra::ConstByteRange firstChunk = infra::Head(infra::MakeRange(payload), writeChunk);
+    const infra::ConstByteRange secondChunk = infra::DiscardHead(infra::MakeRange(payload), writeChunk);
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, PrepareWrite(handle, 0, testing::ElementsAreArray(firstChunk), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::success, 0, firstChunk), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, PrepareWrite(handle, writeChunk, testing::ElementsAreArray(secondChunk), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::success, writeChunk, secondChunk), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ExecuteWrite(services::GattExecuteWriteFlag::write, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> onDone(services::GattResult::success);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(payload), onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_cancel_the_prepared_writes_when_a_prepare_fails)
+{
+    std::array<uint8_t, writeChunk + 3> payload{};
+    const infra::ConstByteRange firstChunk = infra::Head(infra::MakeRange(payload), writeChunk);
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, PrepareWrite(handle, 0, testing::ElementsAreArray(firstChunk), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::success, 0, firstChunk), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, PrepareWrite(handle, writeChunk, testing::_, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::insufficientResources, 0, infra::ConstByteRange()), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ExecuteWrite(services::GattExecuteWriteFlag::cancel, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> onDone(services::GattResult::insufficientResources);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(payload), onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_cancel_the_prepared_writes_when_the_echoed_value_does_not_match)
+{
+    std::array<uint8_t, writeChunk + 3> payload{};
+    const std::array<uint8_t, writeChunk> wrong{ 0xFF };
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, PrepareWrite(handle, 0, testing::_, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::success, 0, infra::MakeRange(wrong)), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ExecuteWrite(services::GattExecuteWriteFlag::cancel, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::success), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> onDone(services::GattResult::unknown);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(payload), onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_report_the_original_failure_and_not_the_cancel_result)
+{
+    std::array<uint8_t, writeChunk + 3> payload{};
+
+    testing::InSequence sequence;
+    EXPECT_CALL(connection, PrepareWrite(handle, 0, testing::_, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::notPermitted, 0, infra::ConstByteRange()), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_CALL(connection, ExecuteWrite(services::GattExecuteWriteFlag::cancel, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<1>(services::GattResult::timeout), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> onDone(services::GattResult::notPermitted);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(payload), onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_release_the_claim_once_a_long_write_completes)
+{
+    EXPECT_CALL(connection, Write(handle, testing::_, testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<2>(services::GattResult::success), testing::Return(services::GattRequestStatus::accepted)));
+
+    infra::VerifyingFunction<void(services::GattResult)> writeDone(services::GattResult::success);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteLong(handle, infra::MakeRange(dataStorage), writeDone));
+    ExecuteAllActions();
+
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.Read(handle, ignoredReadResult));
+    ExecuteAllActions();
+}
+
+TEST_F(LongOperationsTest, should_report_disconnected_when_the_underlying_read_is_refused)
+{
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::invalidState));
+
+    infra::MockCallback<void(services::GattResult, infra::ConstByteRange)> onDone;
+    EXPECT_CALL(onDone, callback(services::GattResult::disconnected, testing::_));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ReadLong(handle, value, [&onDone](services::GattResult result, infra::ConstByteRange data)
+                                                         {
+                                                             onDone.callback(result, data);
+                                                         }));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_call_discover_included_services)
+{
+    EXPECT_CALL(connection, DiscoverIncludedServices(handle, endHandle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverIncludedServices(handle, endHandle, ignoredResult));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_discover_the_included_services_of_a_whole_service)
+{
+    const services::GattService service{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x10, 0x1F };
+
+    EXPECT_CALL(connection, DiscoverIncludedServices(0x10, 0x1F, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverIncludedServices(service, ignoredResult));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_forward_an_included_service_discovered)
+{
+    const services::GattIncludedService includedService{ services::AttAttribute::Uuid(services::AttAttribute::Uuid16{ 0x180A }), 0x5, 0x20, 0x2F };
+
+    EXPECT_CALL(connectionObserver, IncludedServiceDiscovered(includedService));
+    adapter.IncludedServiceDiscovered(includedService);
+}
+
+TEST_F(ClaimingGattClientConnectionTest, should_queue_an_included_service_discovery_behind_another_discovery)
+{
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(ignoredResult));
+    ExecuteAllActions();
+
+    EXPECT_EQ(services::GattRequestStatus::busy, adapter.DiscoverIncludedServices(handle, endHandle, ignoredResult));
+}

@@ -1,4 +1,5 @@
 #include "services/ble/GattServer.hpp"
+#include <iterator>
 
 namespace services
 {
@@ -38,25 +39,20 @@ namespace services
         return valueLength;
     }
 
-    uint8_t GattServerCharacteristic::GetAttributeCount() const
+    uint16_t GattServerCharacteristic::GetAttributeCount() const
     {
-        constexpr uint8_t attributeCountWithoutCCCD = 2;
-        constexpr uint8_t attributeCountWithCCCD = 3;
+        constexpr uint16_t attributeCountWithoutCCCD = 2;
+        constexpr uint16_t attributeCountWithCCCD = 3;
 
-        uint8_t baseAttributeCount;
+        uint16_t baseAttributeCount;
         if ((Properties() & (GattCharacteristic::PropertyFlags::notify | GattCharacteristic::PropertyFlags::indicate)) == GattCharacteristic::PropertyFlags::none)
             baseAttributeCount = attributeCountWithoutCCCD;
         else
             baseAttributeCount = attributeCountWithCCCD;
 
-        uint8_t descriptorCount = 0;
-        for (const auto& descriptor : descriptors)
-        {
-            (void)descriptor;
-            ++descriptorCount;
-        }
+        auto descriptorCount = static_cast<uint16_t>(std::distance(descriptors.begin(), descriptors.end()));
 
-        return baseAttributeCount + descriptorCount;
+        return static_cast<uint16_t>(baseAttributeCount + descriptorCount);
     }
 
     void GattServerCharacteristic::AddDescriptor(GattServerDescriptor& descriptor)
@@ -78,15 +74,47 @@ namespace services
         : GattService(type, 0, 0)
     {}
 
-    uint8_t GattServerService::GetAttributeCount() const
-    {
-        constexpr uint8_t serviceAttributeCount = 1;
+    GattServerIncludedService::GattServerIncludedService(GattServerService& service)
+        : service(service)
+    {}
 
-        uint8_t attributeCount = serviceAttributeCount;
+    GattServerService& GattServerIncludedService::Service()
+    {
+        return service;
+    }
+
+    const GattServerService& GattServerIncludedService::Service() const
+    {
+        return service;
+    }
+
+    uint16_t GattServerService::GetAttributeCount() const
+    {
+        constexpr uint16_t serviceAttributeCount = 1;
+
+        uint16_t attributeCount = serviceAttributeCount;
         for (auto& characteristic : characteristics)
             attributeCount += characteristic.GetAttributeCount();
 
+        // One attribute per Include declaration.
+        attributeCount += static_cast<uint16_t>(std::distance(includedServices.begin(), includedServices.end()));
+
         return attributeCount;
+    }
+
+    void GattServerService::AddIncludedService(GattServerIncludedService& includedService)
+    {
+        includedServices.push_front(includedService);
+    }
+
+    infra::IntrusiveForwardList<GattServerIncludedService>& GattServerService::IncludedServices()
+    {
+        return includedServices;
+    }
+
+    const infra::IntrusiveForwardList<GattServerIncludedService>& GattServerService::IncludedServices() const
+    {
+        return includedServices;
     }
 
     void GattServerService::AddCharacteristic(GattServerCharacteristic& characteristic)

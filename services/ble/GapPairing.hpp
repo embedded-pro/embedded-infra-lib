@@ -7,6 +7,9 @@
 
 namespace services
 {
+    // Unspecified Reason, 0x08, is what unknown already means and gains nothing from a name of
+    // its own.
+    // Bluetooth Core Specification, Volume 3, Part H, section 3.5.5
     enum class GapPairingResult : uint8_t
     {
         success = 0,
@@ -18,6 +21,15 @@ namespace services
         timeout,
         encryptionFailed,
         unknown,
+        oobNotAvailable,
+        confirmValueFailed,
+        commandNotSupported,
+        repeatedAttempts,
+        invalidParameters,
+        dhKeyCheckFailed,
+        brEdrPairingInProgress,
+        crossTransportKeyDerivationNotAllowed,
+        keyRejected
     };
 
     class GapPairing;
@@ -28,8 +40,13 @@ namespace services
     public:
         using infra::Observer<GapPairingObserver, GapPairing>::Observer;
 
-        virtual void DisplayPasskey(int32_t passkey, bool numericComparison) = 0;
-        virtual void PairingSuccessfullyCompleted() = 0;
+        // Two distinct Security Manager procedures. Passkey Entry asks the user to read a passkey off
+        // this device and type it into the peer; Numeric Comparison asks them to confirm that both
+        // devices show the same value. The value is six digits, 000000 to 999999.
+        // Bluetooth Core Specification, Volume 3, Part H, section 2.3.5.6
+        virtual void DisplayPasskey(uint32_t passkey) = 0;
+        virtual void ConfirmNumericComparison(uint32_t value) = 0;
+        virtual void PairingSuccessfullyCompleted(const GapBondStrength& strength) = 0;
         virtual void PairingFailed(GapPairingResult error) = 0;
         virtual void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) = 0;
     };
@@ -38,27 +55,28 @@ namespace services
         : public infra::Subject<GapPairingObserver>
     {
     public:
+        // Values taken from Bluetooth Core Specification
+        // Volume 3, Part H, section 3.3.1, Table 3.4 (IO Capability)
         enum class IoCapabilities : uint8_t
         {
-            display,
-            displayYesNo,
-            keyboard,
-            none,
-            keyboardDisplay
+            display = 0x00u,
+            displayYesNo = 0x01u,
+            keyboard = 0x02u,
+            none = 0x03u,
+            keyboardDisplay = 0x04u
         };
 
-        enum class SecurityMode : uint8_t
+        // The six combinations the specification defines, and only those. Mode 2 has levels 1 and 2
+        // only.
+        // Bluetooth Core Specification, Volume 3, Part C, sections 10.2.1 and 10.2.2
+        enum class SecurityModeAndLevel : uint8_t
         {
-            mode1,
-            mode2
-        };
-
-        enum class SecurityLevel : uint8_t
-        {
-            level1,
-            level2,
-            level3,
-            level4,
+            mode1Level1 = 0, // No security
+            mode1Level2,     // Unauthenticated pairing with encryption
+            mode1Level3,     // Authenticated pairing with encryption
+            mode1Level4,     // Authenticated LE Secure Connections with a 128-bit key
+            mode2Level1,     // Unauthenticated pairing with data signing
+            mode2Level2      // Authenticated pairing with data signing
         };
 
         // 1. If there is a pre-existing bond, then the connection will be encrypted.
@@ -66,7 +84,12 @@ namespace services
         virtual GapRequestStatus PairAndBond(const infra::Function<void(GapPairingResult)>& onDone) = 0;
 
         virtual GapRequestStatus AllowPairing(bool allow, const infra::Function<void(GapPairingResult)>& onDone) = 0;
-        virtual GapRequestStatus SetSecurityMode(SecurityMode mode, SecurityLevel level, const infra::Function<void(GapPairingResult)>& onDone) = 0;
+        virtual GapRequestStatus SetSecurityMode(SecurityModeAndLevel modeAndLevel, const infra::Function<void(GapPairingResult)>& onDone) = 0;
+
+        // Secure Connections Only is a property of the device, not of one link: while it is on, every
+        // service requiring security requires Mode 1 Level 4.
+        // Bluetooth Core Specification, Volume 3, Part C, section 10.2.4
+        virtual GapRequestStatus SetSecureConnectionsOnly(bool enabled, const infra::Function<void(GapPairingResult)>& onDone) = 0;
         virtual GapRequestStatus SetIoCapabilities(IoCapabilities caps, const infra::Function<void(GapPairingResult)>& onDone) = 0;
         virtual GapRequestStatus GenerateOutOfBandData(const infra::Function<void(GapPairingResult)>& onDone) = 0;
         virtual GapRequestStatus SetOutOfBandData(const GapOutOfBandData& outOfBandData, const infra::Function<void(GapPairingResult)>& onDone) = 0;
@@ -82,15 +105,17 @@ namespace services
         using GapPairingObserver::GapPairingObserver;
 
         // Implementation of GapPairingObserver
-        void DisplayPasskey(int32_t passkey, bool numericComparison) override;
-        void PairingSuccessfullyCompleted() override;
+        void DisplayPasskey(uint32_t passkey) override;
+        void ConfirmNumericComparison(uint32_t value) override;
+        void PairingSuccessfullyCompleted(const GapBondStrength& strength) override;
         void PairingFailed(GapPairingResult error) override;
         void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) override;
 
         // Implementation of GapPairing
         GapRequestStatus PairAndBond(const infra::Function<void(GapPairingResult)>& onDone) override;
         GapRequestStatus AllowPairing(bool allow, const infra::Function<void(GapPairingResult)>& onDone) override;
-        GapRequestStatus SetSecurityMode(SecurityMode mode, SecurityLevel level, const infra::Function<void(GapPairingResult)>& onDone) override;
+        GapRequestStatus SetSecurityMode(SecurityModeAndLevel modeAndLevel, const infra::Function<void(GapPairingResult)>& onDone) override;
+        GapRequestStatus SetSecureConnectionsOnly(bool enabled, const infra::Function<void(GapPairingResult)>& onDone) override;
         GapRequestStatus SetIoCapabilities(IoCapabilities caps, const infra::Function<void(GapPairingResult)>& onDone) override;
         GapRequestStatus GenerateOutOfBandData(const infra::Function<void(GapPairingResult)>& onDone) override;
         GapRequestStatus SetOutOfBandData(const GapOutOfBandData& outOfBandData, const infra::Function<void(GapPairingResult)>& onDone) override;

@@ -107,9 +107,59 @@ namespace services
         EXPECT_EQ(data[0], 17);
         EXPECT_EQ(data[1], 0x07);
 
-        std::array<uint8_t, 16> extractedFromBigEndian = service1;
-        std::reverse(extractedFromBigEndian.begin(), extractedFromBigEndian.end());
-        EXPECT_THAT(infra::MakeRange(data.begin() + 2, data.end()), infra::ContentsEqual(extractedFromBigEndian));
+        const std::array<uint8_t, 16> onAir = { 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08,
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 };
+        EXPECT_THAT(infra::MakeRange(data.begin() + 2, data.end()), infra::ContentsEqual(onAir));
+    }
+
+    TEST_F(GapAdvertisementFormatterTest, append_incomplete_list_of_16bit_services)
+    {
+        std::array<AttAttribute::Uuid16, 1> services = { 0x1234 };
+
+        formatter.AppendIncompleteListOfServicesUuid(infra::MakeRange(services));
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(4u, data.size());
+        EXPECT_EQ(3, data[0]);
+        EXPECT_EQ(0x02, data[1]);
+        EXPECT_EQ(0x34, data[2]);
+        EXPECT_EQ(0x12, data[3]);
+    }
+
+    TEST_F(GapAdvertisementFormatterTest, append_incomplete_list_of_128bit_services)
+    {
+        std::array<uint8_t, 16> uuid128 = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
+        std::array<AttAttribute::Uuid128, 1> services = { AttAttribute::Uuid128(uuid128) };
+
+        formatter.AppendIncompleteListOfServicesUuid(infra::MakeRange(services));
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(18u, data.size());
+        EXPECT_EQ(17, data[0]);
+        EXPECT_EQ(0x06, data[1]);
+
+        const std::array<uint8_t, 16> onAir = { 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08,
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 };
+        EXPECT_THAT(infra::MakeRange(data.begin() + 2, data.end()), infra::ContentsEqual(onAir));
+    }
+
+    TEST_F(GapAdvertisementFormatterTest, append_service_data_with_a_128bit_uuid)
+    {
+        std::array<uint8_t, 16> uuid128 = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
+        const std::array<uint8_t, 2> serviceData = { 0xAA, 0xBB };
+
+        formatter.AppendServiceData(AttAttribute::Uuid128(uuid128), infra::MakeRange(serviceData));
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(20u, data.size());
+        EXPECT_EQ(19, data[0]);
+        EXPECT_EQ(0x21, data[1]);
+
+        const std::array<uint8_t, 18> expected = { 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08,
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0xAA, 0xBB };
+        EXPECT_THAT(infra::MakeRange(data.begin() + 2, data.end()), infra::ContentsEqual(expected));
     }
 
     TEST_F(GapAdvertisementFormatterTest, append_public_target_address)
@@ -197,5 +247,32 @@ namespace services
         EXPECT_EQ(data[3], 0x03);
 
         EXPECT_EQ(formatter.RemainingSpaceAvailable(), gapMaxScanResponseDataSize - 4);
+    }
+
+    TEST_F(GapAdvertisementFormatterTest, append_tx_power_level)
+    {
+        formatter.AppendTxPowerLevel(-6);
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(3u, data.size());
+        EXPECT_EQ(2, data[0]);
+        EXPECT_EQ(0x0A, data[1]);
+        EXPECT_EQ(0xFA, data[2]);
+    }
+
+    TEST_F(GapAdvertisementFormatterTest, append_service_data_for_a_16_bit_uuid)
+    {
+        const std::array<uint8_t, 2> serviceData{ 0x63, 0x64 };
+
+        formatter.AppendServiceData(0x180F, infra::MakeConstByteRange(serviceData));
+
+        auto data = formatter.FormattedAdvertisementData();
+        ASSERT_EQ(6u, data.size());
+        EXPECT_EQ(5, data[0]);
+        EXPECT_EQ(0x16, data[1]);
+        EXPECT_EQ(0x0F, data[2]); // little-endian UUID
+        EXPECT_EQ(0x18, data[3]);
+        EXPECT_EQ(0x63, data[4]);
+        EXPECT_EQ(0x64, data[5]);
     }
 }

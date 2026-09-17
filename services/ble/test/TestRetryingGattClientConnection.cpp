@@ -161,3 +161,35 @@ TEST_F(RetryingGattClientConnectionTest, should_forward_indication_received)
     EXPECT_CALL(updateObserver, IndicationReceived(handle, testing::ElementsAreArray(data), testing::_)).WillOnce(testing::InvokeArgument<2>());
     retryingConnection.IndicationReceived(handle, data, onDone);
 }
+
+TEST_F(RetryingGattClientConnectionTest, should_forward_read_blob)
+{
+    infra::Function<void(services::GattResult, infra::ConstByteRange)> onReadMock;
+
+    EXPECT_CALL(connection, ReadBlob(handle, 0x20, testing::Ref(onReadMock))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.ReadBlob(handle, 0x20, onReadMock));
+}
+
+TEST_F(RetryingGattClientConnectionTest, should_forward_prepare_write)
+{
+    infra::Function<void(services::GattResult, uint16_t, infra::ConstByteRange)> onPrepareMock;
+
+    EXPECT_CALL(connection, PrepareWrite(handle, 0x10, testing::ElementsAreArray(data), testing::Ref(onPrepareMock))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.PrepareWrite(handle, 0x10, data, onPrepareMock));
+}
+
+TEST_F(RetryingGattClientConnectionTest, should_forward_execute_write)
+{
+    EXPECT_CALL(connection, ExecuteWrite(services::GattExecuteWriteFlag::write, testing::Ref(onDoneMock))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.ExecuteWrite(services::GattExecuteWriteFlag::write, onDoneMock));
+}
+
+TEST_F(RetryingGattClientConnectionTest, should_forward_a_cancelling_execute_write)
+{
+    EXPECT_CALL(connection, ExecuteWrite(services::GattExecuteWriteFlag::cancel, testing::Ref(onDoneMock))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.ExecuteWrite(services::GattExecuteWriteFlag::cancel, onDoneMock));
+}

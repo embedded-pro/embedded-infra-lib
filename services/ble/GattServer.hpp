@@ -58,6 +58,8 @@ namespace services
         , public GattDescriptor
     {
     public:
+        // These bit values are defined by this library, not by the Bluetooth Core
+        // Specification.
         enum class AccessFlags : uint8_t
         {
             readOnly = 0x01u,
@@ -86,8 +88,9 @@ namespace services
         , public GattServerCharacteristicUpdate
     {
     public:
-        // Description in Bluetooth Core Specification
-        // Volume 3, Part F, section 3.2.5
+        // These bit values are defined by this library, not by the Bluetooth Core
+        // Specification. Vol 3, Part F, section 3.2.5 describes attribute permissions as
+        // a concept but assigns them no encoding, so nothing here can be checked against it.
         enum class PermissionFlags : uint8_t
         {
             none = 0x00u,
@@ -104,7 +107,7 @@ namespace services
 
         PermissionFlags Permissions() const;
         uint16_t ValueLength() const;
-        uint8_t GetAttributeCount() const;
+        uint16_t GetAttributeCount() const;
 
         void AddDescriptor(GattServerDescriptor& descriptor);
         infra::IntrusiveForwardList<GattServerDescriptor>& Descriptors();
@@ -114,6 +117,21 @@ namespace services
         PermissionFlags permissions;
         uint16_t valueLength;
         infra::IntrusiveForwardList<GattServerDescriptor> descriptors;
+    };
+
+    class GattServerService;
+
+    class GattServerIncludedService
+        : public infra::IntrusiveForwardList<GattServerIncludedService>::NodeType
+    {
+    public:
+        explicit GattServerIncludedService(GattServerService& service);
+
+        GattServerService& Service();
+        const GattServerService& Service() const;
+
+    private:
+        GattServerService& service;
     };
 
     class GattServerService
@@ -128,10 +146,15 @@ namespace services
         infra::IntrusiveForwardList<GattServerCharacteristic>& Characteristics();
         const infra::IntrusiveForwardList<GattServerCharacteristic>& Characteristics() const;
 
-        uint8_t GetAttributeCount() const;
+        void AddIncludedService(GattServerIncludedService& includedService);
+        infra::IntrusiveForwardList<GattServerIncludedService>& IncludedServices();
+        const infra::IntrusiveForwardList<GattServerIncludedService>& IncludedServices() const;
+
+        uint16_t GetAttributeCount() const;
 
     private:
         infra::IntrusiveForwardList<GattServerCharacteristic> characteristics;
+        infra::IntrusiveForwardList<GattServerIncludedService> includedServices;
     };
 
     class GattServer

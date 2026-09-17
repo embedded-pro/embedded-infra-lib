@@ -4,6 +4,7 @@
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "services/ble/Att.hpp"
+#include <optional>
 
 namespace services
 {
@@ -29,18 +30,82 @@ namespace services
         unsupported,
         disconnected,
         timeout,
-        unknown
+        unknown,
+        databaseOutOfSync,
+        valueNotAllowed,
+
+        // A Read Blob Request past the end of a value is answered with this.
+        invalidOffset
     };
 
     GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
+
+    // Bluetooth Core Specification, Volume 3, Part F, section 3.4.6.3
+    enum class GattExecuteWriteFlag : uint8_t
+    {
+        cancel = 0x00u,
+        write = 0x01u
+    };
+
+    // The value of the Service Changed characteristic, 0x2A05: the handle range whose
+    // definitions changed.
+    // Bluetooth Core Specification, Volume 3, Part G, section 7.1
+    struct GattServiceChanged
+    {
+        AttAttribute::Handle startHandle;
+        AttAttribute::Handle endHandle;
+
+        bool operator==(const GattServiceChanged& other) const = default;
+    };
+
+    std::optional<GattServiceChanged> GattServiceChangedFromValue(infra::ConstByteRange value);
+
+    namespace uuid
+    {
+        // Values taken from Assigned Numbers, section 3.4 (GATT Services)
+        constexpr inline AttAttribute::Uuid16 genericAccessService{ 0x1800 };
+        constexpr inline AttAttribute::Uuid16 genericAttributeService{ 0x1801 };
+
+        // Values taken from Assigned Numbers, section 3.6 (GATT Declarations)
+        constexpr inline AttAttribute::Uuid16 primaryService{ 0x2800 };
+        constexpr inline AttAttribute::Uuid16 secondaryService{ 0x2801 };
+        constexpr inline AttAttribute::Uuid16 include{ 0x2802 };
+        constexpr inline AttAttribute::Uuid16 characteristic{ 0x2803 };
+
+        // Values taken from Assigned Numbers, section 3.7 (GATT Descriptors)
+        constexpr inline AttAttribute::Uuid16 characteristicExtendedProperties{ 0x2900 };
+        constexpr inline AttAttribute::Uuid16 characteristicUserDescription{ 0x2901 };
+        constexpr inline AttAttribute::Uuid16 clientCharacteristicConfiguration{ 0x2902 };
+        constexpr inline AttAttribute::Uuid16 serverCharacteristicConfiguration{ 0x2903 };
+        constexpr inline AttAttribute::Uuid16 characteristicPresentationFormat{ 0x2904 };
+        constexpr inline AttAttribute::Uuid16 characteristicAggregateFormat{ 0x2905 };
+
+        // Values taken from Assigned Numbers, section 3.8 (GATT Characteristics and Object Types)
+        constexpr inline AttAttribute::Uuid16 serviceChanged{ 0x2A05 };
+        constexpr inline AttAttribute::Uuid16 clientSupportedFeatures{ 0x2B29 };
+        constexpr inline AttAttribute::Uuid16 databaseHash{ 0x2B2A };
+        constexpr inline AttAttribute::Uuid16 serverSupportedFeatures{ 0x2B3A };
+
+        // Device Information Service, Assigned Numbers sections 3.4 and 3.8
+        constexpr inline AttAttribute::Uuid16 deviceInformationService{ 0x180A };
+        constexpr inline AttAttribute::Uuid16 systemId{ 0x2A23 };
+        constexpr inline AttAttribute::Uuid16 modelNumber{ 0x2A24 };
+        constexpr inline AttAttribute::Uuid16 serialNumber{ 0x2A25 };
+        constexpr inline AttAttribute::Uuid16 firmwareRevision{ 0x2A26 };
+        constexpr inline AttAttribute::Uuid16 hardwareRevision{ 0x2A27 };
+        constexpr inline AttAttribute::Uuid16 softwareRevision{ 0x2A28 };
+        constexpr inline AttAttribute::Uuid16 manufacturerName{ 0x2A29 };
+        constexpr inline AttAttribute::Uuid16 ieeeCertification{ 0x2A2A };
+        constexpr inline AttAttribute::Uuid16 pnpId{ 0x2A50 };
+    }
 
     struct GattDescriptor
     {
         struct ClientCharacteristicConfiguration
         {
-            static constexpr uint8_t valueHandleOffset = 1;
-            static constexpr uint16_t attributeType = 0x2902;
+            static constexpr uint16_t attributeType = uuid::clientCharacteristicConfiguration;
 
+            // Bluetooth Core Specification, Volume 3, Part G, section 3.3.3.3
             enum class CharacteristicValue : uint16_t
             {
                 disable = 0x0000,
@@ -63,20 +128,6 @@ namespace services
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
     };
-
-    namespace uuid
-    {
-        constexpr inline AttAttribute::Uuid16 deviceInformationService{ 0x180A };
-        constexpr inline AttAttribute::Uuid16 systemId{ 0x2A23 };
-        constexpr inline AttAttribute::Uuid16 modelNumber{ 0x2A24 };
-        constexpr inline AttAttribute::Uuid16 serialNumber{ 0x2A25 };
-        constexpr inline AttAttribute::Uuid16 firmwareRevision{ 0x2A26 };
-        constexpr inline AttAttribute::Uuid16 hardwareRevision{ 0x2A27 };
-        constexpr inline AttAttribute::Uuid16 softwareRevision{ 0x2A28 };
-        constexpr inline AttAttribute::Uuid16 manufacturerName{ 0x2A29 };
-        constexpr inline AttAttribute::Uuid16 ieeeCertification{ 0x2A2A };
-        constexpr inline AttAttribute::Uuid16 pnpId{ 0x2A50 };
-    }
 
     class GattCharacteristic
     {
@@ -146,13 +197,63 @@ namespace services
         AttAttribute::Handle& Handle();
         AttAttribute::Handle EndHandle() const;
         AttAttribute::Handle& EndHandle();
-        uint8_t GetAttributeCount() const;
+        uint16_t GetAttributeCount() const;
 
     private:
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle endHandle;
     };
+
+    // An Include declaration, 0x2802. Its value carries the included service's handle range, and
+    // its UUID only when that service is 16-bit; for a 128-bit service a client must read the
+    // included service's own declaration to learn it. The type therefore carries a Uuid that the
+    // port fills in after that extra read, which is not modelled here.
+    // Bluetooth Core Specification, Volume 3, Part G, section 3.2
+    class GattIncludedService
+    {
+    public:
+        GattIncludedService(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle serviceHandle, AttAttribute::Handle serviceEndHandle);
+        GattIncludedService() = default;
+
+        const AttAttribute::Uuid& Type() const;
+
+        AttAttribute::Handle Handle() const;
+        AttAttribute::Handle& Handle();
+        AttAttribute::Handle ServiceHandle() const;
+        AttAttribute::Handle& ServiceHandle();
+        AttAttribute::Handle ServiceEndHandle() const;
+        AttAttribute::Handle& ServiceEndHandle();
+
+        bool operator==(const GattIncludedService& other) const = default;
+
+    private:
+        AttAttribute::Uuid type;
+        AttAttribute::Handle handle{};
+        AttAttribute::Handle serviceHandle{};
+        AttAttribute::Handle serviceEndHandle{};
+    };
+
+    // The bits of the Characteristic Extended Properties descriptor, 0x2900, which is present
+    // exactly when GattCharacteristic::PropertyFlags::extended is set.
+    // Values taken from Bluetooth Core Specification
+    // Volume 3, Part G, section 3.3.3.1
+    enum class GattCharacteristicExtendedProperties : uint16_t
+    {
+        none = 0x0000u,
+        reliableWrite = 0x0001u,
+        writableAuxiliaries = 0x0002u
+    };
+
+    inline GattCharacteristicExtendedProperties operator|(GattCharacteristicExtendedProperties lhs, GattCharacteristicExtendedProperties rhs)
+    {
+        return static_cast<GattCharacteristicExtendedProperties>(infra::enum_cast(lhs) | infra::enum_cast(rhs));
+    }
+
+    inline GattCharacteristicExtendedProperties operator&(GattCharacteristicExtendedProperties lhs, GattCharacteristicExtendedProperties rhs)
+    {
+        return static_cast<GattCharacteristicExtendedProperties>(infra::enum_cast(lhs) & infra::enum_cast(rhs));
+    }
 
     inline GattCharacteristic::PropertyFlags operator|(GattCharacteristic::PropertyFlags lhs, GattCharacteristic::PropertyFlags rhs)
     {

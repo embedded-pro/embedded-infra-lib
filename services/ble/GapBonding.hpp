@@ -24,7 +24,9 @@ namespace services
     public:
         virtual std::size_t GetMaxNumberOfBonds() const = 0;
         virtual std::size_t GetNumberOfBonds() const = 0;
-        virtual bool IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const = 0;
+        virtual bool IsDeviceBonded(const GapAddress& address) const = 0;
+
+        virtual std::optional<GapBondStrength> BondStrength(const GapAddress& address) const = 0;
 
         virtual GapRequestStatus RemoveAllBonds(const infra::Function<void()>& onDone) = 0;
         virtual GapRequestStatus RemoveOldestBond(const infra::Function<void()>& onDone) = 0;
@@ -43,7 +45,8 @@ namespace services
         // Implementation of GapBonding
         std::size_t GetMaxNumberOfBonds() const override;
         std::size_t GetNumberOfBonds() const override;
-        bool IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const override;
+        bool IsDeviceBonded(const GapAddress& address) const override;
+        std::optional<GapBondStrength> BondStrength(const GapAddress& address) const override;
         GapRequestStatus RemoveAllBonds(const infra::Function<void()>& onDone) override;
         GapRequestStatus RemoveOldestBond(const infra::Function<void()>& onDone) override;
     };

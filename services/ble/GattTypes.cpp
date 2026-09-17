@@ -1,4 +1,5 @@
 #include "services/ble/GattTypes.hpp"
+#include "infra/stream/ByteInputStream.hpp"
 
 namespace services
 {
@@ -25,15 +26,36 @@ namespace services
             case AttErrorCode::insufficientResources:
                 return GattResult::insufficientResources;
             case AttErrorCode::invalidOffset:
+                return GattResult::invalidOffset;
             case AttErrorCode::attributeNotLong:
             case AttErrorCode::invalidAttributeValueLength:
                 return GattResult::invalidLength;
             case AttErrorCode::requestNotSupported:
             case AttErrorCode::unsupportedGroupType:
                 return GattResult::unsupported;
+            case AttErrorCode::databaseOutOfSync:
+                return GattResult::databaseOutOfSync;
+            case AttErrorCode::valueNotAllowed:
+                return GattResult::valueNotAllowed;
+            // unlikelyError is the specification's own name for a failure with no more
+            // specific cause, so unknown is the faithful translation rather than a lossy one.
             default:
                 return GattResult::unknown;
         }
+    }
+
+    std::optional<GattServiceChanged> GattServiceChangedFromValue(infra::ConstByteRange value)
+    {
+        infra::ByteInputStream stream(value, infra::softFail);
+
+        GattServiceChanged serviceChanged{};
+        serviceChanged.startHandle = infra::FromLittleEndian(stream.Extract<AttAttribute::Handle>());
+        serviceChanged.endHandle = infra::FromLittleEndian(stream.Extract<AttAttribute::Handle>());
+
+        if (stream.Failed() || !stream.Empty())
+            return std::nullopt;
+
+        return std::make_optional(serviceChanged);
     }
 
     GattDescriptor::GattDescriptor(const AttAttribute::Uuid& type, AttAttribute::Handle handle)
@@ -93,6 +115,48 @@ namespace services
         return valueHandle;
     }
 
+    GattIncludedService::GattIncludedService(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle serviceHandle, AttAttribute::Handle serviceEndHandle)
+        : type(type)
+        , handle(handle)
+        , serviceHandle(serviceHandle)
+        , serviceEndHandle(serviceEndHandle)
+    {}
+
+    const AttAttribute::Uuid& GattIncludedService::Type() const
+    {
+        return type;
+    }
+
+    AttAttribute::Handle GattIncludedService::Handle() const
+    {
+        return handle;
+    }
+
+    AttAttribute::Handle& GattIncludedService::Handle()
+    {
+        return handle;
+    }
+
+    AttAttribute::Handle GattIncludedService::ServiceHandle() const
+    {
+        return serviceHandle;
+    }
+
+    AttAttribute::Handle& GattIncludedService::ServiceHandle()
+    {
+        return serviceHandle;
+    }
+
+    AttAttribute::Handle GattIncludedService::ServiceEndHandle() const
+    {
+        return serviceEndHandle;
+    }
+
+    AttAttribute::Handle& GattIncludedService::ServiceEndHandle()
+    {
+        return serviceEndHandle;
+    }
+
     GattService::GattService(const AttAttribute::Uuid& type)
         : GattService(type, 0, 0)
     {}
@@ -128,7 +192,7 @@ namespace services
         return endHandle;
     }
 
-    uint8_t GattService::GetAttributeCount() const
+    uint16_t GattService::GetAttributeCount() const
     {
         return 0;
     }

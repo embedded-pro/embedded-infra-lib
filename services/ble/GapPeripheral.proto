@@ -33,12 +33,14 @@ message State
 
 message IoCapabilities
 {
+    // Values taken from Bluetooth Core Specification
+    // Volume 3, Part H, section 3.3.1, Table 3.4 (IO Capability)
     enum IoCapabilitiesEnum
     {
-        none = 0;
-        display = 1;
-        displayYesNo = 2;
-        keyboard = 3;
+        display = 0;
+        displayYesNo = 1;
+        keyboard = 2;
+        none = 3;
         keyboardDisplay = 4;
     }
 
@@ -51,6 +53,7 @@ message AdvertisementType
     {
         advInd = 0;
         advNonconnInd = 1;
+        advScanInd = 2;
     }
 
     AdvertisementTypeEnum type = 1;
@@ -58,22 +61,20 @@ message AdvertisementType
 
 message SecurityModeAndLevel
 {
-    enum SecurityLevelEnum
+    // Ordered to match services::GapPairing::SecurityModeAndLevel. The six combinations the
+    // specification defines and no others; mode 2 has levels 1 and 2 only.
+    // Bluetooth Core Specification, Volume 3, Part C, sections 10.2.1 and 10.2.2
+    enum ModeAndLevel
     {
-        none = 0;
-        unauthenticatedPairing = 1;
-        authenticatedPairing = 2;
-        authenticatedPairingWithLE = 3;
+        mode1Level1 = 0;
+        mode1Level2 = 1;
+        mode1Level3 = 2;
+        mode1Level4 = 3;
+        mode2Level1 = 4;
+        mode2Level2 = 5;
     }
 
-    enum SecurityModeEnum
-    {
-        mode1 = 0;
-        mode2 = 1;
-    }
-
-    SecurityModeEnum mode = 1;
-    SecurityLevelEnum level = 2;
+    ModeAndLevel value = 1;
 }
 
 message AddressType
@@ -93,10 +94,48 @@ message DeviceAddress
     AddressType addressType = 2;
 }
 
+// A bit per primary advertising channel, 37, 38 and 39, of which at least one must be set.
+// Bluetooth Core Specification, Volume 6, Part B, section 4.4.2
+message AdvertisingChannels
+{
+    uint32 channels = 1;
+}
+
+// Which scan and connection requests the controller acts on, the rest being those from devices
+// on the Filter Accept List. Ignored for directed advertising.
+// Bluetooth Core Specification, Volume 4, Part E, section 7.8.5
+message AdvertisingFilterPolicy
+{
+    enum FilterPolicyEnum
+    {
+        any = 0;
+        filterScanRequests = 1;
+        filterConnectionRequests = 2;
+        filterScanAndConnectionRequests = 3;
+    }
+
+    FilterPolicyEnum policy = 1;
+}
+
 message AdvertisementMode
 {
     AdvertisementType type = 1;
     uint32 advInterval = 2;
+    AdvertisingChannels channels = 3;
+    AdvertisingFilterPolicy filterPolicy = 4;
+}
+
+message DirectedAdvertisementMode
+{
+    enum DirectedAdvertisementTypeEnum
+    {
+        highDutyCycle = 0;
+        lowDutyCycle = 1;
+    }
+
+    DirectedAdvertisementTypeEnum type = 1;
+    DeviceAddress peer = 2;
+    uint32 advInterval = 3;
 }
 
 message AdvertisementData
@@ -106,31 +145,49 @@ message AdvertisementData
 
 message ConnectionParameterUpdate
 {
-    uint32 minConnIntMultiplier = 1;
-    uint32 maxConnIntMultiplier = 2;
-    uint32 slaveLatency = 3;
-    uint32 supervisorTimeoutMs = 4;
+    uint32 minConnectionInterval = 1; // Interval = value * 1.25 ms, range 0x0006 to 0x0C80
+    uint32 maxConnectionInterval = 2; // Interval = value * 1.25 ms, range 0x0006 to 0x0C80
+    uint32 peripheralLatency = 3;
+    uint32 supervisionTimeout = 4;    // Timeout = value * 10 ms, range 0x000A to 0x0C80
 }
 
 message Passkey
 {
-    int32 passkey = 1;
-    bool numericComparison = 2;
+    // Six digits, 000000 to 999999.
+    uint32 passkey = 1;
+}
+
+// Bluetooth Core Specification, Volume 3, Part H, section 2.3.1
+message BondStrength
+{
+    bool bonded = 1;
+    bool secureConnections = 2;
+    bool authenticated = 3;
+    uint32 encryptionKeySize = 4;
 }
 
 message PairingStatus
 {
     enum Result
     {
-        passkeyEntryFailed = 0;
-        authenticationRequirementsNotMet = 1;
-        pairingNotSupported = 2;
-        insufficientEncryptionKeySize = 3;
-        numericComparisonFailed = 4;
-        timeout = 5;
-        encryptionFailed = 6;
-        unknown = 7;
-        success = 8;
+        success = 0;
+        passkeyEntryFailed = 1;
+        authenticationRequirementsNotMet = 2;
+        pairingNotSupported = 3;
+        insufficientEncryptionKeySize = 4;
+        numericComparisonFailed = 5;
+        timeout = 6;
+        encryptionFailed = 7;
+        unknown = 8;
+        oobNotAvailable = 9;
+        confirmValueFailed = 10;
+        commandNotSupported = 11;
+        repeatedAttempts = 12;
+        invalidParameters = 13;
+        dhKeyCheckFailed = 14;
+        brEdrPairingInProgress = 15;
+        crossTransportKeyDerivationNotAllowed = 16;
+        keyRejected = 17;
     }
 
     Result result = 1;
@@ -197,7 +254,10 @@ service GapPeripheral
     option (service_id) = 32;
 
     // Allowed states: standby
-    rpc Advertise(AdvertisementMode) returns (Nothing) { option (method_id) = 1; }
+    // Method id 1 carried no channel map and no filter policy, so a peer speaking that version
+    // would advertise on all three channels to everyone rather than as asked. It is left unused
+    // so that such a peer fails on an unknown method instead.
+    rpc Advertise(AdvertisementMode) returns (Nothing) { option (method_id) = 23; }
 
     // Allowed states: advertising, connected
     rpc Standby(Nothing) returns (Nothing) { option (method_id) = 2; }
@@ -205,7 +265,9 @@ service GapPeripheral
     rpc SetAdvertisementData(AdvertisementData) returns (Nothing) { option (method_id) = 3; }
     rpc SetScanResponseData(AdvertisementData) returns (Nothing) { option (method_id) = 4; }
     rpc SetAllowPairing(BoolValue) returns (Nothing) { option (method_id) = 5; }
-    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 6; }
+    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 19; }
+    rpc SetSecureConnectionsOnly(BoolValue) returns (Nothing) { option (method_id) = 20; }
+    rpc AdvertiseDirected(DirectedAdvertisementMode) returns (Nothing) { option (method_id) = 21; }
     rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 7; }
     rpc RemoveAllBonds(Nothing) returns (Nothing) { option (method_id) = 8; }
 
@@ -216,7 +278,9 @@ service GapPeripheral
     rpc GenerateOutOfBandData(Nothing) returns (Nothing) { option (method_id) = 11; }
     rpc SetOutOfBandData(OutOfBandData) returns (Nothing) { option (method_id) = 12; }
 
-    rpc SetConnectionParameters(ConnectionParameterUpdate) returns (Nothing) { option (method_id) = 13; }
+    // A peripheral can only ask; the central decides. The name says so now, and the payload
+    // has not changed, so the method keeps its id.
+    rpc RequestConnectionParameterUpdate(ConnectionParameterUpdate) returns (Nothing) { option (method_id) = 13; }
 
     rpc PairAndBond(Nothing) returns (Nothing) { option (method_id) = 14; }
 
@@ -225,6 +289,8 @@ service GapPeripheral
     rpc RemoveOldestBond(Nothing) returns (Nothing) { option (method_id) = 17; }
 
     rpc IsDeviceBonded(DeviceAddress) returns (Nothing) { option (method_id) = 18; }
+
+    rpc GetBondStrength(DeviceAddress) returns (Nothing) { option (method_id) = 22; }
 }
 
 service GapPeripheralResponse
@@ -234,7 +300,9 @@ service GapPeripheralResponse
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
     rpc ResolvableAddress(Address) returns (Nothing) { option (method_id) = 4; }
-    rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 5; }
+    rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 27; }
+    rpc ConfirmNumericComparison(UInt32Value) returns (Nothing) { option (method_id) = 28; }
+    rpc AdvertiseDirectedComplete(Completion) returns (Nothing) { option (method_id) = 29; }
     rpc IdentityAddress(Address) returns (Nothing) { option (method_id) = 6; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 7; }
 
@@ -247,14 +315,16 @@ service GapPeripheralResponse
     rpc SetIoCapabilitiesComplete(PairingCompletion) returns (Nothing) { option (method_id) = 14; }
     rpc RemoveAllBondsComplete(BondCompletion) returns (Nothing) { option (method_id) = 15; }
     rpc SetOutOfBandDataComplete(PairingCompletion) returns (Nothing) { option (method_id) = 16; }
-    rpc SetConnectionParametersComplete(Completion) returns (Nothing) { option (method_id) = 17; }
+    rpc RequestConnectionParameterUpdateComplete(Completion) returns (Nothing) { option (method_id) = 17; }
     rpc PairAndBondComplete(PairingCompletion) returns (Nothing) { option (method_id) = 18; }
     rpc AuthenticateWithPasskeyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 19; }
     rpc NumericComparisonConfirmComplete(PairingCompletion) returns (Nothing) { option (method_id) = 20; }
     rpc RemoveOldestBondComplete(BondCompletion) returns (Nothing) { option (method_id) = 21; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 22; }
+    rpc BondStrengthReported(BondStrength) returns (Nothing) { option (method_id) = 30; }
 
-    rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) = 23; }
+    rpc PairingSuccessfullyCompleted(BondStrength) returns (Nothing) { option (method_id) = 31; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 24; }
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 25; }
+    rpc SetSecureConnectionsOnlyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 26; }
 }

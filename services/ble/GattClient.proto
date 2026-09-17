@@ -6,8 +6,6 @@ package gatt.client;
 option java_package = "com.philips.emil.protobufEcho";
 option java_outer_classname = "GattClientProto";
 
-// Identifies one of the connections a GATT client holds. Every request and every response
-// carries it, so that a single ECHO link can drive several connections at once.
 message ConnectionId
 {
     uint32 value = 1;
@@ -72,13 +70,20 @@ message Characteristic
     uint32 properties = 5;
 }
 
-// Not 'Descriptor': protoc generates a static Descriptor member on every C# message, which
-// a message of that name would collide with (CS0542). Verified against the generated C#.
 message Descriptr
 {
     ConnectionId connection = 1;
     bytes uuid = 2 [(bytes_size) = 16];
     Handle handle = 3;
+}
+
+message IncludedService
+{
+    ConnectionId connection = 1;
+    bytes uuid = 2 [(bytes_size) = 16];
+    Handle handle = 3;
+    Handle serviceStartHandle = 4;
+    Handle serviceEndHandle = 5;
 }
 
 message RequestStatus
@@ -111,6 +116,9 @@ message Completion
         disconnected = 9;
         timeout = 10;
         unknown = 11;
+        databaseOutOfSync = 12;
+        valueNotAllowed = 13;
+        invalidOffset = 14;
     }
 
     ConnectionId connection = 1;
@@ -124,8 +132,6 @@ message ReadCompletion
     bytes data = 2 [(bytes_size) = 512];
 }
 
-// Method ids 1 to 15 were used by the single connection interface and are left unused, so
-// that a peer speaking that version fails on an unknown method rather than misreading one.
 service GattClient
 {
     option (service_id) = 134;
@@ -140,6 +146,11 @@ service GattClient
     rpc Write(CharacteristicData) returns (Nothing) { option (method_id) = 21; }
     rpc WriteWithoutResponse(CharacteristicData) returns (Nothing) { option (method_id) = 22; }
 
+    rpc DiscoverIncludedServices(HandleRange) returns (Nothing) { option (method_id) = 30; }
+
+    rpc ReadLong(CharacteristicHandle) returns (Nothing) { option (method_id) = 28; }
+    rpc WriteLong(CharacteristicData) returns (Nothing) { option (method_id) = 29; }
+
     rpc EnableNotification(CharacteristicHandle) returns (Nothing) { option (method_id) = 23; }
     rpc DisableNotification(CharacteristicHandle) returns (Nothing) { option (method_id) = 24; }
     rpc EnableIndication(CharacteristicHandle) returns (Nothing) { option (method_id) = 25; }
@@ -149,7 +160,6 @@ service GattClient
     rpc IndicationDone(ConnectionId) returns (Nothing) { option (method_id) = 27; }
 }
 
-// Method ids 1 to 12 were used by the single connection interface and are left unused.
 service GattClientResponse
 {
     option (service_id) = 135;
@@ -171,6 +181,12 @@ service GattClientResponse
 
     rpc ReadComplete(ReadCompletion) returns (Nothing) { option (method_id) = 26; }
     rpc WriteComplete(Completion) returns (Nothing) { option (method_id) = 27; }
+
+    rpc IncludedServiceDiscovered(IncludedService) returns (Nothing) { option (method_id) = 36; }
+    rpc DiscoverIncludedServicesComplete(Completion) returns (Nothing) { option (method_id) = 37; }
+
+    rpc ReadLongComplete(ReadCompletion) returns (Nothing) { option (method_id) = 34; }
+    rpc WriteLongComplete(Completion) returns (Nothing) { option (method_id) = 35; }
 
     rpc EnableNotificationComplete(Completion) returns (Nothing) { option (method_id) = 28; }
     rpc DisableNotificationComplete(Completion) returns (Nothing) { option (method_id) = 29; }
