@@ -4,6 +4,8 @@ An assessment of how closely `services/ble` follows the Bluetooth Core Specifica
 where it departs from it.
 
 Assessed at commit `5ff138b`. Line references are to that commit and drift with later edits.
+Verified against a green build: `services.ble_test` builds clean under the `host` preset and
+all 206 tests pass.
 
 ## Why this assessment exists
 
@@ -141,10 +143,12 @@ attribute model is built from is incomplete, and every port will redefine them l
 **S4 — `valueHandleOffset = 1`** (`GattTypes.hpp:41`) encodes the assumption that a Client
 Characteristic Configuration descriptor sits at the value handle plus one. The specification
 does not guarantee that; other descriptors may intervene. The constant is **declared and never
-used** — it has exactly one occurrence in the tree, its own declaration — and
-`TestGattClientCharacteristic.cpp`'s `WithDistantValueHandle` fixture exists specifically to
-prove that routing must key on the discovered handle instead. Dead code enshrining an assumption
-the test suite disproves: cheap to delete, actively misleading if kept.
+used** — it has exactly one occurrence in the tree, its own declaration — and the test suite
+explicitly rejects the rule it encodes. `GattClientCharacteristicWithDistantValueHandleTest`
+contains `notification_just_past_the_declaration_handle_is_ignored`: an update arriving at
+declaration handle plus one, which is exactly the handle this constant computes, must be
+discarded. Dead code enshrining an assumption the tests disprove by name: cheap to delete,
+actively misleading if kept.
 
 **S4 — `GetAttributeCount()` returns `uint8_t`** (`GattTypes.hpp:149`, and the `GattServer`
 overrides), capping a service at 255 attributes where ATT handles run to 0xFFFF.
@@ -415,14 +419,20 @@ per-connection, citing handle uniqueness per bearer, rather than merely stating 
 
 Ordered by risk, not by effort.
 
-| Priority | Items | Why first |
-| --- | --- | --- |
-| **P1** | IoCapabilities C++/proto divergence (SM S1); supervision timeout unit and name (GAP S1); AD codec alignment and endianness (cross-cutting S1) | Each can produce a wrong result on a correct-looking call. The alignment hazard can fault on a supported target. |
-| **P2** | `slaveLatency` and connection-interval naming and units (GAP S2); DLE constants misfiled (GAP S3) | Breaking API changes, so best sequenced together with P1's timeout fix rather than trickled out. |
-| **P3** | `databaseOutOfSync` and cache coherence (GATT S3); long reads and writes (GATT S3); bond strength not exposed (SM S3) | Real functional ceilings. The 20-byte write limit will be hit by the first port that needs it. |
-| **P4** | Advertising transmit/receive asymmetry; AD type coverage; GATT declaration UUIDs; included services; security mode and level modelling | Coverage gaps that force callers around the abstraction. |
-| **P5** | Extended advertising; L2CAP CoC; PHY selection; `uint8_t` and `int32_t` range issues | Larger features or low-consequence range fixes. |
-| **P6** | Dead `valueHandleOffset`; miscited permission flags; mock defects; `docs/Ble.md` DTM gap; citation discipline | Cheap, low-risk, improves the next reader's odds. |
+| Priority | Items | Tracked as | Why first |
+| --- | --- | --- | --- |
+| **P1** | IoCapabilities C++/proto divergence (SM S1) | [#119](https://github.com/embedded-pro/embedded-infra-lib/issues/119) | Each can produce a wrong result on a correct-looking call. |
+| **P1** | Supervision timeout unit and name (GAP S1) | [#120](https://github.com/embedded-pro/embedded-infra-lib/issues/120) | A tenfold unit error in a connection-critical parameter. |
+| **P1** | AD codec endianness and alignment (cross-cutting S1) | [#121](https://github.com/embedded-pro/embedded-infra-lib/issues/121) | Can fault on ARMv6-M, a target this repo has a preset for. |
+| **P2** | `GapConnectionParameters` naming; misfiled DLE constants | [#122](https://github.com/embedded-pro/embedded-infra-lib/issues/122) | Breaking changes, best sequenced with #120 in the same struct. |
+| **P3** | `databaseOutOfSync` and cache coherence (GATT S3) | [#123](https://github.com/embedded-pro/embedded-infra-lib/issues/123) | Removes a capability outright rather than narrowing one. |
+| **P3** | Long reads and writes (GATT S3) | [#124](https://github.com/embedded-pro/embedded-infra-lib/issues/124) | The 20-byte ceiling will be hit by the first port that needs it. |
+| **P3** | Bond strength and security mode/level modelling (SM S3) | [#125](https://github.com/embedded-pro/embedded-infra-lib/issues/125) | Security-relevant: an app cannot tell a Just Works bond from an authenticated LESC one. |
+| **P4** | Advertising asymmetry, AD types, scan parameters, extended advertising, PHY | [#126](https://github.com/embedded-pro/embedded-infra-lib/issues/126) | Coverage gaps that force callers around the abstraction. |
+| **P4** | GATT declaration UUIDs and included services | [#127](https://github.com/embedded-pro/embedded-infra-lib/issues/127) | Every port will otherwise redefine them locally. |
+| **P5** | L2CAP: non-goal or gap? | [#129](https://github.com/embedded-pro/embedded-infra-lib/issues/129) | Cheap to resolve either way; makes the boundary legible. |
+| **P6** | Dead `valueHandleOffset`, miscited permission flags, mock defects, docs | [#128](https://github.com/embedded-pro/embedded-infra-lib/issues/128) | Cheap, low-risk, improves the next reader's odds. |
+
 
 Several P1 and P2 items are breaking changes to a module that has already been rewritten twice
 recently. Sequencing them is a maintainer decision this report is meant to inform, not pre-empt.
