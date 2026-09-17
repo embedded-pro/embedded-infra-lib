@@ -38,7 +38,9 @@ namespace services
         void ReportCharacteristicOperationRefused(GattResult result);
 
     private:
-        struct DiscoveryOperation
+        // These hold an infra::Function, which declares a copy constructor and a destructor and so
+        // has no move constructor at all, leaving nothing that holds one nothrow movable.
+        struct DiscoveryOperation //NOSONAR
         {
             AttAttribute::Handle handle;
             AttAttribute::Handle endHandle;
@@ -46,24 +48,24 @@ namespace services
             DiscoveryProcedure procedure;
         };
 
-        struct ReadOperation
+        struct ReadOperation //NOSONAR
         {
             infra::Function<void(GattResult, infra::ConstByteRange)> onDone;
         };
 
-        struct WriteOperation
+        struct WriteOperation //NOSONAR
         {
             infra::ConstByteRange data;
             infra::Function<void(GattResult)> onDone;
         };
 
-        struct DescriptorOperation
+        struct DescriptorOperation //NOSONAR
         {
             infra::Function<void(GattResult)> onDone;
             DiscoveryProcedure procedure;
         };
 
-        struct CharacteristicOperation
+        struct CharacteristicOperation //NOSONAR
         {
             using Operation = std::variant<ReadOperation, WriteOperation, DescriptorOperation>;
 

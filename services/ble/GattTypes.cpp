@@ -132,6 +132,12 @@ namespace services
     {
         return 0;
     }
+
+    void GattCharacteristic::AppendFlag(infra::TextOutputStream& stream, PropertyFlags properties, PropertyFlags flag, const char* name)
+    {
+        if ((properties & flag) != PropertyFlags::none)
+            stream << "|" << name << "|";
+    }
 }
 
 namespace infra
@@ -142,30 +148,6 @@ namespace infra
             stream << "[" << hex << std::get<services::AttAttribute::Uuid16>(uuid) << "]";
         else
             stream << "[" << AsHex(MakeByteRange(std::get<services::AttAttribute::Uuid128>(uuid))) << "]";
-
-        return stream;
-    }
-
-    TextOutputStream& operator<<(TextOutputStream& stream, const services::GattCharacteristic::PropertyFlags& properties)
-    {
-        stream << "[";
-        if ((properties & services::GattCharacteristic::PropertyFlags::broadcast) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|broadcast|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::read) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|read|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::writeWithoutResponse) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|writeWithoutResponse|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::write) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|write|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::notify) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|notify|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::indicate) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|indicate|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::signedWrite) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|signedWrite|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::extended) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|extended|";
-        stream << "]";
 
         return stream;
     }

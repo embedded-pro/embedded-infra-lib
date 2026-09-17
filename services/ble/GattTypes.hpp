@@ -109,6 +109,26 @@ namespace services
         AttAttribute::Handle& ValueHandle();
 
     private:
+        static void AppendFlag(infra::TextOutputStream& stream, PropertyFlags properties, PropertyFlags flag, const char* name);
+
+    public:
+        friend infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const PropertyFlags& properties)
+        {
+            stream << "[";
+            AppendFlag(stream, properties, PropertyFlags::broadcast, "broadcast");
+            AppendFlag(stream, properties, PropertyFlags::read, "read");
+            AppendFlag(stream, properties, PropertyFlags::writeWithoutResponse, "writeWithoutResponse");
+            AppendFlag(stream, properties, PropertyFlags::write, "write");
+            AppendFlag(stream, properties, PropertyFlags::notify, "notify");
+            AppendFlag(stream, properties, PropertyFlags::indicate, "indicate");
+            AppendFlag(stream, properties, PropertyFlags::signedWrite, "signedWrite");
+            AppendFlag(stream, properties, PropertyFlags::extended, "extended");
+            stream << "]";
+
+            return stream;
+        }
+
+    private:
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle valueHandle;
@@ -148,7 +168,6 @@ namespace services
 namespace infra
 {
     TextOutputStream& operator<<(TextOutputStream& stream, const services::AttAttribute::Uuid& uuid);
-    TextOutputStream& operator<<(TextOutputStream& stream, const services::GattCharacteristic::PropertyFlags& properties);
 }
 
 #endif
