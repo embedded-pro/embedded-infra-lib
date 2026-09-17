@@ -52,6 +52,7 @@ target_sources(services.ble PRIVATE
     GattClientCharacteristic.hpp
     GattClientConnection.cpp
     GattClientConnection.hpp
+    GattClientLongOperations.hpp
     ClaimingGattClientConnection.cpp
     ClaimingGattClientConnection.hpp
     GattServer.cpp

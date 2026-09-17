@@ -3,13 +3,19 @@
 
 #include "infra/event/ClaimableResource.hpp"
 #include "services/ble/GattClientConnection.hpp"
+#include "services/ble/GattClientLongOperations.hpp"
 #include <optional>
 #include <variant>
 
 namespace services
 {
+    // The long operations are composed here, rather than above this decorator, because they hold
+    // one claim for their whole sequence. A long write builds a prepare queue that belongs to the
+    // bearer, not to the caller: releasing the claim between its Prepare Writes would let another
+    // caller queue a fragment of its own, which this connection's Execute Write would then commit.
     class ClaimingGattClientConnection
         : public GattClientConnectionDecorator
+        , public GattClientLongOperations
     {
     public:
         using GattClientConnectionDecorator::GattClientConnectionDecorator;
@@ -29,6 +35,10 @@ namespace services
         GattRequestStatus EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
 
+        // Implementation of GattClientLongOperations
+        GattRequestStatus ReadLong(AttAttribute::Handle handle, infra::BoundedVector<uint8_t>& value, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone) override;
+        GattRequestStatus WriteLong(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone) override;
+
     private:
         using DiscoveryProcedure = infra::Function<GattRequestStatus(const infra::Function<void(GattResult)>&)>;
 
@@ -36,6 +46,15 @@ namespace services
         GattRequestStatus ClaimCharacteristicOperation();
         GattRequestStatus PerformCharacteristicOperation();
         void ReportCharacteristicOperationRefused(GattResult result);
+
+        GattRequestStatus ContinueLongRead();
+        void LongReadChunkReceived(GattResult result, infra::ConstByteRange data);
+        void CompleteLongRead(GattResult result);
+
+        GattRequestStatus ContinueLongWrite();
+        void LongWriteChunkPrepared(GattResult result, uint16_t offset, infra::ConstByteRange echoed);
+        void CancelLongWrite(GattResult result);
+        void CompleteLongWrite(GattResult result);
 
     private:
         // These hold an infra::Function, which declares a copy constructor and a destructor and so
@@ -65,9 +84,25 @@ namespace services
             DiscoveryProcedure procedure;
         };
 
+        struct LongReadOperation //NOSONAR
+        {
+            infra::BoundedVector<uint8_t>* value;
+            uint16_t chunkSize;
+            infra::Function<void(GattResult, infra::ConstByteRange)> onDone;
+        };
+
+        struct LongWriteOperation //NOSONAR
+        {
+            infra::ConstByteRange data;
+            uint16_t offset;
+            uint16_t chunkSize;
+            GattResult pendingResult;
+            infra::Function<void(GattResult)> onDone;
+        };
+
         struct CharacteristicOperation //NOSONAR
         {
-            using Operation = std::variant<ReadOperation, WriteOperation, DescriptorOperation>;
+            using Operation = std::variant<ReadOperation, WriteOperation, DescriptorOperation, LongReadOperation, LongWriteOperation>;
 
             CharacteristicOperation(const Operation& operation, AttAttribute::Handle handle)
                 : operation(operation)
