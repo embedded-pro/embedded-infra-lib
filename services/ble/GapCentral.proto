@@ -50,7 +50,6 @@ message IoCapabilities
 
 message ScanParameters
 {
-    // Ordered to match services::GapScanType.
     enum ScanType
     {
         passive = 0;
@@ -118,10 +117,17 @@ message ConnectionParameters
     uint32 initiatingTimeoutInMs = 3;
 }
 
+// Bluetooth Core Specification, Volume 3, Part H, section 2.3.1
+message BondStrength
+{
+    bool bonded = 1;
+    bool secureConnections = 2;
+    bool authenticated = 3;
+    uint32 encryptionKeySize = 4;
+}
+
 message PairingStatus
 {
-    // Ordered to match services::GapPairingResult. success is 0, as in every other
-    // result enum in this module.
     enum Result
     {
         success = 0;
@@ -234,8 +240,6 @@ service GapCentral
     option (service_id) = 33;
 
     // Allowed states: standby
-    // Method id 1 took no parameters and is left unused, so that a peer speaking that version
-    // fails on an unknown method rather than scanning with whatever the port happens to default to.
     rpc StartDeviceDiscovery(ScanParameters) returns (Nothing) { option (method_id) = 21; }
 
     // Allowed states: scanning
@@ -257,8 +261,6 @@ service GapCentral
     // 2. If there is no pre-existing bond, then pairing, encrypting, and bonding (storing the keys) will take place.
     rpc PairAndBond(Nothing) returns (Nothing) { option (method_id) = 6; }
 
-    // Method id 7 carried a separate mode and level and is left unused, so that a peer speaking
-    // that version fails on an unknown method rather than misreading a single combined value.
     rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 19; }
     rpc SetSecureConnectionsOnly(BoolValue) returns (Nothing) { option (method_id) = 20; }
     rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 8; }
@@ -276,6 +278,8 @@ service GapCentral
     // This will work with both public and random addresses
     rpc IsDeviceBonded(DeviceAddress) returns (Nothing) { option (method_id) = 17; }
     rpc RemoveOldestBond(Nothing) returns (Nothing) { option (method_id) = 18; }
+
+    rpc GetBondStrength(DeviceAddress) returns (Nothing) { option (method_id) = 22; }
 }
 
 service GapCentralResponse
@@ -285,16 +289,15 @@ service GapCentralResponse
     rpc DeviceDiscovered(DiscoveredDevice) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
 
-    rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) =  4; }
+    rpc PairingSuccessfullyCompleted(BondStrength) returns (Nothing) { option (method_id) = 29; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 5; }
 
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 6; }
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 7; }
-    // Method id 8 returned only the address, dropping whether the identity address it resolved
-    // to is public or static random, and is left unused.
     rpc ResolvedPrivateAddress(DeviceAddress) returns (Nothing) { option (method_id) = 27; }
     rpc ResolvePrivateAddressFailed(Nothing) returns (Nothing) { option (method_id) = 9; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 10; }
+    rpc BondStrengthReported(BondStrength) returns (Nothing) { option (method_id) = 28; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 11; }
 
     rpc StartDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 12; }

@@ -135,9 +135,6 @@ TEST(GapProtoTest, io_capabilities_match_the_security_manager_encoding)
 
 TEST(GapProtoTest, pairing_result_matches_the_proto_on_every_value)
 {
-    // success is 0 on both sides, as in every other result enum in this module.
-    // Before this was aligned, a cast turned success into passkeyEntryFailed and,
-    // worse, turned unknown into success.
     EXPECT_EQ(infra::enum_cast(services::GapPairingResult::success),
         infra::enum_cast(gap::central::PairingStatus::Result::success));
     EXPECT_EQ(infra::enum_cast(services::GapPairingResult::passkeyEntryFailed),
@@ -162,6 +159,20 @@ TEST(GapProtoTest, peripheral_pairing_result_matches_the_central_one)
 {
     EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::success),
         infra::enum_cast(gap::peripheral::PairingStatus::Result::success));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::passkeyEntryFailed),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::passkeyEntryFailed));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::authenticationRequirementsNotMet),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::authenticationRequirementsNotMet));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::pairingNotSupported),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::pairingNotSupported));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::insufficientEncryptionKeySize),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::insufficientEncryptionKeySize));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::numericComparisonFailed),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::numericComparisonFailed));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::timeout),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::timeout));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::encryptionFailed),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::encryptionFailed));
     EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::unknown),
         infra::enum_cast(gap::peripheral::PairingStatus::Result::unknown));
 }
@@ -170,6 +181,10 @@ TEST(GapProtoTest, security_mode_and_level_matches_the_proto)
 {
     EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode1Level1),
         infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level1));
+    EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode1Level2),
+        infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level2));
+    EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode1Level3),
+        infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level3));
     EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode1Level4),
         infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level4));
     EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode2Level1),
@@ -177,29 +192,33 @@ TEST(GapProtoTest, security_mode_and_level_matches_the_proto)
     EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode2Level2),
         infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode2Level2));
 
+    EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level1),
+        infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode1Level1));
+    EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level2),
+        infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode1Level2));
+    EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level3),
+        infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode1Level3));
+    EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level4),
+        infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode1Level4));
+    EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode2Level1),
+        infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode2Level1));
     EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode2Level2),
         infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode2Level2));
 }
 
 TEST(GapProtoTest, the_security_mode_request_moved_to_a_new_method_id)
 {
-    // The payload changed meaning from a separate mode and level to one combined value, so the
-    // old ids are retired rather than reused: an old peer must fail on an unknown method rather
-    // than misread a known one.
     EXPECT_EQ(19u, gap::central::GapCentralProxy::idSetSecurityMode);
     EXPECT_EQ(20u, gap::central::GapCentralProxy::idSetSecureConnectionsOnly);
     EXPECT_EQ(19u, gap::peripheral::GapPeripheralProxy::idSetSecurityMode);
     EXPECT_EQ(20u, gap::peripheral::GapPeripheralProxy::idSetSecureConnectionsOnly);
 
-    // The completions kept their ids: PairingCompletion did not change.
     EXPECT_EQ(18u, gap::central::GapCentralResponseProxy::idSetSecurityModeComplete);
     EXPECT_EQ(13u, gap::peripheral::GapPeripheralResponseProxy::idSetSecurityModeComplete);
 }
 
 TEST(GapProtoTest, pairing_result_carries_every_security_manager_failure)
 {
-    // Each of these separates a benign failure from an active attack, so an application that
-    // logs or acts on the difference needs them distinct rather than collapsed into unknown.
     EXPECT_EQ(infra::enum_cast(services::GapPairingResult::oobNotAvailable),
         infra::enum_cast(gap::central::PairingStatus::Result::oobNotAvailable));
     EXPECT_EQ(infra::enum_cast(services::GapPairingResult::confirmValueFailed),
@@ -225,8 +244,6 @@ TEST(GapProtoTest, pairing_result_carries_every_security_manager_failure)
 
 TEST(GapProtoTest, the_established_pairing_results_did_not_move)
 {
-    // Pins the values that existed before the Security Manager codes were appended. Inserting
-    // rather than appending would renumber everything after the insertion point.
     EXPECT_EQ(0u, infra::enum_cast(services::GapPairingResult::success));
     EXPECT_EQ(8u, infra::enum_cast(services::GapPairingResult::unknown));
     EXPECT_EQ(9u, infra::enum_cast(services::GapPairingResult::oobNotAvailable));
@@ -235,8 +252,6 @@ TEST(GapProtoTest, the_established_pairing_results_did_not_move)
 
 TEST(GapProtoTest, advertisement_type_matches_the_proto)
 {
-    // This enum had no guard, which is how advScanInd came to be appended rather than inserted:
-    // putting it between the existing two would renumber advNonconnInd on the C++ side only.
     EXPECT_EQ(infra::enum_cast(services::GapAdvertisementType::advInd),
         infra::enum_cast(gap::peripheral::AdvertisementType::AdvertisementTypeEnum::advInd));
     EXPECT_EQ(infra::enum_cast(services::GapAdvertisementType::advNonconnInd),
@@ -252,8 +267,6 @@ TEST(GapProtoTest, advertisement_type_matches_the_proto)
 
 TEST(GapProtoTest, advertise_kept_its_method_id)
 {
-    // Appending an enum value does not change what any existing value means, so Advertise is not
-    // a changed payload and keeps id 1. AdvertiseDirected is a new method, not a replacement.
     EXPECT_EQ(1u, gap::peripheral::GapPeripheralProxy::idAdvertise);
     EXPECT_EQ(21u, gap::peripheral::GapPeripheralProxy::idAdvertiseDirected);
 }
@@ -279,18 +292,13 @@ TEST(GapProtoTest, round_trip_scan_parameters)
 
 TEST(GapProtoTest, start_device_discovery_moved_to_a_new_method_id)
 {
-    // Nothing to ScanParameters genuinely changes what an old peer would read, so id 1 retires
-    // rather than being reused.
     EXPECT_EQ(21u, gap::central::GapCentralProxy::idStartDeviceDiscovery);
 
-    // The completion's payload did not change, so it keeps its id.
     EXPECT_EQ(12u, gap::central::GapCentralResponseProxy::idStartDeviceDiscoveryComplete);
 }
 
 TEST(GapProtoTest, the_resolved_private_address_moved_to_a_new_method_id)
 {
-    // The payload changed from Address to DeviceAddress, so an old peer reading the new message
-    // would take the address type for part of the address. Id 8 retires.
     EXPECT_EQ(27u, gap::central::GapCentralResponseProxy::idResolvedPrivateAddress);
 }
 
@@ -305,4 +313,35 @@ TEST(GapProtoTest, round_trip_a_resolved_identity_address)
 
     EXPECT_EQ(gap::central::AddressType::AddressTypeEnum::publicAddress, parsed.addressType.type);
     EXPECT_EQ(identity.address, parsed.address);
+}
+
+TEST(GapProtoTest, round_trip_a_bond_strength)
+{
+    gap::central::BondStrength strength{ true, true, true, 16 };
+
+    auto parsed = RoundTrip(strength);
+
+    EXPECT_EQ(strength, parsed);
+    EXPECT_EQ(16u, parsed.encryptionKeySize);
+}
+
+TEST(GapProtoTest, a_bond_that_is_absent_is_carried_as_not_bonded)
+{
+    gap::central::BondStrength strength{ false, false, false, 0 };
+
+    auto parsed = RoundTrip(strength);
+
+    EXPECT_FALSE(parsed.bonded);
+    EXPECT_EQ(strength, parsed);
+}
+
+TEST(GapProtoTest, the_successful_pairing_event_moved_to_a_new_method_id)
+{
+    EXPECT_EQ(29u, gap::central::GapCentralResponseProxy::idPairingSuccessfullyCompleted);
+    EXPECT_EQ(31u, gap::peripheral::GapPeripheralResponseProxy::idPairingSuccessfullyCompleted);
+
+    EXPECT_EQ(22u, gap::central::GapCentralProxy::idGetBondStrength);
+    EXPECT_EQ(28u, gap::central::GapCentralResponseProxy::idBondStrengthReported);
+    EXPECT_EQ(22u, gap::peripheral::GapPeripheralProxy::idGetBondStrength);
+    EXPECT_EQ(30u, gap::peripheral::GapPeripheralResponseProxy::idBondStrengthReported);
 }

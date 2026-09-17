@@ -49,8 +49,6 @@ message IoCapabilities
 
 message AdvertisementType
 {
-    // Ordered to match services::GapAdvertisementType. advScanInd is appended: renumbering
-    // advNonconnInd would break every port silently.
     enum AdvertisementTypeEnum
     {
         advInd = 0;
@@ -130,15 +128,21 @@ message ConnectionParameterUpdate
 
 message Passkey
 {
-    // Six digits, 000000 to 999999. The numericComparison discriminator is gone: numeric
-    // comparison is its own method now.
+    // Six digits, 000000 to 999999.
     uint32 passkey = 1;
+}
+
+// Bluetooth Core Specification, Volume 3, Part H, section 2.3.1
+message BondStrength
+{
+    bool bonded = 1;
+    bool secureConnections = 2;
+    bool authenticated = 3;
+    uint32 encryptionKeySize = 4;
 }
 
 message PairingStatus
 {
-    // Ordered to match services::GapPairingResult. success is 0, as in every other
-    // result enum in this module.
     enum Result
     {
         success = 0;
@@ -233,8 +237,6 @@ service GapPeripheral
     rpc SetAdvertisementData(AdvertisementData) returns (Nothing) { option (method_id) = 3; }
     rpc SetScanResponseData(AdvertisementData) returns (Nothing) { option (method_id) = 4; }
     rpc SetAllowPairing(BoolValue) returns (Nothing) { option (method_id) = 5; }
-    // Method id 6 carried a separate mode and level and is left unused, so that a peer speaking
-    // that version fails on an unknown method rather than misreading a single combined value.
     rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 19; }
     rpc SetSecureConnectionsOnly(BoolValue) returns (Nothing) { option (method_id) = 20; }
     rpc AdvertiseDirected(DirectedAdvertisementMode) returns (Nothing) { option (method_id) = 21; }
@@ -257,6 +259,8 @@ service GapPeripheral
     rpc RemoveOldestBond(Nothing) returns (Nothing) { option (method_id) = 17; }
 
     rpc IsDeviceBonded(DeviceAddress) returns (Nothing) { option (method_id) = 18; }
+
+    rpc GetBondStrength(DeviceAddress) returns (Nothing) { option (method_id) = 22; }
 }
 
 service GapPeripheralResponse
@@ -266,9 +270,6 @@ service GapPeripheralResponse
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
     rpc ResolvableAddress(Address) returns (Nothing) { option (method_id) = 4; }
-    // Method id 5 carried a passkey with a numericComparison flag and is left unused, so that a
-    // peer speaking that version fails on an unknown method rather than reading a passkey as a
-    // comparison value.
     rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 27; }
     rpc ConfirmNumericComparison(UInt32Value) returns (Nothing) { option (method_id) = 28; }
     rpc AdvertiseDirectedComplete(Completion) returns (Nothing) { option (method_id) = 29; }
@@ -290,8 +291,9 @@ service GapPeripheralResponse
     rpc NumericComparisonConfirmComplete(PairingCompletion) returns (Nothing) { option (method_id) = 20; }
     rpc RemoveOldestBondComplete(BondCompletion) returns (Nothing) { option (method_id) = 21; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 22; }
+    rpc BondStrengthReported(BondStrength) returns (Nothing) { option (method_id) = 30; }
 
-    rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) = 23; }
+    rpc PairingSuccessfullyCompleted(BondStrength) returns (Nothing) { option (method_id) = 31; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 24; }
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 25; }
     rpc SetSecureConnectionsOnlyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 26; }

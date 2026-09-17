@@ -83,13 +83,11 @@ TEST(GattProtoTest, completion_carries_every_gatt_result)
     EXPECT_EQ(static_cast<uint32_t>(services::GattResult::unknown), static_cast<uint32_t>(gatt::client::Completion::Result::unknown));
     EXPECT_EQ(static_cast<uint32_t>(services::GattResult::databaseOutOfSync), static_cast<uint32_t>(gatt::client::Completion::Result::databaseOutOfSync));
     EXPECT_EQ(static_cast<uint32_t>(services::GattResult::valueNotAllowed), static_cast<uint32_t>(gatt::client::Completion::Result::valueNotAllowed));
+    EXPECT_EQ(static_cast<uint32_t>(services::GattResult::invalidOffset), static_cast<uint32_t>(gatt::client::Completion::Result::invalidOffset));
 }
 
 TEST(GattProtoTest, the_established_completion_results_did_not_move)
 {
-    // Pins the values that existed before databaseOutOfSync and valueNotAllowed were appended.
-    // Inserting a value rather than appending one would renumber everything after it and break
-    // every port silently, so this fails loudly if anyone tries.
     EXPECT_EQ(0u, static_cast<uint32_t>(services::GattResult::success));
     EXPECT_EQ(11u, static_cast<uint32_t>(services::GattResult::unknown));
     EXPECT_EQ(12u, static_cast<uint32_t>(services::GattResult::databaseOutOfSync));
@@ -132,9 +130,6 @@ TEST(GattProtoTest, round_trip_read_completion)
 
 TEST(GattProtoTest, the_long_operations_take_new_method_ids)
 {
-    // A changed payload moves to a new id and the old id is left unused, so a peer speaking an
-    // older version fails on an unknown method rather than misreading a known one. These four
-    // are additions, so they simply continue past the previous maxima of 27 and 33.
     EXPECT_EQ(28u, gatt::client::GattClientProxy::idReadLong);
     EXPECT_EQ(29u, gatt::client::GattClientProxy::idWriteLong);
     EXPECT_EQ(34u, gatt::client::GattClientResponseProxy::idReadLongComplete);
