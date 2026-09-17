@@ -12,8 +12,8 @@ The Bluetooth specification separates what a device may do by the role it plays 
 |--------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | `GapTypes.hpp`           | Value types shared by both roles: `GapAddress`, `GapConnectionParameters`, `GapAdvertisingReport`, `GapRequestStatus` |
 | `GapAdvertisingData.hpp` | `GapAdvertisingDataParser` and `GapAdvertisementFormatter`                                                            |
-| `GapPeripheral.hpp`      | `GapPeripheral`, its observer and its decorator, and `GapPeripheralState`: advertising and standby                    |
-| `GapCentral.hpp`         | `GapCentral`, its observer and its decorator, and `GapCentralState`: scanning, connecting and disconnecting           |
+| `GapPeripheral.hpp`      | The advertising role: `GapPeripheral`, its observer, its decorator and `GapPeripheralState`                           |
+| `GapCentral.hpp`         | The scanning and connecting role: `GapCentral`, its observer, its decorator and `GapCentralState`                     |
 | `GapPairing.hpp`         | `GapPairing`, its observer and its decorator: the Security Manager procedures, used by both roles                     |
 | `GapBonding.hpp`         | `GapBonding`, its observer and its decorator: stored bonds, used by both roles                                        |
 
