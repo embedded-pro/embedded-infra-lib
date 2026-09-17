@@ -44,7 +44,7 @@ namespace services
 
     void GattClientCharacteristic::NotificationReceived(AttAttribute::Handle handle, infra::ConstByteRange data)
     {
-        if (handle == (Handle() + GattDescriptor::ClientCharacteristicConfiguration::valueHandleOffset))
+        if (handle == valueHandle)
             GattClientCharacteristicUpdate::SubjectType::NotifyObservers([&data](auto& obs)
                 {
                     obs.NotificationReceived(data);
@@ -53,7 +53,7 @@ namespace services
 
     void GattClientCharacteristic::IndicationReceived(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone)
     {
-        if (handle == (Handle() + GattDescriptor::ClientCharacteristicConfiguration::valueHandleOffset))
+        if (handle == valueHandle)
         {
             onIndicationDone = onDone;
             observers = 1;

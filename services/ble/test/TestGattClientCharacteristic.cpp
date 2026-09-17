@@ -122,6 +122,62 @@ TEST_F(GattClientCharacteristicTest, receives_invalid_indication_should_not_noti
         });
 }
 
+class GattClientCharacteristicWithDistantValueHandleTest
+    : public testing::Test
+    , public infra::EventDispatcherFixture
+{
+public:
+    GattClientCharacteristicWithDistantValueHandleTest()
+    {
+        gattUpdateObserver.Attach(characteristic);
+    }
+
+    static const services::AttAttribute::Handle characteristicHandle = 0x2;
+    static const services::AttAttribute::Handle characteristicValueHandle = 0x9;
+
+    testing::StrictMock<services::GattClientConnectionMock> connection;
+    services::GattClientCharacteristic characteristic{ connection, uuid16, characteristicHandle, characteristicValueHandle, GattPropertyFlags::notify };
+    testing::StrictMock<services::GattClientCharacteristicUpdateObserverMock> gattUpdateObserver;
+};
+
+TEST_F(GattClientCharacteristicWithDistantValueHandleTest, notification_on_the_value_handle_notifies_observers)
+{
+    const auto data = infra::MakeStringByteRange("string");
+
+    EXPECT_CALL(gattUpdateObserver, NotificationReceived(infra::ByteRangeContentsEqual(data)));
+    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([&data](auto& observer)
+        {
+            observer.NotificationReceived(characteristicValueHandle, data);
+        });
+}
+
+TEST_F(GattClientCharacteristicWithDistantValueHandleTest, notification_just_past_the_declaration_handle_is_ignored)
+{
+    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
+        {
+            observer.NotificationReceived(characteristicHandle + 1, infra::MakeStringByteRange("string"));
+        });
+}
+
+TEST_F(GattClientCharacteristicWithDistantValueHandleTest, indication_on_the_value_handle_notifies_observers)
+{
+    EXPECT_CALL(gattUpdateObserver, IndicationReceived(infra::ByteRangeContentsEqual(infra::MakeStringByteRange("string")), testing::_))
+        .WillOnce(testing::InvokeArgument<1>());
+
+    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
+        {
+            observer.IndicationReceived(characteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
+        });
+}
+
+TEST_F(GattClientCharacteristicWithDistantValueHandleTest, indication_just_past_the_declaration_handle_is_ignored)
+{
+    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
+        {
+            observer.IndicationReceived(characteristicHandle + 1, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
+        });
+}
+
 TEST_F(GattClientCharacteristicTest, should_read_characteristic_and_callback_with_data_received)
 {
     const auto data = infra::MakeStringByteRange("string");
