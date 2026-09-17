@@ -27,20 +27,4 @@ namespace infra
 
         return stream;
     }
-
-    TextOutputStream& operator<<(TextOutputStream& stream, const services::GapState& state)
-    {
-        if (state == services::GapState::standby)
-            stream << "Standby";
-        else if (state == services::GapState::scanning)
-            stream << "Scanning";
-        else if (state == services::GapState::advertising)
-            stream << "Advertising";
-        else if (state == services::GapState::initiating)
-            stream << "Initiating";
-        else
-            stream << "Connected";
-
-        return stream;
-    }
 }

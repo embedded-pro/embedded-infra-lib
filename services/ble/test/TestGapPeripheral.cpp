@@ -1,3 +1,4 @@
+#include "infra/stream/StringOutputStream.hpp"
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/GapPeripheral.hpp"
@@ -33,13 +34,13 @@ namespace services
 
     TEST_F(GapPeripheralDecoratorTest, forward_all_events_to_observers)
     {
-        EXPECT_CALL(gapObserver, StateChanged(GapState::connected));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::advertising));
+        EXPECT_CALL(gapObserver, StateChanged(GapPeripheralState::connected));
+        EXPECT_CALL(gapObserver, StateChanged(GapPeripheralState::advertising));
 
         gap.NotifyObservers([](GapPeripheralObserver& obs)
             {
-                obs.StateChanged(GapState::connected);
-                obs.StateChanged(GapState::advertising);
+                obs.StateChanged(GapPeripheralState::connected);
+                obs.StateChanged(GapPeripheralState::advertising);
             });
     }
 
@@ -140,5 +141,14 @@ namespace services
         EXPECT_CALL(gap, SetConnectionParameters(testing::_, testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
 
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetConnectionParameters(connectionParameters, RejectedCallback()));
+    }
+
+    TEST(GapPeripheralInsertionOperatorStateTest, state_overload_operator)
+    {
+        infra::StringOutputStream::WithStorage<128> stream;
+
+        stream << GapPeripheralState::standby << " " << GapPeripheralState::advertising << " " << GapPeripheralState::connected;
+
+        EXPECT_EQ("Standby Advertising Connected", stream.Storage());
     }
 }

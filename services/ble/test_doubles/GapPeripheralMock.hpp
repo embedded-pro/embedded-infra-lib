@@ -20,7 +20,7 @@ namespace services
         MOCK_METHOD(GapRequestStatus, Standby, (const infra::Function<void(Result)>& onDone));
         MOCK_METHOD(GapRequestStatus, SetConnectionParameters, (const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone));
 
-        void ChangeState(GapState newState)
+        void ChangeState(GapPeripheralState newState)
         {
             NotifyObservers([newState](auto& observer)
                 {

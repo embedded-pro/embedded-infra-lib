@@ -12,7 +12,7 @@ message Address
 }
 
 // Link layer states of a device in a Central role
-// Central role states are standby, scanning, connected and initiating.
+// Central role states are standby, scanning, initiating and connected.
 // Allowed transitions are as follows.
 // 1. Every state can go to standby.
 // 2. Every state can be entered from standby except the connected state.
@@ -22,10 +22,11 @@ message State
 {
     enum Event
     {
+        reserved 3;
+
         standby = 0;
         scanning = 1;
         connected = 2;
-        advertising = 3;
         initiating = 4;
     }
     Event value = 1;

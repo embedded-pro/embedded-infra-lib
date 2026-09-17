@@ -7,6 +7,13 @@
 
 namespace services
 {
+    enum class GapPeripheralState : uint8_t
+    {
+        standby,
+        advertising,
+        connected
+    };
+
     class GapPeripheral;
 
     class GapPeripheralObserver
@@ -15,7 +22,7 @@ namespace services
     public:
         using infra::Observer<GapPeripheralObserver, GapPeripheral>::Observer;
 
-        virtual void StateChanged(GapState state) = 0;
+        virtual void StateChanged(GapPeripheralState state) = 0;
     };
 
     class GapPeripheral
@@ -54,7 +61,7 @@ namespace services
         using GapPeripheralObserver::GapPeripheralObserver;
 
         // Implementation of GapPeripheralObserver
-        void StateChanged(GapState state) override;
+        void StateChanged(GapPeripheralState state) override;
 
         // Implementation of GapPeripheral
         GapAddress GetAddress() const override;
@@ -67,6 +74,11 @@ namespace services
         GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) override;
     };
+}
+
+namespace infra
+{
+    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapPeripheralState& state);
 }
 
 #endif

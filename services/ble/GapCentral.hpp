@@ -9,6 +9,14 @@
 
 namespace services
 {
+    enum class GapCentralState : uint8_t
+    {
+        standby,
+        scanning,
+        initiating,
+        connected
+    };
+
     class GapCentral;
 
     class GapCentralObserver
@@ -18,7 +26,7 @@ namespace services
         using infra::Observer<GapCentralObserver, GapCentral>::Observer;
 
         virtual void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) = 0;
-        virtual void StateChanged(GapState state) = 0;
+        virtual void StateChanged(GapCentralState state) = 0;
     };
 
     class GapCentral
@@ -53,7 +61,7 @@ namespace services
 
         // Implementation of GapCentralObserver
         void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) override;
-        void StateChanged(GapState state) override;
+        void StateChanged(GapCentralState state) override;
 
         // Implementation of GapCentral
         std::optional<hal::MacAddress> ResolvePrivateAddress(hal::MacAddress address) const override;
@@ -64,6 +72,11 @@ namespace services
         GapRequestStatus StartDeviceDiscovery(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus StopDeviceDiscovery(const infra::Function<void(Result)>& onDone) override;
     };
+}
+
+namespace infra
+{
+    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapCentralState& state);
 }
 
 #endif

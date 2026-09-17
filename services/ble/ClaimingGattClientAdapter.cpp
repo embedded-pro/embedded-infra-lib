@@ -236,9 +236,9 @@ namespace services
     {
     }
 
-    void ClaimingGattClientAdapter::StateChanged(GapState state)
+    void ClaimingGattClientAdapter::StateChanged(GapCentralState state)
     {
-        if (state == GapState::standby)
+        if (state == GapCentralState::standby)
         {
             discoveryClaimer.Release();
             characteristicOperationsClaimer.Release();

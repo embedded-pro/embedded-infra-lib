@@ -1,4 +1,3 @@
-#include "infra/stream/StringOutputStream.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
 #include "services/ble/GapAdvertisingData.hpp"
@@ -149,40 +148,5 @@ namespace services
 
         EXPECT_TRUE(gapAdvertisingDataParser.Flags());
         EXPECT_EQ(GapAdvertisementFlags::leGeneralDiscoverableMode | GapAdvertisementFlags::brEdrNotSupported, *gapAdvertisingDataParser.Flags());
-    }
-
-    TEST(GapInsertionOperatorEventTypeTest, event_type_overload_operator)
-    {
-        infra::StringOutputStream::WithStorage<128> stream;
-
-        auto eventTypeAdvInd = services::GapAdvertisingEventType::advInd;
-        auto eventTypeAdvDirectInd = services::GapAdvertisingEventType::advDirectInd;
-        auto eventTypeAdvScanInd = services::GapAdvertisingEventType::advScanInd;
-        auto eventTypeAdvNonconnInd = services::GapAdvertisingEventType::advNonconnInd;
-        auto eventTypeScanResponse = services::GapAdvertisingEventType::scanResponse;
-
-        stream << eventTypeAdvInd << " " << eventTypeAdvDirectInd << " " << eventTypeAdvScanInd << " " << eventTypeAdvNonconnInd << " " << eventTypeScanResponse;
-
-        EXPECT_EQ("ADV_IND ADV_DIRECT_IND ADV_SCAN_IND ADV_NONCONN_IND SCAN_RESPONSE", stream.Storage());
-    }
-
-    TEST(GapInsertionOperatorEventAddressTypeTest, address_event_type_overload_operator)
-    {
-        infra::StringOutputStream::WithStorage<128> stream;
-
-        auto eventAddressTypePublicDevice = services::GapDeviceAddressType::publicAddress;
-        auto eventAddressTypeRandomDevice = services::GapDeviceAddressType::randomAddress;
-        stream << eventAddressTypePublicDevice << " " << eventAddressTypeRandomDevice;
-
-        EXPECT_EQ("Public Device Address Random Device Address", stream.Storage());
-    }
-
-    TEST(GapInsertionOperatorStateTest, state_overload_operator)
-    {
-        infra::StringOutputStream::WithStorage<128> stream;
-
-        stream << services::GapState::standby << " " << services::GapState::scanning << " " << services::GapState::advertising << " " << services::GapState::connected << " " << services::GapState::initiating;
-
-        EXPECT_EQ("Standby Scanning Advertising Connected Initiating", stream.Storage());
     }
 }

@@ -13,7 +13,7 @@ namespace services
 
     public:
         MOCK_METHOD(void, DeviceDiscovered, (const GapAdvertisingReport& deviceDiscovered), (override));
-        MOCK_METHOD(void, StateChanged, (GapState state), (override));
+        MOCK_METHOD(void, StateChanged, (GapCentralState state), (override));
     };
 }
 

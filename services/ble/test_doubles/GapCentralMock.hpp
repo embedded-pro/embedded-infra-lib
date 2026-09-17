@@ -18,7 +18,7 @@ namespace services
         MOCK_METHOD(GapRequestStatus, StartDeviceDiscovery, (const infra::Function<void(Result)>& onDone));
         MOCK_METHOD(GapRequestStatus, StopDeviceDiscovery, (const infra::Function<void(Result)>& onDone));
 
-        void ChangeState(GapState newState)
+        void ChangeState(GapCentralState newState)
         {
             NotifyObservers([newState](auto& observer)
                 {

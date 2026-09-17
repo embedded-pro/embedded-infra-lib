@@ -10,7 +10,7 @@ namespace services
             });
     }
 
-    void GapCentralDecorator::StateChanged(GapState state)
+    void GapCentralDecorator::StateChanged(GapCentralState state)
     {
         GapCentralObserver::SubjectType::NotifyObservers([&state](auto& obs)
             {
@@ -51,5 +51,22 @@ namespace services
     GapRequestStatus GapCentralDecorator::StopDeviceDiscovery(const infra::Function<void(Result)>& onDone)
     {
         return GapCentralObserver::Subject().StopDeviceDiscovery(onDone);
+    }
+}
+
+namespace infra
+{
+    TextOutputStream& operator<<(TextOutputStream& stream, const services::GapCentralState& state)
+    {
+        if (state == services::GapCentralState::standby)
+            stream << "Standby";
+        else if (state == services::GapCentralState::scanning)
+            stream << "Scanning";
+        else if (state == services::GapCentralState::initiating)
+            stream << "Initiating";
+        else
+            stream << "Connected";
+
+        return stream;
     }
 }

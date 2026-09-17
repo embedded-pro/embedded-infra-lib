@@ -1,3 +1,4 @@
+#include "infra/stream/StringOutputStream.hpp"
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/GapCentral.hpp"
@@ -43,17 +44,17 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, forward_all_state_changed_events_to_observers)
     {
-        EXPECT_CALL(gapObserver, StateChanged(GapState::connected));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::initiating));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::scanning));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::standby));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::connected));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::initiating));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::scanning));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::standby));
 
         gap.NotifyObservers([](GapCentralObserver& obs)
             {
-                obs.StateChanged(GapState::connected);
-                obs.StateChanged(GapState::initiating);
-                obs.StateChanged(GapState::scanning);
-                obs.StateChanged(GapState::standby);
+                obs.StateChanged(GapCentralState::connected);
+                obs.StateChanged(GapCentralState::initiating);
+                obs.StateChanged(GapCentralState::scanning);
+                obs.StateChanged(GapCentralState::standby);
             });
     }
 
@@ -174,5 +175,14 @@ namespace services
         EXPECT_CALL(gap, StopDeviceDiscovery(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
         EXPECT_EQ(GapRequestStatus::invalidState, decorator.StopDeviceDiscovery(RejectedCallback()));
+    }
+
+    TEST(GapCentralInsertionOperatorStateTest, state_overload_operator)
+    {
+        infra::StringOutputStream::WithStorage<128> stream;
+
+        stream << GapCentralState::standby << " " << GapCentralState::scanning << " " << GapCentralState::initiating << " " << GapCentralState::connected;
+
+        EXPECT_EQ("Standby Scanning Initiating Connected", stream.Storage());
     }
 }

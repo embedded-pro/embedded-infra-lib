@@ -20,15 +20,6 @@ namespace services
         advNonconnInd
     };
 
-    enum class GapState : uint8_t
-    {
-        standby,
-        scanning,
-        advertising,
-        connected,
-        initiating
-    };
-
     enum class GapAdvertisingEventType : uint8_t
     {
         advInd,
@@ -121,7 +112,6 @@ namespace infra
 {
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapAdvertisingEventType& eventType);
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapDeviceAddressType& addressType);
-    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapState& state);
 }
 
 #endif

@@ -58,7 +58,7 @@ namespace services
 
         // Implementation of GapCentralObserver
         void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) override;
-        void StateChanged(GapState state) override;
+        void StateChanged(GapCentralState state) override;
 
     private:
         void PerformDescriptorOperation();

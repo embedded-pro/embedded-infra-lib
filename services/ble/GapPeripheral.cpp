@@ -2,7 +2,7 @@
 
 namespace services
 {
-    void GapPeripheralDecorator::StateChanged(GapState state)
+    void GapPeripheralDecorator::StateChanged(GapPeripheralState state)
     {
         GapPeripheral::NotifyObservers([&state](auto& obs)
             {
@@ -53,5 +53,20 @@ namespace services
     GapRequestStatus GapPeripheralDecorator::SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone)
     {
         return GapPeripheralObserver::Subject().SetConnectionParameters(connParam, onDone);
+    }
+}
+
+namespace infra
+{
+    TextOutputStream& operator<<(TextOutputStream& stream, const services::GapPeripheralState& state)
+    {
+        if (state == services::GapPeripheralState::standby)
+            stream << "Standby";
+        else if (state == services::GapPeripheralState::advertising)
+            stream << "Advertising";
+        else
+            stream << "Connected";
+
+        return stream;
     }
 }

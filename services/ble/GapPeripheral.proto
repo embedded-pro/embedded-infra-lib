@@ -12,7 +12,7 @@ message Address
 }
 
 // Link layer states of a device in a Peripheral role
-// Peripheral role states are standby, connected and advertising.
+// Peripheral role states are standby, advertising and connected.
 // Allowed transitions are as follows.
 // 1. Every state can go to standby.
 // 2. Every state can be entered from standby except the connected state.
@@ -22,11 +22,11 @@ message State
 {
     enum Event
     {
+        reserved 1, 4;
+
         standby = 0;
-        scanning = 1;
         connected = 2;
         advertising = 3;
-        initiating = 4;
     }
     Event value = 1;
 }
