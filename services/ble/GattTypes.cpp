@@ -1,4 +1,5 @@
 #include "services/ble/GattTypes.hpp"
+#include "infra/stream/ByteInputStream.hpp"
 
 namespace services
 {
@@ -40,6 +41,22 @@ namespace services
             default:
                 return GattResult::unknown;
         }
+    }
+
+    std::optional<GattServiceChanged> GattServiceChangedFromValue(infra::ConstByteRange value)
+    {
+        // Decoded byte-wise through the stream rather than by casting the payload, so that this
+        // is correct on a big-endian host and cannot fault on an unaligned payload.
+        infra::ByteInputStream stream(value, infra::softFail);
+
+        GattServiceChanged serviceChanged{};
+        serviceChanged.startHandle = infra::FromLittleEndian(stream.Extract<AttAttribute::Handle>());
+        serviceChanged.endHandle = infra::FromLittleEndian(stream.Extract<AttAttribute::Handle>());
+
+        if (stream.Failed() || !stream.Empty())
+            return std::nullopt;
+
+        return std::make_optional(serviceChanged);
     }
 
     GattDescriptor::GattDescriptor(const AttAttribute::Uuid& type, AttAttribute::Handle handle)

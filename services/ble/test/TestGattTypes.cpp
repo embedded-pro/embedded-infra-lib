@@ -198,3 +198,57 @@ TEST(GattCharacteristicExtendedPropertiesTest, combines_and_masks_its_bits)
     EXPECT_EQ(services::GattCharacteristicExtendedProperties::none,
         services::GattCharacteristicExtendedProperties::reliableWrite & services::GattCharacteristicExtendedProperties::writableAuxiliaries);
 }
+
+TEST(GattServiceChangedTest, decodes_a_service_changed_value)
+{
+    // Little-endian on the wire: start 0x0001, end 0xFFFF.
+    const std::array<uint8_t, 4> value{ 0x01, 0x00, 0xFF, 0xFF };
+
+    auto serviceChanged = services::GattServiceChangedFromValue(infra::MakeConstByteRange(value));
+
+    ASSERT_TRUE(serviceChanged);
+    EXPECT_EQ(0x0001, serviceChanged->startHandle);
+    EXPECT_EQ(0xFFFF, serviceChanged->endHandle);
+}
+
+TEST(GattServiceChangedTest, decodes_the_byte_order_of_the_wire_not_of_the_host)
+{
+    const std::array<uint8_t, 4> value{ 0x34, 0x12, 0x78, 0x56 };
+
+    auto serviceChanged = services::GattServiceChangedFromValue(infra::MakeConstByteRange(value));
+
+    ASSERT_TRUE(serviceChanged);
+    EXPECT_EQ(0x1234, serviceChanged->startHandle);
+    EXPECT_EQ(0x5678, serviceChanged->endHandle);
+}
+
+TEST(GattServiceChangedTest, decodes_a_value_at_an_odd_offset)
+{
+    // The payload is viewed starting one byte in, so the handles are unaligned.
+    const std::array<uint8_t, 5> storage{ 0xAA, 0x34, 0x12, 0x78, 0x56 };
+
+    auto serviceChanged = services::GattServiceChangedFromValue(infra::MakeRange(storage.begin() + 1, storage.end()));
+
+    ASSERT_TRUE(serviceChanged);
+    EXPECT_EQ(0x1234, serviceChanged->startHandle);
+    EXPECT_EQ(0x5678, serviceChanged->endHandle);
+}
+
+TEST(GattServiceChangedTest, rejects_a_value_that_is_too_short)
+{
+    const std::array<uint8_t, 3> value{ 0x01, 0x00, 0xFF };
+
+    EXPECT_FALSE(services::GattServiceChangedFromValue(infra::MakeConstByteRange(value)));
+}
+
+TEST(GattServiceChangedTest, rejects_a_value_that_is_too_long)
+{
+    const std::array<uint8_t, 5> value{ 0x01, 0x00, 0xFF, 0xFF, 0x00 };
+
+    EXPECT_FALSE(services::GattServiceChangedFromValue(infra::MakeConstByteRange(value)));
+}
+
+TEST(GattServiceChangedTest, rejects_an_empty_value)
+{
+    EXPECT_FALSE(services::GattServiceChangedFromValue(infra::ConstByteRange()));
+}

@@ -3,6 +3,7 @@
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/EnumCast.hpp"
+#include <optional>
 #include "services/ble/Att.hpp"
 
 namespace services
@@ -37,6 +38,22 @@ namespace services
     };
 
     GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
+
+    // The value of the Service Changed characteristic, 0x2A05: the handle range whose
+    // definitions changed.
+    // Bluetooth Core Specification, Volume 3, Part G, section 7.1
+    struct GattServiceChanged
+    {
+        AttAttribute::Handle startHandle;
+        AttAttribute::Handle endHandle;
+
+        bool operator==(const GattServiceChanged& other) const = default;
+    };
+
+    // A client receives this value through GattClientUpdateObserver::IndicationReceived after
+    // subscribing to 0x2A05, so no separate procedure is needed to obtain it. What to
+    // re-discover on receiving one is application policy and is deliberately not decided here.
+    std::optional<GattServiceChanged> GattServiceChangedFromValue(infra::ConstByteRange value);
 
     namespace uuid
     {
