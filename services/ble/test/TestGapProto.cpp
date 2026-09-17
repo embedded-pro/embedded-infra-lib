@@ -286,3 +286,23 @@ TEST(GapProtoTest, start_device_discovery_moved_to_a_new_method_id)
     // The completion's payload did not change, so it keeps its id.
     EXPECT_EQ(12u, gap::central::GapCentralResponseProxy::idStartDeviceDiscoveryComplete);
 }
+
+TEST(GapProtoTest, the_resolved_private_address_moved_to_a_new_method_id)
+{
+    // The payload changed from Address to DeviceAddress, so an old peer reading the new message
+    // would take the address type for part of the address. Id 8 retires.
+    EXPECT_EQ(27u, gap::central::GapCentralResponseProxy::idResolvedPrivateAddress);
+}
+
+TEST(GapProtoTest, round_trip_a_resolved_identity_address)
+{
+    gap::central::DeviceAddress identity{
+        gap::central::Address{ infra::MakeRange(std::array<uint8_t, 6>{ 5, 4, 3, 2, 1, 0 }) },
+        gap::central::AddressType{ gap::central::AddressType::AddressTypeEnum::publicAddress }
+    };
+
+    auto parsed = RoundTrip(identity);
+
+    EXPECT_EQ(gap::central::AddressType::AddressTypeEnum::publicAddress, parsed.addressType.type);
+    EXPECT_EQ(identity.address, parsed.address);
+}

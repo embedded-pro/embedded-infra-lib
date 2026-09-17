@@ -290,7 +290,9 @@ service GapCentralResponse
 
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 6; }
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 7; }
-    rpc ResolvedPrivateAddress(Address) returns (Nothing) { option (method_id) = 8; }
+    // Method id 8 returned only the address, dropping whether the identity address it resolved
+    // to is public or static random, and is left unused.
+    rpc ResolvedPrivateAddress(DeviceAddress) returns (Nothing) { option (method_id) = 27; }
     rpc ResolvePrivateAddressFailed(Nothing) returns (Nothing) { option (method_id) = 9; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 10; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 11; }

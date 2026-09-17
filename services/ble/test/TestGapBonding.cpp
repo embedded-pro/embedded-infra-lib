@@ -50,11 +50,11 @@ namespace services
         hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
         GapDeviceAddressType addressType = GapDeviceAddressType::randomAddress;
 
-        EXPECT_CALL(gapBonding, IsDeviceBonded(mac, addressType)).WillOnce(testing::Return(true));
-        EXPECT_THAT(decorator.IsDeviceBonded(mac, addressType), testing::IsTrue());
+        EXPECT_CALL(gapBonding, IsDeviceBonded(GapAddress{ mac, addressType })).WillOnce(testing::Return(true));
+        EXPECT_THAT(decorator.IsDeviceBonded(GapAddress{ mac, addressType }), testing::IsTrue());
 
-        EXPECT_CALL(gapBonding, IsDeviceBonded(mac, addressType)).WillOnce(testing::Return(false));
-        EXPECT_THAT(decorator.IsDeviceBonded(mac, addressType), testing::IsFalse());
+        EXPECT_CALL(gapBonding, IsDeviceBonded(GapAddress{ mac, addressType })).WillOnce(testing::Return(false));
+        EXPECT_THAT(decorator.IsDeviceBonded(GapAddress{ mac, addressType }), testing::IsFalse());
     }
 
     TEST_F(GapBondingDecoratorTest, remove_all_bonds_forwards_request_and_completion)
@@ -85,9 +85,9 @@ namespace services
         const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
         const GapBondStrength lesc{ true, true, 16 };
 
-        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::publicAddress)).WillOnce(testing::Return(lesc));
+        EXPECT_CALL(gapBonding, BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress })).WillOnce(testing::Return(lesc));
 
-        auto strength = decorator.BondStrength(mac, GapDeviceAddressType::publicAddress);
+        auto strength = decorator.BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress });
 
         ASSERT_TRUE(strength);
         EXPECT_TRUE(strength->secureConnections);
@@ -99,9 +99,9 @@ namespace services
     {
         const hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
 
-        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::publicAddress)).WillOnce(testing::Return(std::nullopt));
+        EXPECT_CALL(gapBonding, BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress })).WillOnce(testing::Return(std::nullopt));
 
-        EXPECT_FALSE(decorator.BondStrength(mac, GapDeviceAddressType::publicAddress));
+        EXPECT_FALSE(decorator.BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress }));
     }
 
     TEST_F(GapBondingDecoratorTest, distinguishes_a_legacy_bond_from_a_secure_connections_one)
@@ -112,9 +112,9 @@ namespace services
         // operation, and the one IsDeviceBonded cannot express.
         const GapBondStrength legacyUnauthenticated{ false, false, 16 };
 
-        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::randomAddress)).WillOnce(testing::Return(legacyUnauthenticated));
+        EXPECT_CALL(gapBonding, BondStrength(GapAddress{ mac, GapDeviceAddressType::randomAddress })).WillOnce(testing::Return(legacyUnauthenticated));
 
-        auto strength = decorator.BondStrength(mac, GapDeviceAddressType::randomAddress);
+        auto strength = decorator.BondStrength(GapAddress{ mac, GapDeviceAddressType::randomAddress });
 
         ASSERT_TRUE(strength);
         EXPECT_FALSE(strength->secureConnections);
@@ -129,9 +129,9 @@ namespace services
         // which a bonded-or-not answer cannot convey.
         const GapBondStrength shortKey{ true, true, 7 };
 
-        EXPECT_CALL(gapBonding, BondStrength(mac, GapDeviceAddressType::publicAddress)).WillOnce(testing::Return(shortKey));
+        EXPECT_CALL(gapBonding, BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress })).WillOnce(testing::Return(shortKey));
 
-        EXPECT_EQ(7, decorator.BondStrength(mac, GapDeviceAddressType::publicAddress)->encryptionKeySize);
+        EXPECT_EQ(7, decorator.BondStrength(GapAddress{ mac, GapDeviceAddressType::publicAddress })->encryptionKeySize);
     }
 
     TEST_F(GapBondingDecoratorTest, remove_oldest_bond_forwards_rejection_without_invoking_callback)

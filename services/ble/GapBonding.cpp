@@ -20,14 +20,14 @@ namespace services
         return GapBondingObserver::Subject().GetNumberOfBonds();
     }
 
-    bool GapBondingDecorator::IsDeviceBonded(hal::MacAddress address, GapDeviceAddressType addressType) const
+    bool GapBondingDecorator::IsDeviceBonded(const GapAddress& address) const
     {
-        return GapBondingObserver::Subject().IsDeviceBonded(address, addressType);
+        return GapBondingObserver::Subject().IsDeviceBonded(address);
     }
 
-    std::optional<GapBondStrength> GapBondingDecorator::BondStrength(hal::MacAddress address, GapDeviceAddressType addressType) const
+    std::optional<GapBondStrength> GapBondingDecorator::BondStrength(const GapAddress& address) const
     {
-        return GapBondingObserver::Subject().BondStrength(address, addressType);
+        return GapBondingObserver::Subject().BondStrength(address);
     }
 
     GapRequestStatus GapBondingDecorator::RemoveAllBonds(const infra::Function<void()>& onDone)
