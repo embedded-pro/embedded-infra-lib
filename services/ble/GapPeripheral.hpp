@@ -29,6 +29,7 @@ namespace services
         : public infra::Subject<GapPeripheralObserver>
     {
     public:
+        // Bluetooth Core Specification, Volume 4, Part E, section 7.8.5
         using AdvertisementIntervalMultiplier = uint16_t;                                              // Interval = Multiplier * 0.625 ms.
         static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMin = 0x20u;   // 20 ms
         static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMax = 0x4000u; // 10240 ms

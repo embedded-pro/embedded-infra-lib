@@ -29,6 +29,7 @@ namespace services
         scanResponse,
     };
 
+    // Values taken from Assigned Numbers, section 2.3 (Common Data Types)
     enum class GapAdvertisementDataType : uint8_t
     {
         unknownType = 0x00u,
@@ -42,6 +43,7 @@ namespace services
         manufacturerSpecificData = 0xffu
     };
 
+    // Values taken from Bluetooth Core Specification Supplement, Part A, section 1.3
     enum class GapAdvertisementFlags : uint8_t
     {
         leLimitedDiscoverableMode = 0x01u,
@@ -60,6 +62,8 @@ namespace services
         notSupported
     };
 
+    // The legacy advertising PDU payload, Bluetooth Core Specification, Volume 6, Part B,
+    // section 2.3.1.1. Extended advertising is not modelled; see docs/Ble.md.
     constexpr uint8_t gapMaxAdvertisementDataSize = 31;
     constexpr uint8_t gapMaxScanResponseDataSize = 31;
 

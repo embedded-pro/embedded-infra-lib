@@ -41,6 +41,7 @@ namespace services
             // Assigned Numbers, section 3.7 (GATT Descriptors)
             static constexpr uint16_t attributeType = 0x2902;
 
+            // Bluetooth Core Specification, Volume 3, Part G, section 3.3.3.3
             enum class CharacteristicValue : uint16_t
             {
                 disable = 0x0000,
@@ -66,6 +67,8 @@ namespace services
 
     namespace uuid
     {
+        // Values taken from Assigned Numbers, sections 3.4 (GATT Services) and
+        // 3.8 (GATT Characteristics and Object Types)
         constexpr inline AttAttribute::Uuid16 deviceInformationService{ 0x180A };
         constexpr inline AttAttribute::Uuid16 systemId{ 0x2A23 };
         constexpr inline AttAttribute::Uuid16 modelNumber{ 0x2A24 };
