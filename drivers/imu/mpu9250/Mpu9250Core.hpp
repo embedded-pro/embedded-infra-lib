@@ -201,6 +201,7 @@ namespace drivers
         bool AccelerometerRequested() const;
         bool GyroscopeRequested() const;
         bool Sampling() const;
+        bool TransactionOutstanding() const;
 
         hal::InterruptTrigger DataReadyTrigger() const;
 
@@ -265,6 +266,7 @@ namespace drivers
         infra::AutoResetFunction<void()> onPowerModeSet;
         infra::AutoResetFunction<void(Temperature)> onTemperature;
         infra::AutoResetFunction<void()> onModified;
+        infra::AutoResetFunction<void()> onRegisterAccessed;
         infra::AutoResetFunction<void()> onStopped;
 
         std::array<uint8_t, measurementSize> measurementBuffer = {};

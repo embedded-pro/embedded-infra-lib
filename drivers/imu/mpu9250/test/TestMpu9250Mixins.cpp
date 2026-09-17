@@ -141,14 +141,13 @@ TEST_F(Mpu9250WithFifoTest, enable_fifo_selects_only_the_requested_sensors)
 
     testing::InSequence sequence;
 
-    EXPECT_CALL(bus, WriteRegisterMock(0x23, std::vector<uint8_t>{ 0x88 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x23, std::vector<uint8_t>{ 0x08 }));
     ExpectModifyRegister(0x1a, 0x03, 0x43);
     ExpectModifyRegister(0x6a, 0x00, 0x04);
     ExpectModifyRegister(0x6a, 0x00, 0x40);
 
     drivers::Mpu9250WithFifo<drivers::Mpu9250Core>::FifoConfig fifoConfig;
     fifoConfig.gyroscope = false;
-    fifoConfig.temperature = true;
 
     infra::VerifyingFunction<void()> done;
     device.EnableFifo(fifoConfig, done);

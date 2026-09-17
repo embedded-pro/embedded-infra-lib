@@ -2,6 +2,7 @@
 #define DRIVERS_IMU_MPU9250_MPU9250_WITH_POLLING_HPP
 
 #include "drivers/imu/mpu9250/Mpu9250Core.hpp"
+#include "infra/util/ReallyAssert.hpp"
 
 namespace drivers
 {
@@ -27,7 +28,6 @@ namespace drivers
         infra::Function<void()> onSampleAvailable;
         uint8_t interruptStatus = 0;
         bool verifyDataReady = true;
-        bool reading = false;
     };
 
     ////    Implementation    ////
@@ -35,6 +35,8 @@ namespace drivers
     template<class Base>
     void Mpu9250WithPolling<Base>::SetPollingInterval(infra::Duration interval)
     {
+        really_assert(interval > infra::Duration::zero());
+
         pollingInterval = interval;
     }
 
@@ -60,27 +62,21 @@ namespace drivers
     {
         pollTimer.Cancel();
         onSampleAvailable = nullptr;
-        reading = false;
     }
 
     template<class Base>
     void Mpu9250WithPolling<Base>::Poll()
     {
-        if (reading)
+        // A tick is skipped rather than queued while the device still owes a completion, so a slow
+        // bus can never have two transactions in flight
+        if (this->TransactionOutstanding())
             return;
 
         if (!verifyDataReady)
-        {
-            onSampleAvailable();
-            return;
-        }
-
-        reading = true;
+            return onSampleAvailable();
 
         this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [self = this->KeepAlive(*this)]()
             {
-                self->reading = false;
-
                 if ((self->interruptStatus & Base::rawDataReadyInterrupt) != 0)
                     self->onSampleAvailable();
             });

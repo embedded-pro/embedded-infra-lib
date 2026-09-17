@@ -202,3 +202,53 @@ TEST_F(Mpu9250StepRunnerTest, an_empty_list_completes_immediately)
 
     EXPECT_FALSE(runner.Busy());
 }
+
+TEST_F(Mpu9250StepRunnerTest, the_runner_stays_busy_until_its_completion_has_been_delivered)
+{
+    EXPECT_CALL(bus, WriteRegisterMock(0x01, std::vector<uint8_t>{ 0x11 }));
+
+    bus.completeAutomatically = false;
+
+    runner.Clear();
+    runner.Push(Runner::WriteRegister{ 0x01, 0x11 });
+
+    int completions = 0;
+    runner.Start([&completions]()
+        {
+            completions += 1;
+        });
+
+    bus.CompletePending();
+
+    // The last step is done but the completion is only queued, so a Start() here would otherwise
+    // overwrite onDone and make this run report the next run's callback
+    EXPECT_TRUE(runner.Busy());
+    EXPECT_EQ(0, completions);
+
+    ExecuteAllActions();
+
+    EXPECT_FALSE(runner.Busy());
+    EXPECT_EQ(1, completions);
+}
+
+TEST_F(Mpu9250StepRunnerTest, an_aborted_run_delivers_no_completion_even_once_queued)
+{
+    EXPECT_CALL(bus, WriteRegisterMock(0x01, std::vector<uint8_t>{ 0x11 }));
+
+    runner.Clear();
+    runner.Push(Runner::WriteRegister{ 0x01, 0x11 });
+    runner.Push(Runner::Invoke{ [this]()
+        {
+            runner.Abort();
+        } });
+
+    int completions = 0;
+    runner.Start([&completions]()
+        {
+            completions += 1;
+        });
+
+    ExecuteAllActions();
+
+    EXPECT_EQ(0, completions);
+}

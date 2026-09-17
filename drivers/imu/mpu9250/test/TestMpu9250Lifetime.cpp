@@ -163,3 +163,35 @@ TEST_F(Mpu9250LifetimeTest, a_device_without_a_data_ready_pin_stops_cleanly)
 
     ExecuteAllActions();
 }
+
+TEST_F(Mpu9250LifetimeTest, stop_defers_until_an_internally_issued_write_completes)
+{
+    drivers::Mpu9250Core device{ bus, dataReadyPin };
+    Initialize(device);
+
+    EXPECT_CALL(bus, WriteRegisterMock(0x38, std::vector<uint8_t>{ 0x01 }));
+
+    bus.completeAutomatically = false;
+
+    device.AsAccelerometer().Start([this](drivers::Mpu9250Core::Accelerometer::Samples)
+        {
+            bursts += 1;
+        });
+
+    ASSERT_TRUE(bus.CompletionPending());
+
+    bool stopped = false;
+    device.Stop([&stopped]()
+        {
+            stopped = true;
+        });
+
+    ExecuteAllActions();
+
+    EXPECT_FALSE(stopped);
+
+    bus.CompletePending();
+    ExecuteAllActions();
+
+    EXPECT_TRUE(stopped);
+}

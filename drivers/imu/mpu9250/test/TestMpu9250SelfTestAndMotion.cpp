@@ -285,3 +285,33 @@ TEST_F(Mpu9250WithWakeOnMotionTest, disable_restores_the_normal_power_configurat
     dataReadyPin.SetStubState(true);
     ExecuteAllActions();
 }
+
+TEST_F(Mpu9250WithWakeOnMotionTest, an_interrupt_without_the_wake_on_motion_bit_reports_nothing)
+{
+    Initialize();
+
+    EXPECT_CALL(bus, WriteRegisterMock(0x6b, std::vector<uint8_t>{ 0x01 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x6c, std::vector<uint8_t>{ 0x07 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x1d, std::vector<uint8_t>{ 0x01 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x38, std::vector<uint8_t>{ 0x40 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x69, std::vector<uint8_t>{ 0xc0 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x1f, std::vector<uint8_t>{ 0x14 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x1e, std::vector<uint8_t>{ 0x06 }));
+    EXPECT_CALL(bus, ReadRegisterMock(0x6b, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x01 }));
+    EXPECT_CALL(bus, WriteRegisterMock(0x6b, std::vector<uint8_t>{ 0x21 }));
+
+    testing::StrictMock<infra::MockCallback<void()>> motion;
+    infra::VerifyingFunction<void()> done;
+    device.EnableWakeOnMotion(80, WakeOnMotionDevice::LowPowerOutputDataRate::milliHertz15630, [&motion]()
+        {
+            motion.callback();
+        },
+        done);
+
+    ExecuteAllActions();
+
+    EXPECT_CALL(bus, ReadRegisterMock(0x3a, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x01 }));
+
+    dataReadyPin.SetStubState(true);
+    ExecuteAllActions();
+}

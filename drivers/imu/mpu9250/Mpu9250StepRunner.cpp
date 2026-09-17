@@ -87,11 +87,14 @@ namespace drivers
 
     void Mpu9250StepRunner::Complete()
     {
-        running = false;
-
+        // Stays busy until the completion has been delivered, so a Start() from elsewhere cannot
+        // overwrite onDone while this one is still queued
         infra::EventDispatcher::Instance().Schedule([self = sharedAccess.MakeShared(*this)]()
             {
-                self->onDone();
+                self->running = false;
+
+                if (self->onDone)
+                    self->onDone();
             });
     }
 

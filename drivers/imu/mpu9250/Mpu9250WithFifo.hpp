@@ -24,7 +24,6 @@ namespace drivers
         {
             bool accelerometer = true;
             bool gyroscope = true;
-            bool temperature = false;
             bool stopWhenFull = true;
         };
 
@@ -44,10 +43,9 @@ namespace drivers
         static constexpr uint8_t userControlFifoEnable = 0x40;
         static constexpr uint8_t userControlFifoReset = 0x04;
         static constexpr uint8_t configurationFifoMode = 0x40;
-        static constexpr uint8_t fifoEnableTemperature = 0x80;
         static constexpr uint8_t fifoEnableGyroscope = 0x70;
         static constexpr uint8_t fifoEnableAccelerometer = 0x08;
-        static constexpr std::size_t maxFrameSize = 14;
+        static constexpr std::size_t maxFrameSize = 12;
 
         FifoConfig fifoConfig;
         infra::Function<void()> onOverflow;
@@ -70,6 +68,8 @@ namespace drivers
     void Mpu9250WithFifo<Base, MaxFramesPerBatch>::EnableFifo(const FifoConfig& fifoConfig, const infra::Function<void()>& onDone)
     {
         really_assert(!this->runner.Busy());
+        really_assert(!this->Sampling());
+        really_assert(fifoConfig.accelerometer || fifoConfig.gyroscope);
 
         this->fifoConfig = fifoConfig;
         onFifoConfigured = onDone;
@@ -91,6 +91,7 @@ namespace drivers
     void Mpu9250WithFifo<Base, MaxFramesPerBatch>::DisableFifo(const infra::Function<void()>& onDone)
     {
         really_assert(!this->runner.Busy());
+        really_assert(!this->Sampling());
 
         onFifoConfigured = onDone;
 
@@ -171,9 +172,6 @@ namespace drivers
                 entry += 6;
             }
 
-            if (fifoConfig.temperature)
-                entry += 2;
-
             if (fifoConfig.gyroscope)
                 for (std::size_t axis = 0; axis != 3; ++axis)
                     angularVelocityBatch[angularVelocityCount++] = this->ToAngularVelocity(Base::RawSample(entry + 2 * axis));
@@ -191,9 +189,6 @@ namespace drivers
     {
         uint8_t value = 0;
 
-        if (fifoConfig.temperature)
-            value |= fifoEnableTemperature;
-
         if (fifoConfig.gyroscope)
             value |= fifoEnableGyroscope;
 
@@ -206,7 +201,7 @@ namespace drivers
     template<class Base, std::size_t MaxFramesPerBatch>
     std::size_t Mpu9250WithFifo<Base, MaxFramesPerBatch>::FrameSize() const
     {
-        return (fifoConfig.accelerometer ? 6 : 0) + (fifoConfig.temperature ? 2 : 0) + (fifoConfig.gyroscope ? 6 : 0);
+        return (fifoConfig.accelerometer ? 6 : 0) + (fifoConfig.gyroscope ? 6 : 0);
     }
 }
 

@@ -20,19 +20,46 @@ namespace drivers
             EXPECT_EQ(received.size(), data.size());
             std::copy(received.begin(), received.end(), data.begin());
 
-            infra::EventDispatcher::Instance().Schedule(onDone);
+            Finish(onDone);
         }
 
         void WriteRegister(uint8_t address, infra::ConstByteRange data, const infra::Function<void()>& onDone) override
         {
             WriteRegisterMock(address, std::vector<uint8_t>(data.begin(), data.end()));
 
-            infra::EventDispatcher::Instance().Schedule(onDone);
+            Finish(onDone);
+        }
+
+        // With completeAutomatically false the transaction stays outstanding until CompletePending(),
+        // which is how a slow bus is modelled
+        bool completeAutomatically = true;
+
+        bool CompletionPending() const
+        {
+            return static_cast<bool>(pending);
+        }
+
+        void CompletePending()
+        {
+            infra::Function<void()> completion = pending;
+            pending = nullptr;
+            completion();
         }
 
         MOCK_METHOD(std::vector<uint8_t>, ReadRegisterMock, (uint8_t address, std::size_t size));
         MOCK_METHOD(void, WriteRegisterMock, (uint8_t address, std::vector<uint8_t> data));
         MOCK_METHOD(bool, RequiresI2cSlaveInterfaceDisabled, (), (const, override));
+
+    private:
+        void Finish(const infra::Function<void()>& onDone)
+        {
+            if (completeAutomatically)
+                infra::EventDispatcher::Instance().Schedule(onDone);
+            else
+                pending = onDone;
+        }
+
+        infra::Function<void()> pending;
     };
 }
 

@@ -7,8 +7,9 @@
 
 namespace drivers
 {
-    // The MPU-9250 accepts 20 MHz only while reading the sensor and interrupt registers;
-    // every other register access is limited to 1 MHz. Clocking is the board's responsibility.
+    // This adapter does not select a clock. The part accepts 20 MHz only while reading the sensor and
+    // interrupt registers and is limited to 1 MHz elsewhere, so a bus shared across both must be
+    // clocked at 1 MHz, or the caller must switch it per transaction.
     class Mpu9250BusAccessSpi
         : public Mpu9250BusAccess
     {

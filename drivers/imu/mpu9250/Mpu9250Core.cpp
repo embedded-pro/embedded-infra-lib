@@ -210,13 +210,25 @@ namespace drivers
 
     void Mpu9250Core::ReadRegister(uint8_t address, infra::ByteRange data, const infra::Function<void()>& onDone)
     {
-        bus.ReadRegister(address, data, onDone);
+        really_assert(!onRegisterAccessed);
+        onRegisterAccessed = onDone;
+
+        bus.ReadRegister(address, data, [self = KeepAlive(*this)]()
+            {
+                self->onRegisterAccessed();
+            });
     }
 
     void Mpu9250Core::WriteRegister(uint8_t address, uint8_t value, const infra::Function<void()>& onDone)
     {
+        really_assert(!onRegisterAccessed);
         writeValue = value;
-        bus.WriteRegister(address, infra::MakeByteRange(writeValue), onDone);
+        onRegisterAccessed = onDone;
+
+        bus.WriteRegister(address, infra::MakeByteRange(writeValue), [self = KeepAlive(*this)]()
+            {
+                self->onRegisterAccessed();
+            });
     }
 
     void Mpu9250Core::ModifyRegister(uint8_t address, uint8_t clearMask, uint8_t setMask, const infra::Function<void()>& onDone)
@@ -337,6 +349,11 @@ namespace drivers
     bool Mpu9250Core::Sampling() const
     {
         return sampling;
+    }
+
+    bool Mpu9250Core::TransactionOutstanding() const
+    {
+        return static_cast<bool>(onRegisterAccessed);
     }
 
     hal::InterruptTrigger Mpu9250Core::DataReadyTrigger() const

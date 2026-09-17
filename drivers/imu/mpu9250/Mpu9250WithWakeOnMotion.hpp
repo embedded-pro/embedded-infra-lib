@@ -123,7 +123,7 @@ namespace drivers
     {
         this->ReadRegister(Base::registerInterruptStatus, infra::MakeByteRange(interruptStatus), [self = this->KeepAlive(*this)]()
             {
-                if (self->onMotion)
+                if ((self->interruptStatus & Base::wakeOnMotionInterrupt) != 0 && self->onMotion)
                     self->onMotion();
             });
     }
