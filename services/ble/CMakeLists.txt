@@ -42,6 +42,7 @@ target_sources(services.ble PRIVATE
     GapTypes.hpp
     GattTypes.cpp
     GattTypes.hpp
+    GattClient.hpp
     GattClientCharacteristic.cpp
     GattClientCharacteristic.hpp
     GattClientConnection.cpp

@@ -17,5 +17,6 @@ target_sources(services.ble_test_doubles PRIVATE
     GapPeripheralObserverMock.hpp
     GapBondingObserverMock.hpp
     GattClientConnectionMock.hpp
+    GattClientMock.hpp
     GattServerMock.hpp
 )
