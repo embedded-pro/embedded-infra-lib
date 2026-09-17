@@ -14,6 +14,13 @@ namespace
     {
         payload.insert(payload.end(), data.begin(), data.end());
     }
+
+    // Advertising data is little-endian on air, whatever the host is.
+    void AddLittleEndian(infra::BoundedVector<uint8_t>& payload, uint16_t value)
+    {
+        payload.push_back(static_cast<uint8_t>(value));
+        payload.push_back(static_cast<uint8_t>(value >> 8));
+    }
 }
 
 namespace services
@@ -35,7 +42,7 @@ namespace services
     std::optional<std::pair<uint16_t, infra::ConstByteRange>> GapAdvertisingDataParser::ManufacturerSpecificData() const
     {
         infra::ByteInputStream stream(ParserAdvertisingData(GapAdvertisementDataType::manufacturerSpecificData), infra::softFail);
-        auto manufacturerCode = stream.Extract<uint16_t>();
+        auto manufacturerCode = infra::FromLittleEndian(stream.Extract<uint16_t>());
         auto manufacturerData = stream.Reader().Remaining();
 
         if (stream.Failed())
@@ -57,14 +64,22 @@ namespace services
         return std::make_optional(static_cast<GapAdvertisementFlags>(flagsData[0]));
     }
 
-    infra::MemoryRange<const AttAttribute::Uuid16> GapAdvertisingDataParser::CompleteListOf16BitUuids() const
+    void GapAdvertisingDataParser::CompleteListOf16BitUuids(ListOf16BitUuids& result) const
     {
+        result.clear();
+
         auto uuidData = ParserAdvertisingData(GapAdvertisementDataType::completeListOf16BitUuids);
 
         if (uuidData.size() % sizeof(AttAttribute::Uuid16) != 0)
-            return {};
+            return;
 
-        return infra::ConstCastMemoryRange<AttAttribute::Uuid16>(infra::ReinterpretCastMemoryRange<const AttAttribute::Uuid16>(uuidData));
+        infra::ByteInputStream stream(uuidData, infra::softFail);
+
+        while (!stream.Empty() && !result.full())
+            result.push_back(infra::FromLittleEndian(stream.Extract<AttAttribute::Uuid16>()));
+
+        if (stream.Failed())
+            result.clear();
     }
 
     infra::MemoryRange<const AttAttribute::Uuid128> GapAdvertisingDataParser::CompleteListOf128BitUuids() const
@@ -74,6 +89,8 @@ namespace services
         if (uuidData.size() % sizeof(AttAttribute::Uuid128) != 0)
             return {};
 
+        // Unlike the 16-bit case this stays a view: Uuid128 is infra::BigEndian<std::array<uint8_t, 16>>,
+        // whose alignment is 1, so no unaligned load is possible and no byte order is assumed here.
         return infra::ConstCastMemoryRange<AttAttribute::Uuid128>(infra::ReinterpretCastMemoryRange<const AttAttribute::Uuid128>(uuidData));
     }
 
@@ -82,7 +99,7 @@ namespace services
         auto appearanceData = ParserAdvertisingData(GapAdvertisementDataType::appearance);
 
         infra::ByteInputStream stream(appearanceData, infra::softFail);
-        auto appearance = stream.Extract<uint16_t>();
+        auto appearance = infra::FromLittleEndian(stream.Extract<uint16_t>());
 
         if (stream.Failed())
             return std::nullopt;
@@ -150,7 +167,7 @@ namespace services
         really_assert(data.size() + headerSize + sizeof(manufacturerCode) <= RemainingSpaceAvailable());
 
         AddHeader(payload, data.size() + sizeof(manufacturerCode), GapAdvertisementDataType::manufacturerSpecificData);
-        AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(manufacturerCode)));
+        AddLittleEndian(payload, manufacturerCode);
         AddData(payload, data);
     }
 
@@ -161,7 +178,7 @@ namespace services
         AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid16), GapAdvertisementDataType::completeListOf16BitUuids);
 
         for (const auto& service : services)
-            AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(service)));
+            AddLittleEndian(payload, service);
     }
 
     void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services)
@@ -187,7 +204,7 @@ namespace services
         really_assert(sizeof(appearance) + headerSize <= RemainingSpaceAvailable());
 
         AddHeader(payload, sizeof(appearance), GapAdvertisementDataType::appearance);
-        AddData(payload, infra::ReinterpretCastMemoryRange<const uint8_t>(infra::MakeRangeFromSingleObject(appearance)));
+        AddLittleEndian(payload, appearance);
     }
 
     infra::ConstByteRange GapAdvertisementFormatter::FormattedAdvertisementData() const

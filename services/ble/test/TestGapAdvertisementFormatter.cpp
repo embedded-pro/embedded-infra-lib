@@ -107,9 +107,12 @@ namespace services
         EXPECT_EQ(data[0], 17);
         EXPECT_EQ(data[1], 0x07);
 
-        std::array<uint8_t, 16> extractedFromBigEndian = service1;
-        std::reverse(extractedFromBigEndian.begin(), extractedFromBigEndian.end());
-        EXPECT_THAT(infra::MakeRange(data.begin() + 2, data.end()), infra::ContentsEqual(extractedFromBigEndian));
+        // Asserted as fixed bytes rather than derived from service1. Deriving the expectation
+        // by reading the value back and reversing it makes the test follow the implementation,
+        // so it would keep passing if AttAttribute::Uuid128's byte order ever changed.
+        const std::array<uint8_t, 16> onAir = { 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08,
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 };
+        EXPECT_THAT(infra::MakeRange(data.begin() + 2, data.end()), infra::ContentsEqual(onAir));
     }
 
     TEST_F(GapAdvertisementFormatterTest, append_public_target_address)

@@ -11,12 +11,19 @@ namespace services
     class GapAdvertisingDataParser
     {
     public:
+        // An AD structure starts wherever the structures before it end, so a 16-bit UUID list
+        // can begin at an odd offset. Decoding it in place would need an unaligned 16-bit load,
+        // which faults on ARMv6-M, and would read the on-air little-endian bytes in host order.
+        // The list is therefore decoded into the caller's storage rather than viewed in place.
+        static constexpr std::size_t maxListOf16BitUuids = (gapMaxAdvertisementDataSize - 2) / sizeof(AttAttribute::Uuid16);
+        using ListOf16BitUuids = infra::BoundedVector<AttAttribute::Uuid16>::WithMaxSize<maxListOf16BitUuids>;
+
         explicit GapAdvertisingDataParser(infra::ConstByteRange data);
 
         infra::ConstByteRange LocalName() const;
         std::optional<std::pair<uint16_t, infra::ConstByteRange>> ManufacturerSpecificData() const;
         std::optional<GapAdvertisementFlags> Flags() const;
-        infra::MemoryRange<const AttAttribute::Uuid16> CompleteListOf16BitUuids() const;
+        void CompleteListOf16BitUuids(ListOf16BitUuids& result) const;
         infra::MemoryRange<const AttAttribute::Uuid128> CompleteListOf128BitUuids() const;
         std::optional<uint16_t> Appearance() const;
 

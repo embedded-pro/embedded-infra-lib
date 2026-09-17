@@ -96,7 +96,22 @@ namespace services
     {
         const std::array<uint8_t, 6> data{ { 0x05, 0x03, 0x34, 0x12, 0x78, 0x56 } };
         services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf16BitUuids();
+        services::GapAdvertisingDataParser::ListOf16BitUuids services;
+        gapAdvertisingDataParser.CompleteListOf16BitUuids(services);
+
+        ASSERT_EQ(2u, services.size());
+        EXPECT_EQ(0x1234, services[0]);
+        EXPECT_EQ(0x5678, services[1]);
+    }
+
+    TEST(GapAdvertisingDataParserTest, complete_list_of_16bit_services_at_an_odd_offset)
+    {
+        // The UUID list is preceded by a one-byte Flags structure, so its values start at
+        // offset 5. Decoding them in place would need an unaligned 16-bit load.
+        const std::array<uint8_t, 9> data{ { 0x02, 0x01, 0x06, 0x05, 0x03, 0x34, 0x12, 0x78, 0x56 } };
+        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
+        services::GapAdvertisingDataParser::ListOf16BitUuids services;
+        gapAdvertisingDataParser.CompleteListOf16BitUuids(services);
 
         ASSERT_EQ(2u, services.size());
         EXPECT_EQ(0x1234, services[0]);
@@ -107,7 +122,8 @@ namespace services
     {
         const std::array<uint8_t, 5> data{ { 0x04, 0x03, 0x34, 0x12, 0x78 } };
         services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf16BitUuids();
+        services::GapAdvertisingDataParser::ListOf16BitUuids services;
+        gapAdvertisingDataParser.CompleteListOf16BitUuids(services);
 
         EXPECT_TRUE(services.empty());
     }
