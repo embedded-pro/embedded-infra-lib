@@ -23,9 +23,19 @@ namespace services
         return GapCentralObserver::Subject().ResolvePrivateAddress(address);
     }
 
-    GapRequestStatus GapCentralDecorator::Connect(const GapAddress& peer, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone)
+    GapRequestStatus GapCentral::Connect(const GapAddress& peer, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone)
     {
-        return GapCentralObserver::Subject().Connect(peer, initiatingTimeout, onDone);
+        return Connect(peer, defaultConnectionParameters, initiatingTimeout, onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::Connect(const GapAddress& peer, const GapConnectionParameters& parameters, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().Connect(peer, parameters, initiatingTimeout, onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::UpdateConnectionParameters(const GapConnectionParameters& parameters, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().UpdateConnectionParameters(parameters, onDone);
     }
 
     GapRequestStatus GapCentralDecorator::CancelConnect(const infra::Function<void(Result)>& onDone)

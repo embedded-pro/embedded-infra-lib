@@ -40,9 +40,18 @@ namespace services
         return GapPeripheralObserver::Subject().SetScanResponseData(data, onDone);
     }
 
-    GapRequestStatus GapPeripheralDecorator::Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone)
+    GapRequestStatus GapPeripheral::Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone)
     {
-        return GapPeripheralObserver::Subject().Advertise(type, multiplier, onDone);
+        auto parameters = defaultAdvertisingParameters;
+        parameters.type = type;
+        parameters.interval = multiplier;
+
+        return Advertise(parameters, onDone);
+    }
+
+    GapRequestStatus GapPeripheralDecorator::Advertise(const GapAdvertisingParameters& parameters, const infra::Function<void(Result)>& onDone)
+    {
+        return GapPeripheralObserver::Subject().Advertise(parameters, onDone);
     }
 
     GapRequestStatus GapPeripheralDecorator::AdvertiseDirected(GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone)
@@ -55,9 +64,9 @@ namespace services
         return GapPeripheralObserver::Subject().Standby(onDone);
     }
 
-    GapRequestStatus GapPeripheralDecorator::SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone)
+    GapRequestStatus GapPeripheralDecorator::RequestConnectionParameterUpdate(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone)
     {
-        return GapPeripheralObserver::Subject().SetConnectionParameters(connParam, onDone);
+        return GapPeripheralObserver::Subject().RequestConnectionParameterUpdate(connParam, onDone);
     }
 }
 

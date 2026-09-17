@@ -46,7 +46,17 @@ namespace services
         // definition random, so the parameter carries no type.
         virtual std::optional<GapAddress> ResolvePrivateAddress(hal::MacAddress address) const = 0;
 
-        virtual GapRequestStatus Connect(const GapAddress& peer, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone) = 0;
+        // The connection parameters travel in CONNECT_IND, so the initiator is what chooses them.
+        // A peripheral can only ask for them to be changed afterwards.
+        // Bluetooth Core Specification, Volume 6, Part B, section 2.3.3.1
+        static constexpr GapConnectionParameters defaultConnectionParameters{ 0x0018u, 0x0028u, 0u, 0x01F4u };
+
+        virtual GapRequestStatus Connect(const GapAddress& peer, const GapConnectionParameters& parameters, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone) = 0;
+        GapRequestStatus Connect(const GapAddress& peer, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone);
+
+        // Bluetooth Core Specification, Volume 4, Part E, section 7.8.18
+        virtual GapRequestStatus UpdateConnectionParameters(const GapConnectionParameters& parameters, const infra::Function<void(Result)>& onDone) = 0;
+
         virtual GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetAddress(const GapAddress& address, const infra::Function<void(Result)>& onDone) = 0;
@@ -70,7 +80,9 @@ namespace services
 
         // Implementation of GapCentral
         std::optional<GapAddress> ResolvePrivateAddress(hal::MacAddress address) const override;
-        GapRequestStatus Connect(const GapAddress& peer, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone) override;
+        using GapCentral::Connect;
+        GapRequestStatus Connect(const GapAddress& peer, const GapConnectionParameters& parameters, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus UpdateConnectionParameters(const GapConnectionParameters& parameters, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetAddress(const GapAddress& address, const infra::Function<void(Result)>& onDone) override;

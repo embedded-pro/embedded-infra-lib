@@ -29,10 +29,9 @@ namespace services
         : public infra::Subject<GapPeripheralObserver>
     {
     public:
-        // Bluetooth Core Specification, Volume 4, Part E, section 7.8.5
-        using AdvertisementIntervalMultiplier = uint16_t;                                              // Interval = Multiplier * 0.625 ms.
-        static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMin = 0x20u;   // 20 ms
-        static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMax = 0x4000u; // 10240 ms
+        using AdvertisementIntervalMultiplier = GapAdvertisingParameters::IntervalMultiplier;
+        static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMin = GapAdvertisingParameters::intervalMultiplierMin;
+        static constexpr AdvertisementIntervalMultiplier advertisementIntervalMultiplierMax = GapAdvertisingParameters::intervalMultiplierMax;
 
         enum class Result : uint8_t
         {
@@ -49,13 +48,18 @@ namespace services
 
         virtual GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
-        virtual GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) = 0;
+        // All three primary channels, taking scan and connection requests from anyone: what a
+        // peripheral that has not been told otherwise should do.
+        static constexpr GapAdvertisingParameters defaultAdvertisingParameters{ GapAdvertisementType::advInd, 0x0080u, GapAdvertisingChannels::all, GapAdvertisingFilterPolicy::any };
+
+        virtual GapRequestStatus Advertise(const GapAdvertisingParameters& parameters, const infra::Function<void(Result)>& onDone) = 0;
+        GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone);
 
         // Directed advertising names the peer it is aimed at. High duty cycle ignores the
         // interval, which the controller fixes.
         virtual GapRequestStatus AdvertiseDirected(GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) = 0;
-        virtual GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) = 0;
+        virtual GapRequestStatus RequestConnectionParameterUpdate(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) = 0;
     };
 
     class GapPeripheralDecorator
@@ -75,10 +79,11 @@ namespace services
         infra::ConstByteRange GetScanResponseData() const override;
         GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) override;
-        GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) override;
+        using GapPeripheral::Advertise;
+        GapRequestStatus Advertise(const GapAdvertisingParameters& parameters, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus AdvertiseDirected(GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) override;
-        GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus RequestConnectionParameterUpdate(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) override;
     };
 }
 

@@ -16,10 +16,11 @@ namespace services
         MOCK_METHOD(infra::ConstByteRange, GetScanResponseData, (), (const, override));
         MOCK_METHOD(GapRequestStatus, SetAdvertisementData, (infra::ConstByteRange data, const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(GapRequestStatus, SetScanResponseData, (infra::ConstByteRange data, const infra::Function<void(Result)>& onDone), (override));
-        MOCK_METHOD(GapRequestStatus, Advertise, (GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone), (override));
+        using GapPeripheral::Advertise;
+        MOCK_METHOD(GapRequestStatus, Advertise, (const GapAdvertisingParameters& parameters, const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(GapRequestStatus, AdvertiseDirected, (GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(GapRequestStatus, Standby, (const infra::Function<void(Result)>& onDone), (override));
-        MOCK_METHOD(GapRequestStatus, SetConnectionParameters, (const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(GapRequestStatus, RequestConnectionParameterUpdate, (const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone), (override));
 
         void ChangeState(GapPeripheralState newState)
         {

@@ -139,25 +139,72 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, connect_forwards_request_and_result)
     {
-        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, infra::Duration{ 0 }, testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, GapCentral::defaultConnectionParameters, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
         EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
     TEST_F(GapCentralDecoratorTest, connect_forwards_timeout_result)
     {
-        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, infra::Duration{ 0 }, testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapCentral::Result::timeout), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, GapCentral::defaultConnectionParameters, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::timeout), testing::Return(GapRequestStatus::accepted)));
 
         EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::timeout)));
     }
 
     TEST_F(GapCentralDecoratorTest, connect_forwards_rejection_without_invoking_callback)
     {
-        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, infra::Duration{ 0 }, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, GapCentral::defaultConnectionParameters, infra::Duration{ 0 }, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
         EXPECT_EQ(GapRequestStatus::invalidState, decorator.Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, std::chrono::seconds(0), RejectedCallback()));
+    }
+
+    TEST_F(GapCentralDecoratorTest, connect_forwards_the_connection_parameters_it_is_given)
+    {
+        const GapConnectionParameters parameters{ 0x0006u, 0x000Cu, 4u, 0x0064u };
+
+        EXPECT_CALL(gap, Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, parameters, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(GapAddress{ macAddress, GapDeviceAddressType::publicAddress }, parameters, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, the_default_connection_parameters_are_within_their_ranges)
+    {
+        EXPECT_GE(GapCentral::defaultConnectionParameters.minConnectionInterval, GapConnectionParameters::connectionIntervalMultiplierMin);
+        EXPECT_LE(GapCentral::defaultConnectionParameters.maxConnectionInterval, GapConnectionParameters::connectionIntervalMultiplierMax);
+        EXPECT_LE(GapCentral::defaultConnectionParameters.minConnectionInterval, GapCentral::defaultConnectionParameters.maxConnectionInterval);
+        EXPECT_GE(GapCentral::defaultConnectionParameters.supervisionTimeout, GapConnectionParameters::supervisionTimeoutMultiplierMin);
+        EXPECT_LE(GapCentral::defaultConnectionParameters.supervisionTimeout, GapConnectionParameters::supervisionTimeoutMultiplierMax);
+
+        EXPECT_TRUE(GapCentral::defaultConnectionParameters.SupervisionTimeoutIsLongEnough());
+    }
+
+    TEST_F(GapCentralDecoratorTest, a_supervision_timeout_that_is_too_short_for_its_interval_is_rejected)
+    {
+        // 50 ms of timeout against a 100 ms interval: the link would be declared lost before a
+        // single connection event could be missed.
+        const GapConnectionParameters tooShort{ 0x0050u, 0x0050u, 0u, 0x0005u };
+        EXPECT_FALSE(tooShort.SupervisionTimeoutIsLongEnough());
+
+        // Latency stretches the same relation: 60 skipped events at a 50 ms interval outlast a
+        // 5 s timeout, so the link would drop while the peripheral was legitimately silent.
+        const GapConnectionParameters latencyTooHigh{ 0x0018u, 0x0028u, 60u, 0x01F4u };
+        EXPECT_FALSE(latencyTooHigh.SupervisionTimeoutIsLongEnough());
+
+        const GapConnectionParameters latencyJustLowEnough{ 0x0018u, 0x0028u, 20u, 0x01F4u };
+        EXPECT_TRUE(latencyJustLowEnough.SupervisionTimeoutIsLongEnough());
+    }
+
+    TEST_F(GapCentralDecoratorTest, update_connection_parameters_forwards_request_and_result)
+    {
+        const GapConnectionParameters parameters{ 0x0018u, 0x0028u, 0u, 0x01F4u };
+
+        EXPECT_CALL(gap, UpdateConnectionParameters(parameters, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.UpdateConnectionParameters(parameters, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
     TEST_F(GapCentralDecoratorTest, cancel_connect_forwards_request_and_result)

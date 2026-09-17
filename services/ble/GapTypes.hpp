@@ -35,6 +35,43 @@ namespace services
         lowDutyCycle = 1
     };
 
+    // The three primary advertising channels. At least one must be enabled.
+    // Bluetooth Core Specification, Volume 6, Part B, section 4.4.2
+    enum class GapAdvertisingChannels : uint8_t
+    {
+        channel37 = 0x01u,
+        channel38 = 0x02u,
+        channel39 = 0x04u,
+        all = channel37 | channel38 | channel39
+    };
+
+    // Which scan and connection requests the controller acts on, the rest being those from
+    // devices on the Filter Accept List. It is ignored for directed advertising, which names
+    // the one peer it is aimed at.
+    // Bluetooth Core Specification, Volume 4, Part E, section 7.8.5
+    enum class GapAdvertisingFilterPolicy : uint8_t
+    {
+        any = 0x00u,
+        filterScanRequests = 0x01u,
+        filterConnectionRequests = 0x02u,
+        filterScanAndConnectionRequests = 0x03u
+    };
+
+    // Bluetooth Core Specification, Volume 4, Part E, section 7.8.5
+    struct GapAdvertisingParameters
+    {
+        using IntervalMultiplier = uint16_t;                                 // Interval = Multiplier * 0.625 ms.
+        static constexpr IntervalMultiplier intervalMultiplierMin = 0x0020u; // 20 ms
+        static constexpr IntervalMultiplier intervalMultiplierMax = 0x4000u; // 10240 ms
+
+        GapAdvertisementType type;
+        IntervalMultiplier interval;
+        GapAdvertisingChannels channels;
+        GapAdvertisingFilterPolicy filterPolicy;
+
+        bool operator==(const GapAdvertisingParameters& other) const = default;
+    };
+
     enum class GapAdvertisingEventType : uint8_t
     {
         advInd,
@@ -101,6 +138,17 @@ namespace services
         ConnectionIntervalMultiplier maxConnectionInterval;
         uint16_t peripheralLatency;
         SupervisionTimeoutMultiplier supervisionTimeout;
+
+        bool operator==(const GapConnectionParameters& other) const = default;
+
+        // connSupervisionTimeout shall be larger than (1 + latency) * connInterval * 2, with the
+        // timeout counted in units of 10 ms and the interval in units of 1.25 ms. Both sides are
+        // multiplied by two to keep the comparison in whole numbers.
+        // Bluetooth Core Specification, Volume 6, Part B, section 4.5.2
+        constexpr bool SupervisionTimeoutIsLongEnough() const
+        {
+            return supervisionTimeout * 20u > (1u + peripheralLatency) * maxConnectionInterval * 5u;
+        }
     };
 
     enum class GapPhy : uint8_t

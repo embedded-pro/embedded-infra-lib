@@ -94,10 +94,35 @@ message DeviceAddress
     AddressType addressType = 2;
 }
 
+// A bit per primary advertising channel, 37, 38 and 39, of which at least one must be set.
+// Bluetooth Core Specification, Volume 6, Part B, section 4.4.2
+message AdvertisingChannels
+{
+    uint32 channels = 1;
+}
+
+// Which scan and connection requests the controller acts on, the rest being those from devices
+// on the Filter Accept List. Ignored for directed advertising.
+// Bluetooth Core Specification, Volume 4, Part E, section 7.8.5
+message AdvertisingFilterPolicy
+{
+    enum FilterPolicyEnum
+    {
+        any = 0;
+        filterScanRequests = 1;
+        filterConnectionRequests = 2;
+        filterScanAndConnectionRequests = 3;
+    }
+
+    FilterPolicyEnum policy = 1;
+}
+
 message AdvertisementMode
 {
     AdvertisementType type = 1;
     uint32 advInterval = 2;
+    AdvertisingChannels channels = 3;
+    AdvertisingFilterPolicy filterPolicy = 4;
 }
 
 message DirectedAdvertisementMode
@@ -229,7 +254,10 @@ service GapPeripheral
     option (service_id) = 32;
 
     // Allowed states: standby
-    rpc Advertise(AdvertisementMode) returns (Nothing) { option (method_id) = 1; }
+    // Method id 1 carried no channel map and no filter policy, so a peer speaking that version
+    // would advertise on all three channels to everyone rather than as asked. It is left unused
+    // so that such a peer fails on an unknown method instead.
+    rpc Advertise(AdvertisementMode) returns (Nothing) { option (method_id) = 23; }
 
     // Allowed states: advertising, connected
     rpc Standby(Nothing) returns (Nothing) { option (method_id) = 2; }
@@ -250,7 +278,9 @@ service GapPeripheral
     rpc GenerateOutOfBandData(Nothing) returns (Nothing) { option (method_id) = 11; }
     rpc SetOutOfBandData(OutOfBandData) returns (Nothing) { option (method_id) = 12; }
 
-    rpc SetConnectionParameters(ConnectionParameterUpdate) returns (Nothing) { option (method_id) = 13; }
+    // A peripheral can only ask; the central decides. The name says so now, and the payload
+    // has not changed, so the method keeps its id.
+    rpc RequestConnectionParameterUpdate(ConnectionParameterUpdate) returns (Nothing) { option (method_id) = 13; }
 
     rpc PairAndBond(Nothing) returns (Nothing) { option (method_id) = 14; }
 
@@ -285,7 +315,7 @@ service GapPeripheralResponse
     rpc SetIoCapabilitiesComplete(PairingCompletion) returns (Nothing) { option (method_id) = 14; }
     rpc RemoveAllBondsComplete(BondCompletion) returns (Nothing) { option (method_id) = 15; }
     rpc SetOutOfBandDataComplete(PairingCompletion) returns (Nothing) { option (method_id) = 16; }
-    rpc SetConnectionParametersComplete(Completion) returns (Nothing) { option (method_id) = 17; }
+    rpc RequestConnectionParameterUpdateComplete(Completion) returns (Nothing) { option (method_id) = 17; }
     rpc PairAndBondComplete(PairingCompletion) returns (Nothing) { option (method_id) = 18; }
     rpc AuthenticateWithPasskeyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 19; }
     rpc NumericComparisonConfirmComplete(PairingCompletion) returns (Nothing) { option (method_id) = 20; }

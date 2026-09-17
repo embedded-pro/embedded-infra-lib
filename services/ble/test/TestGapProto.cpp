@@ -6,6 +6,7 @@
 #include "infra/syntax/ProtoParser.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "services/ble/GapPairing.hpp"
+#include "services/ble/GapTypes.hpp"
 #include "gmock/gmock.h"
 
 namespace
@@ -265,9 +266,10 @@ TEST(GapProtoTest, advertisement_type_matches_the_proto)
         infra::enum_cast(gap::peripheral::DirectedAdvertisementMode::DirectedAdvertisementTypeEnum::lowDutyCycle));
 }
 
-TEST(GapProtoTest, advertise_kept_its_method_id)
+TEST(GapProtoTest, advertise_directed_kept_its_method_id)
 {
-    EXPECT_EQ(1u, gap::peripheral::GapPeripheralProxy::idAdvertise);
+    // AdvertiseDirected was a new method rather than a replacement, and its payload has not
+    // changed since. Advertise itself has moved, which is pinned further down.
     EXPECT_EQ(21u, gap::peripheral::GapPeripheralProxy::idAdvertiseDirected);
 }
 
@@ -344,4 +346,80 @@ TEST(GapProtoTest, the_successful_pairing_event_moved_to_a_new_method_id)
     EXPECT_EQ(28u, gap::central::GapCentralResponseProxy::idBondStrengthReported);
     EXPECT_EQ(22u, gap::peripheral::GapPeripheralProxy::idGetBondStrength);
     EXPECT_EQ(30u, gap::peripheral::GapPeripheralResponseProxy::idBondStrengthReported);
+}
+
+TEST(GapProtoTest, round_trip_link_parameters)
+{
+    gap::central::LinkParameters parameters{ 0x0018u, 0x0028u, 0u, 0x01F4u };
+
+    EXPECT_EQ(parameters, RoundTrip(parameters));
+}
+
+TEST(GapProtoTest, round_trip_a_connection_that_names_its_link_parameters)
+{
+    gap::central::ConnectionParameters connection{
+        gap::central::Address{ infra::MakeRange(std::array<uint8_t, 6>{ 0, 1, 2, 3, 4, 5 }) },
+        gap::central::AddressType{ gap::central::AddressType::AddressTypeEnum::publicAddress },
+        1000,
+        gap::central::LinkParameters{ 0x0006u, 0x000Cu, 4u, 0x0064u }
+    };
+
+    auto parsed = RoundTrip(connection);
+
+    EXPECT_EQ(0x0006u, parsed.link.minConnectionInterval);
+    EXPECT_EQ(4u, parsed.link.peripheralLatency);
+    EXPECT_EQ(connection, parsed);
+}
+
+TEST(GapProtoTest, the_connect_request_moved_to_a_new_method_id)
+{
+    // Its payload gained the link parameters. An old peer would ignore them and connect with
+    // whatever it defaults to, which is the silence this change exists to remove, so the old id
+    // retires rather than being reused.
+    EXPECT_EQ(23u, gap::central::GapCentralProxy::idConnect);
+    EXPECT_EQ(24u, gap::central::GapCentralProxy::idUpdateConnectionParameters);
+    EXPECT_EQ(30u, gap::central::GapCentralResponseProxy::idUpdateConnectionParametersComplete);
+}
+
+TEST(GapProtoTest, the_peripheral_parameter_update_kept_its_ids)
+{
+    // Only the name changed, from SetConnectionParameters to what a peripheral can actually do.
+    // The payload is untouched, so nothing retires.
+    EXPECT_EQ(13u, gap::peripheral::GapPeripheralProxy::idRequestConnectionParameterUpdate);
+    EXPECT_EQ(17u, gap::peripheral::GapPeripheralResponseProxy::idRequestConnectionParameterUpdateComplete);
+}
+
+TEST(GapProtoTest, round_trip_an_advertisement_mode_that_names_its_channels)
+{
+    gap::peripheral::AdvertisementMode mode{
+        gap::peripheral::AdvertisementType{ gap::peripheral::AdvertisementType::AdvertisementTypeEnum::advInd },
+        0x0040u,
+        gap::peripheral::AdvertisingChannels{ 0x01u },
+        gap::peripheral::AdvertisingFilterPolicy{ gap::peripheral::AdvertisingFilterPolicy::FilterPolicyEnum::filterScanAndConnectionRequests }
+    };
+
+    auto parsed = RoundTrip(mode);
+
+    EXPECT_EQ(0x01u, parsed.channels.channels);
+    EXPECT_EQ(gap::peripheral::AdvertisingFilterPolicy::FilterPolicyEnum::filterScanAndConnectionRequests, parsed.filterPolicy.policy);
+    EXPECT_EQ(mode, parsed);
+}
+
+TEST(GapProtoTest, the_advertise_request_moved_to_a_new_method_id)
+{
+    // Its payload gained the channel map and the filter policy, so an old peer would advertise
+    // on all three channels to everyone rather than as asked.
+    EXPECT_EQ(23u, gap::peripheral::GapPeripheralProxy::idAdvertise);
+}
+
+TEST(GapProtoTest, the_advertising_filter_policy_matches_the_proto)
+{
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisingFilterPolicy::any),
+        infra::enum_cast(gap::peripheral::AdvertisingFilterPolicy::FilterPolicyEnum::any));
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisingFilterPolicy::filterScanRequests),
+        infra::enum_cast(gap::peripheral::AdvertisingFilterPolicy::FilterPolicyEnum::filterScanRequests));
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisingFilterPolicy::filterConnectionRequests),
+        infra::enum_cast(gap::peripheral::AdvertisingFilterPolicy::FilterPolicyEnum::filterConnectionRequests));
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisingFilterPolicy::filterScanAndConnectionRequests),
+        infra::enum_cast(gap::peripheral::AdvertisingFilterPolicy::FilterPolicyEnum::filterScanAndConnectionRequests));
 }
