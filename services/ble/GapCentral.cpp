@@ -43,9 +43,14 @@ namespace services
         return GapCentralObserver::Subject().SetAddress(macAddress, addressType, onDone);
     }
 
-    GapRequestStatus GapCentralDecorator::StartDeviceDiscovery(const infra::Function<void(Result)>& onDone)
+    GapRequestStatus GapCentral::StartDeviceDiscovery(const infra::Function<void(Result)>& onDone)
     {
-        return GapCentralObserver::Subject().StartDeviceDiscovery(onDone);
+        return StartDeviceDiscovery(defaultScanParameters, onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::StartDeviceDiscovery(const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().StartDeviceDiscovery(parameters, onDone);
     }
 
     GapRequestStatus GapCentralDecorator::StopDeviceDiscovery(const infra::Function<void(Result)>& onDone)

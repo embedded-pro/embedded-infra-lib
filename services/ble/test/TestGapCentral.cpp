@@ -203,15 +203,15 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_request_and_result)
     {
-        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
         EXPECT_EQ(GapRequestStatus::accepted, decorator.StartDeviceDiscovery(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
     TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_rejection_without_invoking_callback)
     {
-        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));
+        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_, testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));
 
         EXPECT_EQ(GapRequestStatus::busy, decorator.StartDeviceDiscovery(RejectedCallback()));
     }
@@ -238,5 +238,49 @@ namespace services
         stream << GapCentralState::standby << " " << GapCentralState::scanning << " " << GapCentralState::initiating << " " << GapCentralState::connected;
 
         EXPECT_EQ("Standby Scanning Initiating Connected", stream.Storage());
+    }
+
+    TEST_F(GapCentralDecoratorTest, start_device_discovery_with_the_given_scan_parameters)
+    {
+        const GapScanParameters parameters{ 0x0100, 0x0050, GapScanType::passive };
+
+        EXPECT_CALL(gap, StartDeviceDiscovery(parameters, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StartDeviceDiscovery(parameters, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, start_device_discovery_without_parameters_uses_the_default)
+    {
+        // The one-argument overload is the abstraction's documented default rather than whatever
+        // a port would otherwise pick, and it must reach the subject as real parameters.
+        EXPECT_CALL(gap, StartDeviceDiscovery(GapCentral::defaultScanParameters, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StartDeviceDiscovery(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, start_a_passive_device_discovery)
+    {
+        // Passive scanning is how a central declines to send scan requests, which it could not
+        // express at all before.
+        const GapScanParameters passive{ 0x0010, 0x0010, GapScanType::passive };
+
+        EXPECT_CALL(gap, StartDeviceDiscovery(passive, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StartDeviceDiscovery(passive, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, scan_parameters_document_their_specification_range)
+    {
+        EXPECT_EQ(0x0004u, GapScanParameters::intervalMultiplierMin);
+        EXPECT_EQ(0x4000u, GapScanParameters::intervalMultiplierMax);
+
+        // The default must itself be inside the range it documents, and its window must not
+        // exceed its interval.
+        EXPECT_GE(GapCentral::defaultScanParameters.interval, GapScanParameters::intervalMultiplierMin);
+        EXPECT_LE(GapCentral::defaultScanParameters.interval, GapScanParameters::intervalMultiplierMax);
+        EXPECT_LE(GapCentral::defaultScanParameters.window, GapCentral::defaultScanParameters.interval);
     }
 }

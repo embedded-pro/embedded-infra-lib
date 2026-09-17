@@ -129,6 +129,28 @@ namespace services
         }
     };
 
+    enum class GapScanType : uint8_t
+    {
+        passive = 0,
+        active = 1
+    };
+
+    // Without these a central cannot trade discovery latency against power, nor decline to send
+    // scan requests, which passive scanning is exactly for.
+    // Bluetooth Core Specification, Volume 4, Part E, section 7.8.10
+    struct GapScanParameters
+    {
+        using IntervalMultiplier = uint16_t;                                 // Interval = Multiplier * 0.625 ms.
+        static constexpr IntervalMultiplier intervalMultiplierMin = 0x0004u; //   2.5 ms
+        static constexpr IntervalMultiplier intervalMultiplierMax = 0x4000u; // 10240 ms
+
+        IntervalMultiplier interval;
+        IntervalMultiplier window; // Must not exceed interval.
+        GapScanType type;
+
+        bool operator==(const GapScanParameters& other) const = default;
+    };
+
     // How much a bond is actually worth: whether it came from LE Secure Connections or legacy
     // pairing, whether its key is authenticated, and the negotiated key size. An application
     // deciding whether to trust a bonded peer with a privileged operation has no other basis for

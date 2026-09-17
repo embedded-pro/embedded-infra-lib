@@ -48,6 +48,20 @@ message IoCapabilities
     IoCapabilitiesEnum ioCaps = 1;
 }
 
+message ScanParameters
+{
+    // Ordered to match services::GapScanType.
+    enum ScanType
+    {
+        passive = 0;
+        active = 1;
+    }
+
+    uint32 interval = 1; // Interval = value * 0.625 ms
+    uint32 window = 2;   // Window   = value * 0.625 ms
+    ScanType type = 3;
+}
+
 message SecurityModeAndLevel
 {
     // Ordered to match services::GapPairing::SecurityModeAndLevel. The six combinations the
@@ -220,7 +234,9 @@ service GapCentral
     option (service_id) = 33;
 
     // Allowed states: standby
-    rpc StartDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 1; }
+    // Method id 1 took no parameters and is left unused, so that a peer speaking that version
+    // fails on an unknown method rather than scanning with whatever the port happens to default to.
+    rpc StartDeviceDiscovery(ScanParameters) returns (Nothing) { option (method_id) = 21; }
 
     // Allowed states: scanning
     rpc StopDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 2; }

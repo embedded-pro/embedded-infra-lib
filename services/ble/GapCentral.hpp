@@ -48,7 +48,12 @@ namespace services
         virtual GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetAddress(hal::MacAddress macAddress, GapDeviceAddressType addressType, const infra::Function<void(Result)>& onDone) = 0;
-        virtual GapRequestStatus StartDeviceDiscovery(const infra::Function<void(Result)>& onDone) = 0;
+        // 10 ms of every 10 ms, actively scanning: the abstraction's one documented default,
+        // rather than each port inventing its own.
+        static constexpr GapScanParameters defaultScanParameters{ 0x0010u, 0x0010u, GapScanType::active };
+
+        virtual GapRequestStatus StartDeviceDiscovery(const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone) = 0;
+        GapRequestStatus StartDeviceDiscovery(const infra::Function<void(Result)>& onDone);
         virtual GapRequestStatus StopDeviceDiscovery(const infra::Function<void(Result)>& onDone) = 0;
     };
 
@@ -69,7 +74,8 @@ namespace services
         GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetAddress(hal::MacAddress macAddress, GapDeviceAddressType addressType, const infra::Function<void(Result)>& onDone) override;
-        GapRequestStatus StartDeviceDiscovery(const infra::Function<void(Result)>& onDone) override;
+        using GapCentral::StartDeviceDiscovery;
+        GapRequestStatus StartDeviceDiscovery(const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus StopDeviceDiscovery(const infra::Function<void(Result)>& onDone) override;
     };
 }

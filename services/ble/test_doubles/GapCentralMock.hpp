@@ -15,7 +15,7 @@ namespace services
         MOCK_METHOD(GapRequestStatus, CancelConnect, (const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(GapRequestStatus, Disconnect, (const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(GapRequestStatus, SetAddress, (hal::MacAddress macAddress, GapDeviceAddressType addressType, const infra::Function<void(Result)>& onDone), (override));
-        MOCK_METHOD(GapRequestStatus, StartDeviceDiscovery, (const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(GapRequestStatus, StartDeviceDiscovery, (const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(GapRequestStatus, StopDeviceDiscovery, (const infra::Function<void(Result)>& onDone), (override));
 
         void ChangeState(GapCentralState newState)

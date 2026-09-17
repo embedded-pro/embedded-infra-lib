@@ -257,3 +257,32 @@ TEST(GapProtoTest, advertise_kept_its_method_id)
     EXPECT_EQ(1u, gap::peripheral::GapPeripheralProxy::idAdvertise);
     EXPECT_EQ(21u, gap::peripheral::GapPeripheralProxy::idAdvertiseDirected);
 }
+
+TEST(GapProtoTest, scan_type_matches_the_proto)
+{
+    EXPECT_EQ(infra::enum_cast(services::GapScanType::passive),
+        infra::enum_cast(gap::central::ScanParameters::ScanType::passive));
+    EXPECT_EQ(infra::enum_cast(services::GapScanType::active),
+        infra::enum_cast(gap::central::ScanParameters::ScanType::active));
+}
+
+TEST(GapProtoTest, round_trip_scan_parameters)
+{
+    gap::central::ScanParameters parameters{ 0x0100, 0x0050, gap::central::ScanParameters::ScanType::passive };
+
+    auto parsed = RoundTrip(parameters);
+
+    EXPECT_EQ(0x0100u, parsed.interval);
+    EXPECT_EQ(0x0050u, parsed.window);
+    EXPECT_EQ(gap::central::ScanParameters::ScanType::passive, parsed.type);
+}
+
+TEST(GapProtoTest, start_device_discovery_moved_to_a_new_method_id)
+{
+    // Nothing to ScanParameters genuinely changes what an old peer would read, so id 1 retires
+    // rather than being reused.
+    EXPECT_EQ(21u, gap::central::GapCentralProxy::idStartDeviceDiscovery);
+
+    // The completion's payload did not change, so it keeps its id.
+    EXPECT_EQ(12u, gap::central::GapCentralResponseProxy::idStartDeviceDiscoveryComplete);
+}
