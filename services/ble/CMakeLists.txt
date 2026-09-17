@@ -40,8 +40,8 @@ target_sources(services.ble PRIVATE
     GapPeripheral.hpp
     GapTypes.cpp
     GapTypes.hpp
-    Gatt.cpp
-    Gatt.hpp
+    GattTypes.cpp
+    GattTypes.hpp
     GattClient.cpp
     GattClient.hpp
     ClaimingGattClientAdapter.cpp

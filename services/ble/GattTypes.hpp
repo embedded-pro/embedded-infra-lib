@@ -1,5 +1,5 @@
-#ifndef SERVICES_GATT_HPP
-#define SERVICES_GATT_HPP
+#ifndef SERVICES_GATT_TYPES_HPP
+#define SERVICES_GATT_TYPES_HPP
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/EnumCast.hpp"

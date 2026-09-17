@@ -5,7 +5,7 @@
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/IntrusiveForwardList.hpp"
 #include "infra/util/Observer.hpp"
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 
 namespace services
 {

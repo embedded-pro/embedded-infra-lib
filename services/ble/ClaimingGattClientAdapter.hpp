@@ -5,7 +5,7 @@
 #include "infra/util/Function.hpp"
 #include "optional"
 #include "services/ble/GapCentral.hpp"
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 #include "services/ble/GattClient.hpp"
 #include <cstdint>
 #include <functional>

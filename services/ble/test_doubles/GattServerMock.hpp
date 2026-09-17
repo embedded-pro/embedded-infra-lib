@@ -1,7 +1,7 @@
 #ifndef SERVICES_GATT_SERVER_MOCK_HPP
 #define SERVICES_GATT_SERVER_MOCK_HPP
 
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 #include "services/ble/GattServer.hpp"
 #include "gmock/gmock.h"
 

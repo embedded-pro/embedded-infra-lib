@@ -1,6 +1,6 @@
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/stream/StringOutputStream.hpp"
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 #include "gmock/gmock.h"
 
 namespace

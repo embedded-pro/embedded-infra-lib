@@ -1,4 +1,4 @@
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 
 namespace services
 {
