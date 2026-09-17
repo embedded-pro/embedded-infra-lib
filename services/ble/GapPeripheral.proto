@@ -33,12 +33,14 @@ message State
 
 message IoCapabilities
 {
+    // Values taken from Bluetooth Core Specification
+    // Volume 3, Part H, section 3.3.1, Table 3.4 (IO Capability)
     enum IoCapabilitiesEnum
     {
-        none = 0;
-        display = 1;
-        displayYesNo = 2;
-        keyboard = 3;
+        display = 0;
+        displayYesNo = 1;
+        keyboard = 2;
+        none = 3;
         keyboardDisplay = 4;
     }
 

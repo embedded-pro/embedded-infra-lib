@@ -38,13 +38,15 @@ namespace services
         : public infra::Subject<GapPairingObserver>
     {
     public:
+        // Values taken from Bluetooth Core Specification
+        // Volume 3, Part H, section 3.3.1, Table 3.4 (IO Capability)
         enum class IoCapabilities : uint8_t
         {
-            display,
-            displayYesNo,
-            keyboard,
-            none,
-            keyboardDisplay
+            display = 0x00u,
+            displayYesNo = 0x01u,
+            keyboard = 0x02u,
+            none = 0x03u,
+            keyboardDisplay = 0x04u
         };
 
         enum class SecurityMode : uint8_t

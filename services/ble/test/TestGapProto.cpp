@@ -1,5 +1,7 @@
 #include "generated/echo/GapCentral.pb.hpp"
 #include "generated/echo/GapPeripheral.pb.hpp"
+#include "infra/util/EnumCast.hpp"
+#include "services/ble/GapPairing.hpp"
 #include "infra/stream/ByteInputStream.hpp"
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/syntax/ProtoFormatter.hpp"
@@ -105,4 +107,28 @@ TEST(GapProtoTest, round_trip_device_address)
     };
 
     EXPECT_EQ(deviceAddress, RoundTrip(deviceAddress));
+}
+
+TEST(GapProtoTest, io_capabilities_match_the_security_manager_encoding)
+{
+    // Bluetooth Core Specification, Volume 3, Part H, section 3.3.1, Table 3.4.
+    // Asserted against the specification's own numbers, not merely against each other:
+    // two sides agreeing on a wrong encoding is the failure this guards.
+    EXPECT_EQ(0x00u, infra::enum_cast(services::GapPairing::IoCapabilities::display));
+    EXPECT_EQ(0x01u, infra::enum_cast(services::GapPairing::IoCapabilities::displayYesNo));
+    EXPECT_EQ(0x02u, infra::enum_cast(services::GapPairing::IoCapabilities::keyboard));
+    EXPECT_EQ(0x03u, infra::enum_cast(services::GapPairing::IoCapabilities::none));
+    EXPECT_EQ(0x04u, infra::enum_cast(services::GapPairing::IoCapabilities::keyboardDisplay));
+
+    EXPECT_EQ(0x00u, infra::enum_cast(gap::central::IoCapabilities::IoCapabilitiesEnum::display));
+    EXPECT_EQ(0x01u, infra::enum_cast(gap::central::IoCapabilities::IoCapabilitiesEnum::displayYesNo));
+    EXPECT_EQ(0x02u, infra::enum_cast(gap::central::IoCapabilities::IoCapabilitiesEnum::keyboard));
+    EXPECT_EQ(0x03u, infra::enum_cast(gap::central::IoCapabilities::IoCapabilitiesEnum::none));
+    EXPECT_EQ(0x04u, infra::enum_cast(gap::central::IoCapabilities::IoCapabilitiesEnum::keyboardDisplay));
+
+    EXPECT_EQ(0x00u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::display));
+    EXPECT_EQ(0x01u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::displayYesNo));
+    EXPECT_EQ(0x02u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::keyboard));
+    EXPECT_EQ(0x03u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::none));
+    EXPECT_EQ(0x04u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::keyboardDisplay));
 }
