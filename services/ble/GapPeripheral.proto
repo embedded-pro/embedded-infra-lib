@@ -120,7 +120,7 @@ message Passkey
 
 message PairingStatus
 {
-    enum Error
+    enum Result
     {
         passkeyEntryFailed = 0;
         authenticationRequirementsNotMet = 1;
@@ -130,9 +130,10 @@ message PairingStatus
         timeout = 5;
         encryptionFailed = 6;
         unknown = 7;
+        success = 8;
     }
 
-    Error error = 1;
+    Result result = 1;
 }
 
 message OutOfBandData
@@ -153,9 +154,9 @@ message UInt32Value
     uint32 value = 1;
 }
 
-message Completion
+message RequestStatus
 {
-    enum RequestStatus
+    enum Status
     {
         accepted = 0;
         invalidState = 1;
@@ -164,17 +165,31 @@ message Completion
         notSupported = 4;
     }
 
+    Status status = 1;
+}
+
+message Completion
+{
     enum Result
     {
         success = 0;
-        cancelled = 1;
-        timeout = 2;
-        failed = 3;
-        controllerError = 4;
+        invalidParameter = 1;
+        controllerError = 2;
     }
 
     RequestStatus requestStatus = 1;
     Result result = 2;
+}
+
+message PairingCompletion
+{
+    RequestStatus requestStatus = 1;
+    PairingStatus result = 2;
+}
+
+message BondCompletion
+{
+    RequestStatus requestStatus = 1;
 }
 
 service GapPeripheral
@@ -227,16 +242,16 @@ service GapPeripheralResponse
     rpc StandbyComplete(Completion) returns (Nothing) { option (method_id) = 9; }
     rpc SetAdvertisementDataComplete(Completion) returns (Nothing) { option (method_id) = 10; }
     rpc SetScanResponseDataComplete(Completion) returns (Nothing) { option (method_id) = 11; }
-    rpc SetAllowPairingComplete(Completion) returns (Nothing) { option (method_id) = 12; }
-    rpc SetSecurityModeComplete(Completion) returns (Nothing) { option (method_id) = 13; }
-    rpc SetIoCapabilitiesComplete(Completion) returns (Nothing) { option (method_id) = 14; }
-    rpc RemoveAllBondsComplete(Completion) returns (Nothing) { option (method_id) = 15; }
-    rpc SetOutOfBandDataComplete(Completion) returns (Nothing) { option (method_id) = 16; }
+    rpc SetAllowPairingComplete(PairingCompletion) returns (Nothing) { option (method_id) = 12; }
+    rpc SetSecurityModeComplete(PairingCompletion) returns (Nothing) { option (method_id) = 13; }
+    rpc SetIoCapabilitiesComplete(PairingCompletion) returns (Nothing) { option (method_id) = 14; }
+    rpc RemoveAllBondsComplete(BondCompletion) returns (Nothing) { option (method_id) = 15; }
+    rpc SetOutOfBandDataComplete(PairingCompletion) returns (Nothing) { option (method_id) = 16; }
     rpc SetConnectionParametersComplete(Completion) returns (Nothing) { option (method_id) = 17; }
-    rpc PairAndBondComplete(Completion) returns (Nothing) { option (method_id) = 18; }
-    rpc AuthenticateWithPasskeyComplete(Completion) returns (Nothing) { option (method_id) = 19; }
-    rpc NumericComparisonConfirmComplete(Completion) returns (Nothing) { option (method_id) = 20; }
-    rpc RemoveOldestBondComplete(Completion) returns (Nothing) { option (method_id) = 21; }
+    rpc PairAndBondComplete(PairingCompletion) returns (Nothing) { option (method_id) = 18; }
+    rpc AuthenticateWithPasskeyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 19; }
+    rpc NumericComparisonConfirmComplete(PairingCompletion) returns (Nothing) { option (method_id) = 20; }
+    rpc RemoveOldestBondComplete(BondCompletion) returns (Nothing) { option (method_id) = 21; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 22; }
 
     rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) = 23; }

@@ -24,26 +24,59 @@ namespace
 
 TEST(GapProtoTest, round_trip_accepted_central_completion)
 {
-    gap::central::Completion completion{ gap::central::Completion::RequestStatus::accepted, gap::central::Completion::Result::timeout };
+    gap::central::Completion completion{ gap::central::RequestStatus{ gap::central::RequestStatus::Status::accepted }, gap::central::Completion::Result::timeout };
 
     EXPECT_EQ(completion, RoundTrip(completion));
 }
 
 TEST(GapProtoTest, round_trip_rejected_central_completion)
 {
-    gap::central::Completion completion{ gap::central::Completion::RequestStatus::invalidState, gap::central::Completion::Result::success };
+    gap::central::Completion completion{ gap::central::RequestStatus{ gap::central::RequestStatus::Status::invalidState }, gap::central::Completion::Result::success };
 
     auto parsed = RoundTrip(completion);
 
-    EXPECT_EQ(gap::central::Completion::RequestStatus::invalidState, parsed.requestStatus);
+    EXPECT_EQ(gap::central::RequestStatus::Status::invalidState, parsed.requestStatus.status);
     EXPECT_EQ(gap::central::Completion::Result::success, parsed.result);
 }
 
-TEST(GapProtoTest, round_trip_peripheral_completion)
+TEST(GapProtoTest, central_completion_carries_every_gap_central_result)
 {
-    gap::peripheral::Completion completion{ gap::peripheral::Completion::RequestStatus::busy, gap::peripheral::Completion::Result::success };
+    for (auto result : { gap::central::Completion::Result::success, gap::central::Completion::Result::cancelled,
+             gap::central::Completion::Result::timeout, gap::central::Completion::Result::connectionFailed,
+             gap::central::Completion::Result::controllerError })
+    {
+        gap::central::Completion completion{ gap::central::RequestStatus{ gap::central::RequestStatus::Status::accepted }, result };
 
-    EXPECT_EQ(completion, RoundTrip(completion));
+        EXPECT_EQ(result, RoundTrip(completion).result);
+    }
+}
+
+TEST(GapProtoTest, peripheral_completion_carries_every_gap_peripheral_result)
+{
+    for (auto result : { gap::peripheral::Completion::Result::success, gap::peripheral::Completion::Result::invalidParameter,
+             gap::peripheral::Completion::Result::controllerError })
+    {
+        gap::peripheral::Completion completion{ gap::peripheral::RequestStatus{ gap::peripheral::RequestStatus::Status::accepted }, result };
+
+        EXPECT_EQ(result, RoundTrip(completion).result);
+    }
+}
+
+TEST(GapProtoTest, round_trip_pairing_completion)
+{
+    gap::peripheral::PairingCompletion completion{ gap::peripheral::RequestStatus{ gap::peripheral::RequestStatus::Status::accepted },
+        gap::peripheral::PairingStatus{ gap::peripheral::PairingStatus::Result::numericComparisonFailed } };
+
+    auto parsed = RoundTrip(completion);
+
+    EXPECT_EQ(gap::peripheral::PairingStatus::Result::numericComparisonFailed, parsed.result.result);
+}
+
+TEST(GapProtoTest, round_trip_bond_completion)
+{
+    gap::central::BondCompletion completion{ gap::central::RequestStatus{ gap::central::RequestStatus::Status::busy } };
+
+    EXPECT_EQ(gap::central::RequestStatus::Status::busy, RoundTrip(completion).requestStatus.status);
 }
 
 TEST(GapProtoTest, round_trip_discovered_device_reports_advertising_event_type)

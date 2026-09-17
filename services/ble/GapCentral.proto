@@ -106,7 +106,7 @@ message ConnectionParameters
 
 message PairingStatus
 {
-    enum Error
+    enum Result
     {
         passkeyEntryFailed = 0;
         authenticationRequirementsNotMet = 1;
@@ -116,9 +116,10 @@ message PairingStatus
         timeout = 5;
         encryptionFailed = 6;
         unknown = 7;
+        success = 8;
     }
 
-    Error error = 1;
+    Result result = 1;
 }
 
 message OutOfBandData
@@ -163,9 +164,9 @@ message UInt32Value
     uint32 value = 1;
 }
 
-message Completion
+message RequestStatus
 {
-    enum RequestStatus
+    enum Status
     {
         accepted = 0;
         invalidState = 1;
@@ -174,17 +175,33 @@ message Completion
         notSupported = 4;
     }
 
+    Status status = 1;
+}
+
+message Completion
+{
     enum Result
     {
         success = 0;
         cancelled = 1;
         timeout = 2;
-        failed = 3;
+        connectionFailed = 3;
         controllerError = 4;
     }
 
     RequestStatus requestStatus = 1;
     Result result = 2;
+}
+
+message PairingCompletion
+{
+    RequestStatus requestStatus = 1;
+    PairingStatus result = 2;
+}
+
+message BondCompletion
+{
+    RequestStatus requestStatus = 1;
 }
 
 service GapCentral
@@ -253,12 +270,13 @@ service GapCentralResponse
     rpc ConnectComplete(Completion) returns (Nothing) { option (method_id) = 14; }
     rpc CancelConnectComplete(Completion) returns (Nothing) { option (method_id) = 15; }
     rpc DisconnectComplete(Completion) returns (Nothing) { option (method_id) = 16; }
-    rpc PairAndBondComplete(Completion) returns (Nothing) { option (method_id) = 17; }
-    rpc SetSecurityModeComplete(Completion) returns (Nothing) { option (method_id) = 18; }
-    rpc SetIoCapabilitiesComplete(Completion) returns (Nothing) { option (method_id) = 19; }
-    rpc AuthenticateWithPasskeyComplete(Completion) returns (Nothing) { option (method_id) = 20; }
-    rpc NumericComparisonConfirmComplete(Completion) returns (Nothing) { option (method_id) = 21; }
-    rpc RemoveAllBondsComplete(Completion) returns (Nothing) { option (method_id) = 22; }
+    rpc PairAndBondComplete(PairingCompletion) returns (Nothing) { option (method_id) = 17; }
+    rpc SetSecurityModeComplete(PairingCompletion) returns (Nothing) { option (method_id) = 18; }
+    rpc SetIoCapabilitiesComplete(PairingCompletion) returns (Nothing) { option (method_id) = 19; }
+    rpc AuthenticateWithPasskeyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 20; }
+    rpc NumericComparisonConfirmComplete(PairingCompletion) returns (Nothing) { option (method_id) = 21; }
+    rpc RemoveAllBondsComplete(BondCompletion) returns (Nothing) { option (method_id) = 22; }
     rpc SetDeviceDiscoveryFilterComplete(Completion) returns (Nothing) { option (method_id) = 23; }
-    rpc RemoveOldestBondComplete(Completion) returns (Nothing) { option (method_id) = 24; }
+    rpc RemoveOldestBondComplete(BondCompletion) returns (Nothing) { option (method_id) = 24; }
+    rpc SetOutOfBandDataComplete(PairingCompletion) returns (Nothing) { option (method_id) = 25; }
 }

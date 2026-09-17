@@ -71,7 +71,7 @@ Pairing can be started locally, with `PairAndBond`, or by the peer. Both paths r
 
 Because the files are self contained, the messages they have in common, such as `Address` and `AddressType`, exist in both and must be kept in step by hand.
 
-An ECHO method cannot return a value, so both stages of a procedure come back over the response service as a `Completion`:
+An ECHO method cannot return a value, so both stages of a procedure come back over the response service as a completion message:
 
 ```proto
 message Completion
@@ -82,5 +82,7 @@ message Completion
 ```
 
 A rejected request reports its reason in `requestStatus` and leaves `result` unset. An accepted request reports `accepted` together with the outcome in `result`. Every request has its own completion method, except where a typed response already carries the outcome, such as `ResolvedPrivateAddress` or `IdentityAddress`.
+
+The completion message a method carries is the one that matches the result its C++ counterpart reports, so no outcome is lost in the crossing. `Completion` carries the role's own result, and its `Result` enum holds exactly the values of `GapPeripheral::Result` or `GapCentral::Result` in the file it belongs to. Pairing procedures carry a `PairingCompletion`, whose result is the `GapPairingResult` vocabulary. Bond removal carries a `BondCompletion`, which has no result, because `GapBonding` reports its outcome through `NumberOfBondsChanged`.
 
 Method ids are never reused for a different meaning. When a method's payload changes, it moves to a new id and the old id is left unused, so that a peer speaking an older version of the protocol fails on an unknown method rather than misreading the new one.
