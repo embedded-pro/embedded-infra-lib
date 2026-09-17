@@ -1,13 +1,39 @@
-#ifndef SERVICES_GATT_HPP
-#define SERVICES_GATT_HPP
+#ifndef SERVICES_GATT_TYPES_HPP
+#define SERVICES_GATT_TYPES_HPP
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/EnumCast.hpp"
-#include "infra/util/Observer.hpp"
 #include "services/ble/Att.hpp"
 
 namespace services
 {
+    enum class GattRequestStatus : uint8_t
+    {
+        accepted = 0,
+        invalidState,
+        invalidParameter,
+        busy,
+        notSupported
+    };
+
+    enum class GattResult : uint8_t
+    {
+        success = 0,
+        invalidHandle,
+        notPermitted,
+        insufficientAuthentication,
+        insufficientAuthorization,
+        insufficientEncryption,
+        insufficientResources,
+        invalidLength,
+        unsupported,
+        disconnected,
+        timeout,
+        unknown
+    };
+
+    GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
+
     struct GattDescriptor
     {
         struct ClientCharacteristicConfiguration
@@ -31,8 +57,7 @@ namespace services
         AttAttribute::Handle Handle() const;
         AttAttribute::Handle& Handle();
 
-        bool operator==(const GattDescriptor& other) const;
-        bool operator!=(const GattDescriptor& other) const;
+        bool operator==(const GattDescriptor& other) const = default;
 
     private:
         AttAttribute::Uuid type;
@@ -83,7 +108,27 @@ namespace services
         AttAttribute::Handle ValueHandle() const;
         AttAttribute::Handle& ValueHandle();
 
-    protected:
+    private:
+        static void AppendFlag(infra::TextOutputStream& stream, PropertyFlags properties, PropertyFlags flag, const char* name);
+
+    public:
+        friend infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const PropertyFlags& properties)
+        {
+            stream << "[";
+            AppendFlag(stream, properties, PropertyFlags::broadcast, "broadcast");
+            AppendFlag(stream, properties, PropertyFlags::read, "read");
+            AppendFlag(stream, properties, PropertyFlags::writeWithoutResponse, "writeWithoutResponse");
+            AppendFlag(stream, properties, PropertyFlags::write, "write");
+            AppendFlag(stream, properties, PropertyFlags::notify, "notify");
+            AppendFlag(stream, properties, PropertyFlags::indicate, "indicate");
+            AppendFlag(stream, properties, PropertyFlags::signedWrite, "signedWrite");
+            AppendFlag(stream, properties, PropertyFlags::extended, "extended");
+            stream << "]";
+
+            return stream;
+        }
+
+    private:
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle valueHandle;
@@ -93,7 +138,7 @@ namespace services
     class GattService
     {
     public:
-        GattService(const AttAttribute::Uuid& type);
+        explicit GattService(const AttAttribute::Uuid& type);
         GattService(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle endHandle);
 
         AttAttribute::Uuid Type() const;
@@ -103,32 +148,10 @@ namespace services
         AttAttribute::Handle& EndHandle();
         uint8_t GetAttributeCount() const;
 
-    protected:
+    private:
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle endHandle;
-    };
-
-    class AttMtuExchange;
-
-    class AttMtuExchangeObserver
-        : public infra::Observer<AttMtuExchangeObserver, AttMtuExchange>
-    {
-    public:
-        using infra::Observer<AttMtuExchangeObserver, AttMtuExchange>::Observer;
-
-        virtual void ExchangedMaxAttMtuSize() = 0;
-    };
-
-    class AttMtuExchange
-        : public infra::Subject<AttMtuExchangeObserver>
-    {
-    public:
-        virtual uint16_t EffectiveMaxAttMtuSize() const = 0;
-        virtual void MtuExchange() = 0;
-
-    protected:
-        static constexpr uint16_t defaultMaxAttMtuSize = 23;
     };
 
     inline GattCharacteristic::PropertyFlags operator|(GattCharacteristic::PropertyFlags lhs, GattCharacteristic::PropertyFlags rhs)
@@ -145,7 +168,6 @@ namespace services
 namespace infra
 {
     TextOutputStream& operator<<(TextOutputStream& stream, const services::AttAttribute::Uuid& uuid);
-    TextOutputStream& operator<<(TextOutputStream& stream, const services::GattCharacteristic::PropertyFlags& properties);
 }
 
 #endif

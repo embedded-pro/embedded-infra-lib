@@ -1,7 +1,8 @@
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/stream/StringOutputStream.hpp"
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 #include "gmock/gmock.h"
+#include <utility>
 
 namespace
 {
@@ -108,4 +109,42 @@ TEST(GattInsertionOperatorUuidTest, uuid_overload_operator)
     stream << "Uuid16: " << services::AttAttribute::Uuid(uuid16) << ", Uuid128: " << services::AttAttribute::Uuid(uuid128);
 
     EXPECT_EQ("Uuid16: [42], Uuid128: [100f0e0d0c0b0a090807060504030201]", stream.Storage());
+}
+
+TEST(GattResultFromAttErrorCodeTest, maps_every_specified_error_code)
+{
+    using services::AttErrorCode;
+    using services::GattResult;
+
+    const std::pair<AttErrorCode, GattResult> expectations[]{
+        { AttErrorCode::success, GattResult::success },
+        { AttErrorCode::invalidHandle, GattResult::invalidHandle },
+        { AttErrorCode::readNotPermitted, GattResult::notPermitted },
+        { AttErrorCode::writeNotPermitted, GattResult::notPermitted },
+        { AttErrorCode::invalidPdu, GattResult::unknown },
+        { AttErrorCode::insufficientAuthentication, GattResult::insufficientAuthentication },
+        { AttErrorCode::requestNotSupported, GattResult::unsupported },
+        { AttErrorCode::invalidOffset, GattResult::invalidLength },
+        { AttErrorCode::insufficientAuthorization, GattResult::insufficientAuthorization },
+        { AttErrorCode::prepareQueueFull, GattResult::insufficientResources },
+        { AttErrorCode::attributeNotFound, GattResult::invalidHandle },
+        { AttErrorCode::attributeNotLong, GattResult::invalidLength },
+        { AttErrorCode::insufficientEncryptionKeySize, GattResult::insufficientEncryption },
+        { AttErrorCode::invalidAttributeValueLength, GattResult::invalidLength },
+        { AttErrorCode::unlikelyError, GattResult::unknown },
+        { AttErrorCode::insufficientEncryption, GattResult::insufficientEncryption },
+        { AttErrorCode::unsupportedGroupType, GattResult::unsupported },
+        { AttErrorCode::insufficientResources, GattResult::insufficientResources },
+        { AttErrorCode::databaseOutOfSync, GattResult::unknown },
+        { AttErrorCode::valueNotAllowed, GattResult::unknown },
+    };
+
+    for (const auto& [errorCode, result] : expectations)
+        EXPECT_EQ(result, services::GattResultFromAttErrorCode(infra::enum_cast(errorCode))) << "for ATT error code " << infra::enum_cast(errorCode);
+}
+
+TEST(GattResultFromAttErrorCodeTest, maps_application_error_codes_to_unknown)
+{
+    EXPECT_EQ(services::GattResult::unknown, services::GattResultFromAttErrorCode(0x80));
+    EXPECT_EQ(services::GattResult::unknown, services::GattResultFromAttErrorCode(0xff));
 }

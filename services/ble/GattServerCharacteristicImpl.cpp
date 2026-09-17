@@ -39,16 +39,16 @@ namespace services
 
     AttAttribute::Handle GattServerCharacteristicImpl::CharacteristicHandle() const
     {
-        return handle;
+        return Handle();
     }
 
     void GattServerCharacteristicImpl::UpdateValue()
     {
         auto status = GattServerCharacteristicOperationsObserver::Subject().Update(*this, updateContext->data);
 
-        if (status == GattServerCharacteristicOperations::UpdateStatus::success)
+        if (status == GattRequestStatus::accepted)
             infra::PostAssign(updateContext, std::nullopt)->onDone();
-        else if (status == GattServerCharacteristicOperations::UpdateStatus::retry)
+        else if (status == GattRequestStatus::busy)
             infra::EventDispatcher::Instance().Schedule([this]()
                 {
                     UpdateValue();

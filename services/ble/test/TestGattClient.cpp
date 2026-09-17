@@ -1,204 +1,216 @@
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
-#include "infra/util/test_helper/MemoryRangeMatcher.hpp"
+#include "infra/util/SharedObjectAllocatorFixedSize.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
-#include "services/ble/Att.hpp"
+#include "services/ble/ClaimingGattClientConnection.hpp"
+#include "services/ble/test_doubles/GattClientConnectionMock.hpp"
 #include "services/ble/test_doubles/GattClientMock.hpp"
 #include "gmock/gmock.h"
-#include <cstdint>
+#include <algorithm>
 
 namespace
 {
-    services::AttAttribute::Uuid16 uuid16{ 0x42 };
-    services::AttAttribute::Uuid128 uuid128{ { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10 } };
-
-    using GattPropertyFlags = services::GattCharacteristic::PropertyFlags;
-}
-
-TEST(GattClientTest, characteristic_implementation_supports_different_uuid_lengths)
-{
-    services::GattClientService service(uuid16, 0x1, 0x9);
-    services::GattClientCharacteristic characteristicDefinitionA{ uuid16, 0x2, 0x3, GattPropertyFlags::none };
-    services::GattClientCharacteristic characteristicDefinitionB{ uuid128, 0x2, 0x3, GattPropertyFlags::none };
-
-    service.AddCharacteristic(characteristicDefinitionA);
-    service.AddCharacteristic(characteristicDefinitionB);
-
-    EXPECT_EQ(0x42, std::get<services::AttAttribute::Uuid16>(characteristicDefinitionA.Type()));
-    EXPECT_EQ(uuid128, std::get<services::AttAttribute::Uuid128>(characteristicDefinitionB.Type()));
-}
-
-TEST(GattClientTest, characteristic_implementation_supports_different_properties)
-{
-    services::GattClientService service(uuid16, 0x1, 0x9);
-    services::GattClientCharacteristic characteristicDefinitionA{ uuid16, 0x2, 0x3, GattPropertyFlags::write | GattPropertyFlags::indicate };
-    services::GattClientCharacteristic characteristicDefinitionB{ uuid16, 0x2, 0x3, GattPropertyFlags::broadcast };
-
-    service.AddCharacteristic(characteristicDefinitionA);
-    service.AddCharacteristic(characteristicDefinitionB);
-
-    EXPECT_EQ(GattPropertyFlags::write | GattPropertyFlags::indicate, characteristicDefinitionA.Properties());
-    EXPECT_EQ(GattPropertyFlags::broadcast, characteristicDefinitionB.Properties());
-}
-
-TEST(GattClientTest, characteristic_implementation_is_added_to_service)
-{
-    services::GattClientService service(uuid16, 0x1, 0x9);
-    services::GattClientCharacteristic characteristicDefinitionA{ uuid16, 0x2, 0x3, GattPropertyFlags::write };
-    services::GattClientCharacteristic characteristicDefinitionB{ services::AttAttribute::Uuid16(0x84), 0x4, 0x5, GattPropertyFlags::none };
-
-    service.AddCharacteristic(characteristicDefinitionA);
-    service.AddCharacteristic(characteristicDefinitionB);
-
-    EXPECT_FALSE(service.Characteristics().empty());
-    EXPECT_EQ(0x84, std::get<services::AttAttribute::Uuid16>(service.Characteristics().front().Type()));
-}
-
-class GattClientCharacteristicTest
-    : public testing::Test
-    , public infra::EventDispatcherFixture
-{
-public:
-    GattClientCharacteristicTest()
-        : service(uuid16, 0x1, 0x9)
-        , characteristic(operations, uuid16, characteristicHandle, characteristicValueHandle, GattPropertyFlags::write)
+    // Stands in for a platform stack: it pre-allocates its connections, hands each one out as an
+    // infra::SharedPtr, and lets go of its own reference when the link is lost.
+    class GattClientStub
+        : public services::GattClient
     {
-        gattUpdateObserver.Attach(characteristic);
-    }
+    public:
+        template<std::size_t MaxConnections>
+        using WithMaxConnections = infra::WithStorage<GattClientStub, infra::SharedObjectAllocatorFixedSize<testing::StrictMock<services::GattClientConnectionMock>, void()>::WithStorage<MaxConnections>>;
 
-    static const services::AttAttribute::Handle characteristicHandle = 0x2;
-    static const services::AttAttribute::Handle characteristicValueHandle = 0x3;
+        explicit GattClientStub(infra::SharedObjectAllocator<testing::StrictMock<services::GattClientConnectionMock>, void()>& connections)
+            : connections(connections)
+        {}
 
-    testing::StrictMock<services::GattClientCharacteristicOperationsMock> operations;
-    services::GattClientService service;
-    services::GattClientCharacteristic characteristic;
-    testing::StrictMock<services::GattClientCharacteristicUpdateObserverMock> gattUpdateObserver;
-};
-
-TEST_F(GattClientCharacteristicTest, receives_valid_notification_should_notify_observers)
-{
-    const auto data = infra::MakeStringByteRange("string");
-
-    EXPECT_CALL(gattUpdateObserver, NotificationReceived(infra::ByteRangeContentsEqual(data)));
-    operations.infra::Subject<services::GattClientStackUpdateObserver>::NotifyObservers([&data](auto& observer)
+        std::size_t MaxNumberOfConnections() const override
         {
-            observer.NotificationReceived(characteristicValueHandle, data);
+            return maxNumberOfConnections;
+        }
+
+        std::size_t NumberOfConnections() const override
+        {
+            return established.size();
+        }
+
+        infra::SharedPtr<services::GattClientConnection> Establish()
+        {
+            auto connection = connections.Allocate();
+            if (connection == nullptr)
+                return nullptr;
+
+            established.push_back(connection);
+
+            NotifyObservers([&connection](auto& observer)
+                {
+                    observer.ConnectionEstablished(connection);
+                });
+
+            return connection;
+        }
+
+        void Release(const infra::SharedPtr<services::GattClientConnection>& connection)
+        {
+            NotifyObservers([&connection](auto& observer)
+                {
+                    observer.ConnectionReleased(*connection);
+                });
+
+            established.erase(std::remove_if(established.begin(), established.end(), [&connection](const auto& each)
+                                  {
+                                      return each == connection;
+                                  }),
+                established.end());
+        }
+
+        static constexpr std::size_t maxNumberOfConnections = 2;
+
+    private:
+        infra::SharedObjectAllocator<testing::StrictMock<services::GattClientConnectionMock>, void()>& connections;
+        infra::BoundedVector<infra::SharedPtr<services::GattClientConnection>>::WithMaxSize<maxNumberOfConnections> established;
+    };
+
+    class GattClientTest
+        : public testing::Test
+        , public infra::EventDispatcherFixture
+    {
+    public:
+        GattClientStub::WithMaxConnections<GattClientStub::maxNumberOfConnections> gattClient;
+        testing::StrictMock<services::GattClientObserverMock> observer{ gattClient };
+    };
+}
+
+TEST_F(GattClientTest, reports_the_maximum_number_of_connections)
+{
+    EXPECT_EQ(2, gattClient.MaxNumberOfConnections());
+    EXPECT_EQ(0, gattClient.NumberOfConnections());
+}
+
+TEST_F(GattClientTest, reports_each_established_connection_to_its_observer)
+{
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    auto first = gattClient.Establish();
+
+    EXPECT_EQ(1, gattClient.NumberOfConnections());
+
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    auto second = gattClient.Establish();
+
+    EXPECT_EQ(2, gattClient.NumberOfConnections());
+    EXPECT_NE(first, second);
+}
+
+TEST_F(GattClientTest, refuses_a_connection_beyond_the_maximum)
+{
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_)).Times(2);
+    auto first = gattClient.Establish();
+    auto second = gattClient.Establish();
+
+    EXPECT_EQ(nullptr, gattClient.Establish());
+}
+
+TEST_F(GattClientTest, operations_are_performed_on_the_connection_they_are_issued_on)
+{
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_)).Times(2);
+    auto first = gattClient.Establish();
+    auto second = gattClient.Establish();
+
+    const services::AttAttribute::Handle handle = 0x5;
+    infra::Function<void(services::GattResult)> onDone;
+
+    EXPECT_CALL(static_cast<services::GattClientConnectionMock&>(*first), Write(handle, testing::_, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, first->Write(handle, infra::MakeStringByteRange("first"), onDone));
+}
+
+TEST_F(GattClientTest, an_observer_of_one_connection_does_not_see_updates_of_another)
+{
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_)).Times(2);
+    auto first = gattClient.Establish();
+    auto second = gattClient.Establish();
+
+    testing::StrictMock<services::GattClientUpdateObserverMock> firstUpdates{ *first };
+    testing::StrictMock<services::GattClientUpdateObserverMock> secondUpdates{ *second };
+
+    const services::AttAttribute::Handle handle = 0x5;
+    const auto data = infra::MakeStringByteRange("update");
+
+    EXPECT_CALL(secondUpdates, NotificationReceived(handle, testing::_));
+    second->infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([handle, &data](auto& updateObserver)
+        {
+            updateObserver.NotificationReceived(handle, data);
         });
 }
 
-TEST_F(GattClientCharacteristicTest, receives_valid_indication_should_notify_observers)
+TEST_F(GattClientTest, each_connection_serialises_its_own_operations)
 {
-    EXPECT_CALL(gattUpdateObserver, IndicationReceived(infra::ByteRangeContentsEqual(infra::MakeStringByteRange("string")), testing::_))
-        .WillOnce(testing::InvokeArgument<1>());
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_)).Times(2);
+    auto first = gattClient.Establish();
+    auto second = gattClient.Establish();
 
-    operations.infra::Subject<services::GattClientStackUpdateObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.IndicationReceived(characteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
-        });
+    services::ClaimingGattClientConnection claimingFirst{ *first };
+    services::ClaimingGattClientConnection claimingSecond{ *second };
+
+    const services::AttAttribute::Handle handle = 0x5;
+    infra::Function<void(services::GattResult)> ignoredResult;
+    infra::Function<void(services::GattResult)> onFirstDiscoveryDone;
+
+    EXPECT_CALL(static_cast<services::GattClientConnectionMock&>(*first), DiscoverServices(testing::_)).WillOnce(testing::DoAll(testing::SaveArg<0>(&onFirstDiscoveryDone), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_EQ(services::GattRequestStatus::accepted, claimingFirst.DiscoverServices(ignoredResult));
+    ExecuteAllActions();
+
+    EXPECT_CALL(static_cast<services::GattClientConnectionMock&>(*second), DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, claimingSecond.DiscoverServices(ignoredResult));
+    ExecuteAllActions();
 }
 
-TEST_F(GattClientCharacteristicTest, receives_invalid_notification_should_not_notify_observers)
+TEST_F(GattClientTest, a_connection_outlives_the_stack_reference_while_a_holder_remains)
 {
-    const services::AttAttribute::Handle invalidCharacteristicValueHandle = 0x7;
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    auto connection = gattClient.Establish();
 
-    operations.infra::Subject<services::GattClientStackUpdateObserver>::NotifyObservers([&invalidCharacteristicValueHandle](auto& observer)
-        {
-            observer.NotificationReceived(invalidCharacteristicValueHandle, infra::MakeStringByteRange("string"));
-        });
+    EXPECT_CALL(observer, ConnectionReleased(testing::_));
+    gattClient.Release(connection);
+
+    EXPECT_EQ(0, gattClient.NumberOfConnections());
+    EXPECT_NE(nullptr, connection);
 }
 
-TEST_F(GattClientCharacteristicTest, receives_invalid_indication_should_not_notify_observers)
+TEST_F(GattClientTest, a_released_slot_is_reused_only_once_the_last_holder_lets_go)
 {
-    const services::AttAttribute::Handle invalidCharacteristicValueHandle = 0x7;
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_)).Times(2);
+    auto first = gattClient.Establish();
+    auto second = gattClient.Establish();
 
-    operations.infra::Subject<services::GattClientStackUpdateObserver>::NotifyObservers([&invalidCharacteristicValueHandle](auto& observer)
-        {
-            observer.IndicationReceived(invalidCharacteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
-        });
+    EXPECT_CALL(observer, ConnectionReleased(testing::_));
+    gattClient.Release(first);
+    EXPECT_EQ(nullptr, gattClient.Establish());
+
+    first = nullptr;
+
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    EXPECT_NE(nullptr, gattClient.Establish());
 }
 
-TEST_F(GattClientCharacteristicTest, should_read_characteristic_and_callback_with_data_received)
+TEST_F(GattClientTest, a_weak_pointer_to_an_expired_connection_no_longer_locks)
 {
-    const auto result = 0;
-    const auto data = infra::MakeStringByteRange("string");
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    auto connection = gattClient.Establish();
 
-    EXPECT_CALL(operations, Read(characteristicValueHandle, ::testing::_, testing::_))
-        .WillOnce([&data, result](services::AttAttribute::Handle, infra::Function<void(const infra::ConstByteRange&)> onResponse, infra::Function<void(uint8_t)> onDone)
-            {
-                onResponse(data);
-                onDone(result);
-            });
+    infra::WeakPtr<services::GattClientConnection> weakConnection = connection;
+    EXPECT_NE(nullptr, weakConnection.lock());
 
-    characteristic.Read(infra::MockFunction<void(const infra::ConstByteRange&)>(data), infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_CALL(observer, ConnectionReleased(testing::_));
+    gattClient.Release(connection);
+    connection = nullptr;
+
+    EXPECT_EQ(nullptr, weakConnection.lock());
 }
 
-TEST_F(GattClientCharacteristicTest, should_write_characteristic_and_callback)
+TEST_F(GattClientTest, reports_a_released_connection_to_its_observer)
 {
-    const auto data = infra::MakeStringByteRange("string");
-    infra::VerifyingFunction<void(uint8_t)> onDone{ 0 };
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    auto connection = gattClient.Establish();
 
-    EXPECT_CALL(operations, Write(characteristicValueHandle, infra::ByteRangeContentsEqual(data), testing::_)).WillOnce([&data](services::AttAttribute::Handle, infra::ConstByteRange, infra::Function<void(uint8_t)> onDone)
-        {
-            onDone(0);
-        });
-    characteristic.Write(data, onDone);
-}
-
-TEST_F(GattClientCharacteristicTest, should_write_without_response_characteristic)
-{
-    const auto data = infra::MakeStringByteRange("string");
-    infra::VerifyingFunction<void(services::OperationStatus)> onWriteWithoutResponse{ services::OperationStatus::success };
-    auto result = services::OperationStatus::success;
-
-    EXPECT_CALL(operations, WriteWithoutResponse(characteristicValueHandle, infra::ByteRangeContentsEqual(data), testing::_)).WillOnce([result](services::AttAttribute::Handle handle, infra::ConstByteRange, infra::Function<void(services::OperationStatus)> onDone)
-        {
-            onDone(result);
-        });
-    characteristic.WriteWithoutResponse(data, onWriteWithoutResponse);
-}
-
-TEST_F(GattClientCharacteristicTest, should_enable_notification_characteristic_and_callback)
-{
-    const auto result = 0;
-
-    EXPECT_CALL(operations, EnableNotification(characteristicValueHandle, ::testing::_)).WillOnce([result](services::AttAttribute::Handle, infra::Function<void(uint8_t)> onDone)
-        {
-            onDone(result);
-        });
-
-    characteristic.EnableNotification(infra::MockFunction<void(uint8_t)>(result));
-}
-
-TEST_F(GattClientCharacteristicTest, should_disable_notification_characteristic_and_callback)
-{
-    const auto result = 0;
-
-    EXPECT_CALL(operations, DisableNotification(characteristicValueHandle, ::testing::_)).WillOnce([result](services::AttAttribute::Handle, infra::Function<void(uint8_t)> onDone)
-        {
-            onDone(result);
-        });
-
-    characteristic.DisableNotification(infra::MockFunction<void(uint8_t)>(result));
-}
-
-TEST_F(GattClientCharacteristicTest, should_enable_indication_characteristic_and_callback)
-{
-    const auto result = 0;
-
-    EXPECT_CALL(operations, EnableIndication(characteristicValueHandle, ::testing::_)).WillOnce([result](services::AttAttribute::Handle, infra::Function<void(uint8_t)> onDone)
-        {
-            onDone(result);
-        });
-    characteristic.EnableIndication(infra::MockFunction<void(uint8_t)>(result));
-}
-
-TEST_F(GattClientCharacteristicTest, should_disable_indication_characteristic_and_callback)
-{
-    const auto result = 0;
-
-    EXPECT_CALL(operations, DisableIndication(characteristicValueHandle, ::testing::_)).WillOnce([result](services::AttAttribute::Handle, infra::Function<void(uint8_t)> onDone)
-        {
-            onDone(result);
-        });
-    characteristic.DisableIndication(infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_CALL(observer, ConnectionReleased(testing::Ref(*connection)));
+    gattClient.Release(connection);
 }

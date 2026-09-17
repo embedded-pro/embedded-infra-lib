@@ -4,6 +4,7 @@ emil_add_test(services.ble_test)
 
 target_link_libraries(services.ble_test PUBLIC
     gmock_main
+    infra.timer_test_helper
     services.ble
     services.ble_test_doubles
 )
@@ -17,11 +18,13 @@ target_sources(services.ble_test PRIVATE
     TestGapPairing.cpp
     TestGapPeripheral.cpp
     TestGapProto.cpp
+    TestGattProto.cpp
     TestGapTypes.cpp
-    TestGatt.cpp
+    TestGattTypes.cpp
     TestGattClient.cpp
-    TestClaimingGattClientAdapter.cpp
+    TestGattClientCharacteristic.cpp
+    TestClaimingGattClientConnection.cpp
     TestGapAdvertisementFormatter.cpp
     TestGattServer.cpp
-    TestRetryGattClientAdapter.cpp
+    TestRetryingGattClientConnection.cpp
 )

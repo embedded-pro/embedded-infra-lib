@@ -1,7 +1,41 @@
-#include "services/ble/Gatt.hpp"
+#include "services/ble/GattTypes.hpp"
 
 namespace services
 {
+    GattResult GattResultFromAttErrorCode(uint8_t attErrorCode)
+    {
+        switch (static_cast<AttErrorCode>(attErrorCode))
+        {
+            case AttErrorCode::success:
+                return GattResult::success;
+            case AttErrorCode::invalidHandle:
+            case AttErrorCode::attributeNotFound:
+                return GattResult::invalidHandle;
+            case AttErrorCode::readNotPermitted:
+            case AttErrorCode::writeNotPermitted:
+                return GattResult::notPermitted;
+            case AttErrorCode::insufficientAuthentication:
+                return GattResult::insufficientAuthentication;
+            case AttErrorCode::insufficientAuthorization:
+                return GattResult::insufficientAuthorization;
+            case AttErrorCode::insufficientEncryptionKeySize:
+            case AttErrorCode::insufficientEncryption:
+                return GattResult::insufficientEncryption;
+            case AttErrorCode::prepareQueueFull:
+            case AttErrorCode::insufficientResources:
+                return GattResult::insufficientResources;
+            case AttErrorCode::invalidOffset:
+            case AttErrorCode::attributeNotLong:
+            case AttErrorCode::invalidAttributeValueLength:
+                return GattResult::invalidLength;
+            case AttErrorCode::requestNotSupported:
+            case AttErrorCode::unsupportedGroupType:
+                return GattResult::unsupported;
+            default:
+                return GattResult::unknown;
+        }
+    }
+
     GattDescriptor::GattDescriptor(const AttAttribute::Uuid& type, AttAttribute::Handle handle)
         : type(type)
         , handle(handle)
@@ -20,16 +54,6 @@ namespace services
     AttAttribute::Handle& GattDescriptor::Handle()
     {
         return handle;
-    }
-
-    bool GattDescriptor::operator==(const GattDescriptor& other) const
-    {
-        return type == other.type && handle == other.handle;
-    }
-
-    bool GattDescriptor::operator!=(const GattDescriptor& other) const
-    {
-        return !(*this == other);
     }
 
     GattCharacteristic::GattCharacteristic(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle valueHandle, GattCharacteristic::PropertyFlags properties)
@@ -108,6 +132,12 @@ namespace services
     {
         return 0;
     }
+
+    void GattCharacteristic::AppendFlag(infra::TextOutputStream& stream, PropertyFlags properties, PropertyFlags flag, const char* name)
+    {
+        if ((properties & flag) != PropertyFlags::none)
+            stream << "|" << name << "|";
+    }
 }
 
 namespace infra
@@ -118,30 +148,6 @@ namespace infra
             stream << "[" << hex << std::get<services::AttAttribute::Uuid16>(uuid) << "]";
         else
             stream << "[" << AsHex(MakeByteRange(std::get<services::AttAttribute::Uuid128>(uuid))) << "]";
-
-        return stream;
-    }
-
-    TextOutputStream& operator<<(TextOutputStream& stream, const services::GattCharacteristic::PropertyFlags& properties)
-    {
-        stream << "[";
-        if ((properties & services::GattCharacteristic::PropertyFlags::broadcast) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|broadcast|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::read) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|read|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::writeWithoutResponse) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|writeWithoutResponse|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::write) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|write|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::notify) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|notify|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::indicate) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|indicate|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::signedWrite) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|signedWrite|";
-        if ((properties & services::GattCharacteristic::PropertyFlags::extended) != services::GattCharacteristic::PropertyFlags::none)
-            stream << "|extended|";
-        stream << "]";
 
         return stream;
     }

@@ -8,9 +8,13 @@ protocol_buffer_echo_all(services.ble GapPeripheral.proto)
 protocol_buffer_csharp(services.ble GapPeripheral.proto)
 protocol_buffer_java(services.ble GapPeripheral.proto)
 
-protocol_buffer_echo_all(services.ble Gatt.proto)
-protocol_buffer_csharp(services.ble Gatt.proto)
-protocol_buffer_java(services.ble Gatt.proto)
+protocol_buffer_echo_all(services.ble GattClient.proto)
+protocol_buffer_csharp(services.ble GattClient.proto)
+protocol_buffer_java(services.ble GattClient.proto)
+
+protocol_buffer_echo_all(services.ble GattServer.proto)
+protocol_buffer_csharp(services.ble GattServer.proto)
+protocol_buffer_java(services.ble GattServer.proto)
 
 protocol_buffer_echo_all(services.ble Dtm.proto)
 protocol_buffer_csharp(services.ble Dtm.proto)
@@ -18,6 +22,7 @@ protocol_buffer_java(services.ble Dtm.proto)
 
 target_link_libraries(services.ble PUBLIC
     hal.interfaces
+    infra.timer
     infra.util
     services.tracer
 )
@@ -40,18 +45,21 @@ target_sources(services.ble PRIVATE
     GapPeripheral.hpp
     GapTypes.cpp
     GapTypes.hpp
-    Gatt.cpp
-    Gatt.hpp
-    GattClient.cpp
+    GattTypes.cpp
+    GattTypes.hpp
     GattClient.hpp
-    ClaimingGattClientAdapter.cpp
-    ClaimingGattClientAdapter.hpp
+    GattClientCharacteristic.cpp
+    GattClientCharacteristic.hpp
+    GattClientConnection.cpp
+    GattClientConnection.hpp
+    ClaimingGattClientConnection.cpp
+    ClaimingGattClientConnection.hpp
     GattServer.cpp
     GattServer.hpp
     GattServerCharacteristicImpl.cpp
     GattServerCharacteristicImpl.hpp
-    RetryGattClientCharacteristicsOperations.cpp
-    RetryGattClientCharacteristicsOperations.hpp
+    RetryingGattClientConnection.cpp
+    RetryingGattClientConnection.hpp
 )
 
 add_subdirectory(test)
