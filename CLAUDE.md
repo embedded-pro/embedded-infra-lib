@@ -155,6 +155,11 @@ Prefer `{}` initialization over `()` for all variable and object initialization.
 - Use `testing::StrictMock<>` — **never `testing::NiceMock<>`**
 - TDD: write tests before implementation (Red → Green → Refactor)
 - No heap allocation in tests — same rules as production code
+- Build a range with `infra::MakeRange`, `infra::Head` and `infra::DiscardHead`, never from
+  `std::array::begin()`/`end()`. Those iterators are raw pointers in libstdc++ and libc++ but
+  checked class types in the Microsoft STL, so `infra::ConstByteRange(a.begin(), a.end())`
+  compiles on Linux and macOS and fails on MSVC. `infra::MemoryRange` and
+  `infra::BoundedVector` iterators are pointers everywhere and are safe to pass
 - Test pattern:
   ```cpp
   TEST(ComponentTest, specific_behavior_description)

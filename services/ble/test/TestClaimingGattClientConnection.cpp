@@ -594,8 +594,8 @@ TEST_F(LongOperationsTest, should_prepare_one_write_per_chunk_then_execute)
     for (std::size_t i = 0; i != payload.size(); ++i)
         payload[i] = static_cast<uint8_t>(i);
 
-    auto firstChunk = infra::ConstByteRange(payload.begin(), payload.begin() + writeChunk);
-    auto secondChunk = infra::ConstByteRange(payload.begin() + writeChunk, payload.end());
+    const infra::ConstByteRange firstChunk = infra::Head(infra::MakeRange(payload), writeChunk);
+    const infra::ConstByteRange secondChunk = infra::DiscardHead(infra::MakeRange(payload), writeChunk);
 
     testing::InSequence sequence;
     EXPECT_CALL(connection, PrepareWrite(handle, 0, testing::ElementsAreArray(firstChunk), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::success, 0, firstChunk), testing::Return(services::GattRequestStatus::accepted)));
@@ -610,7 +610,7 @@ TEST_F(LongOperationsTest, should_prepare_one_write_per_chunk_then_execute)
 TEST_F(LongOperationsTest, should_cancel_the_prepared_writes_when_a_prepare_fails)
 {
     std::array<uint8_t, writeChunk + 3> payload{};
-    auto firstChunk = infra::ConstByteRange(payload.begin(), payload.begin() + writeChunk);
+    const infra::ConstByteRange firstChunk = infra::Head(infra::MakeRange(payload), writeChunk);
 
     testing::InSequence sequence;
     EXPECT_CALL(connection, PrepareWrite(handle, 0, testing::ElementsAreArray(firstChunk), testing::_)).WillOnce(testing::DoAll(testing::InvokeArgument<3>(services::GattResult::success, 0, firstChunk), testing::Return(services::GattRequestStatus::accepted)));

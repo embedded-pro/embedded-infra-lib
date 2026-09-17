@@ -227,7 +227,7 @@ TEST(GattServiceChangedTest, decodes_a_value_at_an_odd_offset)
     // The payload is viewed starting one byte in, so the handles are unaligned.
     const std::array<uint8_t, 5> storage{ 0xAA, 0x34, 0x12, 0x78, 0x56 };
 
-    auto serviceChanged = services::GattServiceChangedFromValue(infra::MakeRange(storage.begin() + 1, storage.end()));
+    auto serviceChanged = services::GattServiceChangedFromValue(infra::DiscardHead(infra::MakeRange(storage), 1));
 
     ASSERT_TRUE(serviceChanged);
     EXPECT_EQ(0x1234, serviceChanged->startHandle);
