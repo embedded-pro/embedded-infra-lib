@@ -60,8 +60,6 @@ namespace services
         leBrEdrHost = 0x10u
     };
 
-    // Status of a request at the moment it is issued; a request that is not
-    // accepted never results in a call to its completion callback.
     enum class GapRequestStatus : uint8_t
     {
         accepted = 0,

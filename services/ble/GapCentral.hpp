@@ -36,10 +36,6 @@ namespace services
 
         virtual std::optional<hal::MacAddress> ResolvePrivateAddress(hal::MacAddress address) const = 0;
 
-        // Each procedure below reports whether the request is accepted through its
-        // return value, and its outcome through onDone. onDone is never invoked from
-        // within the call itself; it is scheduled on the event dispatcher. A request
-        // that is not accepted never results in a call to onDone.
         virtual GapRequestStatus Connect(hal::MacAddress macAddress, GapDeviceAddressType addressType, infra::Duration initiatingTimeout, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) = 0;

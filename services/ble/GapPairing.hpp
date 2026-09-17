@@ -61,13 +61,6 @@ namespace services
             level4,
         };
 
-        // Each procedure below reports whether the request is accepted through its
-        // return value, and its outcome through onDone. onDone is never invoked from
-        // within the call itself; it is scheduled on the event dispatcher. A request
-        // that is not accepted never results in a call to onDone. Pairing that is
-        // initiated by the peer instead of by PairAndBond is reported through the
-        // observer.
-
         // 1. If there is a pre-existing bond, then the connection will be encrypted.
         // 2. If there is no pre-existing bond, then pairing, encrypting, and bonding (storing the keys) will take place.
         virtual GapRequestStatus PairAndBond(const infra::Function<void(GapPairingResult)>& onDone) = 0;

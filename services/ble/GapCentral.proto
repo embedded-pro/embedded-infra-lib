@@ -130,7 +130,7 @@ message OutOfBandData
 
 message DiscoveredDevice
 {
-    reserved 5; // isScanResponse, replaced by eventType
+    reserved 5;
 
     Address address = 1;
     AddressType addressType = 2;
@@ -182,9 +182,6 @@ message Completion
         controllerError = 4;
     }
 
-    // A request that is not accepted reports its reason in requestStatus and
-    // leaves result unset; an accepted request reports accepted and the outcome
-    // of the procedure in result.
     RequestStatus requestStatus = 1;
     Result result = 2;
 }
@@ -192,9 +189,6 @@ message Completion
 service GapCentral
 {
     option (service_id) = 33;
-
-    // method_id 14 was IsDeviceBonded(ConnectionParameters); it is replaced by
-    // method_id 17, which takes only an address, and is not reused.
 
     // Allowed states: standby
     rpc StartDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 1; }
@@ -240,11 +234,9 @@ service GapCentralResponse
 {
     option (service_id) = 35;
 
-    // method_id 1 was Done; it reported no procedure and is not reused.
     rpc DeviceDiscovered(DiscoveredDevice) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
 
-    // Reported for pairing that the peer initiates as well as for PairAndBond.
     rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) =  4; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 5; }
 

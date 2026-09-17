@@ -39,10 +39,6 @@ namespace services
         virtual infra::ConstByteRange GetAdvertisementData() const = 0;
         virtual infra::ConstByteRange GetScanResponseData() const = 0;
 
-        // Each procedure below reports whether the request is accepted through its
-        // return value, and its outcome through onDone. onDone is never invoked from
-        // within the call itself; it is scheduled on the event dispatcher. A request
-        // that is not accepted never results in a call to onDone.
         virtual GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) = 0;

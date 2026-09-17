@@ -104,7 +104,6 @@ message AdvertisementData
     bytes data = 1 [(bytes_size) = 31]; //Don't add flags data, method adds flags data internally with the flag bits 'LE General Discoverable Mode' and 'BR/EDR Not Supported' enabled.
 }
 
-// Connection interval is minConnIntMultiplier to maxConnIntMultiplier times 1.25 ms.
 message ConnectionParameterUpdate
 {
     uint32 minConnIntMultiplier = 1;
@@ -174,9 +173,6 @@ message Completion
         controllerError = 4;
     }
 
-    // A request that is not accepted reports its reason in requestStatus and
-    // leaves result unset; an accepted request reports accepted and the outcome
-    // of the procedure in result.
     RequestStatus requestStatus = 1;
     Result result = 2;
 }
@@ -205,19 +201,14 @@ service GapPeripheral
     rpc GenerateOutOfBandData(Nothing) returns (Nothing) { option (method_id) = 11; }
     rpc SetOutOfBandData(OutOfBandData) returns (Nothing) { option (method_id) = 12; }
 
-    // Allowed states: connected
     rpc SetConnectionParameters(ConnectionParameterUpdate) returns (Nothing) { option (method_id) = 13; }
 
-    // Allowed states: connected
-    // 1. If there is a pre-existing bond, then the connection will be encrypted.
-    // 2. If there is no pre-existing bond, then pairing, encrypting, and bonding (storing the keys) will take place.
     rpc PairAndBond(Nothing) returns (Nothing) { option (method_id) = 14; }
 
     rpc AuthenticateWithPasskey(UInt32Value) returns (Nothing) { option (method_id) = 15; }
     rpc NumericComparisonConfirm(BoolValue) returns (Nothing) { option (method_id) = 16; }
     rpc RemoveOldestBond(Nothing) returns (Nothing) { option (method_id) = 17; }
 
-    // This will work with both public and random addresses
     rpc IsDeviceBonded(DeviceAddress) returns (Nothing) { option (method_id) = 18; }
 }
 
@@ -225,7 +216,6 @@ service GapPeripheralResponse
 {
     option (service_id) = 34;
 
-    // method_id 1 was Done; it reported no procedure and is not reused.
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
     rpc ResolvableAddress(Address) returns (Nothing) { option (method_id) = 4; }
@@ -249,7 +239,6 @@ service GapPeripheralResponse
     rpc RemoveOldestBondComplete(Completion) returns (Nothing) { option (method_id) = 21; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 22; }
 
-    // Reported for pairing that the peer initiates as well as for PairAndBond.
     rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) = 23; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 24; }
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 25; }
