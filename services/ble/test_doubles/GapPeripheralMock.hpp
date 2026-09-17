@@ -10,15 +10,15 @@ namespace services
         : public GapPeripheral
     {
     public:
-        MOCK_METHOD(GapAddress, GetAddress, (), (const));
-        MOCK_METHOD(GapAddress, GetIdentityAddress, (), (const));
-        MOCK_METHOD(infra::ConstByteRange, GetAdvertisementData, (), (const));
-        MOCK_METHOD(infra::ConstByteRange, GetScanResponseData, (), (const));
-        MOCK_METHOD(GapRequestStatus, SetAdvertisementData, (infra::ConstByteRange data, const infra::Function<void(Result)>& onDone));
-        MOCK_METHOD(GapRequestStatus, SetScanResponseData, (infra::ConstByteRange data, const infra::Function<void(Result)>& onDone));
-        MOCK_METHOD(GapRequestStatus, Advertise, (GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone));
-        MOCK_METHOD(GapRequestStatus, Standby, (const infra::Function<void(Result)>& onDone));
-        MOCK_METHOD(GapRequestStatus, SetConnectionParameters, (const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone));
+        MOCK_METHOD(GapAddress, GetAddress, (), (const, override));
+        MOCK_METHOD(GapAddress, GetIdentityAddress, (), (const, override));
+        MOCK_METHOD(infra::ConstByteRange, GetAdvertisementData, (), (const, override));
+        MOCK_METHOD(infra::ConstByteRange, GetScanResponseData, (), (const, override));
+        MOCK_METHOD(GapRequestStatus, SetAdvertisementData, (infra::ConstByteRange data, const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(GapRequestStatus, SetScanResponseData, (infra::ConstByteRange data, const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(GapRequestStatus, Advertise, (GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(GapRequestStatus, Standby, (const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(GapRequestStatus, SetConnectionParameters, (const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone), (override));
 
         void ChangeState(GapPeripheralState newState)
         {
