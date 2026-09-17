@@ -3,8 +3,7 @@
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/Att.hpp"
-#include "services/ble/ClaimingGattClientAdapter.hpp"
-#include "services/ble/test_doubles/GapCentralMock.hpp"
+#include "services/ble/ClaimingGattClientConnection.hpp"
 #include "services/ble/test_doubles/GattClientConnectionMock.hpp"
 #include "gmock/gmock.h"
 #include <array>
@@ -13,14 +12,13 @@
 
 namespace
 {
-    class ClaimingGattClientAdapterTest
+    class ClaimingGattClientConnectionTest
         : public testing::Test
         , public infra::EventDispatcherFixture
     {
     public:
         testing::StrictMock<services::GattClientConnectionMock> connection;
-        testing::StrictMock<services::GapCentralMock> gapCentral;
-        services::ClaimingGattClientAdapter adapter{ connection, gapCentral };
+        services::ClaimingGattClientConnection adapter{ connection };
         testing::StrictMock<services::GattClientConnectionObserverMock> connectionObserver{ adapter };
         testing::StrictMock<services::GattClientUpdateObserverMock> updateObserver{ adapter };
 
@@ -33,7 +31,7 @@ namespace
     };
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_discover_services)
+TEST_F(ClaimingGattClientConnectionTest, should_call_discover_services)
 {
     EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
@@ -41,7 +39,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_discover_services)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_discover_characteristics)
+TEST_F(ClaimingGattClientConnectionTest, should_call_discover_characteristics)
 {
     EXPECT_CALL(connection, DiscoverCharacteristics(handle, endHandle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
@@ -49,7 +47,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_discover_characteristics)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_discover_descriptors)
+TEST_F(ClaimingGattClientConnectionTest, should_call_discover_descriptors)
 {
     EXPECT_CALL(connection, DiscoverDescriptors(handle, endHandle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
@@ -57,7 +55,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_discover_descriptors)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_forward_service_discovered)
+TEST_F(ClaimingGattClientConnectionTest, should_forward_service_discovered)
 {
     static const services::GattService service{ services::AttAttribute::Uuid16{ 0x180D }, 0x1, 0x2 };
 
@@ -68,7 +66,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_service_discovered)
         });
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_forward_characteristic_discovered)
+TEST_F(ClaimingGattClientConnectionTest, should_forward_characteristic_discovered)
 {
     static const services::GattCharacteristic characteristic{ services::AttAttribute::Uuid16{ 0x180D }, 0x1, 0x2, services::GattCharacteristic::PropertyFlags::read | services::GattCharacteristic::PropertyFlags::notify };
 
@@ -79,7 +77,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_characteristic_discovered)
         });
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_forward_descriptor_discovered)
+TEST_F(ClaimingGattClientConnectionTest, should_forward_descriptor_discovered)
 {
     static const services::GattDescriptor descriptor{ services::AttAttribute::Uuid16{ 0x2902 }, 0x1 };
 
@@ -90,7 +88,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_descriptor_discovered)
         });
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_release_discovery_claim_on_completion)
+TEST_F(ClaimingGattClientConnectionTest, should_release_discovery_claim_on_completion)
 {
     infra::Function<void(services::GattResult)> onDiscoverServicesDone;
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
@@ -107,7 +105,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_release_discovery_claim_on_completi
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_refuse_a_second_discovery_while_one_is_in_flight)
+TEST_F(ClaimingGattClientConnectionTest, should_refuse_a_second_discovery_while_one_is_in_flight)
 {
     EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
@@ -117,7 +115,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_refuse_a_second_discovery_while_one
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_report_a_refused_discovery_through_on_done)
+TEST_F(ClaimingGattClientConnectionTest, should_report_a_refused_discovery_through_on_done)
 {
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::disconnected };
 
@@ -127,7 +125,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_report_a_refused_discovery_through_
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_read_characteristic)
+TEST_F(ClaimingGattClientConnectionTest, should_call_read_characteristic)
 {
     const infra::ConstByteRange readResult = infra::MakeRange(dataStorage);
     infra::VerifyingFunction<void(services::GattResult, infra::ConstByteRange)> onDone{ services::GattResult::success, readResult };
@@ -143,7 +141,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_read_characteristic)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_write_characteristic)
+TEST_F(ClaimingGattClientConnectionTest, should_call_write_characteristic)
 {
     const infra::ConstByteRange data = infra::MakeRange(dataStorage);
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
@@ -159,7 +157,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_write_characteristic)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_pass_write_without_response_straight_through)
+TEST_F(ClaimingGattClientConnectionTest, should_pass_write_without_response_straight_through)
 {
     const infra::ConstByteRange data = infra::MakeRange(dataStorage);
 
@@ -169,7 +167,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_pass_write_without_response_straigh
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_enable_notification_characteristic)
+TEST_F(ClaimingGattClientConnectionTest, should_call_enable_notification_characteristic)
 {
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
@@ -184,7 +182,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_enable_notification_characteri
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_disable_notification_characteristic)
+TEST_F(ClaimingGattClientConnectionTest, should_call_disable_notification_characteristic)
 {
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
@@ -199,7 +197,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_disable_notification_character
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_enable_indication_characteristic)
+TEST_F(ClaimingGattClientConnectionTest, should_call_enable_indication_characteristic)
 {
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
@@ -214,7 +212,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_enable_indication_characterist
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_disable_indication_characteristic)
+TEST_F(ClaimingGattClientConnectionTest, should_call_disable_indication_characteristic)
 {
     infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
@@ -229,7 +227,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_disable_indication_characteris
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_refuse_a_second_characteristic_operation_while_one_is_in_flight)
+TEST_F(ClaimingGattClientConnectionTest, should_refuse_a_second_characteristic_operation_while_one_is_in_flight)
 {
     infra::Function<void(services::GattResult, infra::ConstByteRange)> onReadDone;
     infra::VerifyingFunction<void(services::GattResult, infra::ConstByteRange)> onDone{ services::GattResult::success, infra::ConstByteRange() };
@@ -244,7 +242,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_refuse_a_second_characteristic_oper
     onReadDone(services::GattResult::success, infra::ConstByteRange());
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_report_a_refused_read_through_on_done)
+TEST_F(ClaimingGattClientConnectionTest, should_report_a_refused_read_through_on_done)
 {
     infra::VerifyingFunction<void(services::GattResult, infra::ConstByteRange)> onDone{ services::GattResult::unsupported, infra::ConstByteRange() };
 
@@ -254,7 +252,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_report_a_refused_read_through_on_do
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_mtu_exchange)
+TEST_F(ClaimingGattClientConnectionTest, should_call_mtu_exchange)
 {
     EXPECT_CALL(connection, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
     EXPECT_EQ(200, adapter.EffectiveMaxAttMtuSize());
@@ -270,7 +268,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_mtu_exchange)
         });
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_block_characteristic_operation_while_discovering)
+TEST_F(ClaimingGattClientConnectionTest, should_block_characteristic_operation_while_discovering)
 {
     infra::Function<void(services::GattResult)> onDiscoveryDone;
     infra::VerifyingFunction<void(services::GattResult)> onDiscoveryComplete{ services::GattResult::success };
@@ -287,7 +285,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_block_characteristic_operation_whil
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_forward_notification_received)
+TEST_F(ClaimingGattClientConnectionTest, should_forward_notification_received)
 {
     static const auto notifiedHandle = 0x1;
     static const infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
@@ -300,7 +298,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_notification_received)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_forward_indication_received)
+TEST_F(ClaimingGattClientConnectionTest, should_forward_indication_received)
 {
     static const auto notifiedHandle = 0x1;
     static const infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
@@ -313,15 +311,36 @@ TEST_F(ClaimingGattClientAdapterTest, should_forward_indication_received)
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_release_claimer_when_disconnected)
+TEST_F(ClaimingGattClientConnectionTest, should_release_the_claim_when_an_operation_fails_after_the_link_is_gone)
 {
+    infra::Function<void(services::GattResult)> onExchangeMtuDone;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::disconnected };
+
+    EXPECT_CALL(connection, ExchangeMtu(testing::_)).WillOnce(testing::DoAll(testing::SaveArg<0>(&onExchangeMtuDone), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ExchangeMtu(onDone));
+    ExecuteAllActions();
+
+    onExchangeMtuDone(services::GattResult::disconnected);
+
     EXPECT_CALL(connection, ExchangeMtu(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
     EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ExchangeMtu(ignoredResult));
     ExecuteAllActions();
+}
 
-    gapCentral.ChangeState(services::GapCentralState::standby);
+TEST_F(ClaimingGattClientConnectionTest, should_drain_a_queued_operation_when_the_link_is_gone)
+{
+    infra::Function<void(services::GattResult)> onDiscoveryDone;
+    infra::VerifyingFunction<void(services::GattResult)> onDiscoveryComplete{ services::GattResult::disconnected };
+    infra::VerifyingFunction<void(services::GattResult)> onDisableDone{ services::GattResult::disconnected };
 
-    EXPECT_CALL(connection, ExchangeMtu(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
-    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ExchangeMtu(ignoredResult));
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::DoAll(testing::SaveArg<0>(&onDiscoveryDone), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(onDiscoveryComplete));
+    ExecuteAllActions();
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DisableIndication(handle, onDisableDone));
+    ExecuteAllActions();
+
+    EXPECT_CALL(connection, DisableIndication(handle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::invalidState));
+    onDiscoveryDone(services::GattResult::disconnected);
     ExecuteAllActions();
 }

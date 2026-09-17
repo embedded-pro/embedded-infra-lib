@@ -1,4 +1,4 @@
-#include "services/ble/ClaimingGattClientAdapter.hpp"
+#include "services/ble/ClaimingGattClientConnection.hpp"
 
 namespace
 {
@@ -18,12 +18,7 @@ namespace
 
 namespace services
 {
-    ClaimingGattClientAdapter::ClaimingGattClientAdapter(GattClientConnection& connection, GapCentral& gapCentral)
-        : GattClientConnectionDecorator(connection)
-        , GapCentralObserver(gapCentral)
-    {}
-
-    GattRequestStatus ClaimingGattClientAdapter::ExchangeMtu(const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::ExchangeMtu(const infra::Function<void(GattResult)>& onDone)
     {
         if (attMtuExchangeClaimer.IsClaimed() || attMtuExchangeClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -48,7 +43,7 @@ namespace services
         return GattRequestStatus::accepted;
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::DiscoverServices(const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::DiscoverServices(const infra::Function<void(GattResult)>& onDone)
     {
         return ClaimDiscovery(0, 0, onDone, [this](const infra::Function<void(GattResult)>& callback)
             {
@@ -56,7 +51,7 @@ namespace services
             });
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::DiscoverCharacteristics(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::DiscoverCharacteristics(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
     {
         return ClaimDiscovery(handle, endHandle, onDone, [this](const infra::Function<void(GattResult)>& callback)
             {
@@ -64,7 +59,7 @@ namespace services
             });
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::DiscoverDescriptors(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::DiscoverDescriptors(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
     {
         return ClaimDiscovery(handle, endHandle, onDone, [this](const infra::Function<void(GattResult)>& callback)
             {
@@ -72,7 +67,7 @@ namespace services
             });
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::ClaimDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone, const DiscoveryProcedure& procedure)
+    GattRequestStatus ClaimingGattClientConnection::ClaimDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone, const DiscoveryProcedure& procedure)
     {
         if (discoveryClaimer.IsClaimed() || discoveryClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -97,7 +92,7 @@ namespace services
         return GattRequestStatus::accepted;
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone)
     {
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -107,7 +102,7 @@ namespace services
         return ClaimCharacteristicOperation();
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone)
     {
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -117,7 +112,7 @@ namespace services
         return ClaimCharacteristicOperation();
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -131,7 +126,7 @@ namespace services
         return ClaimCharacteristicOperation();
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -145,7 +140,7 @@ namespace services
         return ClaimCharacteristicOperation();
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -159,7 +154,7 @@ namespace services
         return ClaimCharacteristicOperation();
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
+    GattRequestStatus ClaimingGattClientConnection::DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
         if (characteristicOperationsClaimer.IsClaimed() || characteristicOperationsClaimer.IsQueued())
             return GattRequestStatus::busy;
@@ -173,7 +168,7 @@ namespace services
         return ClaimCharacteristicOperation();
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::ClaimCharacteristicOperation()
+    GattRequestStatus ClaimingGattClientConnection::ClaimCharacteristicOperation()
     {
         characteristicOperationsClaimer.Claim([this]()
             {
@@ -189,7 +184,7 @@ namespace services
         return GattRequestStatus::accepted;
     }
 
-    GattRequestStatus ClaimingGattClientAdapter::PerformCharacteristicOperation()
+    GattRequestStatus ClaimingGattClientConnection::PerformCharacteristicOperation()
     {
         auto& context = *characteristicOperationContext;
 
@@ -214,7 +209,7 @@ namespace services
             });
     }
 
-    void ClaimingGattClientAdapter::ReportCharacteristicOperationRefused(GattResult result)
+    void ClaimingGattClientConnection::ReportCharacteristicOperationRefused(GattResult result)
     {
         auto& context = *characteristicOperationContext;
 
@@ -224,18 +219,5 @@ namespace services
             std::get<WriteOperation>(context.operation).onDone(result);
         else
             std::get<DescriptorOperation>(context.operation).onDone(result);
-    }
-
-    void ClaimingGattClientAdapter::DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered)
-    {}
-
-    void ClaimingGattClientAdapter::StateChanged(GapCentralState state)
-    {
-        if (state == GapCentralState::standby)
-        {
-            discoveryClaimer.Release();
-            characteristicOperationsClaimer.Release();
-            attMtuExchangeClaimer.Release();
-        }
     }
 }

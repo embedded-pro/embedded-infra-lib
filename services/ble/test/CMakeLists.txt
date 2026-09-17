@@ -20,7 +20,7 @@ target_sources(services.ble_test PRIVATE
     TestGapTypes.cpp
     TestGattTypes.cpp
     TestGattClientCharacteristic.cpp
-    TestClaimingGattClientAdapter.cpp
+    TestClaimingGattClientConnection.cpp
     TestGapAdvertisementFormatter.cpp
     TestGattServer.cpp
     TestRetryGattClientAdapter.cpp

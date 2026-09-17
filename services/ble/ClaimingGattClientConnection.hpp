@@ -1,20 +1,18 @@
-#ifndef SERVICES_CLAIMING_GATT_CLIENT_ADAPTER_HPP
-#define SERVICES_CLAIMING_GATT_CLIENT_ADAPTER_HPP
+#ifndef SERVICES_CLAIMING_GATT_CLIENT_CONNECTION_HPP
+#define SERVICES_CLAIMING_GATT_CLIENT_CONNECTION_HPP
 
 #include "infra/event/ClaimableResource.hpp"
-#include "services/ble/GapCentral.hpp"
 #include "services/ble/GattClientConnection.hpp"
 #include <optional>
 #include <variant>
 
 namespace services
 {
-    class ClaimingGattClientAdapter
+    class ClaimingGattClientConnection
         : public GattClientConnectionDecorator
-        , private GapCentralObserver
     {
     public:
-        ClaimingGattClientAdapter(GattClientConnection& connection, GapCentral& gapCentral);
+        using GattClientConnectionDecorator::GattClientConnectionDecorator;
 
         // Implementation of GattClientConnection
         GattRequestStatus ExchangeMtu(const infra::Function<void(GattResult)>& onDone) override;
@@ -29,10 +27,6 @@ namespace services
         GattRequestStatus DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
 
     private:
-        // Implementation of GapCentralObserver
-        void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) override;
-        void StateChanged(GapCentralState state) override;
-
         using DiscoveryProcedure = infra::Function<GattRequestStatus(const infra::Function<void(GattResult)>&)>;
 
         GattRequestStatus ClaimDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone, const DiscoveryProcedure& procedure);
