@@ -108,10 +108,10 @@ message AdvertisementData
 
 message ConnectionParameterUpdate
 {
-    uint32 minConnIntMultiplier = 1;
-    uint32 maxConnIntMultiplier = 2;
-    uint32 slaveLatency = 3;
-    uint32 supervisorTimeoutMs = 4;
+    uint32 minConnectionInterval = 1; // Interval = value * 1.25 ms, range 0x0006 to 0x0C80
+    uint32 maxConnectionInterval = 2; // Interval = value * 1.25 ms, range 0x0006 to 0x0C80
+    uint32 peripheralLatency = 3;
+    uint32 supervisionTimeout = 4;    // Timeout = value * 10 ms, range 0x000A to 0x0C80
 }
 
 message Passkey

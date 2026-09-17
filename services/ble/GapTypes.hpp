@@ -65,13 +65,39 @@ namespace services
 
     struct GapConnectionParameters
     {
-        uint16_t minConnIntMultiplier;
-        uint16_t maxConnIntMultiplier;
-        uint16_t slaveLatency;
-        uint16_t supervisorTimeoutMs;
+        using ConnectionIntervalMultiplier = uint16_t;                                            // Interval = Multiplier * 1.25 ms.
+        static constexpr ConnectionIntervalMultiplier connectionIntervalMultiplierMin = 0x0006u;  // 7.5 ms
+        static constexpr ConnectionIntervalMultiplier connectionIntervalMultiplierMax = 0x0C80u;  // 4000 ms
 
-        static constexpr uint16_t connectionInitialMaxTxOctets = 251;
-        static constexpr uint16_t connectionInitialMaxTxTime = 2120; // (connectionInitialMaxTxOctets + 14) * 8
+        using SupervisionTimeoutMultiplier = uint16_t;                                            // Timeout = Multiplier * 10 ms.
+        static constexpr SupervisionTimeoutMultiplier supervisionTimeoutMultiplierMin = 0x000Au;  // 100 ms
+        static constexpr SupervisionTimeoutMultiplier supervisionTimeoutMultiplierMax = 0x0C80u;  // 32000 ms
+
+        ConnectionIntervalMultiplier minConnectionInterval;
+        ConnectionIntervalMultiplier maxConnectionInterval;
+        uint16_t peripheralLatency;
+        SupervisionTimeoutMultiplier supervisionTimeout;
+    };
+
+    enum class GapPhy : uint8_t
+    {
+        le1M,
+        le2M,
+        leCoded
+    };
+
+    // Negotiated by the LE Set Data Length procedure, not by the connection parameter
+    // update procedure.
+    struct GapDataLength
+    {
+        static constexpr uint16_t initialMaxTxOctets = 251;
+
+        // Time = (octets + 14) * 8 on LE 1M and LE 2M; LE Coded needs the S=8 coding,
+        // hence the separate maximum.
+        static constexpr uint16_t InitialMaxTxTime(GapPhy phy)
+        {
+            return phy == GapPhy::leCoded ? 17040u : static_cast<uint16_t>((initialMaxTxOctets + 14u) * 8u);
+        }
     };
 
     struct GapAddress

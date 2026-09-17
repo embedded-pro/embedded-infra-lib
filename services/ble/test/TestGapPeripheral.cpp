@@ -126,10 +126,10 @@ namespace services
         EXPECT_CALL(gap, SetConnectionParameters(testing::_, testing::_))
             .WillOnce(testing::DoAll(testing::Invoke([this](const GapConnectionParameters& param, const infra::Function<void(GapPeripheral::Result)>&)
                                          {
-                                             EXPECT_EQ(connectionParameters.minConnIntMultiplier, param.minConnIntMultiplier);
-                                             EXPECT_EQ(connectionParameters.maxConnIntMultiplier, param.maxConnIntMultiplier);
-                                             EXPECT_EQ(connectionParameters.slaveLatency, param.slaveLatency);
-                                             EXPECT_EQ(connectionParameters.supervisorTimeoutMs, param.supervisorTimeoutMs);
+                                             EXPECT_EQ(connectionParameters.minConnectionInterval, param.minConnectionInterval);
+                                             EXPECT_EQ(connectionParameters.maxConnectionInterval, param.maxConnectionInterval);
+                                             EXPECT_EQ(connectionParameters.peripheralLatency, param.peripheralLatency);
+                                             EXPECT_EQ(connectionParameters.supervisionTimeout, param.supervisionTimeout);
                                          }),
                 testing::InvokeArgument<1>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
 

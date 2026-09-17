@@ -13,6 +13,24 @@ namespace services
         EXPECT_EQ("Advertising Indication Directed Advertising Indication Scannable Advertising Indication Non Connectable Advertising Indication Scan Response", stream.Storage());
     }
 
+    TEST(GapConnectionParametersTest, documents_the_specification_ranges)
+    {
+        // Bluetooth Core Specification, Volume 4, Part E, section 7.8.12.
+        EXPECT_EQ(0x0006u, GapConnectionParameters::connectionIntervalMultiplierMin);
+        EXPECT_EQ(0x0C80u, GapConnectionParameters::connectionIntervalMultiplierMax);
+        EXPECT_EQ(0x000Au, GapConnectionParameters::supervisionTimeoutMultiplierMin);
+        EXPECT_EQ(0x0C80u, GapConnectionParameters::supervisionTimeoutMultiplierMax);
+    }
+
+    TEST(GapDataLengthTest, tx_time_depends_on_the_phy)
+    {
+        EXPECT_EQ(251u, GapDataLength::initialMaxTxOctets);
+
+        EXPECT_EQ(2120u, GapDataLength::InitialMaxTxTime(GapPhy::le1M));
+        EXPECT_EQ(2120u, GapDataLength::InitialMaxTxTime(GapPhy::le2M));
+        EXPECT_EQ(17040u, GapDataLength::InitialMaxTxTime(GapPhy::leCoded));
+    }
+
     TEST(GapInsertionOperatorEventAddressTypeTest, address_event_type_overload_operator)
     {
         infra::StringOutputStream::WithStorage<128> stream;
