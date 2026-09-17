@@ -1,15 +1,15 @@
-#include "drivers/imu/mpu9250/Mpu9250StepRunner.hpp"
+#include "services/util/RegisterStepRunner.hpp"
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
-namespace drivers
+namespace services
 {
-    Mpu9250StepRunner::Mpu9250StepRunner(Mpu9250BusAccess& bus, infra::AccessedBySharedPtr& sharedAccess)
+    RegisterStepRunner::RegisterStepRunner(RegisterBusAccess& bus, infra::AccessedBySharedPtr& sharedAccess)
         : bus(bus)
         , sharedAccess(sharedAccess)
     {}
 
-    void Mpu9250StepRunner::Clear()
+    void RegisterStepRunner::Clear()
     {
         really_assert(!running);
 
@@ -17,7 +17,7 @@ namespace drivers
         current = 0;
     }
 
-    void Mpu9250StepRunner::Push(const Step& step)
+    void RegisterStepRunner::Push(const Step& step)
     {
         really_assert(!running);
         really_assert(!steps.full());
@@ -25,9 +25,9 @@ namespace drivers
         steps.push_back(step);
     }
 
-    void Mpu9250StepRunner::Start(const infra::Function<void()>& onDone)
+    void RegisterStepRunner::Start(const infra::Function<void()>& onDone)
     {
-        really_assert(!running);
+        really_assert(!Busy());
 
         this->onDone = onDone;
         current = 0;
@@ -36,24 +36,26 @@ namespace drivers
         ExecuteCurrentStep();
     }
 
-    void Mpu9250StepRunner::Continue()
+    void RegisterStepRunner::Continue()
     {
         Advance();
     }
 
-    void Mpu9250StepRunner::Abort()
+    void RegisterStepRunner::Abort()
     {
         running = false;
         onDone = nullptr;
         delayTimer.Cancel();
     }
 
-    bool Mpu9250StepRunner::Busy() const
+    bool RegisterStepRunner::Busy() const
     {
-        return running;
+        // A run that has been aborted stays busy until the callback it already issued has been
+        // delivered, so a next run cannot be driven by the previous run's callback
+        return running || callbacksOutstanding != 0;
     }
 
-    void Mpu9250StepRunner::Advance()
+    void RegisterStepRunner::Advance()
     {
         if (!running)
             return;
@@ -62,7 +64,7 @@ namespace drivers
         ExecuteCurrentStep();
     }
 
-    void Mpu9250StepRunner::ExecuteCurrentStep()
+    void RegisterStepRunner::ExecuteCurrentStep()
     {
         if (current == steps.size())
             return Complete();
@@ -85,12 +87,15 @@ namespace drivers
             Execute(*std::get_if<Await>(&step));
     }
 
-    void Mpu9250StepRunner::Complete()
+    void RegisterStepRunner::Complete()
     {
         // Stays busy until the completion has been delivered, so a Start() from elsewhere cannot
         // overwrite onDone while this one is still queued
+        ++callbacksOutstanding;
+
         infra::EventDispatcher::Instance().Schedule([self = sharedAccess.MakeShared(*this)]()
             {
+                --self->callbacksOutstanding;
                 self->running = false;
 
                 if (self->onDone)
@@ -98,55 +103,65 @@ namespace drivers
             });
     }
 
-    infra::Function<void()> Mpu9250StepRunner::Guarded()
+    infra::Function<void()> RegisterStepRunner::Guarded()
     {
+        ++callbacksOutstanding;
+
         return [self = sharedAccess.MakeShared(*this)]()
         {
+            --self->callbacksOutstanding;
             self->Advance();
         };
     }
 
-    void Mpu9250StepRunner::Execute(const WriteRegister& step)
+    void RegisterStepRunner::Execute(const WriteRegister& step)
     {
         writeValue = step.value;
         bus.WriteRegister(step.address, infra::MakeByteRange(writeValue), Guarded());
     }
 
-    void Mpu9250StepRunner::Execute(const WriteBurst& step)
+    void RegisterStepRunner::Execute(const WriteBurst& step)
     {
         bus.WriteRegister(step.address, step.data, Guarded());
     }
 
-    void Mpu9250StepRunner::Execute(const ReadBurst& step)
+    void RegisterStepRunner::Execute(const ReadBurst& step)
     {
         bus.ReadRegister(step.address, step.data, Guarded());
     }
 
-    void Mpu9250StepRunner::Execute(const ModifyRegister& step)
+    void RegisterStepRunner::Execute(const ModifyRegister& step)
     {
         modifyAddress = step.address;
         modifyClearMask = step.clearMask;
         modifySetMask = step.setMask;
 
+        ++callbacksOutstanding;
+
         bus.ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [self = sharedAccess.MakeShared(*this)]()
             {
+                --self->callbacksOutstanding;
+
+                if (!self->running)
+                    return;
+
                 self->writeValue = static_cast<uint8_t>((self->modifyValue & ~self->modifyClearMask) | self->modifySetMask);
                 self->bus.WriteRegister(self->modifyAddress, infra::MakeByteRange(self->writeValue), self->Guarded());
             });
     }
 
-    void Mpu9250StepRunner::Execute(const Delay& step)
+    void RegisterStepRunner::Execute(const Delay& step)
     {
         delayTimer.Start(step.duration, Guarded());
     }
 
-    void Mpu9250StepRunner::Execute(const Invoke& step)
+    void RegisterStepRunner::Execute(const Invoke& step)
     {
         step.action();
         Advance();
     }
 
-    void Mpu9250StepRunner::Execute(const Await& step)
+    void RegisterStepRunner::Execute(const Await& step) const
     {
         step.action();
     }

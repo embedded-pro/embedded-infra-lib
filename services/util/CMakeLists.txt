@@ -1,3 +1,18 @@
+add_library(services.util.register_access ${EMIL_EXCLUDE_FROM_ALL} STATIC)
+
+# Kept apart from services.util so that drivers can sequence register access without
+# also depending on the tracer, syntax and crypto stacks that services.util pulls in
+target_link_libraries(services.util.register_access PUBLIC
+    infra.timer
+    infra.util
+)
+
+target_sources(services.util.register_access PRIVATE
+    RegisterBusAccess.hpp
+    RegisterStepRunner.cpp
+    RegisterStepRunner.hpp
+)
+
 add_library(services.util ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
 target_link_libraries(services.util PUBLIC

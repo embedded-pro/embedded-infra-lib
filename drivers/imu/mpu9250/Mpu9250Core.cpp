@@ -90,16 +90,16 @@ namespace drivers
         onInitialized = onDone;
 
         runner.Clear();
-        runner.Push(Mpu9250StepRunner::ReadBurst{ registerWhoAmI, infra::MakeByteRange(scratch) });
-        runner.Push(Mpu9250StepRunner::Invoke{ [this]()
+        runner.Push(services::RegisterStepRunner::ReadBurst{ registerWhoAmI, infra::MakeByteRange(scratch) });
+        runner.Push(services::RegisterStepRunner::Invoke{ [this]()
             {
                 VerifyWhoAmI();
             } });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement1, deviceReset });
-        runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(100) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerPowerManagement1, deviceReset });
+        runner.Push(services::RegisterStepRunner::Delay{ std::chrono::milliseconds(100) });
 
         if (bus.RequiresI2cSlaveInterfaceDisabled())
-            runner.Push(Mpu9250StepRunner::WriteRegister{ registerUserControl, i2cInterfaceDisable });
+            runner.Push(services::RegisterStepRunner::WriteRegister{ registerUserControl, i2cInterfaceDisable });
 
         PushConfigurationSteps();
 
@@ -132,16 +132,16 @@ namespace drivers
 
     void Mpu9250Core::PushConfigurationSteps()
     {
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement1, static_cast<uint8_t>(config.clockSource) });
-        runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(1) });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement2, 0 });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerSampleRateDivider, config.sampleRateDivider });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerConfiguration, static_cast<uint8_t>(config.gyroscopeLowPassFilter) });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerGyroscopeConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.gyroscopeFullScale) << 3) });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerAccelerometerConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.accelerometerFullScale) << 3) });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerAccelerometerConfig2, static_cast<uint8_t>(config.accelerometerLowPassFilter) });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerInterruptPinConfig, InterruptPinConfigValue() });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerInterruptEnable, 0 });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerPowerManagement1, static_cast<uint8_t>(config.clockSource) });
+        runner.Push(services::RegisterStepRunner::Delay{ std::chrono::milliseconds(1) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerPowerManagement2, 0 });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerSampleRateDivider, config.sampleRateDivider });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerConfiguration, static_cast<uint8_t>(config.gyroscopeLowPassFilter) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerGyroscopeConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.gyroscopeFullScale) << 3) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerAccelerometerConfig, static_cast<uint8_t>(static_cast<uint8_t>(config.accelerometerFullScale) << 3) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerAccelerometerConfig2, static_cast<uint8_t>(config.accelerometerLowPassFilter) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerInterruptPinConfig, InterruptPinConfigValue() });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerInterruptEnable, 0 });
     }
 
     void Mpu9250Core::SetPowerMode(PowerMode mode, const infra::Function<void()>& onDone)
@@ -153,11 +153,11 @@ namespace drivers
         onPowerModeSet = onDone;
 
         runner.Clear();
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement2, PowerManagement2Value(mode) });
-        runner.Push(Mpu9250StepRunner::WriteRegister{ registerPowerManagement1, PowerManagement1Value(mode) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerPowerManagement2, PowerManagement2Value(mode) });
+        runner.Push(services::RegisterStepRunner::WriteRegister{ registerPowerManagement1, PowerManagement1Value(mode) });
 
         if (waitForStartUp)
-            runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(35) });
+            runner.Push(services::RegisterStepRunner::Delay{ std::chrono::milliseconds(35) });
 
         runner.Start([this, mode]()
             {

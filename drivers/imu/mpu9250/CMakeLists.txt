@@ -4,6 +4,7 @@ target_link_libraries(drivers.imu.mpu9250 PUBLIC
     hal.interfaces
     infra.timer
     infra.util
+    services.util.register_access
 )
 
 target_sources(drivers.imu.mpu9250 PRIVATE
@@ -14,8 +15,6 @@ target_sources(drivers.imu.mpu9250 PRIVATE
     Mpu9250BusAccessSpi.hpp
     Mpu9250Core.cpp
     Mpu9250Core.hpp
-    Mpu9250StepRunner.cpp
-    Mpu9250StepRunner.hpp
     Mpu9250WithFifo.hpp
     Mpu9250WithPolling.hpp
     Mpu9250WithSelfTest.hpp

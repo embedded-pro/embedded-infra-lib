@@ -4,10 +4,12 @@ emil_build_for(services.util_test_doubles BOOL BUILD_TESTING)
 target_link_libraries(services.util_test_doubles INTERFACE
     gmock
     services.util
+    services.util.register_access
 )
 
 target_sources(services.util_test_doubles PRIVATE
     ConfigurationStoreMock.hpp
+    RegisterBusAccessMock.hpp
     StoppableMock.hpp
     WritableConfigurationMock.hpp
 )

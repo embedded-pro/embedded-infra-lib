@@ -1,13 +1,14 @@
 #ifndef DRIVERS_IMU_MPU9250_MPU9250_CORE_HPP
 #define DRIVERS_IMU_MPU9250_MPU9250_CORE_HPP
 
-#include "drivers/imu/mpu9250/Mpu9250StepRunner.hpp"
+#include "drivers/imu/mpu9250/Mpu9250BusAccess.hpp"
 #include "hal/interfaces/Accelerometer.hpp"
 #include "hal/interfaces/Gpio.hpp"
 #include "hal/interfaces/Gyroscope.hpp"
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/SharedPtr.hpp"
 #include "infra/util/Unit.hpp"
+#include "services/util/RegisterStepRunner.hpp"
 #include "services/util/Stoppable.hpp"
 #include <array>
 #include <cstdint>
@@ -215,7 +216,7 @@ namespace drivers
         hal::InputPin dataReadyPin;
         bool dataReadyPinConnected;
         infra::AccessedBySharedPtr sharedAccess{ infra::emptyFunction };
-        Mpu9250StepRunner runner;
+        services::RegisterStepRunner runner;
         Config config;
 
     private:

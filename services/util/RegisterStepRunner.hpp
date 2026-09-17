@@ -1,17 +1,17 @@
-#ifndef DRIVERS_IMU_MPU9250_MPU9250_STEP_RUNNER_HPP
-#define DRIVERS_IMU_MPU9250_MPU9250_STEP_RUNNER_HPP
+#ifndef SERVICES_REGISTER_STEP_RUNNER_HPP
+#define SERVICES_REGISTER_STEP_RUNNER_HPP
 
-#include "drivers/imu/mpu9250/Mpu9250BusAccess.hpp"
 #include "infra/timer/Timer.hpp"
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/SharedPtr.hpp"
+#include "services/util/RegisterBusAccess.hpp"
 #include <cstdint>
 #include <variant>
 
-namespace drivers
+namespace services
 {
-    class Mpu9250StepRunner
+    class RegisterStepRunner
     {
     public:
         using Action = infra::Function<void(), sizeof(void*)>;
@@ -46,23 +46,50 @@ namespace drivers
             infra::Duration duration;
         };
 
-        struct Invoke
+        // infra::Function has no move constructor, so its copy constructor is used to move an
+        // action. Moving an action never throws, which these declarations make explicit.
+        struct ActionStep
         {
+            ActionStep(const Action& action)
+                : action(action)
+            {}
+
+            ActionStep(const ActionStep& other) = default;
+            ActionStep& operator=(const ActionStep& other) = default;
+            ~ActionStep() = default;
+
+            ActionStep(ActionStep&& other) noexcept
+                : action(other.action)
+            {}
+
+            ActionStep& operator=(ActionStep&& other) noexcept
+            {
+                action = other.action;
+                return *this;
+            }
+
             Action action;
         };
 
-        struct Await
+        struct Invoke
+            : ActionStep
         {
-            Action action;
+            using ActionStep::ActionStep;
+        };
+
+        struct Await
+            : ActionStep
+        {
+            using ActionStep::ActionStep;
         };
 
         using Step = std::variant<WriteRegister, WriteBurst, ReadBurst, ModifyRegister, Delay, Invoke, Await>;
 
         static constexpr std::size_t maxSteps = 20;
 
-        Mpu9250StepRunner(Mpu9250BusAccess& bus, infra::AccessedBySharedPtr& sharedAccess);
-        Mpu9250StepRunner(const Mpu9250StepRunner& other) = delete;
-        Mpu9250StepRunner& operator=(const Mpu9250StepRunner& other) = delete;
+        RegisterStepRunner(RegisterBusAccess& bus, infra::AccessedBySharedPtr& sharedAccess);
+        RegisterStepRunner(const RegisterStepRunner& other) = delete;
+        RegisterStepRunner& operator=(const RegisterStepRunner& other) = delete;
 
         void Clear();
         void Push(const Step& step);
@@ -84,14 +111,15 @@ namespace drivers
         void Execute(const ModifyRegister& step);
         void Execute(const Delay& step);
         void Execute(const Invoke& step);
-        void Execute(const Await& step);
+        void Execute(const Await& step) const;
 
-        Mpu9250BusAccess& bus;
+        RegisterBusAccess& bus;
         infra::AccessedBySharedPtr& sharedAccess;
         infra::TimerSingleShot delayTimer;
         infra::BoundedVector<Step>::WithMaxSize<maxSteps> steps;
         infra::AutoResetFunction<void()> onDone;
         std::size_t current = 0;
+        uint8_t callbacksOutstanding = 0;
         uint8_t writeValue = 0;
         uint8_t modifyValue = 0;
         uint8_t modifyAddress = 0;

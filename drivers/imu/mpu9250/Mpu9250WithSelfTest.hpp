@@ -74,23 +74,23 @@ namespace drivers
         result = SelfTestResult();
 
         this->runner.Clear();
-        this->runner.Push(Mpu9250StepRunner::ReadBurst{ Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration) });
-        this->runner.Push(Mpu9250StepRunner::WriteBurst{ Base::registerSampleRateDivider, infra::MakeRange(selfTestConfiguration) });
+        this->runner.Push(services::RegisterStepRunner::ReadBurst{ Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration) });
+        this->runner.Push(services::RegisterStepRunner::WriteBurst{ Base::registerSampleRateDivider, infra::MakeRange(selfTestConfiguration) });
 
         PushAverageSteps(false);
 
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerGyroscopeConfig, selfTestEnableAllAxes });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig, selfTestEnableAllAxes });
-        this->runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(20) });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerGyroscopeConfig, selfTestEnableAllAxes });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerAccelerometerConfig, selfTestEnableAllAxes });
+        this->runner.Push(services::RegisterStepRunner::Delay{ std::chrono::milliseconds(20) });
 
         PushAverageSteps(true);
 
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerGyroscopeConfig, 0 });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig, 0 });
-        this->runner.Push(Mpu9250StepRunner::Delay{ std::chrono::milliseconds(20) });
-        this->runner.Push(Mpu9250StepRunner::ReadBurst{ Base::registerSelfTestXAccelerometer, infra::MakeRange(accelerometerTrim) });
-        this->runner.Push(Mpu9250StepRunner::ReadBurst{ Base::registerSelfTestXGyroscope, infra::MakeRange(gyroscopeTrim) });
-        this->runner.Push(Mpu9250StepRunner::WriteBurst{ Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration) });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerGyroscopeConfig, 0 });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerAccelerometerConfig, 0 });
+        this->runner.Push(services::RegisterStepRunner::Delay{ std::chrono::milliseconds(20) });
+        this->runner.Push(services::RegisterStepRunner::ReadBurst{ Base::registerSelfTestXAccelerometer, infra::MakeRange(accelerometerTrim) });
+        this->runner.Push(services::RegisterStepRunner::ReadBurst{ Base::registerSelfTestXGyroscope, infra::MakeRange(gyroscopeTrim) });
+        this->runner.Push(services::RegisterStepRunner::WriteBurst{ Base::registerSampleRateDivider, infra::MakeRange(savedConfiguration) });
 
         this->runner.Start([this]()
             {
@@ -103,17 +103,17 @@ namespace drivers
     void Mpu9250WithSelfTest<Base>::PushAverageSteps(bool withSelfTestEnabled)
     {
         if (withSelfTestEnabled)
-            this->runner.Push(Mpu9250StepRunner::Invoke{ [this]()
+            this->runner.Push(services::RegisterStepRunner::Invoke{ [this]()
                 {
                     measuringWithSelfTest = true;
                 } });
         else
-            this->runner.Push(Mpu9250StepRunner::Invoke{ [this]()
+            this->runner.Push(services::RegisterStepRunner::Invoke{ [this]()
                 {
                     measuringWithSelfTest = false;
                 } });
 
-        this->runner.Push(Mpu9250StepRunner::Await{ [this]()
+        this->runner.Push(services::RegisterStepRunner::Await{ [this]()
             {
                 BeginAveraging();
             } });
