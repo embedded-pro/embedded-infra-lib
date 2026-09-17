@@ -24,6 +24,9 @@ typedef infra::Quantity<infra::MicroTesla, int> MicroTesla;
 typedef infra::Quantity<infra::Gauss, int> Gauss;
 typedef infra::Quantity<infra::MilliGauss, int> MilliGauss;
 
+typedef infra::Quantity<infra::Celsius, int> Celsius;
+typedef infra::Quantity<infra::MilliCelsius, int> MilliCelsius;
+
 typedef infra::Quantity<infra::MilliVolt, int> MilliVolt;
 typedef infra::Quantity<infra::MicroVolt, int> MicroVolt;
 typedef infra::Quantity<infra::MilliAmpere, int> MilliAmpere;
@@ -282,4 +285,16 @@ TEST(UnitTest, ConversionOfNegativeValueToSmallerUnit)
 {
     MilliMeter distance(Meter(-20));
     EXPECT_EQ(-20000, distance.Value());
+}
+
+TEST(UnitTest, TemperatureConversionBetweenCelsiusAndMilliCelsius)
+{
+    MilliCelsius fromCelsius(Celsius(21));
+    EXPECT_EQ(21000, fromCelsius.Value());
+
+    Celsius fromMilliCelsius(MilliCelsius(36600));
+    EXPECT_EQ(36, fromMilliCelsius.Value());
+
+    Celsius negative(MilliCelsius(-4500));
+    EXPECT_EQ(-4, negative.Value());
 }
