@@ -20,6 +20,7 @@ target_link_libraries(services.util_test PUBLIC
 target_sources(services.util_test PRIVATE
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestConfigurationStore.cpp>
     TestCyclicStore.cpp
+    TestRegisterStepRunner.cpp
     TestTerminal.cpp
     TestTerminalWithStorage.cpp
     TestTimeWithLocalization.cpp

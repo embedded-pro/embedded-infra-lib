@@ -13,6 +13,8 @@ target_sources(services.util PRIVATE
     ConfigurationStore.hpp
     CyclicStore.cpp
     CyclicStore.hpp
+    RegisterBusAccess.hpp
+    RegisterStepRunner.hpp
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp

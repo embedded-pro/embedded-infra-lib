@@ -67,14 +67,14 @@ namespace drivers
         onWakeOnMotionConfigured = onDone;
 
         this->runner.Clear();
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource) });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement2, gyroscopeAxesDisabled });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig2, lowPowerAccelerometerFilter });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerInterruptEnable, Base::wakeOnMotionInterrupt });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerMotionDetectControl, accelerometerIntelligenceEnable | accelerometerIntelligenceMode });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerWakeOnMotionThreshold, ThresholdRegisterValue() });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerLowPowerAccelerometerOutputDataRate, static_cast<uint8_t>(this->outputDataRate) });
-        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerPowerManagement1, 0, Base::cycleEnable });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource) });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerPowerManagement2, gyroscopeAxesDisabled });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerAccelerometerConfig2, lowPowerAccelerometerFilter });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerInterruptEnable, Base::wakeOnMotionInterrupt });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerMotionDetectControl, accelerometerIntelligenceEnable | accelerometerIntelligenceMode });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerWakeOnMotionThreshold, ThresholdRegisterValue() });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerLowPowerAccelerometerOutputDataRate, static_cast<uint8_t>(this->outputDataRate) });
+        this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerPowerManagement1, 0, Base::cycleEnable });
 
         this->runner.Start([this]()
             {
@@ -105,11 +105,11 @@ namespace drivers
             this->dataReadyPin.DisableInterrupt();
 
         this->runner.Clear();
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource) });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerMotionDetectControl, 0 });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerInterruptEnable, 0 });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerPowerManagement2, 0 });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerAccelerometerConfig2, static_cast<uint8_t>(this->config.accelerometerLowPassFilter) });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerPowerManagement1, static_cast<uint8_t>(this->config.clockSource) });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerMotionDetectControl, 0 });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerInterruptEnable, 0 });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerPowerManagement2, 0 });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerAccelerometerConfig2, static_cast<uint8_t>(this->config.accelerometerLowPassFilter) });
 
         this->runner.Start([this]()
             {

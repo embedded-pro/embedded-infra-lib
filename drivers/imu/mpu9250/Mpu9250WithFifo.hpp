@@ -75,10 +75,10 @@ namespace drivers
         onFifoConfigured = onDone;
 
         this->runner.Clear();
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerFifoEnable, FifoEnableValue() });
-        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerConfiguration, configurationFifoMode, this->fifoConfig.stopWhenFull ? configurationFifoMode : uint8_t(0) });
-        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerUserControl, 0, userControlFifoReset });
-        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerUserControl, 0, userControlFifoEnable });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerFifoEnable, FifoEnableValue() });
+        this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerConfiguration, configurationFifoMode, this->fifoConfig.stopWhenFull ? configurationFifoMode : uint8_t(0) });
+        this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerUserControl, 0, userControlFifoReset });
+        this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerUserControl, 0, userControlFifoEnable });
 
         this->runner.Start([this]()
             {
@@ -96,8 +96,8 @@ namespace drivers
         onFifoConfigured = onDone;
 
         this->runner.Clear();
-        this->runner.Push(Mpu9250StepRunner::ModifyRegister{ Base::registerUserControl, userControlFifoEnable, 0 });
-        this->runner.Push(Mpu9250StepRunner::WriteRegister{ Base::registerFifoEnable, 0 });
+        this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerUserControl, userControlFifoEnable, 0 });
+        this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerFifoEnable, 0 });
 
         this->runner.Start([this]()
             {
