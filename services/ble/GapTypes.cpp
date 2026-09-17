@@ -5,15 +5,15 @@ namespace infra
     TextOutputStream& operator<<(TextOutputStream& stream, const services::GapAdvertisingEventType& eventType)
     {
         if (eventType == services::GapAdvertisingEventType::advInd)
-            stream << "ADV_IND";
+            stream << "Advertising Indication";
         else if (eventType == services::GapAdvertisingEventType::advDirectInd)
-            stream << "ADV_DIRECT_IND";
+            stream << "Directed Advertising Indication";
         else if (eventType == services::GapAdvertisingEventType::advScanInd)
-            stream << "ADV_SCAN_IND";
+            stream << "Scannable Advertising Indication";
         else if (eventType == services::GapAdvertisingEventType::scanResponse)
-            stream << "SCAN_RESPONSE";
+            stream << "Scan Response";
         else
-            stream << "ADV_NONCONN_IND";
+            stream << "Non Connectable Advertising Indication";
 
         return stream;
     }

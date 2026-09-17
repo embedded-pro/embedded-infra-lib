@@ -10,7 +10,7 @@ namespace services
 
         stream << GapAdvertisingEventType::advInd << " " << GapAdvertisingEventType::advDirectInd << " " << GapAdvertisingEventType::advScanInd << " " << GapAdvertisingEventType::advNonconnInd << " " << GapAdvertisingEventType::scanResponse;
 
-        EXPECT_EQ("ADV_IND ADV_DIRECT_IND ADV_SCAN_IND ADV_NONCONN_IND SCAN_RESPONSE", stream.Storage());
+        EXPECT_EQ("Advertising Indication Directed Advertising Indication Scannable Advertising Indication Non Connectable Advertising Indication Scan Response", stream.Storage());
     }
 
     TEST(GapInsertionOperatorEventAddressTypeTest, address_event_type_overload_operator)
