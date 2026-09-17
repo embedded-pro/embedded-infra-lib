@@ -26,6 +26,14 @@ namespace services
         MOCK_METHOD(GattRequestStatus, DisableNotification, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
         MOCK_METHOD(GattRequestStatus, EnableIndication, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
         MOCK_METHOD(GattRequestStatus, DisableIndication, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
+
+        void NotifyIndicationReceived(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone)
+        {
+            indicationFanOut.Deliver(*this, handle, data, onDone);
+        }
+
+    private:
+        GattIndicationFanOut indicationFanOut;
     };
 
     class GattClientConnectionObserverMock

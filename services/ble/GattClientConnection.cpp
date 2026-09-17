@@ -12,6 +12,31 @@ namespace services
         return DiscoverDescriptors(service.Handle(), service.EndHandle(), onDone);
     }
 
+    void GattIndicationFanOut::Deliver(infra::Subject<GattClientUpdateObserver>& observers, AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone)
+    {
+        this->onDone = onDone;
+        outstanding = 1;
+        auto handled = [this]()
+        {
+            Handled();
+        };
+
+        observers.NotifyObservers([this, handle, data, &handled](auto& observer)
+            {
+                ++outstanding;
+                observer.IndicationReceived(handle, data, handled);
+            });
+
+        Handled();
+    }
+
+    void GattIndicationFanOut::Handled()
+    {
+        --outstanding;
+        if (outstanding == 0)
+            onDone();
+    }
+
     GattClientConnectionDecorator::GattClientConnectionDecorator(GattClientConnection& connection)
         : GattClientConnectionObserver(connection)
         , GattClientUpdateObserver(connection)
@@ -59,10 +84,7 @@ namespace services
 
     void GattClientConnectionDecorator::IndicationReceived(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone)
     {
-        infra::Subject<GattClientUpdateObserver>::NotifyObservers([handle, data, &onDone](auto& observer)
-            {
-                observer.IndicationReceived(handle, data, onDone);
-            });
+        indicationFanOut.Deliver(*this, handle, data, onDone);
     }
 
     uint16_t GattClientConnectionDecorator::EffectiveMaxAttMtuSize() const

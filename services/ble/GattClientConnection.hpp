@@ -1,6 +1,7 @@
 #ifndef SERVICES_GATT_CLIENT_CONNECTION_HPP
 #define SERVICES_GATT_CLIENT_CONNECTION_HPP
 
+#include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/Observer.hpp"
@@ -30,6 +31,21 @@ namespace services
 
         virtual void NotificationReceived(AttAttribute::Handle handle, infra::ConstByteRange data) = 0;
         virtual void IndicationReceived(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone) = 0;
+    };
+
+    // An indication is acknowledged once, so whoever hands it to the update observers gives each
+    // of them its own completion and reports upwards only after the last one is finished.
+    class GattIndicationFanOut
+    {
+    public:
+        void Deliver(infra::Subject<GattClientUpdateObserver>& observers, AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void()>& onDone);
+
+    private:
+        void Handled();
+
+    private:
+        infra::AutoResetFunction<void()> onDone;
+        uint32_t outstanding{ 0 };
     };
 
     class GattClientConnection
@@ -92,6 +108,9 @@ namespace services
         GattRequestStatus DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
+
+    private:
+        GattIndicationFanOut indicationFanOut;
     };
 }
 

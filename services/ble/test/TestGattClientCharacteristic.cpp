@@ -96,10 +96,7 @@ TEST_F(GattClientCharacteristicTest, receives_valid_indication_should_notify_obs
     EXPECT_CALL(gattUpdateObserver, IndicationReceived(infra::ByteRangeContentsEqual(infra::MakeStringByteRange("string")), testing::_))
         .WillOnce(testing::InvokeArgument<1>());
 
-    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.IndicationReceived(characteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
-        });
+    connection.NotifyIndicationReceived(characteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
 }
 
 TEST_F(GattClientCharacteristicTest, receives_invalid_notification_should_not_notify_observers)
@@ -116,10 +113,7 @@ TEST_F(GattClientCharacteristicTest, receives_invalid_indication_should_not_noti
 {
     const services::AttAttribute::Handle invalidCharacteristicValueHandle = 0x7;
 
-    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([&invalidCharacteristicValueHandle](auto& observer)
-        {
-            observer.IndicationReceived(invalidCharacteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
-        });
+    connection.NotifyIndicationReceived(invalidCharacteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
 }
 
 class GattClientCharacteristicWithDistantValueHandleTest
@@ -164,18 +158,12 @@ TEST_F(GattClientCharacteristicWithDistantValueHandleTest, indication_on_the_val
     EXPECT_CALL(gattUpdateObserver, IndicationReceived(infra::ByteRangeContentsEqual(infra::MakeStringByteRange("string")), testing::_))
         .WillOnce(testing::InvokeArgument<1>());
 
-    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.IndicationReceived(characteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
-        });
+    connection.NotifyIndicationReceived(characteristicValueHandle, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
 }
 
 TEST_F(GattClientCharacteristicWithDistantValueHandleTest, indication_just_past_the_declaration_handle_is_ignored)
 {
-    connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.IndicationReceived(characteristicHandle + 1, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
-        });
+    connection.NotifyIndicationReceived(characteristicHandle + 1, infra::MakeStringByteRange("string"), infra::MockFunction<void()>());
 }
 
 TEST_F(GattClientCharacteristicTest, should_read_characteristic_and_callback_with_data_received)
@@ -263,4 +251,44 @@ TEST_F(GattClientCharacteristicTest, should_disable_indication_characteristic_an
             return services::GattRequestStatus::accepted;
         });
     EXPECT_EQ(services::GattRequestStatus::accepted, characteristic.DisableIndication(onDone));
+}
+
+class GattClientTwoCharacteristicsTest
+    : public testing::Test
+    , public infra::EventDispatcherFixture
+{
+public:
+    static const services::AttAttribute::Handle firstValueHandle = 0x3;
+    static const services::AttAttribute::Handle secondValueHandle = 0x6;
+
+    testing::StrictMock<services::GattClientConnectionMock> connection;
+    services::GattClientCharacteristic first{ connection, uuid16, 0x2, firstValueHandle, GattPropertyFlags::indicate };
+    services::GattClientCharacteristic second{ connection, uuid16, 0x5, secondValueHandle, GattPropertyFlags::indicate };
+};
+
+TEST_F(GattClientTwoCharacteristicsTest, an_indication_is_acknowledged_exactly_once)
+{
+    infra::VerifyingFunction<void()> onDone;
+
+    connection.NotifyIndicationReceived(firstValueHandle, infra::MakeStringByteRange("string"), onDone);
+}
+
+TEST_F(GattClientTwoCharacteristicsTest, an_indication_for_no_characteristic_is_still_acknowledged_once)
+{
+    infra::VerifyingFunction<void()> onDone;
+
+    connection.NotifyIndicationReceived(0x9, infra::MakeStringByteRange("string"), onDone);
+}
+
+TEST_F(GattClientTwoCharacteristicsTest, an_indication_is_acknowledged_only_after_the_matching_observer_finishes)
+{
+    testing::StrictMock<services::GattClientCharacteristicUpdateObserverMock> firstObserver{ first };
+    infra::Function<void()> observerDone;
+    infra::VerifyingFunction<void()> onDone;
+
+    EXPECT_CALL(firstObserver, IndicationReceived(testing::_, testing::_)).WillOnce(testing::SaveArg<1>(&observerDone));
+
+    connection.NotifyIndicationReceived(firstValueHandle, infra::MakeStringByteRange("string"), onDone);
+
+    observerDone();
 }
