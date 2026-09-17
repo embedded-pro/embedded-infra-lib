@@ -44,9 +44,14 @@ namespace services
         return GapPairingObserver::Subject().AllowPairing(allow, onDone);
     }
 
-    GapRequestStatus GapPairingDecorator::SetSecurityMode(SecurityMode mode, SecurityLevel level, const infra::Function<void(GapPairingResult)>& onDone)
+    GapRequestStatus GapPairingDecorator::SetSecurityMode(SecurityModeAndLevel modeAndLevel, const infra::Function<void(GapPairingResult)>& onDone)
     {
-        return GapPairingObserver::Subject().SetSecurityMode(mode, level, onDone);
+        return GapPairingObserver::Subject().SetSecurityMode(modeAndLevel, onDone);
+    }
+
+    GapRequestStatus GapPairingDecorator::SetSecureConnectionsOnly(bool enabled, const infra::Function<void(GapPairingResult)>& onDone)
+    {
+        return GapPairingObserver::Subject().SetSecureConnectionsOnly(enabled, onDone);
     }
 
     GapRequestStatus GapPairingDecorator::SetIoCapabilities(IoCapabilities caps, const infra::Function<void(GapPairingResult)>& onDone)

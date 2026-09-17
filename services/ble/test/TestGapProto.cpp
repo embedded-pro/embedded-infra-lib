@@ -165,3 +165,33 @@ TEST(GapProtoTest, peripheral_pairing_result_matches_the_central_one)
     EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::unknown),
         infra::enum_cast(gap::peripheral::PairingStatus::Result::unknown));
 }
+
+TEST(GapProtoTest, security_mode_and_level_matches_the_proto)
+{
+    EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode1Level1),
+        infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level1));
+    EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode1Level4),
+        infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode1Level4));
+    EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode2Level1),
+        infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode2Level1));
+    EXPECT_EQ(infra::enum_cast(services::GapPairing::SecurityModeAndLevel::mode2Level2),
+        infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode2Level2));
+
+    EXPECT_EQ(infra::enum_cast(gap::central::SecurityModeAndLevel::ModeAndLevel::mode2Level2),
+        infra::enum_cast(gap::peripheral::SecurityModeAndLevel::ModeAndLevel::mode2Level2));
+}
+
+TEST(GapProtoTest, the_security_mode_request_moved_to_a_new_method_id)
+{
+    // The payload changed meaning from a separate mode and level to one combined value, so the
+    // old ids are retired rather than reused: an old peer must fail on an unknown method rather
+    // than misread a known one.
+    EXPECT_EQ(19u, gap::central::GapCentralProxy::idSetSecurityMode);
+    EXPECT_EQ(20u, gap::central::GapCentralProxy::idSetSecureConnectionsOnly);
+    EXPECT_EQ(19u, gap::peripheral::GapPeripheralProxy::idSetSecurityMode);
+    EXPECT_EQ(20u, gap::peripheral::GapPeripheralProxy::idSetSecureConnectionsOnly);
+
+    // The completions kept their ids: PairingCompletion did not change.
+    EXPECT_EQ(18u, gap::central::GapCentralResponseProxy::idSetSecurityModeComplete);
+    EXPECT_EQ(13u, gap::peripheral::GapPeripheralResponseProxy::idSetSecurityModeComplete);
+}

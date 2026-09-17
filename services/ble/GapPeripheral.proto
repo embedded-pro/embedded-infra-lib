@@ -60,22 +60,20 @@ message AdvertisementType
 
 message SecurityModeAndLevel
 {
-    enum SecurityLevelEnum
+    // Ordered to match services::GapPairing::SecurityModeAndLevel. The six combinations the
+    // specification defines and no others; mode 2 has levels 1 and 2 only.
+    // Bluetooth Core Specification, Volume 3, Part C, sections 10.2.1 and 10.2.2
+    enum ModeAndLevel
     {
-        none = 0;
-        unauthenticatedPairing = 1;
-        authenticatedPairing = 2;
-        authenticatedPairingWithLE = 3;
+        mode1Level1 = 0;
+        mode1Level2 = 1;
+        mode1Level3 = 2;
+        mode1Level4 = 3;
+        mode2Level1 = 4;
+        mode2Level2 = 5;
     }
 
-    enum SecurityModeEnum
-    {
-        mode1 = 0;
-        mode2 = 1;
-    }
-
-    SecurityModeEnum mode = 1;
-    SecurityLevelEnum level = 2;
+    ModeAndLevel value = 1;
 }
 
 message AddressType
@@ -209,7 +207,10 @@ service GapPeripheral
     rpc SetAdvertisementData(AdvertisementData) returns (Nothing) { option (method_id) = 3; }
     rpc SetScanResponseData(AdvertisementData) returns (Nothing) { option (method_id) = 4; }
     rpc SetAllowPairing(BoolValue) returns (Nothing) { option (method_id) = 5; }
-    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 6; }
+    // Method id 6 carried a separate mode and level and is left unused, so that a peer speaking
+    // that version fails on an unknown method rather than misreading a single combined value.
+    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 19; }
+    rpc SetSecureConnectionsOnly(BoolValue) returns (Nothing) { option (method_id) = 20; }
     rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 7; }
     rpc RemoveAllBonds(Nothing) returns (Nothing) { option (method_id) = 8; }
 
@@ -261,4 +262,5 @@ service GapPeripheralResponse
     rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) = 23; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 24; }
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 25; }
+    rpc SetSecureConnectionsOnlyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 26; }
 }

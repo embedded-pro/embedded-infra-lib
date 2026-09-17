@@ -96,18 +96,49 @@ namespace services
 
     TEST_F(GapPairingDecoratorTest, set_security_mode_forwards_request_and_result)
     {
-        EXPECT_CALL(gapPairing, SetSecurityMode(::testing::TypedEq<GapPairing::SecurityMode>(GapPairing::SecurityMode::mode1), ::testing::TypedEq<GapPairing::SecurityLevel>(GapPairing::SecurityLevel::level1), testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gapPairing, SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level1, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecurityMode(GapPairing::SecurityMode::mode1, GapPairing::SecurityLevel::level1, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level1, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
     }
 
     TEST_F(GapPairingDecoratorTest, set_security_mode_forwards_rejection_without_invoking_callback)
     {
-        EXPECT_CALL(gapPairing, SetSecurityMode(::testing::TypedEq<GapPairing::SecurityMode>(GapPairing::SecurityMode::mode2), ::testing::TypedEq<GapPairing::SecurityLevel>(GapPairing::SecurityLevel::level4), testing::_))
+        EXPECT_CALL(gapPairing, SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level4, testing::_))
             .WillOnce(testing::Return(GapRequestStatus::notSupported));
 
-        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetSecurityMode(GapPairing::SecurityMode::mode2, GapPairing::SecurityLevel::level4, RejectedCallback()));
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetSecurityMode(GapPairing::SecurityModeAndLevel::mode1Level4, RejectedCallback()));
+    }
+
+    TEST_F(GapPairingDecoratorTest, offers_every_mode_and_level_the_specification_defines_and_no_others)
+    {
+        // Mode 2 stops at level 2. The pair that used to make SetSecurityMode(mode2, level4)
+        // expressible, and answerable only with notSupported at run time, no longer compiles.
+        for (auto modeAndLevel : { GapPairing::SecurityModeAndLevel::mode1Level1, GapPairing::SecurityModeAndLevel::mode1Level2,
+                 GapPairing::SecurityModeAndLevel::mode1Level3, GapPairing::SecurityModeAndLevel::mode1Level4,
+                 GapPairing::SecurityModeAndLevel::mode2Level1, GapPairing::SecurityModeAndLevel::mode2Level2 })
+        {
+            EXPECT_CALL(gapPairing, SetSecurityMode(modeAndLevel, testing::_))
+                .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
+
+            EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecurityMode(modeAndLevel, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
+        }
+    }
+
+    TEST_F(GapPairingDecoratorTest, set_secure_connections_only_forwards_request_and_result)
+    {
+        EXPECT_CALL(gapPairing, SetSecureConnectionsOnly(true, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapPairingResult::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetSecureConnectionsOnly(true, infra::VerifyingFunction<void(GapPairingResult)>(GapPairingResult::success)));
+    }
+
+    TEST_F(GapPairingDecoratorTest, set_secure_connections_only_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gapPairing, SetSecureConnectionsOnly(false, testing::_))
+            .WillOnce(testing::Return(GapRequestStatus::notSupported));
+
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetSecureConnectionsOnly(false, RejectedCallback()));
     }
 
     TEST_F(GapPairingDecoratorTest, set_io_capabilities_forwards_request_and_result)
