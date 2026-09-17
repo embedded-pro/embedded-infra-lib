@@ -1,12 +1,12 @@
-#ifndef SERVICES_RETRY_GATT_CLIENT_CHARACTERISTICS_OPERATIONS_HPP
-#define SERVICES_RETRY_GATT_CLIENT_CHARACTERISTICS_OPERATIONS_HPP
+#ifndef SERVICES_RETRYING_GATT_CLIENT_CONNECTION_HPP
+#define SERVICES_RETRYING_GATT_CLIENT_CONNECTION_HPP
 
 #include "services/ble/GattClientConnection.hpp"
 #include <optional>
 
 namespace services
 {
-    class RetryGattClientCharacteristicsOperations
+    class RetryingGattClientConnection
         : public GattClientConnectionDecorator
     {
     public:

@@ -1,9 +1,9 @@
-#include "services/ble/RetryGattClientCharacteristicsOperations.hpp"
+#include "services/ble/RetryingGattClientConnection.hpp"
 #include "infra/event/EventDispatcher.hpp"
 
 namespace services
 {
-    GattRequestStatus RetryGattClientCharacteristicsOperations::WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data)
+    GattRequestStatus RetryingGattClientConnection::WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data)
     {
         if (operationWriteWithoutResponse)
             return GattRequestStatus::busy;
@@ -14,7 +14,7 @@ namespace services
         return GattRequestStatus::accepted;
     }
 
-    void RetryGattClientCharacteristicsOperations::TryWriteWithoutResponse()
+    void RetryingGattClientConnection::TryWriteWithoutResponse()
     {
         auto status = GattClientConnectionDecorator::WriteWithoutResponse(operationWriteWithoutResponse->handle, operationWriteWithoutResponse->data);
 

@@ -23,5 +23,5 @@ target_sources(services.ble_test PRIVATE
     TestClaimingGattClientConnection.cpp
     TestGapAdvertisementFormatter.cpp
     TestGattServer.cpp
-    TestRetryGattClientAdapter.cpp
+    TestRetryingGattClientConnection.cpp
 )
