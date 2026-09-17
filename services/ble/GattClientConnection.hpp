@@ -66,6 +66,9 @@ namespace services
     public:
         explicit GattClientConnectionDecorator(GattClientConnection& connection);
 
+        using GattClientConnection::DiscoverCharacteristics;
+        using GattClientConnection::DiscoverDescriptors;
+
         // Implementation of GattClientConnectionObserver
         void ServiceDiscovered(const GattService& service) override;
         void CharacteristicDiscovered(const GattCharacteristic& characteristic) override;

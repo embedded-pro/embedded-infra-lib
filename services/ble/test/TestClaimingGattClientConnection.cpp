@@ -55,6 +55,24 @@ TEST_F(ClaimingGattClientConnectionTest, should_call_discover_descriptors)
     ExecuteAllActions();
 }
 
+TEST_F(ClaimingGattClientConnectionTest, discovers_a_whole_service_through_the_decorator)
+{
+    const services::GattService service{ services::AttAttribute::Uuid16{ 0x180D }, 0x10, 0x1f };
+
+    EXPECT_CALL(connection, DiscoverCharacteristics(0x10, 0x1f, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverCharacteristics(service, ignoredResult));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientConnectionTest, discovers_the_descriptors_of_a_whole_service_through_the_decorator)
+{
+    const services::GattService service{ services::AttAttribute::Uuid16{ 0x180D }, 0x10, 0x1f };
+
+    EXPECT_CALL(connection, DiscoverDescriptors(0x10, 0x1f, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverDescriptors(service, ignoredResult));
+    ExecuteAllActions();
+}
+
 TEST_F(ClaimingGattClientConnectionTest, should_forward_service_discovered)
 {
     static const services::GattService service{ services::AttAttribute::Uuid16{ 0x180D }, 0x1, 0x2 };

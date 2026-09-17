@@ -14,6 +14,9 @@ namespace services
     public:
         using GattClientConnectionDecorator::GattClientConnectionDecorator;
 
+        using GattClientConnectionDecorator::DiscoverCharacteristics;
+        using GattClientConnectionDecorator::DiscoverDescriptors;
+
         // Implementation of GattClientConnection
         GattRequestStatus ExchangeMtu(const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DiscoverServices(const infra::Function<void(GattResult)>& onDone) override;
