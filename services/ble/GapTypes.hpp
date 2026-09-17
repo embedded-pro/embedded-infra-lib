@@ -138,13 +138,28 @@ namespace services
         infra::ConstByteRange confirmData;
     };
 
+    // Bluetooth Core Specification, Volume 4, Part E, section 7.7.65.2
+    constexpr int8_t gapRssiNotAvailable = 127;
+
     struct GapAdvertisingReport
     {
         GapAdvertisingEventType eventType;
         GapDeviceAddressType addressType;
         hal::MacAddress address;
-        infra::BoundedVector<uint8_t>::WithMaxSize<gapMaxAdvertisementDataSize> data;
-        int32_t rssi;
+
+        // A view over the payload, valid for the duration of the DeviceDiscovered callback, in
+        // the same way GattClientUpdateObserver::NotificationReceived hands over its data. An
+        // observer that wants to keep it copies it into storage sized to its own needs.
+        //
+        // This is also what keeps the type from committing to legacy advertising: an owning
+        // member bounded to 31 bytes could never carry an extended advertising payload, which
+        // reaches 1650 bytes assembled across a chain. Extended advertising is not modelled here
+        // (see docs/Ble.md), but the report no longer forecloses it.
+        infra::ConstByteRange data;
+
+        // Signed 8-bit as the specification defines it, where 127 means not available. An
+        // int32_t left that convention nowhere to live.
+        int8_t rssi;
     };
 
     inline GapAdvertisementFlags operator|(GapAdvertisementFlags lhs, GapAdvertisementFlags rhs)

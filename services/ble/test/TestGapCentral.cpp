@@ -5,6 +5,7 @@
 #include "services/ble/test_doubles/GapCentralMock.hpp"
 #include "services/ble/test_doubles/GapCentralObserverMock.hpp"
 #include "gmock/gmock.h"
+#include <array>
 #include <chrono>
 
 namespace services
@@ -60,13 +61,66 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, forward_device_discovered_event_to_observers)
     {
-        GapAdvertisingReport deviceDiscovered{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress, hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::BoundedVector<uint8_t>::WithMaxSize<gapMaxAdvertisementDataSize>{}, -75 };
+        GapAdvertisingReport deviceDiscovered{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress, hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::ConstByteRange(), -75 };
 
         EXPECT_CALL(gapObserver, DeviceDiscovered(ObjectContentsEqual(deviceDiscovered)));
 
         gap.NotifyObservers([&deviceDiscovered](GapCentralObserver& obs)
             {
                 obs.DeviceDiscovered(deviceDiscovered);
+            });
+    }
+
+    TEST_F(GapCentralDecoratorTest, forwards_a_report_that_views_its_advertising_data)
+    {
+        const std::array<uint8_t, 5> payload{ 0x02, 0x01, 0x06, 0x00, 0xFF };
+        GapAdvertisingReport report{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress,
+            hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::MakeConstByteRange(payload), -75 };
+
+        EXPECT_CALL(gapObserver, DeviceDiscovered(testing::_)).WillOnce(testing::Invoke([&payload](const GapAdvertisingReport& forwarded)
+            {
+                // The view reaches the observer intact rather than being truncated into a
+                // fixed-size member on the way.
+                EXPECT_TRUE(infra::ContentsEqual(infra::MakeConstByteRange(payload), forwarded.data));
+            }));
+
+        gap.NotifyObservers([&report](GapCentralObserver& observer)
+            {
+                observer.DeviceDiscovered(report);
+            });
+    }
+
+    TEST_F(GapCentralDecoratorTest, carries_an_rssi_of_127_as_not_available)
+    {
+        GapAdvertisingReport report{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress,
+            hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::ConstByteRange(), gapRssiNotAvailable };
+
+        EXPECT_CALL(gapObserver, DeviceDiscovered(testing::_)).WillOnce(testing::Invoke([](const GapAdvertisingReport& forwarded)
+            {
+                EXPECT_EQ(gapRssiNotAvailable, forwarded.rssi);
+            }));
+
+        gap.NotifyObservers([&report](GapCentralObserver& observer)
+            {
+                observer.DeviceDiscovered(report);
+            });
+    }
+
+    TEST_F(GapCentralDecoratorTest, carries_the_whole_signed_rssi_range)
+    {
+        // Specification RSSI is signed 8-bit; -127 is the far end of it and the value an
+        // unsigned or narrowed type would mangle.
+        GapAdvertisingReport report{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress,
+            hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::ConstByteRange(), -127 };
+
+        EXPECT_CALL(gapObserver, DeviceDiscovered(testing::_)).WillOnce(testing::Invoke([](const GapAdvertisingReport& forwarded)
+            {
+                EXPECT_EQ(-127, forwarded.rssi);
+            }));
+
+        gap.NotifyObservers([&report](GapCentralObserver& observer)
+            {
+                observer.DeviceDiscovered(report);
             });
     }
 
