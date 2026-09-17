@@ -110,6 +110,7 @@ TEST_F(Lsm303dlhcTest, as_accelerometer_and_as_magnetometer_stream_independently
     std::vector<int32_t> acceleration;
     std::vector<int32_t> magneticFluxDensity;
 
+    EXPECT_CALL(accelerometerBus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x00 }));
     EXPECT_CALL(accelerometerBus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x10 }));
 
     device.AsAccelerometer().Start([&acceleration](Device::Accelerometer::Samples samples)

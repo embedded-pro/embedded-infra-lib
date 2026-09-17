@@ -149,7 +149,9 @@ namespace drivers
 
     void Lsm303dlhcAccelerometer::EnableDataReadyInterrupt(bool enable)
     {
-        WriteRegister(registerControl3, enable ? dataReadyInterrupt1 : uint8_t(0), infra::emptyFunction);
+        // Only the data ready bit is touched, so the FIFO watermark and overrun sources that
+        // Lsm303dlhcAccelerometerWithFifo may have enabled in the same register survive
+        ModifyRegister(registerControl3, dataReadyInterrupt1, enable ? dataReadyInterrupt1 : uint8_t(0), infra::emptyFunction);
     }
 
     void Lsm303dlhcAccelerometer::ClearMeasurementCallbacks()

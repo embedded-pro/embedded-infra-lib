@@ -46,14 +46,41 @@ namespace services
             infra::Duration duration;
         };
 
-        struct Invoke
+        // infra::Function has no move constructor, so its copy constructor is used to move an
+        // action. Moving an action never throws, which these declarations make explicit.
+        struct ActionStep
         {
+            ActionStep(const Action& action)
+                : action(action)
+            {}
+
+            ActionStep(const ActionStep& other) = default;
+            ActionStep& operator=(const ActionStep& other) = default;
+            ~ActionStep() = default;
+
+            ActionStep(ActionStep&& other) noexcept
+                : action(other.action)
+            {}
+
+            ActionStep& operator=(ActionStep&& other) noexcept
+            {
+                action = other.action;
+                return *this;
+            }
+
             Action action;
         };
 
-        struct Await
+        struct Invoke
+            : ActionStep
         {
-            Action action;
+            using ActionStep::ActionStep;
+        };
+
+        struct Await
+            : ActionStep
+        {
+            using ActionStep::ActionStep;
         };
 
         using Step = std::variant<WriteRegister, WriteBurst, ReadBurst, ModifyRegister, Delay, Invoke, Await>;
@@ -84,7 +111,7 @@ namespace services
         void Execute(const ModifyRegister& step);
         void Execute(const Delay& step);
         void Execute(const Invoke& step);
-        void Execute(const Await& step);
+        void Execute(const Await& step) const;
 
         RegisterBusAccess& bus;
         infra::AccessedBySharedPtr& sharedAccess;
@@ -92,6 +119,7 @@ namespace services
         infra::BoundedVector<Step>::WithMaxSize<maxSteps> steps;
         infra::AutoResetFunction<void()> onDone;
         std::size_t current = 0;
+        uint8_t callbacksOutstanding = 0;
         uint8_t writeValue = 0;
         uint8_t modifyValue = 0;
         uint8_t modifyAddress = 0;

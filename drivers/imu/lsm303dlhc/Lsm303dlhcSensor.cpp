@@ -25,6 +25,8 @@ namespace drivers
         StopSampling();
         ClearMeasurementCallbacks();
         sampling = false;
+        stopping = true;
+        onModified = nullptr;
 
         runner.Abort();
 
@@ -85,6 +87,11 @@ namespace drivers
 
         bus.ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [self = KeepAlive(*this)]()
             {
+                // Stop() may have been called while the read was in flight; the device must not be
+                // written to after it has been stopped
+                if (self->stopping)
+                    return;
+
                 self->WriteRegister(self->modifyAddress, static_cast<uint8_t>((self->modifyValue & ~self->modifyClearMask) | self->modifySetMask), [self]()
                     {
                         self->onModified();

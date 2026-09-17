@@ -46,9 +46,15 @@ namespace
             ForwardTime(std::chrono::milliseconds(7));
         }
 
+        void ExpectEnableDataReadyInterrupt(uint8_t current, uint8_t result)
+        {
+            EXPECT_CALL(bus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ current }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ result }));
+        }
+
         void StartStreaming()
         {
-            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x10 }));
+            ExpectEnableDataReadyInterrupt(0x00, 0x10);
 
             device.AsAccelerometer().Start([this](Device::Accelerometer::Samples samples)
                 {
@@ -165,7 +171,7 @@ TEST_F(Lsm303dlhcAccelerometerTest, stopping_the_accelerometer_disables_the_data
     Initialize();
     StartStreaming();
 
-    EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x00 }));
+    ExpectEnableDataReadyInterrupt(0x10, 0x00);
 
     device.AsAccelerometer().Stop();
     ExecuteAllActions();
@@ -346,7 +352,7 @@ TEST_F(Lsm303dlhcAccelerometerTest, no_interrupt_is_armed_when_no_data_ready_pin
     deviceWithoutPin.Initialize(Device::Config(), [](InitializationResult) {});
     ForwardTime(std::chrono::milliseconds(7));
 
-    EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x10 }));
+    ExpectEnableDataReadyInterrupt(0x00, 0x10);
 
     deviceWithoutPin.AsAccelerometer().Start([this](Device::Accelerometer::Samples samples)
         {

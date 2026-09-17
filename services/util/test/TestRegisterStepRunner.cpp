@@ -247,6 +247,52 @@ TEST_F(RegisterStepRunnerTest, the_runner_stays_busy_until_its_completion_has_be
     EXPECT_EQ(1, completions);
 }
 
+TEST_F(RegisterStepRunnerTest, an_aborted_run_stays_busy_until_its_callback_has_been_delivered)
+{
+    EXPECT_CALL(bus, WriteRegisterMock(0x01, std::vector<uint8_t>{ 0x11 }));
+
+    bus.completeAutomatically = false;
+
+    runner.Clear();
+    runner.Push(Runner::WriteRegister{ 0x01, 0x11 });
+    runner.Start(infra::emptyFunction);
+
+    runner.Abort();
+
+    // The callback of the aborted run is still to be delivered, so a next run may not be started
+    // yet; it would otherwise be advanced by the previous run's callback
+    EXPECT_TRUE(runner.Busy());
+
+    bus.CompletePending();
+    ExecuteAllActions();
+
+    EXPECT_FALSE(runner.Busy());
+}
+
+TEST_F(RegisterStepRunnerTest, an_aborted_modify_register_step_does_not_write_the_register)
+{
+    EXPECT_CALL(bus, ReadRegisterMock(0x6a, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x41 }));
+
+    bus.completeAutomatically = false;
+
+    runner.Clear();
+    runner.Push(Runner::ModifyRegister{ 0x6a, 0x40, 0x04 });
+
+    int completions = 0;
+    runner.Start([&completions]()
+        {
+            completions += 1;
+        });
+
+    ASSERT_TRUE(bus.CompletionPending());
+
+    runner.Abort();
+    bus.CompletePending();
+    ExecuteAllActions();
+
+    EXPECT_EQ(0, completions);
+}
+
 TEST_F(RegisterStepRunnerTest, an_aborted_run_delivers_no_completion_even_once_queued)
 {
     EXPECT_CALL(bus, WriteRegisterMock(0x01, std::vector<uint8_t>{ 0x11 }));

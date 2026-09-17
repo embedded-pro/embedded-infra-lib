@@ -49,9 +49,15 @@ namespace
             ForwardTime(std::chrono::milliseconds(6));
         }
 
+        void ExpectEnableDataReadyInterrupt(uint8_t current, uint8_t result)
+        {
+            EXPECT_CALL(bus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ current }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ result }));
+        }
+
         void StartStreaming(AccelerometerCore& device)
         {
-            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x10 }));
+            ExpectEnableDataReadyInterrupt(0x00, 0x10);
 
             device.AsAccelerometer().Start([this](AccelerometerCore::Accelerometer::Samples)
                 {
@@ -171,12 +177,12 @@ TEST_F(Lsm303dlhcLifetimeTest, a_device_without_a_data_ready_pin_stops_cleanly)
     ExecuteAllActions();
 }
 
-TEST_F(Lsm303dlhcLifetimeTest, stop_defers_until_an_internally_issued_write_completes)
+TEST_F(Lsm303dlhcLifetimeTest, stop_defers_until_an_internally_issued_transaction_completes)
 {
     AccelerometerCore device{ bus, dataReadyPin };
     Initialize(device);
 
-    EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x10 }));
+    EXPECT_CALL(bus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x00 }));
 
     bus.completeAutomatically = false;
 

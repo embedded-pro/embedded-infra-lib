@@ -68,6 +68,7 @@ namespace drivers
         infra::AccessedBySharedPtr sharedAccess{ infra::emptyFunction };
         services::RegisterStepRunner runner;
         bool initialized = false;
+        bool stopping = false;
 
     private:
         void ReportStopped();

@@ -6,6 +6,7 @@ target_link_libraries(drivers.imu.lsm303dlhc_test PUBLIC
     gmock_main
     drivers.imu.lsm303dlhc
     hal.interfaces_test_doubles
+    services.peripheral
     services.util_test_doubles
     infra.timer_test_helper
     infra.event_test_helper

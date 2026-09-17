@@ -49,9 +49,9 @@ namespace
             EXPECT_CALL(bus, WriteRegisterMock(address, std::vector<uint8_t>{ result }));
         }
 
-        void StartStreaming()
+        void StartStreaming(uint8_t control3 = 0x00)
         {
-            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x10 }));
+            ExpectModifyRegister(0x22, control3, static_cast<uint8_t>(control3 | 0x10));
 
             device.AsAccelerometer().Start([this](AccelerometerCore::Accelerometer::Samples samples)
                 {
@@ -176,7 +176,7 @@ TEST_F(Lsm303dlhcWithFifoTest, a_data_ready_interrupt_drains_every_stored_frame)
 {
     Initialize();
     EnableFifo();
-    StartStreaming();
+    StartStreaming(0x06);
 
     EXPECT_CALL(bus, ReadRegisterMock(0x2f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x02 }));
     EXPECT_CALL(bus, ReadRegisterMock(0x28, 12)).WillOnce(testing::Return(Frames({ 1000, 0, 0, 0, 1000, 0 })));
@@ -193,7 +193,7 @@ TEST_F(Lsm303dlhcWithFifoTest, nothing_is_delivered_when_the_buffer_is_empty)
 {
     Initialize();
     EnableFifo();
-    StartStreaming();
+    StartStreaming(0x06);
 
     EXPECT_CALL(bus, ReadRegisterMock(0x2f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x20 }));
 
@@ -207,7 +207,7 @@ TEST_F(Lsm303dlhcWithFifoTest, a_drain_larger_than_the_batch_buffer_is_split_ove
 {
     Initialize();
     EnableFifo();
-    StartStreaming();
+    StartStreaming(0x06);
 
     EXPECT_CALL(bus, ReadRegisterMock(0x2f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x0a }));
     EXPECT_CALL(bus, ReadRegisterMock(0x28, 48)).WillOnce(testing::Return(Frames(std::vector<int16_t>(24, 1000))));
@@ -223,7 +223,7 @@ TEST_F(Lsm303dlhcWithFifoTest, an_overrun_passes_the_buffer_through_bypass_and_r
 {
     Initialize();
     EnableFifo();
-    StartStreaming();
+    StartStreaming(0x06);
 
     bool overrun = false;
     device.OnOverrun([&overrun]()
@@ -240,6 +240,22 @@ TEST_F(Lsm303dlhcWithFifoTest, an_overrun_passes_the_buffer_through_bypass_and_r
 
     EXPECT_TRUE(overrun);
     EXPECT_TRUE(acceleration.empty());
+}
+
+TEST_F(Lsm303dlhcWithFifoTest, starting_to_stream_preserves_the_fifo_interrupt_sources)
+{
+    Initialize();
+    EnableFifo();
+
+    ExpectModifyRegister(0x22, 0x06, 0x16);
+
+    device.AsAccelerometer().Start([this](AccelerometerCore::Accelerometer::Samples samples)
+        {
+            for (auto sample : samples)
+                acceleration.push_back(sample.Value());
+        });
+
+    ExecuteAllActions();
 }
 
 TEST_F(Lsm303dlhcWithFifoTest, disabling_the_fifo_restores_direct_measurement_reads)
@@ -326,7 +342,7 @@ TEST_F(Lsm303dlhcAccelerometerWithPollingTest, stopping_cancels_the_poll_timer)
     Initialize();
     StartStreaming();
 
-    EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x00 }));
+    ExpectModifyRegister(0x22, 0x10, 0x00);
 
     device.AsAccelerometer().Stop();
     ExecuteAllActions();
@@ -380,7 +396,7 @@ TEST_F(Lsm303dlhcCompositionTest, fifo_over_polling_drains_the_buffer_on_a_timer
         ExecuteAllActions();
     }
 
-    StartStreaming();
+    StartStreaming(0x06);
 
     EXPECT_CALL(bus, ReadRegisterMock(0x27, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x08 }));
     EXPECT_CALL(bus, ReadRegisterMock(0x2f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x01 }));

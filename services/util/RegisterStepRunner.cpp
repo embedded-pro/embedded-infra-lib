@@ -27,7 +27,7 @@ namespace services
 
     void RegisterStepRunner::Start(const infra::Function<void()>& onDone)
     {
-        really_assert(!running);
+        really_assert(!Busy());
 
         this->onDone = onDone;
         current = 0;
@@ -50,7 +50,9 @@ namespace services
 
     bool RegisterStepRunner::Busy() const
     {
-        return running;
+        // A run that has been aborted stays busy until the callback it already issued has been
+        // delivered, so a next run cannot be driven by the previous run's callback
+        return running || callbacksOutstanding != 0;
     }
 
     void RegisterStepRunner::Advance()
@@ -89,8 +91,11 @@ namespace services
     {
         // Stays busy until the completion has been delivered, so a Start() from elsewhere cannot
         // overwrite onDone while this one is still queued
+        ++callbacksOutstanding;
+
         infra::EventDispatcher::Instance().Schedule([self = sharedAccess.MakeShared(*this)]()
             {
+                --self->callbacksOutstanding;
                 self->running = false;
 
                 if (self->onDone)
@@ -100,8 +105,11 @@ namespace services
 
     infra::Function<void()> RegisterStepRunner::Guarded()
     {
+        ++callbacksOutstanding;
+
         return [self = sharedAccess.MakeShared(*this)]()
         {
+            --self->callbacksOutstanding;
             self->Advance();
         };
     }
@@ -128,8 +136,15 @@ namespace services
         modifyClearMask = step.clearMask;
         modifySetMask = step.setMask;
 
+        ++callbacksOutstanding;
+
         bus.ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [self = sharedAccess.MakeShared(*this)]()
             {
+                --self->callbacksOutstanding;
+
+                if (!self->running)
+                    return;
+
                 self->writeValue = static_cast<uint8_t>((self->modifyValue & ~self->modifyClearMask) | self->modifySetMask);
                 self->bus.WriteRegister(self->modifyAddress, infra::MakeByteRange(self->writeValue), self->Guarded());
             });
@@ -146,7 +161,7 @@ namespace services
         Advance();
     }
 
-    void RegisterStepRunner::Execute(const Await& step)
+    void RegisterStepRunner::Execute(const Await& step) const
     {
         step.action();
     }
