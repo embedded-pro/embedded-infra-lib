@@ -1,4 +1,5 @@
 #include "services/ble/GattServer.hpp"
+#include <iterator>
 
 namespace services
 {
@@ -82,7 +83,12 @@ namespace services
         : service(service)
     {}
 
-    GattServerService& GattServerIncludedService::Service() const
+    GattServerService& GattServerIncludedService::Service()
+    {
+        return service;
+    }
+
+    const GattServerService& GattServerIncludedService::Service() const
     {
         return service;
     }
@@ -90,14 +96,13 @@ namespace services
     uint16_t GattServerService::GetAttributeCount() const
     {
         constexpr uint16_t serviceAttributeCount = 1;
-        constexpr uint16_t includeAttributeCount = 1;
 
         uint16_t attributeCount = serviceAttributeCount;
         for (auto& characteristic : characteristics)
             attributeCount += characteristic.GetAttributeCount();
 
-        for ([[maybe_unused]] auto& includedService : includedServices)
-            attributeCount += includeAttributeCount;
+        // One attribute per Include declaration.
+        attributeCount += static_cast<uint16_t>(std::distance(includedServices.begin(), includedServices.end()));
 
         return attributeCount;
     }

@@ -264,13 +264,19 @@ namespace services
         operation.onDone(result, value);
     }
 
+    infra::ConstByteRange ClaimingGattClientConnection::CurrentLongWriteChunk() const
+    {
+        const auto& operation = std::get<LongWriteOperation>(characteristicOperationContext->operation);
+        auto remaining = operation.data.size() - operation.offset;
+
+        return infra::ConstByteRange(operation.data.begin() + operation.offset, operation.data.begin() + operation.offset + std::min<std::size_t>(remaining, operation.chunkSize));
+    }
+
     GattRequestStatus ClaimingGattClientConnection::ContinueLongWrite()
     {
-        auto& operation = std::get<LongWriteOperation>(characteristicOperationContext->operation);
-        auto remaining = operation.data.size() - operation.offset;
-        auto chunk = infra::ConstByteRange(operation.data.begin() + operation.offset, operation.data.begin() + operation.offset + std::min<std::size_t>(remaining, operation.chunkSize));
+        const auto& operation = std::get<LongWriteOperation>(characteristicOperationContext->operation);
 
-        return GattClientConnectionDecorator::PrepareWrite(characteristicOperationContext->handle, operation.offset, chunk, [this](GattResult result, uint16_t offset, infra::ConstByteRange echoed)
+        return GattClientConnectionDecorator::PrepareWrite(characteristicOperationContext->handle, operation.offset, CurrentLongWriteChunk(), [this](GattResult result, uint16_t offset, infra::ConstByteRange echoed)
             {
                 LongWriteChunkPrepared(result, offset, echoed);
             });
@@ -283,8 +289,7 @@ namespace services
         if (result != GattResult::success)
             return CancelLongWrite(result);
 
-        auto remaining = operation.data.size() - operation.offset;
-        auto expected = infra::ConstByteRange(operation.data.begin() + operation.offset, operation.data.begin() + operation.offset + std::min<std::size_t>(remaining, operation.chunkSize));
+        auto expected = CurrentLongWriteChunk();
 
         // The specification requires the client to verify the echo and to cancel the queue when
         // it does not match, so that a peer cannot commit something other than what was sent.

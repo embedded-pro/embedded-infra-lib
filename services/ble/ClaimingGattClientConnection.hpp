@@ -53,6 +53,7 @@ namespace services
         void LongReadChunkReceived(GattResult result, infra::ConstByteRange data);
         void CompleteLongRead(GattResult result);
 
+        infra::ConstByteRange CurrentLongWriteChunk() const;
         GattRequestStatus ContinueLongWrite();
         void LongWriteChunkPrepared(GattResult result, uint16_t offset, infra::ConstByteRange echoed);
         void CancelLongWrite(GattResult result);

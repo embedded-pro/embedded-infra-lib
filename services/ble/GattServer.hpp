@@ -130,7 +130,8 @@ namespace services
     public:
         explicit GattServerIncludedService(GattServerService& service);
 
-        GattServerService& Service() const;
+        GattServerService& Service();
+        const GattServerService& Service() const;
 
     private:
         GattServerService& service;
