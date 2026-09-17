@@ -3,26 +3,27 @@
 
 namespace services
 {
-    void RetryGattClientCharacteristicsOperations::WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone)
+    GattRequestStatus RetryGattClientCharacteristicsOperations::WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data)
     {
-        operationWriteWithoutResponse.emplace(Operation{ handle, data, onDone });
+        if (operationWriteWithoutResponse)
+            return GattRequestStatus::busy;
+
+        operationWriteWithoutResponse.emplace(Operation{ handle, data });
         TryWriteWithoutResponse();
+
+        return GattRequestStatus::accepted;
     }
 
     void RetryGattClientCharacteristicsOperations::TryWriteWithoutResponse()
     {
-        GattClientConnectionDecorator::WriteWithoutResponse(operationWriteWithoutResponse->handle, operationWriteWithoutResponse->data, [this](OperationStatus result)
-            {
-                if (result == OperationStatus::retry)
-                    infra::EventDispatcher::Instance().Schedule([this]()
-                        {
-                            TryWriteWithoutResponse();
-                        });
-                else
+        auto status = GattClientConnectionDecorator::WriteWithoutResponse(operationWriteWithoutResponse->handle, operationWriteWithoutResponse->data);
+
+        if (status == GattRequestStatus::busy)
+            infra::EventDispatcher::Instance().Schedule([this]()
                 {
-                    operationWriteWithoutResponse->onDone(result);
-                    operationWriteWithoutResponse = std::nullopt;
-                }
-            });
+                    TryWriteWithoutResponse();
+                });
+        else
+            operationWriteWithoutResponse = std::nullopt;
     }
 }

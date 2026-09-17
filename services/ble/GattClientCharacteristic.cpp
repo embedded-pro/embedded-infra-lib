@@ -7,39 +7,39 @@ namespace services
         , GattClientUpdateObserver(connection)
     {}
 
-    void GattClientCharacteristic::Read(const infra::Function<void(const infra::ConstByteRange&)>& onResponse, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientCharacteristic::Read(const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone)
     {
-        GattClientUpdateObserver::Subject().Read(valueHandle, onResponse, onDone);
+        return GattClientUpdateObserver::Subject().Read(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::Write(infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientCharacteristic::Write(infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientUpdateObserver::Subject().Write(valueHandle, data, onDone);
+        return GattClientUpdateObserver::Subject().Write(valueHandle, data, onDone);
     }
 
-    void GattClientCharacteristic::WriteWithoutResponse(infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone)
+    GattRequestStatus GattClientCharacteristic::WriteWithoutResponse(infra::ConstByteRange data)
     {
-        GattClientUpdateObserver::Subject().WriteWithoutResponse(valueHandle, data, onDone);
+        return GattClientUpdateObserver::Subject().WriteWithoutResponse(valueHandle, data);
     }
 
-    void GattClientCharacteristic::EnableNotification(const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientCharacteristic::EnableNotification(const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientUpdateObserver::Subject().EnableNotification(valueHandle, onDone);
+        return GattClientUpdateObserver::Subject().EnableNotification(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::DisableNotification(const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientCharacteristic::DisableNotification(const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientUpdateObserver::Subject().DisableNotification(valueHandle, onDone);
+        return GattClientUpdateObserver::Subject().DisableNotification(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::EnableIndication(const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientCharacteristic::EnableIndication(const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientUpdateObserver::Subject().EnableIndication(valueHandle, onDone);
+        return GattClientUpdateObserver::Subject().EnableIndication(valueHandle, onDone);
     }
 
-    void GattClientCharacteristic::DisableIndication(const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientCharacteristic::DisableIndication(const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientUpdateObserver::Subject().DisableIndication(valueHandle, onDone);
+        return GattClientUpdateObserver::Subject().DisableIndication(valueHandle, onDone);
     }
 
     void GattClientCharacteristic::NotificationReceived(AttAttribute::Handle handle, infra::ConstByteRange data)

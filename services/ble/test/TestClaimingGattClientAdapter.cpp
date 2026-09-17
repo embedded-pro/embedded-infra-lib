@@ -23,234 +23,234 @@ namespace
         services::ClaimingGattClientAdapter adapter{ connection, gapCentral };
         testing::StrictMock<services::GattClientConnectionObserverMock> connectionObserver{ adapter };
         testing::StrictMock<services::GattClientUpdateObserverMock> updateObserver{ adapter };
+
+        const services::AttAttribute::Handle handle = 0x1;
+        const services::AttAttribute::Handle endHandle = 0x2;
+        const std::array<uint8_t, 4> dataStorage{ 0x01, 0x02, 0x03, 0x04 };
+
+        infra::Function<void(services::GattResult)> ignoredResult;
+        infra::Function<void(services::GattResult, infra::ConstByteRange)> ignoredReadResult;
     };
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_start_service_discovery)
+TEST_F(ClaimingGattClientAdapterTest, should_call_discover_services)
 {
-    EXPECT_CALL(connection, StartServiceDiscovery());
-    adapter.StartServiceDiscovery();
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(ignoredResult));
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_start_characteristic_discovery)
+TEST_F(ClaimingGattClientAdapterTest, should_call_discover_characteristics)
 {
-    const auto handle = 0x1;
-    const auto endHandle = 0x2;
+    EXPECT_CALL(connection, DiscoverCharacteristics(handle, endHandle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
-    EXPECT_CALL(connection, StartCharacteristicDiscovery(handle, endHandle));
-    adapter.StartCharacteristicDiscovery(handle, endHandle);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverCharacteristics(handle, endHandle, ignoredResult));
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_start_descriptor_discovery)
+TEST_F(ClaimingGattClientAdapterTest, should_call_discover_descriptors)
 {
-    const auto handle = 0x1;
-    const auto endHandle = 0x2;
+    EXPECT_CALL(connection, DiscoverDescriptors(handle, endHandle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
-    EXPECT_CALL(connection, StartDescriptorDiscovery(handle, endHandle));
-    adapter.StartDescriptorDiscovery(handle, endHandle);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverDescriptors(handle, endHandle, ignoredResult));
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_service_discovered)
+TEST_F(ClaimingGattClientAdapterTest, should_forward_service_discovered)
 {
-    static const services::AttAttribute::Uuid type = services::AttAttribute::Uuid16{ 0x180D };
-    static const auto handle = 0x1;
-    static const auto endHandle = 0x2;
+    static const services::GattService service{ services::AttAttribute::Uuid16{ 0x180D }, 0x1, 0x2 };
 
-    EXPECT_CALL(connectionObserver, ServiceDiscovered(type, handle, endHandle));
+    EXPECT_CALL(connectionObserver, ServiceDiscovered(testing::_));
     connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
-            observer.ServiceDiscovered(type, handle, endHandle);
+            observer.ServiceDiscovered(service);
         });
+}
+
+TEST_F(ClaimingGattClientAdapterTest, should_forward_characteristic_discovered)
+{
+    static const services::GattCharacteristic characteristic{ services::AttAttribute::Uuid16{ 0x180D }, 0x1, 0x2, services::GattCharacteristic::PropertyFlags::read | services::GattCharacteristic::PropertyFlags::notify };
+
+    EXPECT_CALL(connectionObserver, CharacteristicDiscovered(testing::_));
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
+        {
+            observer.CharacteristicDiscovered(characteristic);
+        });
+}
+
+TEST_F(ClaimingGattClientAdapterTest, should_forward_descriptor_discovered)
+{
+    static const services::GattDescriptor descriptor{ services::AttAttribute::Uuid16{ 0x2902 }, 0x1 };
+
+    EXPECT_CALL(connectionObserver, DescriptorDiscovered(testing::_));
+    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
+        {
+            observer.DescriptorDiscovered(descriptor);
+        });
+}
+
+TEST_F(ClaimingGattClientAdapterTest, should_release_discovery_claim_on_completion)
+{
+    infra::Function<void(services::GattResult)> onDiscoverServicesDone;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
+
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::DoAll(testing::SaveArg<0>(&onDiscoverServicesDone), testing::Return(services::GattRequestStatus::accepted)));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(onDone));
+    ExecuteAllActions();
+
+    onDiscoverServicesDone(services::GattResult::success);
+
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(ignoredResult));
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_characteristic_discovered)
+TEST_F(ClaimingGattClientAdapterTest, should_refuse_a_second_discovery_while_one_is_in_flight)
 {
-    static const services::AttAttribute::Uuid type = services::AttAttribute::Uuid16{ 0x180D };
-    static const auto handle = 0x1;
-    static const auto valueHandle = 0x2;
-    static const auto properties = services::GattCharacteristic::PropertyFlags::read | services::GattCharacteristic::PropertyFlags::notify;
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
-    EXPECT_CALL(connectionObserver, CharacteristicDiscovered(type, handle, valueHandle, properties));
-    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.CharacteristicDiscovered(type, handle, valueHandle, properties);
-        });
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(ignoredResult));
+    EXPECT_EQ(services::GattRequestStatus::busy, adapter.DiscoverServices(ignoredResult));
+
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_descriptor_discovered)
+TEST_F(ClaimingGattClientAdapterTest, should_report_a_refused_discovery_through_on_done)
 {
-    static const services::AttAttribute::Uuid type = services::AttAttribute::Uuid16{ 0x180D };
-    static const auto handle = 0x1;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::disconnected };
 
-    EXPECT_CALL(connectionObserver, DescriptorDiscovered(type, handle));
-    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.DescriptorDiscovered(type, handle);
-        });
-    ExecuteAllActions();
-}
+    EXPECT_CALL(connection, DiscoverServices(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::invalidState));
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_service_discovery_complete)
-{
-    EXPECT_CALL(connectionObserver, ServiceDiscoveryComplete());
-    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.ServiceDiscoveryComplete();
-        });
-    ExecuteAllActions();
-}
-
-TEST_F(ClaimingGattClientAdapterTest, should_call_characteristic_discovery_complete)
-{
-    EXPECT_CALL(connectionObserver, CharacteristicDiscoveryComplete());
-    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.CharacteristicDiscoveryComplete();
-        });
-    ExecuteAllActions();
-}
-
-TEST_F(ClaimingGattClientAdapterTest, should_call_descriptor_discovery_complete)
-{
-    EXPECT_CALL(connectionObserver, DescriptorDiscoveryComplete());
-    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.DescriptorDiscoveryComplete();
-        });
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverServices(onDone));
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_read_characteristic)
 {
-    const infra::ConstByteRange readResult = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
-    const auto result = 123;
-    const auto handle = 0x1;
+    const infra::ConstByteRange readResult = infra::MakeRange(dataStorage);
+    infra::VerifyingFunction<void(services::GattResult, infra::ConstByteRange)> onDone{ services::GattResult::success, readResult };
 
-    EXPECT_CALL(connection, Read(handle, testing::_, testing::_))
-        .WillOnce([&readResult, handle, result](services::AttAttribute::Handle passedHandle,
-                      infra::Function<void(const infra::ConstByteRange&)> onRead,
-                      infra::Function<void(uint8_t)> onDone)
+    EXPECT_CALL(connection, Read(handle, testing::_))
+        .WillOnce([&readResult](services::AttAttribute::Handle, infra::Function<void(services::GattResult, infra::ConstByteRange)> onReadDone)
             {
-                EXPECT_EQ(passedHandle, handle);
-
-                onRead(readResult);
-                onDone(result);
+                onReadDone(services::GattResult::success, readResult);
+                return services::GattRequestStatus::accepted;
             });
 
-    adapter.Read(handle,
-        infra::MockFunction<void(const infra::ConstByteRange&)>(readResult),
-        infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.Read(handle, onDone));
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_write_characteristic)
 {
-    const std::array<uint8_t, 4> dataStorage{ 0x01, 0x02, 0x03, 0x04 };
-    infra::ConstByteRange data = infra::MakeRange(dataStorage);
-    const auto result = 123;
-    const auto handle = 0x1;
-    infra::VerifyingFunction<void(uint8_t)> onDone{ result };
+    const infra::ConstByteRange data = infra::MakeRange(dataStorage);
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
-    EXPECT_CALL(connection, Write(handle, infra::ByteRangeContentsEqual(data), testing::_)).WillOnce([handle, data, result, &onDone](services::AttAttribute::Handle passedHandle, infra::ConstByteRange writeData, const infra::Function<void(uint8_t)>& onWriteDone)
-        {
-            EXPECT_EQ(passedHandle, handle);
-            onWriteDone(result);
-        });
+    EXPECT_CALL(connection, Write(handle, infra::ByteRangeContentsEqual(data), testing::_))
+        .WillOnce([](services::AttAttribute::Handle, infra::ConstByteRange, const infra::Function<void(services::GattResult)>& onWriteDone)
+            {
+                onWriteDone(services::GattResult::success);
+                return services::GattRequestStatus::accepted;
+            });
 
-    adapter.Write(handle, data, onDone);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.Write(handle, data, onDone));
     ExecuteAllActions();
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_call_write_without_response_characteristic)
+TEST_F(ClaimingGattClientAdapterTest, should_pass_write_without_response_straight_through)
 {
-    const std::array<uint8_t, 4> dataStorage{ 0x01, 0x02, 0x03, 0x04 };
-    infra::ConstByteRange data = infra::MakeRange(dataStorage);
-    const auto handle = 0x1;
-    infra::VerifyingFunction<void(services::OperationStatus)> onWriteWithoutResponse{ services::OperationStatus::success };
+    const infra::ConstByteRange data = infra::MakeRange(dataStorage);
 
-    EXPECT_CALL(connection, WriteWithoutResponse(testing::_, infra::ByteRangeContentsEqual(data), testing::_))
-        .WillOnce([handle](services::AttAttribute::Handle passedHandle,
-                      infra::ConstByteRange data,
-                      const infra::Function<void(services::OperationStatus)>& onDone)
-            {
-                EXPECT_EQ(passedHandle, handle);
-                onDone(services::OperationStatus::success);
-            });
+    EXPECT_CALL(connection, WriteWithoutResponse(handle, infra::ByteRangeContentsEqual(data))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
-    adapter.WriteWithoutResponse(handle, data, onWriteWithoutResponse);
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.WriteWithoutResponse(handle, data));
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_enable_notification_characteristic)
 {
-    const auto result = 123;
-    const auto handle = 0x1;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
     EXPECT_CALL(connection, EnableNotification(handle, testing::_))
-        .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
-                      infra::Function<void(uint8_t)> onDone)
+        .WillOnce([](services::AttAttribute::Handle, infra::Function<void(services::GattResult)> onEnableDone)
             {
-                EXPECT_EQ(passedHandle, handle);
-                onDone(result);
+                onEnableDone(services::GattResult::success);
+                return services::GattRequestStatus::accepted;
             });
 
-    adapter.EnableNotification(handle, infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.EnableNotification(handle, onDone));
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_disable_notification_characteristic)
 {
-    const auto result = 123;
-    const auto handle = 0x1;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
     EXPECT_CALL(connection, DisableNotification(handle, testing::_))
-        .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
-                      infra::Function<void(uint8_t)> onDone)
+        .WillOnce([](services::AttAttribute::Handle, infra::Function<void(services::GattResult)> onDisableDone)
             {
-                EXPECT_EQ(passedHandle, handle);
-                onDone(result);
+                onDisableDone(services::GattResult::success);
+                return services::GattRequestStatus::accepted;
             });
 
-    adapter.DisableNotification(handle, infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DisableNotification(handle, onDone));
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_enable_indication_characteristic)
 {
-    const auto result = 123;
-    const auto handle = 0x1;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
     EXPECT_CALL(connection, EnableIndication(handle, testing::_))
-        .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
-                      infra::Function<void(uint8_t)> onDone)
+        .WillOnce([](services::AttAttribute::Handle, infra::Function<void(services::GattResult)> onEnableDone)
             {
-                EXPECT_EQ(passedHandle, handle);
-                onDone(result);
+                onEnableDone(services::GattResult::success);
+                return services::GattRequestStatus::accepted;
             });
 
-    adapter.EnableIndication(handle, infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.EnableIndication(handle, onDone));
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_call_disable_indication_characteristic)
 {
-    const auto result = 123;
-    const auto handle = 0x1;
+    infra::VerifyingFunction<void(services::GattResult)> onDone{ services::GattResult::success };
 
     EXPECT_CALL(connection, DisableIndication(handle, testing::_))
-        .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
-                      infra::Function<void(uint8_t)> onDone)
+        .WillOnce([](services::AttAttribute::Handle, infra::Function<void(services::GattResult)> onDisableDone)
             {
-                EXPECT_EQ(passedHandle, handle);
-                onDone(result);
+                onDisableDone(services::GattResult::success);
+                return services::GattRequestStatus::accepted;
             });
 
-    adapter.DisableIndication(handle, infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DisableIndication(handle, onDone));
+    ExecuteAllActions();
+}
+
+TEST_F(ClaimingGattClientAdapterTest, should_refuse_a_second_characteristic_operation_while_one_is_in_flight)
+{
+    infra::Function<void(services::GattResult, infra::ConstByteRange)> onReadDone;
+    infra::VerifyingFunction<void(services::GattResult, infra::ConstByteRange)> onDone{ services::GattResult::success, infra::ConstByteRange() };
+
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::DoAll(testing::SaveArg<1>(&onReadDone), testing::Return(services::GattRequestStatus::accepted)));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.Read(handle, onDone));
+    ExecuteAllActions();
+
+    EXPECT_EQ(services::GattRequestStatus::busy, adapter.Read(handle, ignoredReadResult));
+
+    onReadDone(services::GattResult::success, infra::ConstByteRange());
+}
+
+TEST_F(ClaimingGattClientAdapterTest, should_report_a_refused_read_through_on_done)
+{
+    infra::VerifyingFunction<void(services::GattResult, infra::ConstByteRange)> onDone{ services::GattResult::unsupported, infra::ConstByteRange() };
+
+    EXPECT_CALL(connection, Read(handle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::notSupported));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.Read(handle, onDone));
     ExecuteAllActions();
 }
 
@@ -259,113 +259,69 @@ TEST_F(ClaimingGattClientAdapterTest, should_call_mtu_exchange)
     EXPECT_CALL(connection, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
     EXPECT_EQ(200, adapter.EffectiveMaxAttMtuSize());
 
-    EXPECT_CALL(connection, ExchangeMtu());
-    adapter.ExchangeMtu();
+    EXPECT_CALL(connection, ExchangeMtu(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ExchangeMtu(ignoredResult));
     ExecuteAllActions();
 
-    EXPECT_CALL(connectionObserver, MtuChanged());
+    EXPECT_CALL(connectionObserver, MtuChanged(247));
     connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
         {
-            observer.MtuChanged();
+            observer.MtuChanged(247);
         });
 }
 
-TEST_F(ClaimingGattClientAdapterTest, should_block_discovery_while_characteristic_operation)
+TEST_F(ClaimingGattClientAdapterTest, should_block_characteristic_operation_while_discovering)
 {
-    const auto handle = 0x1;
-    const auto endHandle = 0x2;
+    infra::Function<void(services::GattResult)> onDiscoveryDone;
+    infra::VerifyingFunction<void(services::GattResult)> onDiscoveryComplete{ services::GattResult::success };
 
-    EXPECT_CALL(connection, StartCharacteristicDiscovery(handle, endHandle));
-    adapter.StartCharacteristicDiscovery(handle, endHandle);
+    EXPECT_CALL(connection, DiscoverCharacteristics(handle, endHandle, testing::_)).WillOnce(testing::DoAll(testing::SaveArg<2>(&onDiscoveryDone), testing::Return(services::GattRequestStatus::accepted)));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DiscoverCharacteristics(handle, endHandle, onDiscoveryComplete));
     ExecuteAllActions();
 
-    const auto result = 123;
-
-    adapter.DisableIndication(handle, infra::MockFunction<void(uint8_t)>(result));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.DisableIndication(handle, ignoredResult));
     ExecuteAllActions();
 
-    EXPECT_CALL(connectionObserver, CharacteristicDiscoveryComplete());
-    connection.infra::Subject<services::GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-        {
-            observer.CharacteristicDiscoveryComplete();
-        });
-
-    EXPECT_CALL(connection, DisableIndication(handle, testing::_))
-        .WillOnce([handle, result](services::AttAttribute::Handle passedHandle,
-                      infra::Function<void(uint8_t)> onDone)
-            {
-                EXPECT_EQ(passedHandle, handle);
-                onDone(result);
-            });
+    EXPECT_CALL(connection, DisableIndication(handle, testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    onDiscoveryDone(services::GattResult::success);
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_forward_notification_received)
 {
-    static const auto handle = 0x1;
+    static const auto notifiedHandle = 0x1;
     static const infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
 
-    EXPECT_CALL(updateObserver, NotificationReceived(handle, data));
+    EXPECT_CALL(updateObserver, NotificationReceived(notifiedHandle, data));
     connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
         {
-            observer.NotificationReceived(handle, data);
+            observer.NotificationReceived(notifiedHandle, data);
         });
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_forward_indication_received)
 {
-    static const auto handle = 0x1;
+    static const auto notifiedHandle = 0x1;
     static const infra::ConstByteRange data = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
 
-    EXPECT_CALL(updateObserver, IndicationReceived(handle, data, testing::_)).WillOnce(testing::InvokeArgument<2>());
+    EXPECT_CALL(updateObserver, IndicationReceived(notifiedHandle, data, testing::_)).WillOnce(testing::InvokeArgument<2>());
     connection.infra::Subject<services::GattClientUpdateObserver>::NotifyObservers([](auto& observer)
         {
-            observer.IndicationReceived(handle, data, infra::MockFunction<void()>());
+            observer.IndicationReceived(notifiedHandle, data, infra::MockFunction<void()>());
         });
-    ExecuteAllActions();
-}
-
-TEST_F(ClaimingGattClientAdapterTest, can_write_without_response_while_awaiting_read)
-{
-    const infra::ConstByteRange readResult = infra::MakeRange(std::array<uint8_t, 4>{ 0x01, 0x02, 0x03, 0x04 });
-    const auto result = 123;
-    const auto handle = 0x1;
-    const auto handleWrite = 0x2;
-
-    infra::Function<void(const infra::ConstByteRange&)> onRead;
-    infra::Function<void(uint8_t)> onDone;
-
-    EXPECT_CALL(connection, Read(handle, testing::_, testing::_))
-        .WillOnce(::testing::DoAll(::testing::SaveArg<1>(&onRead), ::testing::SaveArg<2>(&onDone)));
-    EXPECT_CALL(connection, WriteWithoutResponse(handleWrite, testing::_, testing::_)).WillOnce(::testing::InvokeArgument<2>(services::OperationStatus::success));
-
-    adapter.Read(handle,
-        infra::MockFunction<void(const infra::ConstByteRange&)>(readResult),
-        infra::MockFunction<void(uint8_t)>(result));
-
-    ExecuteAllActions();
-
-    adapter.WriteWithoutResponse(handleWrite, infra::MakeRange(std::array<uint8_t, 1>({ 42 })), infra::MockFunction<void(services::OperationStatus)>(services::OperationStatus::success));
-
-    onRead(readResult);
-    onDone(result);
-
     ExecuteAllActions();
 }
 
 TEST_F(ClaimingGattClientAdapterTest, should_release_claimer_when_disconnected)
 {
-    EXPECT_CALL(connection, EffectiveMaxAttMtuSize()).WillOnce(testing::Return(200));
-    EXPECT_EQ(200, adapter.EffectiveMaxAttMtuSize());
-
-    EXPECT_CALL(connection, ExchangeMtu());
-    adapter.ExchangeMtu();
+    EXPECT_CALL(connection, ExchangeMtu(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ExchangeMtu(ignoredResult));
     ExecuteAllActions();
 
     gapCentral.ChangeState(services::GapCentralState::standby);
 
-    EXPECT_CALL(connection, ExchangeMtu());
-    adapter.ExchangeMtu();
+    EXPECT_CALL(connection, ExchangeMtu(testing::_)).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    EXPECT_EQ(services::GattRequestStatus::accepted, adapter.ExchangeMtu(ignoredResult));
     ExecuteAllActions();
 }

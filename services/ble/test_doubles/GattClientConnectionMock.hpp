@@ -12,20 +12,20 @@ namespace services
     {
     public:
         MOCK_METHOD(uint16_t, EffectiveMaxAttMtuSize, (), (const override));
-        MOCK_METHOD(void, ExchangeMtu, (), (override));
+        MOCK_METHOD(GattRequestStatus, ExchangeMtu, (const infra::Function<void(GattResult)>& onDone), (override));
 
-        MOCK_METHOD(void, StartServiceDiscovery, (), (override));
-        MOCK_METHOD(void, StartCharacteristicDiscovery, (AttAttribute::Handle handle, AttAttribute::Handle endHandle), (override));
-        MOCK_METHOD(void, StartDescriptorDiscovery, (AttAttribute::Handle handle, AttAttribute::Handle endHandle), (override));
+        MOCK_METHOD(GattRequestStatus, DiscoverServices, (const infra::Function<void(GattResult)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, DiscoverCharacteristics, (AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, DiscoverDescriptors, (AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone), (override));
 
-        MOCK_METHOD(void, Read, (AttAttribute::Handle handle, const infra::Function<void(const infra::ConstByteRange&)>& onRead, const infra::Function<void(uint8_t)>& onDone), (override));
-        MOCK_METHOD(void, Write, (AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone), (override));
-        MOCK_METHOD(void, WriteWithoutResponse, (AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, Read, (AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, Write, (AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, WriteWithoutResponse, (AttAttribute::Handle handle, infra::ConstByteRange data), (override));
 
-        MOCK_METHOD(void, EnableNotification, (AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone), (override));
-        MOCK_METHOD(void, DisableNotification, (AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone), (override));
-        MOCK_METHOD(void, EnableIndication, (AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone), (override));
-        MOCK_METHOD(void, DisableIndication, (AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, EnableNotification, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, DisableNotification, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, EnableIndication, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, DisableIndication, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
     };
 
     class GattClientConnectionObserverMock
@@ -34,13 +34,10 @@ namespace services
     public:
         using GattClientConnectionObserver::GattClientConnectionObserver;
 
-        MOCK_METHOD(void, ServiceDiscovered, (const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle endHandle), (override));
-        MOCK_METHOD(void, ServiceDiscoveryComplete, (), (override));
-        MOCK_METHOD(void, CharacteristicDiscovered, (const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle valueHandle, GattCharacteristic::PropertyFlags properties), (override));
-        MOCK_METHOD(void, CharacteristicDiscoveryComplete, (), (override));
-        MOCK_METHOD(void, DescriptorDiscovered, (const AttAttribute::Uuid& type, AttAttribute::Handle handle), (override));
-        MOCK_METHOD(void, DescriptorDiscoveryComplete, (), (override));
-        MOCK_METHOD(void, MtuChanged, (), (override));
+        MOCK_METHOD(void, ServiceDiscovered, (const GattService& service), (override));
+        MOCK_METHOD(void, CharacteristicDiscovered, (const GattCharacteristic& characteristic), (override));
+        MOCK_METHOD(void, DescriptorDiscovered, (const GattDescriptor& descriptor), (override));
+        MOCK_METHOD(void, MtuChanged, (uint16_t mtu), (override));
     };
 
     class GattClientUpdateObserverMock

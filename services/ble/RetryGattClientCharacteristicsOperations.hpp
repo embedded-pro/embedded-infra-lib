@@ -13,7 +13,7 @@ namespace services
         using GattClientConnectionDecorator::GattClientConnectionDecorator;
 
         // Implementation of GattClientConnection
-        void WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone) override;
+        GattRequestStatus WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data) override;
 
     private:
         void TryWriteWithoutResponse();
@@ -23,7 +23,6 @@ namespace services
         {
             AttAttribute::Handle handle;
             infra::ConstByteRange data;
-            const infra::Function<void(OperationStatus)> onDone;
         };
 
         std::optional<Operation> operationWriteWithoutResponse;

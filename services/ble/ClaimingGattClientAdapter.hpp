@@ -4,7 +4,6 @@
 #include "infra/event/ClaimableResource.hpp"
 #include "services/ble/GapCentral.hpp"
 #include "services/ble/GattClientConnection.hpp"
-#include <functional>
 #include <optional>
 #include <variant>
 
@@ -18,53 +17,53 @@ namespace services
         ClaimingGattClientAdapter(GattClientConnection& connection, GapCentral& gapCentral);
 
         // Implementation of GattClientConnection
-        void ExchangeMtu() override;
-        void StartServiceDiscovery() override;
-        void StartCharacteristicDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle) override;
-        void StartDescriptorDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle) override;
-        void Read(AttAttribute::Handle handle, const infra::Function<void(const infra::ConstByteRange&)>& onRead, const infra::Function<void(uint8_t)>& onDone) override;
-        void Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone) override;
-        void EnableNotification(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-        void DisableNotification(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-        void EnableIndication(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
-        void DisableIndication(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone) override;
+        GattRequestStatus ExchangeMtu(const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus DiscoverServices(const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus DiscoverCharacteristics(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus DiscoverDescriptors(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone) override;
+        GattRequestStatus Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
+        GattRequestStatus DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
 
     private:
-        // Implementation of GattClientConnectionObserver
-        void ServiceDiscoveryComplete() override;
-        void CharacteristicDiscoveryComplete() override;
-        void DescriptorDiscoveryComplete() override;
-        void MtuChanged() override;
-
         // Implementation of GapCentralObserver
         void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) override;
         void StateChanged(GapCentralState state) override;
 
-        void PerformDescriptorOperation();
+        using DiscoveryProcedure = infra::Function<GattRequestStatus(const infra::Function<void(GattResult)>&)>;
+
+        GattRequestStatus ClaimDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone, const DiscoveryProcedure& procedure);
+        GattRequestStatus ClaimCharacteristicOperation();
+        GattRequestStatus PerformCharacteristicOperation();
+        void ReportCharacteristicOperationRefused(GattResult result);
 
     private:
-        struct HandleRange
+        struct DiscoveryOperation
         {
-            AttAttribute::Handle startHandle;
+            AttAttribute::Handle handle;
             AttAttribute::Handle endHandle;
+            const infra::Function<void(GattResult)> onDone;
+            DiscoveryProcedure procedure;
         };
 
         struct ReadOperation
         {
-            const infra::Function<void(const infra::ConstByteRange&)> onRead;
-            const infra::Function<void(uint8_t)> onDone;
+            const infra::Function<void(GattResult, infra::ConstByteRange)> onDone;
         };
 
         struct WriteOperation
         {
             infra::ConstByteRange data;
-            const infra::Function<void(uint8_t)> onDone;
+            const infra::Function<void(GattResult)> onDone;
         };
 
         struct DescriptorOperation
         {
-            const infra::Function<void(uint8_t)> onDone;
-            infra::Function<void(const infra::Function<void(uint8_t)>&)> operation;
+            const infra::Function<void(GattResult)> onDone;
+            DiscoveryProcedure procedure;
         };
 
         struct CharacteristicOperation
@@ -80,7 +79,8 @@ namespace services
             AttAttribute::Handle handle;
         };
 
-        std::optional<HandleRange> discoveryContext;
+        std::optional<infra::Function<void(GattResult)>> mtuExchangeContext;
+        std::optional<DiscoveryOperation> discoveryContext;
         std::optional<CharacteristicOperation> characteristicOperationContext;
 
         infra::ClaimableResource resource;

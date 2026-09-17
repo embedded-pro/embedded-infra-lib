@@ -32,14 +32,14 @@ namespace services
     public:
         GattClientCharacteristic(GattClientConnection& connection, AttAttribute::Uuid type, AttAttribute::Handle handle, AttAttribute::Handle valueHandle, GattCharacteristic::PropertyFlags properties);
 
-        virtual void Read(const infra::Function<void(const infra::ConstByteRange&)>& onResponse, const infra::Function<void(uint8_t)>& onDone);
-        virtual void Write(infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone);
-        virtual void WriteWithoutResponse(infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone);
+        virtual GattRequestStatus Read(const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone);
+        virtual GattRequestStatus Write(infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone);
+        virtual GattRequestStatus WriteWithoutResponse(infra::ConstByteRange data);
 
-        virtual void EnableNotification(const infra::Function<void(uint8_t)>& onDone);
-        virtual void DisableNotification(const infra::Function<void(uint8_t)>& onDone);
-        virtual void EnableIndication(const infra::Function<void(uint8_t)>& onDone);
-        virtual void DisableIndication(const infra::Function<void(uint8_t)>& onDone);
+        virtual GattRequestStatus EnableNotification(const infra::Function<void(GattResult)>& onDone);
+        virtual GattRequestStatus DisableNotification(const infra::Function<void(GattResult)>& onDone);
+        virtual GattRequestStatus EnableIndication(const infra::Function<void(GattResult)>& onDone);
+        virtual GattRequestStatus DisableIndication(const infra::Function<void(GattResult)>& onDone);
 
         GattCharacteristic::PropertyFlags CharacteristicProperties() const;
         AttAttribute::Handle CharacteristicValueHandle() const;

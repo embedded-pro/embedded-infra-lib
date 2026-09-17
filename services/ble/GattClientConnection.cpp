@@ -2,14 +2,14 @@
 
 namespace services
 {
-    void GattClientConnection::StartCharacteristicDiscovery(const GattService& service)
+    GattRequestStatus GattClientConnection::DiscoverCharacteristics(const GattService& service, const infra::Function<void(GattResult)>& onDone)
     {
-        StartCharacteristicDiscovery(service.Handle(), service.EndHandle());
+        return DiscoverCharacteristics(service.Handle(), service.EndHandle(), onDone);
     }
 
-    void GattClientConnection::StartDescriptorDiscovery(const GattService& service)
+    GattRequestStatus GattClientConnection::DiscoverDescriptors(const GattService& service, const infra::Function<void(GattResult)>& onDone)
     {
-        StartDescriptorDiscovery(service.Handle(), service.EndHandle());
+        return DiscoverDescriptors(service.Handle(), service.EndHandle(), onDone);
     }
 
     GattClientConnectionDecorator::GattClientConnectionDecorator(GattClientConnection& connection)
@@ -17,59 +17,35 @@ namespace services
         , GattClientUpdateObserver(connection)
     {}
 
-    void GattClientConnectionDecorator::ServiceDiscovered(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle endHandle)
+    void GattClientConnectionDecorator::ServiceDiscovered(const GattService& service)
     {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&type, handle, endHandle](auto& observer)
+        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&service](auto& observer)
             {
-                observer.ServiceDiscovered(type, handle, endHandle);
+                observer.ServiceDiscovered(service);
             });
     }
 
-    void GattClientConnectionDecorator::ServiceDiscoveryComplete()
+    void GattClientConnectionDecorator::CharacteristicDiscovered(const GattCharacteristic& characteristic)
     {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([](auto& observer)
+        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&characteristic](auto& observer)
             {
-                observer.ServiceDiscoveryComplete();
+                observer.CharacteristicDiscovered(characteristic);
             });
     }
 
-    void GattClientConnectionDecorator::CharacteristicDiscovered(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle valueHandle, GattCharacteristic::PropertyFlags properties)
+    void GattClientConnectionDecorator::DescriptorDiscovered(const GattDescriptor& descriptor)
     {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&type, handle, valueHandle, properties](auto& observer)
+        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&descriptor](auto& observer)
             {
-                observer.CharacteristicDiscovered(type, handle, valueHandle, properties);
+                observer.DescriptorDiscovered(descriptor);
             });
     }
 
-    void GattClientConnectionDecorator::CharacteristicDiscoveryComplete()
+    void GattClientConnectionDecorator::MtuChanged(uint16_t mtu)
     {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([](auto& observer)
+        infra::Subject<GattClientConnectionObserver>::NotifyObservers([mtu](auto& observer)
             {
-                observer.CharacteristicDiscoveryComplete();
-            });
-    }
-
-    void GattClientConnectionDecorator::DescriptorDiscovered(const AttAttribute::Uuid& type, AttAttribute::Handle handle)
-    {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([&type, handle](auto& observer)
-            {
-                observer.DescriptorDiscovered(type, handle);
-            });
-    }
-
-    void GattClientConnectionDecorator::DescriptorDiscoveryComplete()
-    {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-            {
-                observer.DescriptorDiscoveryComplete();
-            });
-    }
-
-    void GattClientConnectionDecorator::MtuChanged()
-    {
-        infra::Subject<GattClientConnectionObserver>::NotifyObservers([](auto& observer)
-            {
-                observer.MtuChanged();
+                observer.MtuChanged(mtu);
             });
     }
 
@@ -94,58 +70,58 @@ namespace services
         return GattClientConnectionObserver::Subject().EffectiveMaxAttMtuSize();
     }
 
-    void GattClientConnectionDecorator::ExchangeMtu()
+    GattRequestStatus GattClientConnectionDecorator::ExchangeMtu(const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().ExchangeMtu();
+        return GattClientConnectionObserver::Subject().ExchangeMtu(onDone);
     }
 
-    void GattClientConnectionDecorator::StartServiceDiscovery()
+    GattRequestStatus GattClientConnectionDecorator::DiscoverServices(const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().StartServiceDiscovery();
+        return GattClientConnectionObserver::Subject().DiscoverServices(onDone);
     }
 
-    void GattClientConnectionDecorator::StartCharacteristicDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle)
+    GattRequestStatus GattClientConnectionDecorator::DiscoverCharacteristics(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().StartCharacteristicDiscovery(handle, endHandle);
+        return GattClientConnectionObserver::Subject().DiscoverCharacteristics(handle, endHandle, onDone);
     }
 
-    void GattClientConnectionDecorator::StartDescriptorDiscovery(AttAttribute::Handle handle, AttAttribute::Handle endHandle)
+    GattRequestStatus GattClientConnectionDecorator::DiscoverDescriptors(AttAttribute::Handle handle, AttAttribute::Handle endHandle, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().StartDescriptorDiscovery(handle, endHandle);
+        return GattClientConnectionObserver::Subject().DiscoverDescriptors(handle, endHandle, onDone);
     }
 
-    void GattClientConnectionDecorator::Read(AttAttribute::Handle handle, const infra::Function<void(const infra::ConstByteRange&)>& onRead, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone)
     {
-        GattClientConnectionObserver::Subject().Read(handle, onRead, onDone);
+        return GattClientConnectionObserver::Subject().Read(handle, onDone);
     }
 
-    void GattClientConnectionDecorator::Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().Write(handle, data, onDone);
+        return GattClientConnectionObserver::Subject().Write(handle, data, onDone);
     }
 
-    void GattClientConnectionDecorator::WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(OperationStatus)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data)
     {
-        GattClientConnectionObserver::Subject().WriteWithoutResponse(handle, data, onDone);
+        return GattClientConnectionObserver::Subject().WriteWithoutResponse(handle, data);
     }
 
-    void GattClientConnectionDecorator::EnableNotification(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().EnableNotification(handle, onDone);
+        return GattClientConnectionObserver::Subject().EnableNotification(handle, onDone);
     }
 
-    void GattClientConnectionDecorator::DisableNotification(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().DisableNotification(handle, onDone);
+        return GattClientConnectionObserver::Subject().DisableNotification(handle, onDone);
     }
 
-    void GattClientConnectionDecorator::EnableIndication(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().EnableIndication(handle, onDone);
+        return GattClientConnectionObserver::Subject().EnableIndication(handle, onDone);
     }
 
-    void GattClientConnectionDecorator::DisableIndication(AttAttribute::Handle handle, const infra::Function<void(uint8_t)>& onDone)
+    GattRequestStatus GattClientConnectionDecorator::DisableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
-        GattClientConnectionObserver::Subject().DisableIndication(handle, onDone);
+        return GattClientConnectionObserver::Subject().DisableIndication(handle, onDone);
     }
 }
