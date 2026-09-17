@@ -14,6 +14,15 @@ namespace
                 return services::GattResult::unknown;
         }
     }
+
+    template<class... Ts>
+    struct Overloaded : Ts...
+    {
+        using Ts::operator()...;
+    };
+
+    template<class... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
 }
 
 namespace services
@@ -186,38 +195,47 @@ namespace services
 
     GattRequestStatus ClaimingGattClientConnection::PerformCharacteristicOperation()
     {
-        auto& context = *characteristicOperationContext;
-
-        if (std::holds_alternative<ReadOperation>(context.operation))
-            return GattClientConnectionDecorator::Read(context.handle, [this](GattResult result, infra::ConstByteRange data)
-                {
-                    characteristicOperationsClaimer.Release();
-                    std::get<ReadOperation>(characteristicOperationContext->operation).onDone(result, data);
-                });
-
-        if (std::holds_alternative<WriteOperation>(context.operation))
-            return GattClientConnectionDecorator::Write(context.handle, std::get<WriteOperation>(context.operation).data, [this](GattResult result)
-                {
-                    characteristicOperationsClaimer.Release();
-                    std::get<WriteOperation>(characteristicOperationContext->operation).onDone(result);
-                });
-
-        return std::get<DescriptorOperation>(context.operation).procedure([this](GattResult result)
-            {
-                characteristicOperationsClaimer.Release();
-                std::get<DescriptorOperation>(characteristicOperationContext->operation).onDone(result);
-            });
+        return std::visit(Overloaded{ [this](const ReadOperation&)
+                              {
+                                  return GattClientConnectionDecorator::Read(characteristicOperationContext->handle, [this](GattResult result, infra::ConstByteRange data)
+                                      {
+                                          characteristicOperationsClaimer.Release();
+                                          std::get<ReadOperation>(characteristicOperationContext->operation).onDone(result, data);
+                                      });
+                              },
+                              [this](const WriteOperation& write)
+                              {
+                                  return GattClientConnectionDecorator::Write(characteristicOperationContext->handle, write.data, [this](GattResult result)
+                                      {
+                                          characteristicOperationsClaimer.Release();
+                                          std::get<WriteOperation>(characteristicOperationContext->operation).onDone(result);
+                                      });
+                              },
+                              [this](const DescriptorOperation& descriptor)
+                              {
+                                  return descriptor.procedure([this](GattResult result)
+                                      {
+                                          characteristicOperationsClaimer.Release();
+                                          std::get<DescriptorOperation>(characteristicOperationContext->operation).onDone(result);
+                                      });
+                              } },
+            characteristicOperationContext->operation);
     }
 
     void ClaimingGattClientConnection::ReportCharacteristicOperationRefused(GattResult result)
     {
-        auto& context = *characteristicOperationContext;
-
-        if (std::holds_alternative<ReadOperation>(context.operation))
-            std::get<ReadOperation>(context.operation).onDone(result, infra::ConstByteRange());
-        else if (std::holds_alternative<WriteOperation>(context.operation))
-            std::get<WriteOperation>(context.operation).onDone(result);
-        else
-            std::get<DescriptorOperation>(context.operation).onDone(result);
+        std::visit(Overloaded{ [result](const ReadOperation& read)
+                       {
+                           read.onDone(result, infra::ConstByteRange());
+                       },
+                       [result](const WriteOperation& write)
+                       {
+                           write.onDone(result);
+                       },
+                       [result](const DescriptorOperation& descriptor)
+                       {
+                           descriptor.onDone(result);
+                       } },
+            characteristicOperationContext->operation);
     }
 }
