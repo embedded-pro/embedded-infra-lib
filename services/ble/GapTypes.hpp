@@ -15,11 +15,8 @@ namespace services
         randomAddress,
     };
 
-    // What a peripheral may be told to advertise. Appended rather than ordered by PDU type:
-    // GapPeripheral.proto's AdvertisementType numbers these too, so inserting advScanInd between
-    // the existing two would renumber advNonconnInd on this side only.
-    // Directed advertising is not here because it is meaningless without a peer address; see
-    // GapPeripheral::AdvertiseDirected.
+    // What a peripheral may be told to advertise. Directed advertising is not here because it is
+    // meaningless without a peer address; see GapPeripheral::AdvertiseDirected.
     // Bluetooth Core Specification, Volume 6, Part B, section 2.3.1
     enum class GapAdvertisementType : uint8_t
     {
@@ -48,8 +45,6 @@ namespace services
     };
 
     // Values taken from Assigned Numbers, section 2.3 (Common Data Types)
-    // Every value here is an assigned number; there is deliberately no sentinel among them.
-    // ParserAdvertisingData already signals "not present" with an empty range.
     enum class GapAdvertisementDataType : uint8_t
     {
         flags = 0x01u,
@@ -88,7 +83,7 @@ namespace services
     };
 
     // The legacy advertising PDU payload, Bluetooth Core Specification, Volume 6, Part B,
-    // section 2.3.1.1. Extended advertising is not modelled; see docs/Ble.md.
+    // section 2.3.1.1.
     constexpr uint8_t gapMaxAdvertisementDataSize = 31;
     constexpr uint8_t gapMaxScanResponseDataSize = 31;
 
@@ -121,11 +116,22 @@ namespace services
     {
         static constexpr uint16_t initialMaxTxOctets = 251;
 
-        // Time = (octets + 14) * 8 on LE 1M and LE 2M; LE Coded needs the S=8 coding,
-        // hence the separate maximum.
+        // A packet carries the payload plus its overhead: access address 4, header 2, MIC 4 and
+        // CRC 3, and a preamble of one octet on LE 1M and two on LE 2M. LE 1M sends an octet in
+        // 8 us and LE 2M in half that, so the two PHYs do not share a time. LE Coded is fixed by
+        // its S=8 coding rather than derived from the octet count.
+        // Bluetooth Core Specification, Volume 6, Part B, sections 2.1 and 4.5.10
         static constexpr uint16_t InitialMaxTxTime(GapPhy phy)
         {
-            return phy == GapPhy::leCoded ? 17040u : static_cast<uint16_t>((initialMaxTxOctets + 14u) * 8u);
+            switch (phy)
+            {
+                case GapPhy::le2M:
+                    return static_cast<uint16_t>((initialMaxTxOctets + 15u) * 4u); // 1064 us
+                case GapPhy::leCoded:
+                    return 17040u;
+                default:
+                    return static_cast<uint16_t>((initialMaxTxOctets + 14u) * 8u); // 2120 us
+            }
         }
     };
 
@@ -135,8 +141,6 @@ namespace services
         active = 1
     };
 
-    // Without these a central cannot trade discovery latency against power, nor decline to send
-    // scan requests, which passive scanning is exactly for.
     // Bluetooth Core Specification, Volume 4, Part E, section 7.8.10
     struct GapScanParameters
     {
@@ -151,10 +155,9 @@ namespace services
         bool operator==(const GapScanParameters& other) const = default;
     };
 
-    // How much a bond is actually worth: whether it came from LE Secure Connections or legacy
-    // pairing, whether its key is authenticated, and the negotiated key size. An application
-    // deciding whether to trust a bonded peer with a privileged operation has no other basis for
-    // the decision; Mode 1 Level 4 exists precisely to mean authenticated LESC with a 128-bit key.
+    // Whether the bond came from LE Secure Connections or legacy pairing, whether its key is
+    // authenticated, and the negotiated key size. Mode 1 Level 4 means authenticated LE Secure
+    // Connections with a 128-bit key.
     // Bluetooth Core Specification, Volume 3, Part H, section 2.4.5
     struct GapBondStrength
     {
@@ -193,18 +196,9 @@ namespace services
         GapDeviceAddressType addressType;
         hal::MacAddress address;
 
-        // A view over the payload, valid for the duration of the DeviceDiscovered callback, in
-        // the same way GattClientUpdateObserver::NotificationReceived hands over its data. An
-        // observer that wants to keep it copies it into storage sized to its own needs.
-        //
-        // This is also what keeps the type from committing to legacy advertising: an owning
-        // member bounded to 31 bytes could never carry an extended advertising payload, which
-        // reaches 1650 bytes assembled across a chain. Extended advertising is not modelled here
-        // (see docs/Ble.md), but the report no longer forecloses it.
         infra::ConstByteRange data;
 
-        // Signed 8-bit as the specification defines it, where 127 means not available. An
-        // int32_t left that convention nowhere to live.
+        // Signed 8-bit as the specification defines it, where 127 means not available.
         int8_t rssi;
     };
 

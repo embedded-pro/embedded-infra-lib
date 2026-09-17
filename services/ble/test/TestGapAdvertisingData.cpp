@@ -106,8 +106,7 @@ namespace services
 
     TEST(GapAdvertisingDataParserTest, complete_list_of_16bit_services_at_an_odd_offset)
     {
-        // The UUID list is preceded by a one-byte Flags structure, so its values start at
-        // offset 5. Decoding them in place would need an unaligned 16-bit load.
+        // The UUID list is preceded by a one-byte Flags structure, so its values start at offset 5.
         const std::array<uint8_t, 9> data{ { 0x02, 0x01, 0x06, 0x05, 0x03, 0x34, 0x12, 0x78, 0x56 } };
         services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
         services::GapAdvertisingDataParser::ListOf16BitUuids services;
@@ -133,7 +132,8 @@ namespace services
         const std::array<uint8_t, 22> data{ { 0x11, 0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f } };
         const std::array<uint8_t, 16> service1{ { 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } };
         services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf128BitUuids();
+        services::GapAdvertisingDataParser::ListOf128BitUuids services;
+        gapAdvertisingDataParser.CompleteListOf128BitUuids(services);
 
         ASSERT_EQ(1u, services.size());
         std::array<uint8_t, 16> parsedUuid = services[0];
@@ -144,9 +144,59 @@ namespace services
     {
         const std::array<uint8_t, 21> data{ { 0x10, 0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e } };
         services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf128BitUuids();
+        services::GapAdvertisingDataParser::ListOf128BitUuids services;
+        gapAdvertisingDataParser.CompleteListOf128BitUuids(services);
 
         EXPECT_TRUE(services.empty());
+    }
+
+    TEST(GapAdvertisingDataParserTest, incomplete_list_of_16bit_services)
+    {
+        const std::array<uint8_t, 6> data{ { 0x05, 0x02, 0x34, 0x12, 0x78, 0x56 } };
+        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
+        services::GapAdvertisingDataParser::ListOf16BitUuids services;
+        gapAdvertisingDataParser.IncompleteListOf16BitUuids(services);
+
+        EXPECT_THAT(services, testing::ElementsAre(0x1234, 0x5678));
+
+        gapAdvertisingDataParser.CompleteListOf16BitUuids(services);
+        EXPECT_TRUE(services.empty());
+    }
+
+    TEST(GapAdvertisingDataParserTest, incomplete_list_of_128bit_services)
+    {
+        const std::array<uint8_t, 18> data{ { 0x11, 0x06, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f } };
+        const std::array<uint8_t, 16> service1{ { 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } };
+        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
+        services::GapAdvertisingDataParser::ListOf128BitUuids services;
+        gapAdvertisingDataParser.IncompleteListOf128BitUuids(services);
+
+        ASSERT_EQ(1u, services.size());
+        std::array<uint8_t, 16> parsedUuid = services[0];
+        EXPECT_THAT(parsedUuid, testing::ContainerEq(service1));
+    }
+
+    TEST(GapAdvertisingDataParserTest, service_data_128bit_uuid)
+    {
+        const std::array<uint8_t, 20> data{ { 0x13, 0x21, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xAA, 0xBB } };
+        const std::array<uint8_t, 16> expectedUuid{ { 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } };
+        const std::array<uint8_t, 2> expectedData{ { 0xAA, 0xBB } };
+        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
+
+        auto serviceData = gapAdvertisingDataParser.ServiceData128BitUuid();
+
+        ASSERT_TRUE(serviceData);
+        std::array<uint8_t, 16> parsedUuid = serviceData->first;
+        EXPECT_THAT(parsedUuid, testing::ContainerEq(expectedUuid));
+        EXPECT_THAT(serviceData->second, infra::ContentsEqual(expectedData));
+    }
+
+    TEST(GapAdvertisingDataParserTest, service_data_128bit_uuid_without_a_uuid)
+    {
+        const std::array<uint8_t, 4> data{ { 0x03, 0x21, 0x00, 0x01 } };
+        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
+
+        EXPECT_FALSE(gapAdvertisingDataParser.ServiceData128BitUuid());
     }
 
     TEST(GapAdvertisingDataParserTest, flags_not_present)

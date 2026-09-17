@@ -1,6 +1,8 @@
 #include "services/ble/GapAdvertisingData.hpp"
 #include "infra/stream/ByteInputStream.hpp"
 #include "infra/util/MemoryRange.hpp"
+#include <algorithm>
+#include <array>
 
 namespace
 {
@@ -20,6 +22,23 @@ namespace
     {
         payload.push_back(static_cast<uint8_t>(value));
         payload.push_back(static_cast<uint8_t>(value >> 8));
+    }
+
+    // A 128-bit UUID travels least significant octet first, so its on-air order is the reverse of
+    // the canonical order AttAttribute::Uuid128 converts to and from.
+    void AddLittleEndian(infra::BoundedVector<uint8_t>& payload, const services::AttAttribute::Uuid128& uuid)
+    {
+        const std::array<uint8_t, 16> canonical = uuid;
+
+        payload.insert(payload.end(), canonical.rbegin(), canonical.rend());
+    }
+
+    services::AttAttribute::Uuid128 Uuid128FromLittleEndian(infra::ConstByteRange onAir)
+    {
+        std::array<uint8_t, 16> canonical{};
+        std::copy(onAir.begin(), onAir.end(), canonical.rbegin());
+
+        return services::AttAttribute::Uuid128{ canonical };
     }
 }
 
@@ -66,9 +85,29 @@ namespace services
 
     void GapAdvertisingDataParser::CompleteListOf16BitUuids(ListOf16BitUuids& result) const
     {
+        ParseListOf16BitUuids(result, GapAdvertisementDataType::completeListOf16BitUuids);
+    }
+
+    void GapAdvertisingDataParser::IncompleteListOf16BitUuids(ListOf16BitUuids& result) const
+    {
+        ParseListOf16BitUuids(result, GapAdvertisementDataType::incompleteListOf16BitUuids);
+    }
+
+    void GapAdvertisingDataParser::CompleteListOf128BitUuids(ListOf128BitUuids& result) const
+    {
+        ParseListOf128BitUuids(result, GapAdvertisementDataType::completeListOf128BitUuids);
+    }
+
+    void GapAdvertisingDataParser::IncompleteListOf128BitUuids(ListOf128BitUuids& result) const
+    {
+        ParseListOf128BitUuids(result, GapAdvertisementDataType::incompleteListOf128BitUuids);
+    }
+
+    void GapAdvertisingDataParser::ParseListOf16BitUuids(ListOf16BitUuids& result, GapAdvertisementDataType type) const
+    {
         result.clear();
 
-        auto uuidData = ParserAdvertisingData(GapAdvertisementDataType::completeListOf16BitUuids);
+        auto uuidData = ParserAdvertisingData(type);
 
         if (uuidData.size() % sizeof(AttAttribute::Uuid16) != 0)
             return;
@@ -82,16 +121,20 @@ namespace services
             result.clear();
     }
 
-    infra::MemoryRange<const AttAttribute::Uuid128> GapAdvertisingDataParser::CompleteListOf128BitUuids() const
+    void GapAdvertisingDataParser::ParseListOf128BitUuids(ListOf128BitUuids& result, GapAdvertisementDataType type) const
     {
-        auto uuidData = ParserAdvertisingData(GapAdvertisementDataType::completeListOf128BitUuids);
+        result.clear();
+
+        auto uuidData = ParserAdvertisingData(type);
 
         if (uuidData.size() % sizeof(AttAttribute::Uuid128) != 0)
-            return {};
+            return;
 
-        // Unlike the 16-bit case this stays a view: Uuid128 is infra::BigEndian<std::array<uint8_t, 16>>,
-        // whose alignment is 1, so no unaligned load is possible and no byte order is assumed here.
-        return infra::ConstCastMemoryRange<AttAttribute::Uuid128>(infra::ReinterpretCastMemoryRange<const AttAttribute::Uuid128>(uuidData));
+        while (!uuidData.empty() && !result.full())
+        {
+            result.push_back(Uuid128FromLittleEndian(infra::Head(uuidData, sizeof(AttAttribute::Uuid128))));
+            uuidData = infra::DiscardHead(uuidData, sizeof(AttAttribute::Uuid128));
+        }
     }
 
     std::optional<int8_t> GapAdvertisingDataParser::TxPowerLevel() const
@@ -114,6 +157,18 @@ namespace services
             return std::nullopt;
 
         return std::make_optional(std::make_pair(uuid, serviceData));
+    }
+
+    std::optional<std::pair<AttAttribute::Uuid128, infra::ConstByteRange>> GapAdvertisingDataParser::ServiceData128BitUuid() const
+    {
+        auto serviceData = ParserAdvertisingData(GapAdvertisementDataType::serviceData128BitUuid);
+
+        if (serviceData.size() < sizeof(AttAttribute::Uuid128))
+            return std::nullopt;
+
+        auto uuid = Uuid128FromLittleEndian(infra::Head(serviceData, sizeof(AttAttribute::Uuid128)));
+
+        return std::make_optional(std::make_pair(uuid, infra::DiscardHead(serviceData, sizeof(AttAttribute::Uuid128))));
     }
 
     std::optional<uint16_t> GapAdvertisingDataParser::Appearance() const
@@ -195,22 +250,42 @@ namespace services
 
     void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid16> services)
     {
+        AppendListOfServicesUuid(services, GapAdvertisementDataType::completeListOf16BitUuids);
+    }
+
+    void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services)
+    {
+        AppendListOfServicesUuid(services, GapAdvertisementDataType::completeListOf128BitUuids);
+    }
+
+    void GapAdvertisementFormatter::AppendIncompleteListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid16> services)
+    {
+        AppendListOfServicesUuid(services, GapAdvertisementDataType::incompleteListOf16BitUuids);
+    }
+
+    void GapAdvertisementFormatter::AppendIncompleteListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services)
+    {
+        AppendListOfServicesUuid(services, GapAdvertisementDataType::incompleteListOf128BitUuids);
+    }
+
+    void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid16> services, GapAdvertisementDataType type)
+    {
         really_assert(services.size() * sizeof(AttAttribute::Uuid16) + headerSize <= RemainingSpaceAvailable() && !services.empty());
 
-        AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid16), GapAdvertisementDataType::completeListOf16BitUuids);
+        AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid16), type);
 
         for (const auto& service : services)
             AddLittleEndian(payload, service);
     }
 
-    void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services)
+    void GapAdvertisementFormatter::AppendListOfServicesUuid(infra::MemoryRange<AttAttribute::Uuid128> services, GapAdvertisementDataType type)
     {
         really_assert(services.size() * sizeof(AttAttribute::Uuid128) + headerSize <= RemainingSpaceAvailable() && !services.empty());
 
-        AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid128), GapAdvertisementDataType::completeListOf128BitUuids);
+        AddHeader(payload, services.size() * sizeof(AttAttribute::Uuid128), type);
 
-        for (auto& service : services)
-            AddData(payload, infra::ReinterpretCastMemoryRange<uint8_t>(infra::MakeRangeFromSingleObject(service)));
+        for (const auto& service : services)
+            AddLittleEndian(payload, service);
     }
 
     void GapAdvertisementFormatter::AppendPublicTargetAddress(hal::MacAddress address)
@@ -242,6 +317,15 @@ namespace services
         really_assert(data.size() + headerSize + sizeof(uuid) <= RemainingSpaceAvailable());
 
         AddHeader(payload, data.size() + sizeof(uuid), GapAdvertisementDataType::serviceData16BitUuid);
+        AddLittleEndian(payload, uuid);
+        AddData(payload, data);
+    }
+
+    void GapAdvertisementFormatter::AppendServiceData(const AttAttribute::Uuid128& uuid, infra::ConstByteRange data)
+    {
+        really_assert(data.size() + headerSize + sizeof(uuid) <= RemainingSpaceAvailable());
+
+        AddHeader(payload, data.size() + sizeof(uuid), GapAdvertisementDataType::serviceData128BitUuid);
         AddLittleEndian(payload, uuid);
         AddData(payload, data);
     }

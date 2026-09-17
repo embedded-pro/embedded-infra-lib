@@ -27,7 +27,10 @@ namespace services
         EXPECT_EQ(251u, GapDataLength::initialMaxTxOctets);
 
         EXPECT_EQ(2120u, GapDataLength::InitialMaxTxTime(GapPhy::le1M));
-        EXPECT_EQ(2120u, GapDataLength::InitialMaxTxTime(GapPhy::le2M));
+
+        // LE 2M halves the time per octet and spends one octet more on its preamble, so it is
+        // neither the 1M value nor exactly half of it.
+        EXPECT_EQ(1064u, GapDataLength::InitialMaxTxTime(GapPhy::le2M));
         EXPECT_EQ(17040u, GapDataLength::InitialMaxTxTime(GapPhy::leCoded));
     }
 
