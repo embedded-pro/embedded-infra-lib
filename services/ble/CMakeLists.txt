@@ -22,6 +22,7 @@ protocol_buffer_java(services.ble Dtm.proto)
 
 target_link_libraries(services.ble PUBLIC
     hal.interfaces
+    infra.timer
     infra.util
     services.tracer
 )

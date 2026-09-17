@@ -1,4 +1,4 @@
-#include "infra/event/test_helper/EventDispatcherFixture.hpp"
+#include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/ble/RetryingGattClientConnection.hpp"
@@ -9,7 +9,7 @@ namespace
 {
     class RetryingGattClientConnectionTest
         : public testing::Test
-        , public infra::EventDispatcherFixture
+        , public infra::ClockFixture
     {
     public:
         testing::StrictMock<services::GattClientConnectionMock> connection;
@@ -43,7 +43,23 @@ TEST_F(RetryingGattClientConnectionTest, should_not_retry_write_without_response
     EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
     EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.WriteWithoutResponse(handle, data));
-    ExecuteAllActions();
+    ForwardTime(std::chrono::seconds(1));
+}
+
+TEST_F(RetryingGattClientConnectionTest, should_report_a_refused_write_without_response_instead_of_retrying)
+{
+    EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::invalidState));
+
+    EXPECT_EQ(services::GattRequestStatus::invalidState, retryingConnection.WriteWithoutResponse(handle, data));
+    ForwardTime(std::chrono::seconds(1));
+}
+
+TEST_F(RetryingGattClientConnectionTest, should_report_an_unsupported_write_without_response)
+{
+    EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::notSupported));
+
+    EXPECT_EQ(services::GattRequestStatus::notSupported, retryingConnection.WriteWithoutResponse(handle, data));
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(RetryingGattClientConnectionTest, should_retry_write_without_response_while_busy)
@@ -55,10 +71,22 @@ TEST_F(RetryingGattClientConnectionTest, should_retry_write_without_response_whi
     EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
 
     EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.WriteWithoutResponse(handle, data));
-    ExecuteAllActions();
+    ForwardTime(std::chrono::seconds(1));
 }
 
-TEST_F(RetryingGattClientConnectionTest, should_stop_retrying_write_without_response_when_refused)
+TEST_F(RetryingGattClientConnectionTest, should_space_out_the_retries)
+{
+    EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::busy));
+
+    EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.WriteWithoutResponse(handle, data));
+
+    ForwardTime(services::RetryingGattClientConnection::defaultRetryInterval / 2);
+
+    EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
+    ForwardTime(services::RetryingGattClientConnection::defaultRetryInterval);
+}
+
+TEST_F(RetryingGattClientConnectionTest, should_stop_retrying_once_the_connection_refuses)
 {
     testing::InSequence sequence;
 
@@ -66,7 +94,7 @@ TEST_F(RetryingGattClientConnectionTest, should_stop_retrying_write_without_resp
     EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::invalidState));
 
     EXPECT_EQ(services::GattRequestStatus::accepted, retryingConnection.WriteWithoutResponse(handle, data));
-    ExecuteAllActions();
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(RetryingGattClientConnectionTest, should_refuse_a_second_write_without_response_while_retrying)
@@ -77,7 +105,19 @@ TEST_F(RetryingGattClientConnectionTest, should_refuse_a_second_write_without_re
     EXPECT_EQ(services::GattRequestStatus::busy, retryingConnection.WriteWithoutResponse(handle, data));
 
     EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::accepted));
-    ExecuteAllActions();
+    ForwardTime(std::chrono::seconds(1));
+}
+
+TEST_F(RetryingGattClientConnectionTest, a_pending_retry_is_abandoned_when_the_decorator_is_destroyed)
+{
+    {
+        services::RetryingGattClientConnection shortLived{ connection };
+
+        EXPECT_CALL(connection, WriteWithoutResponse(handle, testing::ElementsAreArray(data))).WillOnce(testing::Return(services::GattRequestStatus::busy));
+        EXPECT_EQ(services::GattRequestStatus::accepted, shortLived.WriteWithoutResponse(handle, data));
+    }
+
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(RetryingGattClientConnectionTest, should_call_enable_notification_characteristic)

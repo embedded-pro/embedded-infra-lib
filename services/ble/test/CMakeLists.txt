@@ -4,6 +4,7 @@ emil_add_test(services.ble_test)
 
 target_link_libraries(services.ble_test PUBLIC
     gmock_main
+    infra.timer_test_helper
     services.ble
     services.ble_test_doubles
 )
