@@ -3,8 +3,8 @@
 
 #include "infra/stream/OutputStream.hpp"
 #include "infra/util/EnumCast.hpp"
-#include <optional>
 #include "services/ble/Att.hpp"
+#include <optional>
 
 namespace services
 {

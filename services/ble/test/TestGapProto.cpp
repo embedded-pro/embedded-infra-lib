@@ -1,11 +1,11 @@
 #include "generated/echo/GapCentral.pb.hpp"
 #include "generated/echo/GapPeripheral.pb.hpp"
-#include "infra/util/EnumCast.hpp"
-#include "services/ble/GapPairing.hpp"
 #include "infra/stream/ByteInputStream.hpp"
 #include "infra/stream/ByteOutputStream.hpp"
 #include "infra/syntax/ProtoFormatter.hpp"
 #include "infra/syntax/ProtoParser.hpp"
+#include "infra/util/EnumCast.hpp"
+#include "services/ble/GapPairing.hpp"
 #include "gmock/gmock.h"
 
 namespace

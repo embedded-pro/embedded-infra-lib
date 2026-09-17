@@ -69,13 +69,13 @@ namespace services
 
     struct GapConnectionParameters
     {
-        using ConnectionIntervalMultiplier = uint16_t;                                            // Interval = Multiplier * 1.25 ms.
-        static constexpr ConnectionIntervalMultiplier connectionIntervalMultiplierMin = 0x0006u;  // 7.5 ms
-        static constexpr ConnectionIntervalMultiplier connectionIntervalMultiplierMax = 0x0C80u;  // 4000 ms
+        using ConnectionIntervalMultiplier = uint16_t;                                           // Interval = Multiplier * 1.25 ms.
+        static constexpr ConnectionIntervalMultiplier connectionIntervalMultiplierMin = 0x0006u; // 7.5 ms
+        static constexpr ConnectionIntervalMultiplier connectionIntervalMultiplierMax = 0x0C80u; // 4000 ms
 
-        using SupervisionTimeoutMultiplier = uint16_t;                                            // Timeout = Multiplier * 10 ms.
-        static constexpr SupervisionTimeoutMultiplier supervisionTimeoutMultiplierMin = 0x000Au;  // 100 ms
-        static constexpr SupervisionTimeoutMultiplier supervisionTimeoutMultiplierMax = 0x0C80u;  // 32000 ms
+        using SupervisionTimeoutMultiplier = uint16_t;                                           // Timeout = Multiplier * 10 ms.
+        static constexpr SupervisionTimeoutMultiplier supervisionTimeoutMultiplierMin = 0x000Au; // 100 ms
+        static constexpr SupervisionTimeoutMultiplier supervisionTimeoutMultiplierMax = 0x0C80u; // 32000 ms
 
         ConnectionIntervalMultiplier minConnectionInterval;
         ConnectionIntervalMultiplier maxConnectionInterval;
