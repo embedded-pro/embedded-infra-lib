@@ -135,8 +135,8 @@ TEST(GattResultFromAttErrorCodeTest, maps_every_specified_error_code)
         { AttErrorCode::insufficientEncryption, GattResult::insufficientEncryption },
         { AttErrorCode::unsupportedGroupType, GattResult::unsupported },
         { AttErrorCode::insufficientResources, GattResult::insufficientResources },
-        { AttErrorCode::databaseOutOfSync, GattResult::unknown },
-        { AttErrorCode::valueNotAllowed, GattResult::unknown },
+        { AttErrorCode::databaseOutOfSync, GattResult::databaseOutOfSync },
+        { AttErrorCode::valueNotAllowed, GattResult::valueNotAllowed },
     };
 
     for (const auto& [errorCode, result] : expectations)

@@ -31,6 +31,12 @@ namespace services
             case AttErrorCode::requestNotSupported:
             case AttErrorCode::unsupportedGroupType:
                 return GattResult::unsupported;
+            case AttErrorCode::databaseOutOfSync:
+                return GattResult::databaseOutOfSync;
+            case AttErrorCode::valueNotAllowed:
+                return GattResult::valueNotAllowed;
+            // unlikelyError is the specification's own name for a failure with no more
+            // specific cause, so unknown is the faithful translation rather than a lossy one.
             default:
                 return GattResult::unknown;
         }

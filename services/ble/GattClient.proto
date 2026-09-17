@@ -111,6 +111,8 @@ message Completion
         disconnected = 9;
         timeout = 10;
         unknown = 11;
+        databaseOutOfSync = 12;
+        valueNotAllowed = 13;
     }
 
     ConnectionId connection = 1;

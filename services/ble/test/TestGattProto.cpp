@@ -70,7 +70,8 @@ TEST(GattProtoTest, completion_carries_every_gatt_result)
              gatt::client::Completion::Result::insufficientAuthorization, gatt::client::Completion::Result::insufficientEncryption,
              gatt::client::Completion::Result::insufficientResources, gatt::client::Completion::Result::invalidLength,
              gatt::client::Completion::Result::unsupported, gatt::client::Completion::Result::disconnected,
-             gatt::client::Completion::Result::timeout, gatt::client::Completion::Result::unknown })
+             gatt::client::Completion::Result::timeout, gatt::client::Completion::Result::unknown,
+             gatt::client::Completion::Result::databaseOutOfSync, gatt::client::Completion::Result::valueNotAllowed })
     {
         gatt::client::Completion completion{ ConnectionId(7), gatt::client::RequestStatus{ gatt::client::RequestStatus::Status::accepted }, result };
         EXPECT_EQ(completion, RoundTrip(completion));
@@ -80,6 +81,19 @@ TEST(GattProtoTest, completion_carries_every_gatt_result)
     EXPECT_EQ(static_cast<uint32_t>(services::GattResult::invalidHandle), static_cast<uint32_t>(gatt::client::Completion::Result::invalidHandle));
     EXPECT_EQ(static_cast<uint32_t>(services::GattResult::disconnected), static_cast<uint32_t>(gatt::client::Completion::Result::disconnected));
     EXPECT_EQ(static_cast<uint32_t>(services::GattResult::unknown), static_cast<uint32_t>(gatt::client::Completion::Result::unknown));
+    EXPECT_EQ(static_cast<uint32_t>(services::GattResult::databaseOutOfSync), static_cast<uint32_t>(gatt::client::Completion::Result::databaseOutOfSync));
+    EXPECT_EQ(static_cast<uint32_t>(services::GattResult::valueNotAllowed), static_cast<uint32_t>(gatt::client::Completion::Result::valueNotAllowed));
+}
+
+TEST(GattProtoTest, the_established_completion_results_did_not_move)
+{
+    // Pins the values that existed before databaseOutOfSync and valueNotAllowed were appended.
+    // Inserting a value rather than appending one would renumber everything after it and break
+    // every port silently, so this fails loudly if anyone tries.
+    EXPECT_EQ(0u, static_cast<uint32_t>(services::GattResult::success));
+    EXPECT_EQ(11u, static_cast<uint32_t>(services::GattResult::unknown));
+    EXPECT_EQ(12u, static_cast<uint32_t>(services::GattResult::databaseOutOfSync));
+    EXPECT_EQ(13u, static_cast<uint32_t>(services::GattResult::valueNotAllowed));
 }
 
 TEST(GattProtoTest, round_trip_characteristic_data_carries_its_connection)

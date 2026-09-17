@@ -29,7 +29,11 @@ namespace services
         unsupported,
         disconnected,
         timeout,
-        unknown
+        unknown,
+        // Appended rather than inserted: TestGattProto asserts these values against their
+        // proto counterparts, so renumbering any of them silently breaks every port.
+        databaseOutOfSync,
+        valueNotAllowed
     };
 
     GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
