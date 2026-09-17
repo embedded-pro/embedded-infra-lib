@@ -10,9 +10,21 @@ The `services/ble` package provides the Generic Access Profile (GAP) and the Gen
 
 **HCI and the Link Layer** are out of scope. No opcodes, no transport, no Link Layer control PDUs. Only the vocabulary appears, in the connection state enums.
 
-**Direct Test Mode** is out of scope of this package. Its interface is `hal::BleDtm`, in `hal/`, which is the right home for it: DTM drives the controller directly and has nothing to say about GAP or GATT.
+**Direct Test Mode** is part of this package, as `services::BleDtm`. It used to sit in `hal/` while its ECHO
+service sat here, which left the two halves of one interface in different layers. It is a Bluetooth procedure
+described by the Core Specification, Volume 6, Part F, not a hardware abstraction, and like everything else
+here it is asynchronous: each procedure returns a `DtmRequestStatus` and reports through `onDone`. Its channel
+numbers, packet payloads and PHYs are the ones the specification defines. The unmodulated carrier it also
+exposes is *not* Direct Test Mode — controllers offer it through vendor-specific commands — and is named so
+that this is visible.
 
-**L2CAP is a non-goal.** LE Credit Based Flow Control channels, connection-oriented channels and signalling are all delegated to the vendor stack and are not modelled here. This is a decision rather than an oversight: a port that needs a CoC uses its stack's own API for it. The connection-parameter update path, which an application does need, is served by `GapPeripheral::SetConnectionParameters`.
+**L2CAP is a non-goal.** LE Credit Based Flow Control channels, connection-oriented channels and signalling
+are all delegated to the vendor stack and are not modelled here. This is a decision rather than an oversight:
+a port that needs a CoC uses its stack's own API for it. The connection-parameter update path, which an
+application does need, is served by `GapPeripheral::RequestConnectionParameterUpdate` on one side and
+`GapCentral::UpdateConnectionParameters` on the other. The names say which of the two decides: the central
+sets the parameters, in `CONNECT_IND` at establishment and by the connection update procedure afterwards, and
+a peripheral can only ask.
 
 **Enhanced ATT (EATT)** follows from that. It is multiple concurrent L2CAP CoC bearers per connection, so it presupposes the L2CAP layer above, and it would turn the single claim per connection described under GATT into a pool with a bearer-selection policy. It is not modelled.
 
@@ -89,6 +101,22 @@ The rules an implementation follows:
 Each role has its own result type, because the ways a procedure can end differ per role: `GapCentral::Result` distinguishes `cancelled`, `timeout` and `connectionFailed`; `GapPeripheral::Result` distinguishes `invalidParameter` and `controllerError`; pairing reports a `GapPairingResult`.
 
 Procedures that only read locally held state stay synchronous: `GetAddress`, `GetIdentityAddress`, `GetAdvertisementData`, `GetScanResponseData`, `ResolvePrivateAddress`, `GetNumberOfBonds`, `GetMaxNumberOfBonds`, `IsDeviceBonded` and `BondStrength`.
+
+### Connection and advertising parameters
+
+A procedure that leaves a radio parameter unnamed does not avoid choosing it — it lets each port choose, differently and invisibly. Three of them are
+therefore named at the call:
+
+- `GapCentral::Connect` takes a `GapConnectionParameters`. The initiator is what carries the interval, the peripheral latency and the supervision timeout in
+  `CONNECT_IND`, so this is the role that decides them; `GapCentral::UpdateConnectionParameters` changes them afterwards, and
+  `GapPeripheral::RequestConnectionParameterUpdate` only asks. `SupervisionTimeoutIsLongEnough` checks the relation the specification requires between the
+  three, which is the one way to get a set of parameters that the controller will take and the link will not survive.
+- `GapPeripheral::Advertise` takes a `GapAdvertisingParameters`: the type, the interval, the primary channels to advertise on, and the filter policy deciding
+  whose scan and connection requests are acted on.
+- `GapCentral::StartDeviceDiscovery` takes a `GapScanParameters`: interval, window and whether scanning is active or passive.
+
+Each has a documented default — `defaultConnectionParameters`, `defaultAdvertisingParameters`, `defaultScanParameters` — reachable through a shorter
+overload, so that the common case stays short and the default is one the module states rather than one each port invents.
 
 ### Pairing outcomes
 
