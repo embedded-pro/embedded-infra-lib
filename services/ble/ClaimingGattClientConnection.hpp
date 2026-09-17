@@ -42,24 +42,24 @@ namespace services
         {
             AttAttribute::Handle handle;
             AttAttribute::Handle endHandle;
-            const infra::Function<void(GattResult)> onDone;
+            infra::Function<void(GattResult)> onDone;
             DiscoveryProcedure procedure;
         };
 
         struct ReadOperation
         {
-            const infra::Function<void(GattResult, infra::ConstByteRange)> onDone;
+            infra::Function<void(GattResult, infra::ConstByteRange)> onDone;
         };
 
         struct WriteOperation
         {
             infra::ConstByteRange data;
-            const infra::Function<void(GattResult)> onDone;
+            infra::Function<void(GattResult)> onDone;
         };
 
         struct DescriptorOperation
         {
-            const infra::Function<void(GattResult)> onDone;
+            infra::Function<void(GattResult)> onDone;
             DiscoveryProcedure procedure;
         };
 
@@ -67,7 +67,7 @@ namespace services
         {
             using Operation = std::variant<ReadOperation, WriteOperation, DescriptorOperation>;
 
-            CharacteristicOperation(Operation operation, AttAttribute::Handle handle)
+            CharacteristicOperation(const Operation& operation, AttAttribute::Handle handle)
                 : operation(operation)
                 , handle(handle)
             {}

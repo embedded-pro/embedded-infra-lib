@@ -72,7 +72,7 @@ namespace services
         if (discoveryClaimer.IsClaimed() || discoveryClaimer.IsQueued())
             return GattRequestStatus::busy;
 
-        discoveryContext.emplace(DiscoveryOperation{ handle, endHandle, onDone, procedure });
+        discoveryContext.emplace(handle, endHandle, onDone, procedure);
 
         discoveryClaimer.Claim([this]()
             {

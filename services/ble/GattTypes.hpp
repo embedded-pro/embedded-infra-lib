@@ -57,8 +57,7 @@ namespace services
         AttAttribute::Handle Handle() const;
         AttAttribute::Handle& Handle();
 
-        bool operator==(const GattDescriptor& other) const;
-        bool operator!=(const GattDescriptor& other) const;
+        bool operator==(const GattDescriptor& other) const = default;
 
     private:
         AttAttribute::Uuid type;
@@ -109,7 +108,7 @@ namespace services
         AttAttribute::Handle ValueHandle() const;
         AttAttribute::Handle& ValueHandle();
 
-    protected:
+    private:
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle valueHandle;
@@ -119,7 +118,7 @@ namespace services
     class GattService
     {
     public:
-        GattService(const AttAttribute::Uuid& type);
+        explicit GattService(const AttAttribute::Uuid& type);
         GattService(const AttAttribute::Uuid& type, AttAttribute::Handle handle, AttAttribute::Handle endHandle);
 
         AttAttribute::Uuid Type() const;
@@ -129,7 +128,7 @@ namespace services
         AttAttribute::Handle& EndHandle();
         uint8_t GetAttributeCount() const;
 
-    protected:
+    private:
         AttAttribute::Uuid type;
         AttAttribute::Handle handle;
         AttAttribute::Handle endHandle;

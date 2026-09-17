@@ -8,7 +8,7 @@ namespace services
         if (operationWriteWithoutResponse)
             return GattRequestStatus::busy;
 
-        operationWriteWithoutResponse.emplace(Operation{ handle, data });
+        operationWriteWithoutResponse.emplace(handle, data);
         TryWriteWithoutResponse();
 
         return GattRequestStatus::accepted;

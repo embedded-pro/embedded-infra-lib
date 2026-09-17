@@ -39,7 +39,7 @@ namespace services
 
     AttAttribute::Handle GattServerCharacteristicImpl::CharacteristicHandle() const
     {
-        return handle;
+        return Handle();
     }
 
     void GattServerCharacteristicImpl::UpdateValue()

@@ -44,7 +44,7 @@ namespace services
         constexpr uint8_t attributeCountWithCCCD = 3;
 
         uint8_t baseAttributeCount;
-        if ((properties & (GattCharacteristic::PropertyFlags::notify | GattCharacteristic::PropertyFlags::indicate)) == GattCharacteristic::PropertyFlags::none)
+        if ((Properties() & (GattCharacteristic::PropertyFlags::notify | GattCharacteristic::PropertyFlags::indicate)) == GattCharacteristic::PropertyFlags::none)
             baseAttributeCount = attributeCountWithoutCCCD;
         else
             baseAttributeCount = attributeCountWithCCCD;
