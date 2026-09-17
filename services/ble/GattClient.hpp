@@ -15,6 +15,10 @@ namespace services
         using infra::Observer<GattClientObserver, GattClient>::Observer;
 
         virtual void ConnectionEstablished(infra::SharedPtr<GattClientConnection> connection) = 0;
+
+        // Reported when the link is gone. An observer that kept the SharedPtr it was given lets go
+        // of it here, since the connection holds its slot until the last holder does.
+        virtual void ConnectionReleased(GattClientConnection& connection) = 0;
     };
 
     class GattClient

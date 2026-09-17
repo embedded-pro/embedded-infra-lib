@@ -50,6 +50,11 @@ namespace
 
         void Release(const infra::SharedPtr<services::GattClientConnection>& connection)
         {
+            NotifyObservers([&connection](auto& observer)
+                {
+                    observer.ConnectionReleased(*connection);
+                });
+
             established.erase(std::remove_if(established.begin(), established.end(), [&connection](const auto& each)
                                   {
                                       return each == connection;
@@ -163,6 +168,7 @@ TEST_F(GattClientTest, a_connection_outlives_the_stack_reference_while_a_holder_
     EXPECT_CALL(observer, ConnectionEstablished(testing::_));
     auto connection = gattClient.Establish();
 
+    EXPECT_CALL(observer, ConnectionReleased(testing::_));
     gattClient.Release(connection);
 
     EXPECT_EQ(0, gattClient.NumberOfConnections());
@@ -175,6 +181,7 @@ TEST_F(GattClientTest, a_released_slot_is_reused_only_once_the_last_holder_lets_
     auto first = gattClient.Establish();
     auto second = gattClient.Establish();
 
+    EXPECT_CALL(observer, ConnectionReleased(testing::_));
     gattClient.Release(first);
     EXPECT_EQ(nullptr, gattClient.Establish());
 
@@ -192,8 +199,18 @@ TEST_F(GattClientTest, a_weak_pointer_to_an_expired_connection_no_longer_locks)
     infra::WeakPtr<services::GattClientConnection> weakConnection = connection;
     EXPECT_NE(nullptr, weakConnection.lock());
 
+    EXPECT_CALL(observer, ConnectionReleased(testing::_));
     gattClient.Release(connection);
     connection = nullptr;
 
     EXPECT_EQ(nullptr, weakConnection.lock());
+}
+
+TEST_F(GattClientTest, reports_a_released_connection_to_its_observer)
+{
+    EXPECT_CALL(observer, ConnectionEstablished(testing::_));
+    auto connection = gattClient.Establish();
+
+    EXPECT_CALL(observer, ConnectionReleased(testing::Ref(*connection)));
+    gattClient.Release(connection);
 }

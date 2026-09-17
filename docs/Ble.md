@@ -131,7 +131,17 @@ only once the last holder lets go, and an action that may outlive its connection
 
 A connection completes its outstanding operations when its link is lost, reporting
 `GattResult::disconnected`. That is what releases the claims a decorator holds, so nothing
-has to watch a GAP role to notice a disconnection.
+has to watch a GAP role to notice a disconnection. The link going away is reported to
+`GattClientObserver::ConnectionReleased`, which is where an application that kept the
+`infra::SharedPtr` it was handed lets go of it; until it does, the connection holds its slot.
+
+An indication is acknowledged exactly once. Every `GattClientUpdateObserver` on a connection
+sees every indication, and a `GattClientCharacteristic` that the handle does not belong to
+finishes immediately, so whoever hands an indication to the observers must give each of them
+its own completion and report upwards only after the last one is done. `GattIndicationFanOut`
+does that, and both the decorator and a stack implementation deliver through it. Acknowledging
+per observer instead would send one `IndicationDone` per characteristic, and would confirm the
+indication before the characteristic it belongs to had finished with it.
 
 ### Asynchronous operations
 
@@ -164,8 +174,11 @@ connection->DiscoverCharacteristics(service, [this](GattResult result)
 ```
 
 `WriteWithoutResponse` has no ATT response to wait for, so it has no completion callback at
-all. Its only outcome is whether the stack took it, which is `accepted` or `busy`;
-`RetryingGattClientConnection` decorates a connection to re-attempt it while it is `busy`.
+all. Its only outcome is whether the stack took it, which the caller reads from the returned
+status. `RetryingGattClientConnection` decorates a connection to re-attempt it while the
+stack answers `busy`, on a timer so that a stack which stays busy cannot monopolise the event
+dispatcher, and the timer abandons a pending attempt when the decorator is destroyed. Any
+other refusal is the caller's to see, so it is returned unchanged rather than retried.
 
 `EffectiveMaxAttMtuSize` reads locally held state and stays synchronous.
 

@@ -21,6 +21,7 @@ namespace services
         using GattClientObserver::GattClientObserver;
 
         MOCK_METHOD(void, ConnectionEstablished, (infra::SharedPtr<GattClientConnection> connection), (override));
+        MOCK_METHOD(void, ConnectionReleased, (GattClientConnection & connection), (override));
     };
 }
 
