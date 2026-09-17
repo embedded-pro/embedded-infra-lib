@@ -127,6 +127,21 @@ namespace services
         return GattClientConnectionObserver::Subject().WriteWithoutResponse(handle, data);
     }
 
+    GattRequestStatus GattClientConnectionDecorator::ReadBlob(AttAttribute::Handle handle, uint16_t offset, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone)
+    {
+        return GattClientConnectionObserver::Subject().ReadBlob(handle, offset, onDone);
+    }
+
+    GattRequestStatus GattClientConnectionDecorator::PrepareWrite(AttAttribute::Handle handle, uint16_t offset, infra::ConstByteRange data, const infra::Function<void(GattResult, uint16_t, infra::ConstByteRange)>& onDone)
+    {
+        return GattClientConnectionObserver::Subject().PrepareWrite(handle, offset, data, onDone);
+    }
+
+    GattRequestStatus GattClientConnectionDecorator::ExecuteWrite(GattExecuteWriteFlag flag, const infra::Function<void(GattResult)>& onDone)
+    {
+        return GattClientConnectionObserver::Subject().ExecuteWrite(flag, onDone);
+    }
+
     GattRequestStatus GattClientConnectionDecorator::EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone)
     {
         return GattClientConnectionObserver::Subject().EnableNotification(handle, onDone);

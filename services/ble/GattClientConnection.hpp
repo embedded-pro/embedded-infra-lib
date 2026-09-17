@@ -68,6 +68,17 @@ namespace services
         virtual GattRequestStatus Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone) = 0;
         virtual GattRequestStatus WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data) = 0;
 
+        // The single-PDU procedures a long read or long write is composed from. Each is one
+        // request and one response, so the status and onDone contract above holds for them
+        // unchanged. Composing them is GattClientLongOperations' job, not a caller's.
+        virtual GattRequestStatus ReadBlob(AttAttribute::Handle handle, uint16_t offset, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone) = 0;
+
+        // onDone receives the offset and value the peer echoed back. The specification requires
+        // the client to verify that echo and to cancel the queue when it does not match, so a
+        // completion that dropped them would make conformant behaviour impossible.
+        virtual GattRequestStatus PrepareWrite(AttAttribute::Handle handle, uint16_t offset, infra::ConstByteRange data, const infra::Function<void(GattResult, uint16_t, infra::ConstByteRange)>& onDone) = 0;
+        virtual GattRequestStatus ExecuteWrite(GattExecuteWriteFlag flag, const infra::Function<void(GattResult)>& onDone) = 0;
+
         virtual GattRequestStatus EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) = 0;
         virtual GattRequestStatus DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) = 0;
         virtual GattRequestStatus EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) = 0;
@@ -104,6 +115,9 @@ namespace services
         GattRequestStatus Read(AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone) override;
         GattRequestStatus Write(AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus WriteWithoutResponse(AttAttribute::Handle handle, infra::ConstByteRange data) override;
+        GattRequestStatus ReadBlob(AttAttribute::Handle handle, uint16_t offset, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone) override;
+        GattRequestStatus PrepareWrite(AttAttribute::Handle handle, uint16_t offset, infra::ConstByteRange data, const infra::Function<void(GattResult, uint16_t, infra::ConstByteRange)>& onDone) override;
+        GattRequestStatus ExecuteWrite(GattExecuteWriteFlag flag, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus EnableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus DisableNotification(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;
         GattRequestStatus EnableIndication(AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone) override;

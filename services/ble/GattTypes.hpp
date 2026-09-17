@@ -39,6 +39,13 @@ namespace services
 
     GattResult GattResultFromAttErrorCode(uint8_t attErrorCode);
 
+    // Bluetooth Core Specification, Volume 3, Part F, section 3.4.6.3
+    enum class GattExecuteWriteFlag : uint8_t
+    {
+        cancel = 0x00u,
+        write = 0x01u
+    };
+
     // The value of the Service Changed characteristic, 0x2A05: the handle range whose
     // definitions changed.
     // Bluetooth Core Specification, Volume 3, Part G, section 7.1

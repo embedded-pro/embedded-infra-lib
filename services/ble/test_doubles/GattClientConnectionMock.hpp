@@ -21,6 +21,9 @@ namespace services
         MOCK_METHOD(GattRequestStatus, Read, (AttAttribute::Handle handle, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone), (override));
         MOCK_METHOD(GattRequestStatus, Write, (AttAttribute::Handle handle, infra::ConstByteRange data, const infra::Function<void(GattResult)>& onDone), (override));
         MOCK_METHOD(GattRequestStatus, WriteWithoutResponse, (AttAttribute::Handle handle, infra::ConstByteRange data), (override));
+        MOCK_METHOD(GattRequestStatus, ReadBlob, (AttAttribute::Handle handle, uint16_t offset, const infra::Function<void(GattResult, infra::ConstByteRange)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, PrepareWrite, (AttAttribute::Handle handle, uint16_t offset, infra::ConstByteRange data, const infra::Function<void(GattResult, uint16_t, infra::ConstByteRange)>& onDone), (override));
+        MOCK_METHOD(GattRequestStatus, ExecuteWrite, (GattExecuteWriteFlag flag, const infra::Function<void(GattResult)>& onDone), (override));
 
         MOCK_METHOD(GattRequestStatus, EnableNotification, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
         MOCK_METHOD(GattRequestStatus, DisableNotification, (AttAttribute::Handle handle, const infra::Function<void(GattResult)>& onDone), (override));
