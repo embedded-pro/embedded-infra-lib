@@ -4,7 +4,7 @@
 #include "infra/event/ClaimableResource.hpp"
 #include "infra/util/Function.hpp"
 #include "optional"
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapCentral.hpp"
 #include "services/ble/Gatt.hpp"
 #include "services/ble/GattClient.hpp"
 #include <cstdint>
@@ -58,7 +58,7 @@ namespace services
 
         // Implementation of GapCentralObserver
         void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) override;
-        void StateChanged(GapState state) override;
+        void StateChanged(GapCentralState state) override;
 
     private:
         void PerformDescriptorOperation();

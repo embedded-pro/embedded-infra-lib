@@ -1,7 +1,7 @@
 #ifndef SERVICES_GAP_PAIRING_OBSERVER_MOCK_HPP
 #define SERVICES_GAP_PAIRING_OBSERVER_MOCK_HPP
 
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapPairing.hpp"
 #include "gmock/gmock.h"
 
 namespace services
@@ -14,7 +14,7 @@ namespace services
 
         MOCK_METHOD(void, DisplayPasskey, (int32_t passkey, bool numericComparison), (override));
         MOCK_METHOD(void, PairingSuccessfullyCompleted, (), (override));
-        MOCK_METHOD(void, PairingFailed, (PairingErrorType error), (override));
+        MOCK_METHOD(void, PairingFailed, (GapPairingResult error), (override));
         MOCK_METHOD(void, OutOfBandDataGenerated, (const GapOutOfBandData& outOfBandData), (override));
     };
 }

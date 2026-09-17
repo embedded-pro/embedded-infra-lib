@@ -1,5 +1,6 @@
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
-#include "services/ble/Gap.hpp"
+#include "infra/util/test_helper/MockCallback.hpp"
+#include "services/ble/GapBonding.hpp"
 #include "services/ble/test_doubles/GapBondingMock.hpp"
 #include "services/ble/test_doubles/GapBondingObserverMock.hpp"
 #include "gmock/gmock.h"
@@ -12,9 +13,19 @@ namespace services
             : public testing::Test
         {
         public:
-            GapBondingMock gapBonding;
+            testing::StrictMock<GapBondingMock> gapBonding;
             GapBondingDecorator decorator{ gapBonding };
-            GapBondingObserverMock gapBondingObserver{ decorator };
+            testing::StrictMock<GapBondingObserverMock> gapBondingObserver{ decorator };
+
+            testing::StrictMock<infra::MockCallback<void()>> onDoneNotExpected;
+
+            infra::Function<void()> RejectedCallback()
+            {
+                return [this]()
+                {
+                    onDoneNotExpected.callback();
+                };
+            }
         };
     }
 
@@ -28,14 +39,8 @@ namespace services
             });
     }
 
-    TEST_F(GapBondingDecoratorTest, forward_all_calls_to_subject)
+    TEST_F(GapBondingDecoratorTest, forward_all_getters_to_subject)
     {
-        EXPECT_CALL(gapBonding, RemoveAllBonds());
-        decorator.RemoveAllBonds();
-
-        EXPECT_CALL(gapBonding, RemoveOldestBond());
-        decorator.RemoveOldestBond();
-
         EXPECT_CALL(gapBonding, GetMaxNumberOfBonds()).WillOnce(testing::Return(5));
         EXPECT_EQ(decorator.GetMaxNumberOfBonds(), 5);
 
@@ -43,12 +48,42 @@ namespace services
         EXPECT_EQ(decorator.GetNumberOfBonds(), 5);
 
         hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
-        services::GapDeviceAddressType addressType = services::GapDeviceAddressType::randomAddress;
+        GapDeviceAddressType addressType = GapDeviceAddressType::randomAddress;
 
         EXPECT_CALL(gapBonding, IsDeviceBonded(mac, addressType)).WillOnce(testing::Return(true));
         EXPECT_THAT(decorator.IsDeviceBonded(mac, addressType), testing::IsTrue());
 
         EXPECT_CALL(gapBonding, IsDeviceBonded(mac, addressType)).WillOnce(testing::Return(false));
         EXPECT_THAT(decorator.IsDeviceBonded(mac, addressType), testing::IsFalse());
+    }
+
+    TEST_F(GapBondingDecoratorTest, remove_all_bonds_forwards_request_and_completion)
+    {
+        EXPECT_CALL(gapBonding, RemoveAllBonds(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.RemoveAllBonds(infra::VerifyingFunction<void()>()));
+    }
+
+    TEST_F(GapBondingDecoratorTest, remove_all_bonds_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gapBonding, RemoveAllBonds(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.RemoveAllBonds(RejectedCallback()));
+    }
+
+    TEST_F(GapBondingDecoratorTest, remove_oldest_bond_forwards_request_and_completion)
+    {
+        EXPECT_CALL(gapBonding, RemoveOldestBond(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.RemoveOldestBond(infra::VerifyingFunction<void()>()));
+    }
+
+    TEST_F(GapBondingDecoratorTest, remove_oldest_bond_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gapBonding, RemoveOldestBond(testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));
+
+        EXPECT_EQ(GapRequestStatus::busy, decorator.RemoveOldestBond(RejectedCallback()));
     }
 }

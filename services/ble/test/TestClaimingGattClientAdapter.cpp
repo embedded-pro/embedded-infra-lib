@@ -367,7 +367,7 @@ TEST_F(ClaimingGattClientAdapterTest, should_release_claimer_when_disconnected)
     adapter.MtuExchange();
     ExecuteAllActions();
 
-    gapCentral.ChangeState(services::GapState::standby);
+    gapCentral.ChangeState(services::GapCentralState::standby);
 
     EXPECT_CALL(attMtuExchange, MtuExchange());
     adapter.MtuExchange();

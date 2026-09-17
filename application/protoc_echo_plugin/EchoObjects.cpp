@@ -1,4 +1,5 @@
 #include "application/protoc_echo_plugin/EchoObjects.hpp"
+#include "absl/strings/str_split.h"
 #include "generated/EchoAttributes.pb.h"
 #include "google/protobuf/compiler/cpp/helpers.h"
 #include "infra/syntax/ProtoFormatter.hpp"
@@ -7,11 +8,21 @@ namespace application
 {
     namespace
     {
+        std::string NamespaceOfPackage(std::string_view package)
+        {
+            std::string result;
+
+            for (auto part : absl::StrSplit(package, '.'))
+                result += std::string(part) + "::";
+
+            return result;
+        }
+
         std::string QualifiedName(const google::protobuf::Descriptor& descriptor)
         {
             std::string namespaceString;
 
-            namespaceString = std::string(descriptor.file()->package()) + "::";
+            namespaceString = NamespaceOfPackage(descriptor.file()->package());
             for (auto containingType = descriptor.containing_type(); containingType != nullptr; containingType = containingType->containing_type())
                 namespaceString += std::string(containingType->name()) + "::";
 
@@ -22,7 +33,7 @@ namespace application
         {
             std::string namespaceString;
 
-            namespaceString = std::string(descriptor.file()->package()) + "::";
+            namespaceString = NamespaceOfPackage(descriptor.file()->package());
             for (auto containingType = descriptor.containing_type(); containingType != nullptr; containingType = containingType->containing_type())
                 namespaceString += std::string(containingType->name()) + "::";
 
@@ -33,7 +44,7 @@ namespace application
         {
             std::string namespaceString;
 
-            namespaceString = std::string(descriptor.file()->package()) + "::";
+            namespaceString = NamespaceOfPackage(descriptor.file()->package());
 
             if (descriptor.containing_type() != nullptr)
             {
@@ -50,7 +61,7 @@ namespace application
         {
             std::string namespaceString;
 
-            namespaceString = std::string(descriptor.file()->package()) + "::";
+            namespaceString = NamespaceOfPackage(descriptor.file()->package());
             for (auto containingType = descriptor.containing_type(); containingType != nullptr; containingType = containingType->containing_type())
                 namespaceString += std::string(containingType->name()) + "Reference::";
 
@@ -61,7 +72,7 @@ namespace application
         {
             std::string namespaceString;
 
-            namespaceString = std::string(descriptor.file()->package()) + "::";
+            namespaceString = NamespaceOfPackage(descriptor.file()->package());
 
             if (descriptor.containing_type() != nullptr)
             {
@@ -78,7 +89,7 @@ namespace application
         {
             std::string namespaceString;
 
-            namespaceString = std::string(descriptor.file()->package()) + "::";
+            namespaceString = NamespaceOfPackage(descriptor.file()->package());
 
             if (descriptor.containing_type() != nullptr)
             {

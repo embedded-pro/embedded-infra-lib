@@ -1,7 +1,7 @@
 #include "infra/stream/StringOutputStream.hpp"
-#include "infra/util/ByteRange.hpp"
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
-#include "services/ble/Gap.hpp"
+#include "infra/util/test_helper/MockCallback.hpp"
+#include "services/ble/GapCentral.hpp"
 #include "services/ble/test_doubles/GapCentralMock.hpp"
 #include "services/ble/test_doubles/GapCentralObserverMock.hpp"
 #include "gmock/gmock.h"
@@ -15,9 +15,20 @@ namespace services
             : public testing::Test
         {
         public:
-            GapCentralMock gap;
+            testing::StrictMock<GapCentralMock> gap;
             GapCentralDecorator decorator{ gap };
-            GapCentralObserverMock gapObserver{ decorator };
+            testing::StrictMock<GapCentralObserverMock> gapObserver{ decorator };
+
+            hal::MacAddress macAddress{ 0, 1, 2, 3, 4, 5 };
+            testing::StrictMock<infra::MockCallback<void(GapCentral::Result)>> onDoneNotExpected;
+
+            infra::Function<void(GapCentral::Result)> RejectedCallback()
+            {
+                return [this](GapCentral::Result result)
+                {
+                    onDoneNotExpected.callback(result);
+                };
+            }
         };
     }
 
@@ -33,23 +44,23 @@ namespace services
 
     TEST_F(GapCentralDecoratorTest, forward_all_state_changed_events_to_observers)
     {
-        EXPECT_CALL(gapObserver, StateChanged(GapState::connected));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::initiating));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::scanning));
-        EXPECT_CALL(gapObserver, StateChanged(GapState::standby));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::connected));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::initiating));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::scanning));
+        EXPECT_CALL(gapObserver, StateChanged(GapCentralState::standby));
 
         gap.NotifyObservers([](GapCentralObserver& obs)
             {
-                obs.StateChanged(GapState::connected);
-                obs.StateChanged(GapState::initiating);
-                obs.StateChanged(GapState::scanning);
-                obs.StateChanged(GapState::standby);
+                obs.StateChanged(GapCentralState::connected);
+                obs.StateChanged(GapCentralState::initiating);
+                obs.StateChanged(GapCentralState::scanning);
+                obs.StateChanged(GapCentralState::standby);
             });
     }
 
     TEST_F(GapCentralDecoratorTest, forward_device_discovered_event_to_observers)
     {
-        GapAdvertisingReport deviceDiscovered{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress, hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::BoundedVector<uint8_t>::WithMaxSize<GapPeripheral::maxAdvertisementDataSize>{}, -75 };
+        GapAdvertisingReport deviceDiscovered{ GapAdvertisingEventType::advInd, GapDeviceAddressType::publicAddress, hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, infra::BoundedVector<uint8_t>::WithMaxSize<gapMaxAdvertisementDataSize>{}, -75 };
 
         EXPECT_CALL(gapObserver, DeviceDiscovered(ObjectContentsEqual(deviceDiscovered)));
 
@@ -59,213 +70,119 @@ namespace services
             });
     }
 
-    TEST_F(GapCentralDecoratorTest, forward_all_calls_to_subject)
+    TEST_F(GapCentralDecoratorTest, forward_resolve_private_address_to_subject)
     {
-        hal::MacAddress macAddress{ 0, 1, 2, 3, 4, 5 };
+        EXPECT_CALL(gap, ResolvePrivateAddress(macAddress)).WillOnce(testing::Return(std::nullopt));
+        EXPECT_EQ(decorator.ResolvePrivateAddress(macAddress), std::nullopt);
 
-        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), services::GapDeviceAddressType::publicAddress, infra::Duration{ 0 }));
-        decorator.Connect(macAddress, services::GapDeviceAddressType::publicAddress, std::chrono::seconds(0));
-
-        EXPECT_CALL(gap, CancelConnect());
-        decorator.CancelConnect();
-
-        EXPECT_CALL(gap, Disconnect());
-        decorator.Disconnect();
-
-        EXPECT_CALL(gap, SetAddress(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress));
-        decorator.SetAddress(macAddress, GapDeviceAddressType::publicAddress);
-
-        EXPECT_CALL(gap, StartDeviceDiscovery());
-        decorator.StartDeviceDiscovery();
-
-        EXPECT_CALL(gap, StopDeviceDiscovery());
-        decorator.StopDeviceDiscovery();
-
-        hal::MacAddress mac = { 0x00, 0x1A, 0x7D, 0xDA, 0x71, 0x13 };
-        EXPECT_CALL(gap, ResolvePrivateAddress(mac)).WillOnce(testing::Return(std::nullopt));
-        EXPECT_EQ(decorator.ResolvePrivateAddress(mac), std::nullopt);
-
-        EXPECT_CALL(gap, ResolvePrivateAddress(mac)).WillOnce(testing::Return(std::make_optional(mac)));
-        EXPECT_EQ(decorator.ResolvePrivateAddress(mac), mac);
+        EXPECT_CALL(gap, ResolvePrivateAddress(macAddress)).WillOnce(testing::Return(std::make_optional(macAddress)));
+        EXPECT_EQ(decorator.ResolvePrivateAddress(macAddress), macAddress);
     }
 
-    TEST(GapAdvertisingDataParserTest, payload_too_small)
+    TEST_F(GapCentralDecoratorTest, connect_forwards_request_and_result)
     {
-        std::array<uint8_t, 1> data{ { 0x00 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
+        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ(infra::ConstByteRange(), gapAdvertisingDataParser.LocalName());
-        EXPECT_FALSE(gapAdvertisingDataParser.ManufacturerSpecificData());
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(macAddress, GapDeviceAddressType::publicAddress, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
-    TEST(GapAdvertisingDataParserTest, payload_does_not_contain_valid_info)
+    TEST_F(GapCentralDecoratorTest, connect_forwards_timeout_result)
     {
-        std::array<uint8_t, 2> data{ { 0x03, 0x02 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
+        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress, infra::Duration{ 0 }, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapCentral::Result::timeout), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ(infra::ConstByteRange(), gapAdvertisingDataParser.LocalName());
-        EXPECT_FALSE(gapAdvertisingDataParser.ManufacturerSpecificData());
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Connect(macAddress, GapDeviceAddressType::publicAddress, std::chrono::seconds(0), infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::timeout)));
     }
 
-    TEST(GapAdvertisingDataParserTest, payload_does_not_contain_valid_length)
+    TEST_F(GapCentralDecoratorTest, connect_forwards_rejection_without_invoking_callback)
     {
-        const std::array<uint8_t, 14> data{ { 0x05, 0xff, 0xaa, 0xbb, 0xcc, 0xdd, 0xaa, 0x09, 0x73, 0x74, 0x72, 0x69, 0x6E, 0x67 } };
-        const std::array<uint8_t, 2> payloadParser{ { 0xcc, 0xdd } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto manufacturerSpecificData = gapAdvertisingDataParser.ManufacturerSpecificData();
+        EXPECT_CALL(gap, Connect(MacAddressContentsEqual(macAddress), GapDeviceAddressType::publicAddress, infra::Duration{ 0 }, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
-        EXPECT_EQ(infra::ConstByteRange(), gapAdvertisingDataParser.LocalName());
-        EXPECT_TRUE(manufacturerSpecificData);
-        EXPECT_EQ(0xbbaa, manufacturerSpecificData->first);
-        EXPECT_TRUE(infra::ContentsEqual(infra::MakeRange(payloadParser), manufacturerSpecificData->second));
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.Connect(macAddress, GapDeviceAddressType::publicAddress, std::chrono::seconds(0), RejectedCallback()));
     }
 
-    TEST(GapAdvertisingDataParserTest, get_local_name_using_type_shortenedLocalName)
+    TEST_F(GapCentralDecoratorTest, cancel_connect_forwards_request_and_result)
     {
-        std::array<uint8_t, 5> data{ { 0x04, 0x08, 0x73, 0x74, 0x72 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
+        EXPECT_CALL(gap, CancelConnect(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::cancelled), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ("str", ByteRangeAsStdString(gapAdvertisingDataParser.LocalName()));
-        EXPECT_FALSE(gapAdvertisingDataParser.ManufacturerSpecificData());
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.CancelConnect(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::cancelled)));
     }
 
-    TEST(GapAdvertisingDataParserTest, get_local_name_using_type_completeLocalName)
+    TEST_F(GapCentralDecoratorTest, cancel_connect_forwards_rejection_without_invoking_callback)
     {
-        std::array<uint8_t, 8> data{ { 0x07, 0x09, 0x73, 0x74, 0x72, 0x69, 0x6E, 0x67 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
+        EXPECT_CALL(gap, CancelConnect(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
-        EXPECT_EQ("string", ByteRangeAsStdString(gapAdvertisingDataParser.LocalName()));
-        EXPECT_FALSE(gapAdvertisingDataParser.ManufacturerSpecificData());
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.CancelConnect(RejectedCallback()));
     }
 
-    TEST(GapAdvertisingDataParserTest, get_manufacturer_specific_data)
+    TEST_F(GapCentralDecoratorTest, disconnect_forwards_request_and_result)
     {
-        const std::array<uint8_t, 6> data{ { 0x05, 0xff, 0xaa, 0xbb, 0xcc, 0xdd } };
-        const std::array<uint8_t, 2> payloadParser{ { 0xcc, 0xdd } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto manufacturerSpecificData = gapAdvertisingDataParser.ManufacturerSpecificData();
+        EXPECT_CALL(gap, Disconnect(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ(infra::ConstByteRange(), gapAdvertisingDataParser.LocalName());
-        EXPECT_TRUE(manufacturerSpecificData);
-        EXPECT_EQ(0xbbaa, manufacturerSpecificData->first);
-        EXPECT_TRUE(infra::ContentsEqual(infra::MakeRange(payloadParser), manufacturerSpecificData->second));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Disconnect(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
-    TEST(GapAdvertisingDataParserTest, get_appearance_value)
+    TEST_F(GapCentralDecoratorTest, disconnect_forwards_rejection_without_invoking_callback)
     {
-        const std::array<uint8_t, 4> data = { 0x03, 0x19, 0xC1, 0x03 };
+        EXPECT_CALL(gap, Disconnect(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
-        services::GapAdvertisingDataParser parser(infra::MakeConstByteRange(data));
-
-        auto appearance = parser.Appearance();
-
-        ASSERT_TRUE(appearance);
-        EXPECT_EQ(0x03C1, *appearance);
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.Disconnect(RejectedCallback()));
     }
 
-    TEST(GapAdvertisingDataParserTest, useful_info_after_first_ad_structure)
+    TEST_F(GapCentralDecoratorTest, set_address_forwards_request_and_result)
     {
-        const std::array<uint8_t, 21> data{ { 0x02, 0x01, 0x06, 0x08, 0x09, 0x70, 0x68, 0x69, 0x6C, 0x69, 0x70, 0x73, 0x02, 0x0a, 0x08, 0x05, 0xff, 0xaa, 0xbb, 0xcc, 0xdd } };
-        const std::array<uint8_t, 2> payloadParser{ { 0xcc, 0xdd } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto manufacturerSpecificData = gapAdvertisingDataParser.ManufacturerSpecificData();
+        EXPECT_CALL(gap, SetAddress(MacAddressContentsEqual(macAddress), GapDeviceAddressType::randomAddress, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_EQ("philips", ByteRangeAsStdString(gapAdvertisingDataParser.LocalName()));
-        EXPECT_TRUE(manufacturerSpecificData);
-        EXPECT_EQ(0xbbaa, manufacturerSpecificData->first);
-        EXPECT_TRUE(infra::ContentsEqual(infra::MakeRange(payloadParser), manufacturerSpecificData->second));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetAddress(macAddress, GapDeviceAddressType::randomAddress, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
-    TEST(GapAdvertisingDataParserTest, complete_list_of_16bit_services)
+    TEST_F(GapCentralDecoratorTest, set_address_forwards_rejection_without_invoking_callback)
     {
-        const std::array<uint8_t, 6> data{ { 0x05, 0x03, 0x34, 0x12, 0x78, 0x56 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf16BitUuids();
+        EXPECT_CALL(gap, SetAddress(MacAddressContentsEqual(macAddress), GapDeviceAddressType::randomAddress, testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
 
-        ASSERT_EQ(2u, services.size());
-        EXPECT_EQ(0x1234, services[0]);
-        EXPECT_EQ(0x5678, services[1]);
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetAddress(macAddress, GapDeviceAddressType::randomAddress, RejectedCallback()));
     }
 
-    TEST(GapAdvertisingDataParserTest, invalid_list_of_16bit_services)
+    TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_request_and_result)
     {
-        const std::array<uint8_t, 5> data{ { 0x04, 0x03, 0x34, 0x12, 0x78 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf16BitUuids();
+        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_TRUE(services.empty());
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StartDeviceDiscovery(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
-    TEST(GapAdvertisingDataParserTest, complete_list_of_128bit_services)
+    TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_rejection_without_invoking_callback)
     {
-        const std::array<uint8_t, 22> data{ { 0x11, 0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f } };
-        const std::array<uint8_t, 16> service1{ { 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf128BitUuids();
+        EXPECT_CALL(gap, StartDeviceDiscovery(testing::_)).WillOnce(testing::Return(GapRequestStatus::busy));
 
-        ASSERT_EQ(1u, services.size());
-        std::array<uint8_t, 16> parsedUuid = services[0];
-        EXPECT_THAT(parsedUuid, testing::ContainerEq(service1));
+        EXPECT_EQ(GapRequestStatus::busy, decorator.StartDeviceDiscovery(RejectedCallback()));
     }
 
-    TEST(GapAdvertisingDataParserTest, invalid_list_of_128bit_services)
+    TEST_F(GapCentralDecoratorTest, stop_device_discovery_forwards_request_and_result)
     {
-        const std::array<uint8_t, 21> data{ { 0x10, 0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeRange(data));
-        auto services = gapAdvertisingDataParser.CompleteListOf128BitUuids();
+        EXPECT_CALL(gap, StopDeviceDiscovery(testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<0>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
 
-        EXPECT_TRUE(services.empty());
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.StopDeviceDiscovery(infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
     }
 
-    TEST(GapAdvertisingDataParserTest, flags_not_present)
+    TEST_F(GapCentralDecoratorTest, stop_device_discovery_forwards_rejection_without_invoking_callback)
     {
-        const std::array<uint8_t, 2> data{ { 0x00, 0x00 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
+        EXPECT_CALL(gap, StopDeviceDiscovery(testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
 
-        EXPECT_FALSE(gapAdvertisingDataParser.Flags());
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.StopDeviceDiscovery(RejectedCallback()));
     }
 
-    TEST(GapAdvertisingDataParserTest, flags_present)
-    {
-        const std::array<uint8_t, 3> data{ { 0x02, 0x01, 0x06 } };
-        services::GapAdvertisingDataParser gapAdvertisingDataParser(infra::MakeConstByteRange(data));
-
-        EXPECT_TRUE(gapAdvertisingDataParser.Flags());
-        EXPECT_EQ(GapPeripheral::AdvertisementFlags::leGeneralDiscoverableMode | GapPeripheral::AdvertisementFlags::brEdrNotSupported, *gapAdvertisingDataParser.Flags());
-    }
-
-    TEST(GapInsertionOperatorEventTypeTest, event_type_overload_operator)
+    TEST(GapCentralInsertionOperatorStateTest, state_overload_operator)
     {
         infra::StringOutputStream::WithStorage<128> stream;
 
-        auto eventTypeAdvInd = services::GapAdvertisingEventType::advInd;
-        auto eventTypeAdvDirectInd = services::GapAdvertisingEventType::advDirectInd;
-        auto eventTypeAdvScanInd = services::GapAdvertisingEventType::advScanInd;
-        auto eventTypeAdvNonconnInd = services::GapAdvertisingEventType::advNonconnInd;
-        auto eventTypeScanResponse = services::GapAdvertisingEventType::scanResponse;
+        stream << GapCentralState::standby << " " << GapCentralState::scanning << " " << GapCentralState::initiating << " " << GapCentralState::connected;
 
-        stream << eventTypeAdvInd << " " << eventTypeAdvDirectInd << " " << eventTypeAdvScanInd << " " << eventTypeAdvNonconnInd << " " << eventTypeScanResponse;
-
-        EXPECT_EQ("ADV_IND ADV_DIRECT_IND ADV_SCAN_IND ADV_NONCONN_IND SCAN_RESPONSE", stream.Storage());
-    }
-
-    TEST(GapInsertionOperatorEventAddressTypeTest, address_event_type_overload_operator)
-    {
-        infra::StringOutputStream::WithStorage<128> stream;
-
-        auto eventAddressTypePublicDevice = services::GapDeviceAddressType::publicAddress;
-        auto eventAddressTypeRandomDevice = services::GapDeviceAddressType::randomAddress;
-        stream << eventAddressTypePublicDevice << " " << eventAddressTypeRandomDevice;
-
-        EXPECT_EQ("Public Device Address Random Device Address", stream.Storage());
-    }
-
-    TEST(GapInsertionOperatorStateTest, state_overload_operator)
-    {
-        infra::StringOutputStream::WithStorage<128> stream;
-
-        stream << services::GapState::standby << " " << services::GapState::scanning << " " << services::GapState::advertising << " " << services::GapState::connected << " " << services::GapState::initiating;
-
-        EXPECT_EQ("Standby Scanning Advertising Connected Initiating", stream.Storage());
+        EXPECT_EQ("Standby Scanning Initiating Connected", stream.Storage());
     }
 }

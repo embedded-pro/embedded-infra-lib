@@ -2,31 +2,31 @@ syntax = "proto3";
 
 import "EchoAttributes.proto";
 
-package gap;
+package gap.central;
 option java_package = "com.philips.emil.protobufEcho";
-option java_outer_classname = "GapProto";
+option java_outer_classname = "GapCentralProto";
 
 message Address
 {
     bytes address = 1 [(bytes_size) = 6];
 }
 
-// Link layer states of a device in a Peripheral or Central role
-// Peripheral role states are standby, connected and advertising.
-// Central role states are standby, scanning, connected and initiating.
+// Link layer states of a device in a Central role
+// Central role states are standby, scanning, initiating and connected.
 // Allowed transitions are as follows.
 // 1. Every state can go to standby.
 // 2. Every state can be entered from standby except the connected state.
-// 3. Connected state can only be entered from advertising and initiating states.
-// For further details refer to Section 1.1, BLUETOOTH CORE SPECIFICATION Version 5.3 | Vol 6, Part B  
+// 3. Connected state can only be entered from initiating.
+// For further details refer to Section 1.1, BLUETOOTH CORE SPECIFICATION Version 5.3 | Vol 6, Part B
 message State
 {
     enum Event
     {
+        reserved 3;
+
         standby = 0;
         scanning = 1;
         connected = 2;
-        advertising = 3;
         initiating = 4;
     }
     Event value = 1;
@@ -36,38 +36,14 @@ message IoCapabilities
 {
     enum IoCapabilitiesEnum
     {
-        None = 0;
-        Display = 1;
-        DisplayYesNo = 2;
-        Keyboard = 3;
-        KeyboardDisplay = 4;
+        none = 0;
+        display = 1;
+        displayYesNo = 2;
+        keyboard = 3;
+        keyboardDisplay = 4;
     }
 
     IoCapabilitiesEnum ioCaps = 1;
-}
-
-message SecurityLevel
-{
-    enum SecurityLevelEnum
-    {
-        None = 0;
-        UnauthenticatedPairing = 1;
-        AuthenticatedPairing = 2;
-        AuthenticatedPairingWithLE = 3;
-    }
-
-    SecurityLevelEnum level = 1;
-}
-
-message AdvertisementType
-{
-    enum AdvertisementTypeEnum
-    {
-        AdvInd = 0;
-        AdvNonconnInd = 1;
-    }
-
-    AdvertisementTypeEnum type = 1;
 }
 
 message SecurityModeAndLevel
@@ -101,15 +77,24 @@ message AddressType
     AddressTypeEnum type = 1;
 }
 
-message AdvertisementMode
+message DeviceAddress
 {
-    AdvertisementType type = 1;
-    uint32 advInterval = 2;
+    Address address = 1;
+    AddressType addressType = 2;
 }
 
-message AdvertisementData
+message AdvertisingEventType
 {
-    bytes data = 1 [(bytes_size) = 28]; //Don't add flags data, method adds flags data internally with the flag bits 'LE General Discoverable Mode' and 'BR/EDR Not Supported' enabled.
+    enum AdvertisingEventTypeEnum
+    {
+        advInd = 0;
+        advDirectInd = 1;
+        advScanInd = 2;
+        advNonconnInd = 3;
+        scanResponse = 4;
+    }
+
+    AdvertisingEventTypeEnum type = 1;
 }
 
 message ConnectionParameters
@@ -119,15 +104,9 @@ message ConnectionParameters
     uint32 initiatingTimeoutInMs = 3;
 }
 
-message Passkey
-{
-    int32 passkey = 1;
-    bool numericComparison = 2;
-}
-
 message PairingStatus
 {
-    enum Error
+    enum Result
     {
         passkeyEntryFailed = 0;
         authenticationRequirementsNotMet = 1;
@@ -137,10 +116,11 @@ message PairingStatus
         timeout = 5;
         encryptionFailed = 6;
         unknown = 7;
+        success = 8;
     }
 
-    Error error = 1;
-};
+    Result result = 1;
+}
 
 message OutOfBandData
 {
@@ -152,11 +132,13 @@ message OutOfBandData
 
 message DiscoveredDevice
 {
+    reserved 5;
+
     Address address = 1;
     AddressType addressType = 2;
-    bytes data = 3 [(bytes_size) = 32];
+    bytes data = 3 [(bytes_size) = 31];
     int32 rssi = 4;
-    bool isScanResponse = 5;
+    AdvertisingEventType eventType = 6;
 }
 
 message DeviceDiscoveryFilter
@@ -170,7 +152,7 @@ message DeviceDiscoveryFilter
 
     Filter filter = 1;
     bytes data = 2 [(bytes_size) = 32];
-};
+}
 
 message BoolValue
 {
@@ -182,29 +164,44 @@ message UInt32Value
     uint32 value = 1;
 }
 
-service GapPeripheral
+message RequestStatus
 {
-    option (service_id) = 32;
+    enum Status
+    {
+        accepted = 0;
+        invalidState = 1;
+        invalidParameter = 2;
+        busy = 3;
+        notSupported = 4;
+    }
 
-    // Allowed states: standby
-    rpc Advertise(AdvertisementMode) returns (Nothing) { option (method_id) = 1; }
-    
-    // Allowed states: advertising, connected
-    rpc Standby(Nothing) returns (Nothing) { option (method_id) = 2; }
-    
-    rpc SetAdvertisementData(AdvertisementData) returns (Nothing) { option (method_id) = 3; }
-    rpc SetScanResponseData(AdvertisementData) returns (Nothing) { option (method_id) = 4; }
-    rpc SetAllowPairing(BoolValue) returns (Nothing) { option (method_id) = 5; }
-    rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 6; }
-    rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 7; }
-    rpc RemoveAllBonds(Nothing) returns (Nothing) { option (method_id) = 8; }
+    Status status = 1;
+}
 
-    // Allowed states: advertising
-    rpc GetResolvableAddress(Nothing) returns (Nothing) { option (method_id) = 9; }
-    rpc GetIdentityAddress(Nothing) returns (Nothing) { option (method_id) = 10; }
+message Completion
+{
+    enum Result
+    {
+        success = 0;
+        cancelled = 1;
+        timeout = 2;
+        connectionFailed = 3;
+        controllerError = 4;
+    }
 
-    rpc GenerateOutOfBandData(Nothing) returns (Nothing) { option (method_id) = 11; }
-    rpc SetOutOfBandData(OutOfBandData) returns (Nothing) { option (method_id) = 12; }
+    RequestStatus requestStatus = 1;
+    Result result = 2;
+}
+
+message PairingCompletion
+{
+    RequestStatus requestStatus = 1;
+    PairingStatus result = 2;
+}
+
+message BondCompletion
+{
+    RequestStatus requestStatus = 1;
 }
 
 service GapCentral
@@ -213,13 +210,13 @@ service GapCentral
 
     // Allowed states: standby
     rpc StartDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 1; }
-    
-    // Allowed states: standby
+
+    // Allowed states: scanning
     rpc StopDeviceDiscovery(Nothing) returns (Nothing) { option (method_id) = 2; }
 
     // Allowed states: standby
     // For successful connection establishment, state will follow: standby -> initiating -> connected
-    // For falied connection establishment, state will follow: standby -> initiating -> standby 
+    // For failed connection establishment, state will follow: standby -> initiating -> standby
     rpc Connect(ConnectionParameters) returns (Nothing) { option (method_id) = 3; }
 
     // Allowed states: initiating
@@ -228,11 +225,11 @@ service GapCentral
     // Allowed states: connected
     rpc Disconnect(Nothing) returns (Nothing) { option (method_id) = 5; }
 
-    // Allowed states: connected 
+    // Allowed states: connected
     // 1. If there is a pre-existing bond, then the connection will be encrypted.
     // 2. If there is no pre-existing bond, then pairing, encrypting, and bonding (storing the keys) will take place.
     rpc PairAndBond(Nothing) returns (Nothing) { option (method_id) = 6; }
-    
+
     rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 7; }
     rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 8; }
     rpc AuthenticateWithPasskey(UInt32Value) returns (Nothing) { option (method_id) = 9; }
@@ -241,40 +238,45 @@ service GapCentral
     rpc SetDeviceDiscoveryFilter(DeviceDiscoveryFilter) returns (Nothing) { option (method_id) = 12; }
 
     // This will only succeed if Address is a private resolvable address, and if the device is bonded
-    rpc ResolvePrivateAddress(Address) returns (Nothing) { option (method_id) = 13; } 
+    rpc ResolvePrivateAddress(Address) returns (Nothing) { option (method_id) = 13; }
 
-    // This will work with both public and random addresses
-    rpc IsDeviceBonded(ConnectionParameters) returns (Nothing) { option (method_id) = 14; }
     rpc GenerateOutOfBandData(Nothing) returns (Nothing) { option (method_id) = 15; }
     rpc SetOutOfBandData(OutOfBandData) returns (Nothing) { option (method_id) = 16; }
-}
 
-service GapPeripheralResponse
-{
-    option (service_id) = 34;
-
-    rpc Done(Nothing) returns (Nothing) { option (method_id) = 1; }
-    rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 2; }
-    rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
-    rpc ResolvableAddress(Address) returns (Nothing) { option (method_id) = 4; }
-    rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 5; }
-    rpc IdentityAddress(Address) returns (Nothing) { option (method_id) = 6; }
-    rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 7; }
+    // This will work with both public and random addresses
+    rpc IsDeviceBonded(DeviceAddress) returns (Nothing) { option (method_id) = 17; }
+    rpc RemoveOldestBond(Nothing) returns (Nothing) { option (method_id) = 18; }
 }
 
 service GapCentralResponse
 {
     option (service_id) = 35;
 
-    rpc Done(Nothing) returns (Nothing) { option (method_id) = 1; }
     rpc DeviceDiscovered(DiscoveredDevice) returns (Nothing) { option (method_id) = 2; }
     rpc StateChanged(State) returns (Nothing) { option (method_id) = 3; }
+
     rpc PairingSuccessfullyCompleted(Nothing) returns (Nothing) { option (method_id) =  4; }
     rpc PairingFailed(PairingStatus) returns (Nothing) { option (method_id) = 5; }
+
     rpc NumberOfBondsChanged(UInt32Value) returns (Nothing) { option (method_id) = 6; }
     rpc DeviceStarted(Nothing) returns (Nothing) { option (method_id) = 7; }
     rpc ResolvedPrivateAddress(Address) returns (Nothing) { option (method_id) = 8; }
     rpc ResolvePrivateAddressFailed(Nothing) returns (Nothing) { option (method_id) = 9; }
     rpc DeviceBonded(BoolValue) returns (Nothing) { option (method_id) = 10; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 11; }
+
+    rpc StartDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 12; }
+    rpc StopDeviceDiscoveryComplete(Completion) returns (Nothing) { option (method_id) = 13; }
+    rpc ConnectComplete(Completion) returns (Nothing) { option (method_id) = 14; }
+    rpc CancelConnectComplete(Completion) returns (Nothing) { option (method_id) = 15; }
+    rpc DisconnectComplete(Completion) returns (Nothing) { option (method_id) = 16; }
+    rpc PairAndBondComplete(PairingCompletion) returns (Nothing) { option (method_id) = 17; }
+    rpc SetSecurityModeComplete(PairingCompletion) returns (Nothing) { option (method_id) = 18; }
+    rpc SetIoCapabilitiesComplete(PairingCompletion) returns (Nothing) { option (method_id) = 19; }
+    rpc AuthenticateWithPasskeyComplete(PairingCompletion) returns (Nothing) { option (method_id) = 20; }
+    rpc NumericComparisonConfirmComplete(PairingCompletion) returns (Nothing) { option (method_id) = 21; }
+    rpc RemoveAllBondsComplete(BondCompletion) returns (Nothing) { option (method_id) = 22; }
+    rpc SetDeviceDiscoveryFilterComplete(Completion) returns (Nothing) { option (method_id) = 23; }
+    rpc RemoveOldestBondComplete(BondCompletion) returns (Nothing) { option (method_id) = 24; }
+    rpc SetOutOfBandDataComplete(PairingCompletion) returns (Nothing) { option (method_id) = 25; }
 }

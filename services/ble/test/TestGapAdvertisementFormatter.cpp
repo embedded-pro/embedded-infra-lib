@@ -1,6 +1,6 @@
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/test_helper/MemoryRangeMatcher.hpp"
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapAdvertisingData.hpp"
 #include "gmock/gmock.h"
 
 namespace services
@@ -11,7 +11,7 @@ namespace services
             : public testing::Test
         {
         public:
-            infra::BoundedVector<uint8_t>::WithMaxSize<services::GapPeripheral::maxScanResponseDataSize> buffer;
+            infra::BoundedVector<uint8_t>::WithMaxSize<services::gapMaxScanResponseDataSize> buffer;
             GapAdvertisementFormatter formatter{ buffer };
         };
     }
@@ -19,20 +19,20 @@ namespace services
     TEST_F(GapAdvertisementFormatterTest, initial_state_is_empty)
     {
         EXPECT_THAT(formatter.FormattedAdvertisementData(), testing::IsEmpty());
-        EXPECT_EQ(formatter.RemainingSpaceAvailable(), GapPeripheral::maxScanResponseDataSize);
+        EXPECT_EQ(formatter.RemainingSpaceAvailable(), gapMaxScanResponseDataSize);
     }
 
     TEST_F(GapAdvertisementFormatterTest, append_flags)
     {
-        formatter.AppendFlags(GapPeripheral::AdvertisementFlags::leGeneralDiscoverableMode);
+        formatter.AppendFlags(GapAdvertisementFlags::leGeneralDiscoverableMode);
 
         auto data = formatter.FormattedAdvertisementData();
         EXPECT_EQ(data.size(), 3);
         EXPECT_EQ(data[0], 2);
         EXPECT_EQ(data[1], 0x01);
-        EXPECT_EQ(data[2], static_cast<uint8_t>(GapPeripheral::AdvertisementFlags::leGeneralDiscoverableMode));
+        EXPECT_EQ(data[2], static_cast<uint8_t>(GapAdvertisementFlags::leGeneralDiscoverableMode));
 
-        EXPECT_EQ(formatter.RemainingSpaceAvailable(), GapPeripheral::maxScanResponseDataSize - 3);
+        EXPECT_EQ(formatter.RemainingSpaceAvailable(), gapMaxScanResponseDataSize - 3);
     }
 
     TEST_F(GapAdvertisementFormatterTest, append_complete_local_name)
@@ -132,7 +132,7 @@ namespace services
 
     TEST_F(GapAdvertisementFormatterTest, multiple_append_operations)
     {
-        formatter.AppendFlags(GapPeripheral::AdvertisementFlags::leGeneralDiscoverableMode);
+        formatter.AppendFlags(GapAdvertisementFlags::leGeneralDiscoverableMode);
 
         infra::BoundedConstString name{ "Test" };
         formatter.AppendCompleteLocalName(name);
@@ -145,7 +145,7 @@ namespace services
 
         EXPECT_EQ(data[0], 2);
         EXPECT_EQ(data[1], 0x01);
-        EXPECT_EQ(data[2], static_cast<uint8_t>(GapPeripheral::AdvertisementFlags::leGeneralDiscoverableMode));
+        EXPECT_EQ(data[2], static_cast<uint8_t>(GapAdvertisementFlags::leGeneralDiscoverableMode));
 
         EXPECT_EQ(data[3], 5);
         EXPECT_EQ(data[4], 0x09);
@@ -157,9 +157,9 @@ namespace services
     TEST_F(GapAdvertisementFormatterTest, remaining_space_calculation)
     {
         std::size_t initialSpace = formatter.RemainingSpaceAvailable();
-        EXPECT_EQ(initialSpace, GapPeripheral::maxScanResponseDataSize);
+        EXPECT_EQ(initialSpace, gapMaxScanResponseDataSize);
 
-        formatter.AppendFlags(GapPeripheral::AdvertisementFlags::leGeneralDiscoverableMode);
+        formatter.AppendFlags(GapAdvertisementFlags::leGeneralDiscoverableMode);
         EXPECT_EQ(formatter.RemainingSpaceAvailable(), initialSpace - 3);
 
         infra::BoundedConstString name{ "Test" };
@@ -196,6 +196,6 @@ namespace services
         EXPECT_EQ(data[2], 0xC1);
         EXPECT_EQ(data[3], 0x03);
 
-        EXPECT_EQ(formatter.RemainingSpaceAvailable(), GapPeripheral::maxScanResponseDataSize - 4);
+        EXPECT_EQ(formatter.RemainingSpaceAvailable(), gapMaxScanResponseDataSize - 4);
     }
 }

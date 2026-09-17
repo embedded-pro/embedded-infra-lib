@@ -1,7 +1,7 @@
 #ifndef SERVICES_GAP_CENTRAL_OBSERVER_MOCK_HPP
 #define SERVICES_GAP_CENTRAL_OBSERVER_MOCK_HPP
 
-#include "services/ble/Gap.hpp"
+#include "services/ble/GapCentral.hpp"
 #include "gmock/gmock.h"
 
 namespace services
@@ -13,7 +13,7 @@ namespace services
 
     public:
         MOCK_METHOD(void, DeviceDiscovered, (const GapAdvertisingReport& deviceDiscovered), (override));
-        MOCK_METHOD(void, StateChanged, (GapState state), (override));
+        MOCK_METHOD(void, StateChanged, (GapCentralState state), (override));
     };
 }
 

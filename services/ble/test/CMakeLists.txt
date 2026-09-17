@@ -11,10 +11,13 @@ target_link_libraries(services.ble_test PUBLIC
 target_sources(services.ble_test PRIVATE
     TestBondBlobPersistence.cpp
     TestBondStorageSynchronizer.cpp
+    TestGapAdvertisingData.cpp
     TestGapBonding.cpp
     TestGapCentral.cpp
     TestGapPairing.cpp
     TestGapPeripheral.cpp
+    TestGapProto.cpp
+    TestGapTypes.cpp
     TestGatt.cpp
     TestGattClient.cpp
     TestClaimingGattClientAdapter.cpp
