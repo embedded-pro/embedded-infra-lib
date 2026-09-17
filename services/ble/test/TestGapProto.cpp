@@ -132,3 +132,36 @@ TEST(GapProtoTest, io_capabilities_match_the_security_manager_encoding)
     EXPECT_EQ(0x03u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::none));
     EXPECT_EQ(0x04u, infra::enum_cast(gap::peripheral::IoCapabilities::IoCapabilitiesEnum::keyboardDisplay));
 }
+
+TEST(GapProtoTest, pairing_result_matches_the_proto_on_every_value)
+{
+    // success is 0 on both sides, as in every other result enum in this module.
+    // Before this was aligned, a cast turned success into passkeyEntryFailed and,
+    // worse, turned unknown into success.
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::success),
+        infra::enum_cast(gap::central::PairingStatus::Result::success));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::passkeyEntryFailed),
+        infra::enum_cast(gap::central::PairingStatus::Result::passkeyEntryFailed));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::authenticationRequirementsNotMet),
+        infra::enum_cast(gap::central::PairingStatus::Result::authenticationRequirementsNotMet));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::pairingNotSupported),
+        infra::enum_cast(gap::central::PairingStatus::Result::pairingNotSupported));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::insufficientEncryptionKeySize),
+        infra::enum_cast(gap::central::PairingStatus::Result::insufficientEncryptionKeySize));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::numericComparisonFailed),
+        infra::enum_cast(gap::central::PairingStatus::Result::numericComparisonFailed));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::timeout),
+        infra::enum_cast(gap::central::PairingStatus::Result::timeout));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::encryptionFailed),
+        infra::enum_cast(gap::central::PairingStatus::Result::encryptionFailed));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::unknown),
+        infra::enum_cast(gap::central::PairingStatus::Result::unknown));
+}
+
+TEST(GapProtoTest, peripheral_pairing_result_matches_the_central_one)
+{
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::success),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::success));
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::unknown),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::unknown));
+}

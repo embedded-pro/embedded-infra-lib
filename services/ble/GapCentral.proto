@@ -108,17 +108,19 @@ message ConnectionParameters
 
 message PairingStatus
 {
+    // Ordered to match services::GapPairingResult. success is 0, as in every other
+    // result enum in this module.
     enum Result
     {
-        passkeyEntryFailed = 0;
-        authenticationRequirementsNotMet = 1;
-        pairingNotSupported = 2;
-        insufficientEncryptionKeySize = 3;
-        numericComparisonFailed = 4;
-        timeout = 5;
-        encryptionFailed = 6;
-        unknown = 7;
-        success = 8;
+        success = 0;
+        passkeyEntryFailed = 1;
+        authenticationRequirementsNotMet = 2;
+        pairingNotSupported = 3;
+        insufficientEncryptionKeySize = 4;
+        numericComparisonFailed = 5;
+        timeout = 6;
+        encryptionFailed = 7;
+        unknown = 8;
     }
 
     Result result = 1;
