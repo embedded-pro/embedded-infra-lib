@@ -58,6 +58,8 @@ namespace services
         , public GattDescriptor
     {
     public:
+        // These bit values are defined by this library, not by the Bluetooth Core
+        // Specification.
         enum class AccessFlags : uint8_t
         {
             readOnly = 0x01u,
@@ -86,8 +88,9 @@ namespace services
         , public GattServerCharacteristicUpdate
     {
     public:
-        // Description in Bluetooth Core Specification
-        // Volume 3, Part F, section 3.2.5
+        // These bit values are defined by this library, not by the Bluetooth Core
+        // Specification. Vol 3, Part F, section 3.2.5 describes attribute permissions as
+        // a concept but assigns them no encoding, so nothing here can be checked against it.
         enum class PermissionFlags : uint8_t
         {
             none = 0x00u,

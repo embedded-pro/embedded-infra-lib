@@ -38,7 +38,7 @@ namespace services
     {
         struct ClientCharacteristicConfiguration
         {
-            static constexpr uint8_t valueHandleOffset = 1;
+            // Assigned Numbers, section 3.7 (GATT Descriptors)
             static constexpr uint16_t attributeType = 0x2902;
 
             enum class CharacteristicValue : uint16_t
