@@ -49,10 +49,13 @@ message IoCapabilities
 
 message AdvertisementType
 {
+    // Ordered to match services::GapAdvertisementType. advScanInd is appended: renumbering
+    // advNonconnInd would break every port silently.
     enum AdvertisementTypeEnum
     {
         advInd = 0;
         advNonconnInd = 1;
+        advScanInd = 2;
     }
 
     AdvertisementTypeEnum type = 1;
@@ -97,6 +100,19 @@ message AdvertisementMode
 {
     AdvertisementType type = 1;
     uint32 advInterval = 2;
+}
+
+message DirectedAdvertisementMode
+{
+    enum DirectedAdvertisementTypeEnum
+    {
+        highDutyCycle = 0;
+        lowDutyCycle = 1;
+    }
+
+    DirectedAdvertisementTypeEnum type = 1;
+    DeviceAddress peer = 2;
+    uint32 advInterval = 3;
 }
 
 message AdvertisementData
@@ -221,6 +237,7 @@ service GapPeripheral
     // that version fails on an unknown method rather than misreading a single combined value.
     rpc SetSecurityMode(SecurityModeAndLevel) returns (Nothing) { option (method_id) = 19; }
     rpc SetSecureConnectionsOnly(BoolValue) returns (Nothing) { option (method_id) = 20; }
+    rpc AdvertiseDirected(DirectedAdvertisementMode) returns (Nothing) { option (method_id) = 21; }
     rpc SetIoCapabilities(IoCapabilities) returns (Nothing) { option (method_id) = 7; }
     rpc RemoveAllBonds(Nothing) returns (Nothing) { option (method_id) = 8; }
 
@@ -254,6 +271,7 @@ service GapPeripheralResponse
     // comparison value.
     rpc DisplayPasskey(Passkey) returns (Nothing) { option (method_id) = 27; }
     rpc ConfirmNumericComparison(UInt32Value) returns (Nothing) { option (method_id) = 28; }
+    rpc AdvertiseDirectedComplete(Completion) returns (Nothing) { option (method_id) = 29; }
     rpc IdentityAddress(Address) returns (Nothing) { option (method_id) = 6; }
     rpc OutOfBandDataGenerated(OutOfBandData) returns (Nothing) { option (method_id) = 7; }
 

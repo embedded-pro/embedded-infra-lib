@@ -232,3 +232,28 @@ TEST(GapProtoTest, the_established_pairing_results_did_not_move)
     EXPECT_EQ(9u, infra::enum_cast(services::GapPairingResult::oobNotAvailable));
     EXPECT_EQ(17u, infra::enum_cast(services::GapPairingResult::keyRejected));
 }
+
+TEST(GapProtoTest, advertisement_type_matches_the_proto)
+{
+    // This enum had no guard, which is how advScanInd came to be appended rather than inserted:
+    // putting it between the existing two would renumber advNonconnInd on the C++ side only.
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisementType::advInd),
+        infra::enum_cast(gap::peripheral::AdvertisementType::AdvertisementTypeEnum::advInd));
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisementType::advNonconnInd),
+        infra::enum_cast(gap::peripheral::AdvertisementType::AdvertisementTypeEnum::advNonconnInd));
+    EXPECT_EQ(infra::enum_cast(services::GapAdvertisementType::advScanInd),
+        infra::enum_cast(gap::peripheral::AdvertisementType::AdvertisementTypeEnum::advScanInd));
+
+    EXPECT_EQ(infra::enum_cast(services::GapDirectedAdvertisementType::highDutyCycle),
+        infra::enum_cast(gap::peripheral::DirectedAdvertisementMode::DirectedAdvertisementTypeEnum::highDutyCycle));
+    EXPECT_EQ(infra::enum_cast(services::GapDirectedAdvertisementType::lowDutyCycle),
+        infra::enum_cast(gap::peripheral::DirectedAdvertisementMode::DirectedAdvertisementTypeEnum::lowDutyCycle));
+}
+
+TEST(GapProtoTest, advertise_kept_its_method_id)
+{
+    // Appending an enum value does not change what any existing value means, so Advertise is not
+    // a changed payload and keeps id 1. AdvertiseDirected is a new method, not a replacement.
+    EXPECT_EQ(1u, gap::peripheral::GapPeripheralProxy::idAdvertise);
+    EXPECT_EQ(21u, gap::peripheral::GapPeripheralProxy::idAdvertiseDirected);
+}

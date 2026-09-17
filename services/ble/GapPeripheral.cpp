@@ -45,6 +45,11 @@ namespace services
         return GapPeripheralObserver::Subject().Advertise(type, multiplier, onDone);
     }
 
+    GapRequestStatus GapPeripheralDecorator::AdvertiseDirected(GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone)
+    {
+        return GapPeripheralObserver::Subject().AdvertiseDirected(type, peer, multiplier, onDone);
+    }
+
     GapRequestStatus GapPeripheralDecorator::Standby(const infra::Function<void(Result)>& onDone)
     {
         return GapPeripheralObserver::Subject().Standby(onDone);

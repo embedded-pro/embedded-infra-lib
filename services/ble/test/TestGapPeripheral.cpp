@@ -151,4 +151,44 @@ namespace services
 
         EXPECT_EQ("Standby Advertising Connected", stream.Storage());
     }
+
+    TEST_F(GapPeripheralDecoratorTest, advertise_scannable_undirected_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, Advertise(GapAdvertisementType::advScanInd, 0x20, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.Advertise(GapAdvertisementType::advScanInd, 0x20, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, advertise_directed_at_a_peer_forwards_request_and_result)
+    {
+        const GapAddress peer{ hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, GapDeviceAddressType::publicAddress };
+
+        EXPECT_CALL(gap, AdvertiseDirected(GapDirectedAdvertisementType::lowDutyCycle, peer, 0x20, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.AdvertiseDirected(GapDirectedAdvertisementType::lowDutyCycle, peer, 0x20, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, advertise_directed_at_high_duty_cycle)
+    {
+        // The standard mechanism for fast reconnection to a known peer, which the transmit side
+        // could not express at all before.
+        const GapAddress peer{ hal::MacAddress{ 5, 4, 3, 2, 1, 0 }, GapDeviceAddressType::randomAddress };
+
+        EXPECT_CALL(gap, AdvertiseDirected(GapDirectedAdvertisementType::highDutyCycle, peer, testing::_, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<3>(GapPeripheral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.AdvertiseDirected(GapDirectedAdvertisementType::highDutyCycle, peer, 0x20, infra::VerifyingFunction<void(GapPeripheral::Result)>(GapPeripheral::Result::success)));
+    }
+
+    TEST_F(GapPeripheralDecoratorTest, advertise_directed_forwards_rejection_without_invoking_callback)
+    {
+        const GapAddress peer{ hal::MacAddress{ 0, 1, 2, 3, 4, 5 }, GapDeviceAddressType::publicAddress };
+
+        EXPECT_CALL(gap, AdvertiseDirected(GapDirectedAdvertisementType::lowDutyCycle, peer, 0x20, testing::_))
+            .WillOnce(testing::Return(GapRequestStatus::notSupported));
+
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.AdvertiseDirected(GapDirectedAdvertisementType::lowDutyCycle, peer, 0x20, RejectedCallback()));
+    }
 }

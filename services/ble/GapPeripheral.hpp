@@ -50,6 +50,10 @@ namespace services
         virtual GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) = 0;
+
+        // Directed advertising names the peer it is aimed at. High duty cycle ignores the
+        // interval, which the controller fixes.
+        virtual GapRequestStatus AdvertiseDirected(GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) = 0;
     };
@@ -72,6 +76,7 @@ namespace services
         GapRequestStatus SetAdvertisementData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetScanResponseData(infra::ConstByteRange data, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus Advertise(GapAdvertisementType type, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus AdvertiseDirected(GapDirectedAdvertisementType type, const GapAddress& peer, AdvertisementIntervalMultiplier multiplier, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus Standby(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetConnectionParameters(const GapConnectionParameters& connParam, const infra::Function<void(Result)>& onDone) override;
     };

@@ -15,10 +15,27 @@ namespace services
         randomAddress,
     };
 
+    // What a peripheral may be told to advertise. Appended rather than ordered by PDU type:
+    // GapPeripheral.proto's AdvertisementType numbers these too, so inserting advScanInd between
+    // the existing two would renumber advNonconnInd on this side only.
+    // Directed advertising is not here because it is meaningless without a peer address; see
+    // GapPeripheral::AdvertiseDirected.
+    // Bluetooth Core Specification, Volume 6, Part B, section 2.3.1
     enum class GapAdvertisementType : uint8_t
     {
-        advInd,
-        advNonconnInd
+        advInd = 0,
+        advNonconnInd = 1,
+        advScanInd = 2
+    };
+
+    // High duty cycle directed advertising is the standard mechanism for fast reconnection to a
+    // known peer. Its interval is fixed by the controller at no more than 3.75 ms and it must
+    // stop within 1.28 s, so it takes no interval of its own.
+    // Bluetooth Core Specification, Volume 6, Part B, section 4.4.2.4
+    enum class GapDirectedAdvertisementType : uint8_t
+    {
+        highDutyCycle = 0,
+        lowDutyCycle = 1
     };
 
     enum class GapAdvertisingEventType : uint8_t
