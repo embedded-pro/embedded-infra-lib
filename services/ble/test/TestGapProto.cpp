@@ -195,3 +195,40 @@ TEST(GapProtoTest, the_security_mode_request_moved_to_a_new_method_id)
     EXPECT_EQ(18u, gap::central::GapCentralResponseProxy::idSetSecurityModeComplete);
     EXPECT_EQ(13u, gap::peripheral::GapPeripheralResponseProxy::idSetSecurityModeComplete);
 }
+
+TEST(GapProtoTest, pairing_result_carries_every_security_manager_failure)
+{
+    // Each of these separates a benign failure from an active attack, so an application that
+    // logs or acts on the difference needs them distinct rather than collapsed into unknown.
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::oobNotAvailable),
+        infra::enum_cast(gap::central::PairingStatus::Result::oobNotAvailable));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::confirmValueFailed),
+        infra::enum_cast(gap::central::PairingStatus::Result::confirmValueFailed));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::commandNotSupported),
+        infra::enum_cast(gap::central::PairingStatus::Result::commandNotSupported));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::repeatedAttempts),
+        infra::enum_cast(gap::central::PairingStatus::Result::repeatedAttempts));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::invalidParameters),
+        infra::enum_cast(gap::central::PairingStatus::Result::invalidParameters));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::dhKeyCheckFailed),
+        infra::enum_cast(gap::central::PairingStatus::Result::dhKeyCheckFailed));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::brEdrPairingInProgress),
+        infra::enum_cast(gap::central::PairingStatus::Result::brEdrPairingInProgress));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::crossTransportKeyDerivationNotAllowed),
+        infra::enum_cast(gap::central::PairingStatus::Result::crossTransportKeyDerivationNotAllowed));
+    EXPECT_EQ(infra::enum_cast(services::GapPairingResult::keyRejected),
+        infra::enum_cast(gap::central::PairingStatus::Result::keyRejected));
+
+    EXPECT_EQ(infra::enum_cast(gap::central::PairingStatus::Result::keyRejected),
+        infra::enum_cast(gap::peripheral::PairingStatus::Result::keyRejected));
+}
+
+TEST(GapProtoTest, the_established_pairing_results_did_not_move)
+{
+    // Pins the values that existed before the Security Manager codes were appended. Inserting
+    // rather than appending would renumber everything after the insertion point.
+    EXPECT_EQ(0u, infra::enum_cast(services::GapPairingResult::success));
+    EXPECT_EQ(8u, infra::enum_cast(services::GapPairingResult::unknown));
+    EXPECT_EQ(9u, infra::enum_cast(services::GapPairingResult::oobNotAvailable));
+    EXPECT_EQ(17u, infra::enum_cast(services::GapPairingResult::keyRejected));
+}

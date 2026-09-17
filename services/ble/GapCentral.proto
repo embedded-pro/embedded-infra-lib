@@ -119,6 +119,15 @@ message PairingStatus
         timeout = 6;
         encryptionFailed = 7;
         unknown = 8;
+        oobNotAvailable = 9;
+        confirmValueFailed = 10;
+        commandNotSupported = 11;
+        repeatedAttempts = 12;
+        invalidParameters = 13;
+        dhKeyCheckFailed = 14;
+        brEdrPairingInProgress = 15;
+        crossTransportKeyDerivationNotAllowed = 16;
+        keyRejected = 17;
     }
 
     Result result = 1;

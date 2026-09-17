@@ -7,6 +7,14 @@
 
 namespace services
 {
+    // The values below unknown are appended rather than inserted: TestGapProto asserts these
+    // against their proto counterparts value by value, so renumbering any of them would break
+    // every downstream port silently.
+    //
+    // Several of the appended codes separate a benign failure from an active attack, which is the
+    // distinction a security-conscious application would log or act on. Unspecified Reason, 0x08,
+    // is what unknown already means and gains nothing from a name of its own.
+    // Bluetooth Core Specification, Volume 3, Part H, section 3.5.5
     enum class GapPairingResult : uint8_t
     {
         success = 0,
@@ -18,6 +26,15 @@ namespace services
         timeout,
         encryptionFailed,
         unknown,
+        oobNotAvailable,
+        confirmValueFailed,
+        commandNotSupported,
+        repeatedAttempts,
+        invalidParameters,
+        dhKeyCheckFailed,
+        brEdrPairingInProgress,
+        crossTransportKeyDerivationNotAllowed,
+        keyRejected
     };
 
     class GapPairing;
@@ -28,7 +45,13 @@ namespace services
     public:
         using infra::Observer<GapPairingObserver, GapPairing>::Observer;
 
-        virtual void DisplayPasskey(int32_t passkey, bool numericComparison) = 0;
+        // Two distinct Security Manager procedures, so two callbacks rather than one
+        // discriminated by a bool at the call site. Passkey Entry asks the user to read a passkey
+        // off this device and type it into the peer; Numeric Comparison asks them to confirm that
+        // both devices show the same value. The value is six digits, 000000 to 999999.
+        // Bluetooth Core Specification, Volume 3, Part H, section 2.3.5.6
+        virtual void DisplayPasskey(uint32_t passkey) = 0;
+        virtual void ConfirmNumericComparison(uint32_t value) = 0;
         virtual void PairingSuccessfullyCompleted(const GapBondStrength& strength) = 0;
         virtual void PairingFailed(GapPairingResult error) = 0;
         virtual void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) = 0;
@@ -90,7 +113,8 @@ namespace services
         using GapPairingObserver::GapPairingObserver;
 
         // Implementation of GapPairingObserver
-        void DisplayPasskey(int32_t passkey, bool numericComparison) override;
+        void DisplayPasskey(uint32_t passkey) override;
+        void ConfirmNumericComparison(uint32_t value) override;
         void PairingSuccessfullyCompleted(const GapBondStrength& strength) override;
         void PairingFailed(GapPairingResult error) override;
         void OutOfBandDataGenerated(const GapOutOfBandData& outOfBandData) override;
