@@ -69,9 +69,9 @@ fixed-size, so they are fine on embedded targets:
 The organising principle is allocation, not provenance: the forbidden list is forbidden
 because those types reach for the heap, not because they are standard.
 
-> Note: there is no `infra::Optional`. `std::optional` is the optional type this repository
-> uses; `infra::OptionalForPolymorphicObjects` is a separate thing, for storing a derived
-> object in storage sized for a base, and it takes `std::nullopt_t`.
+Note that there is no `infra::Optional`. `std::optional` is the optional type this repository
+uses; `infra::OptionalForPolymorphicObjects` is a separate thing, for storing a derived object
+in storage sized for a base, and it takes `std::nullopt_t`.
 
 > **Exception**: `services/network_instantiations/`, `infra/stream/Std*`, and `infra/util/AllocatorHeap*` intentionally use heap-based STL types for host-platform (Linux/Windows) implementations only. These are not embedded targets.
 
