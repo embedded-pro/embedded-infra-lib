@@ -93,14 +93,14 @@ Method ids are never reused for a different meaning. When a method's payload cha
 
 ### Interfaces
 
-| Header                          | Contents                                                                                                    |
-|---------------------------------|-------------------------------------------------------------------------------------------------------------|
-| `Att.hpp`                       | `AttAttribute`, `AttErrorCode` and `attDefaultMaxMtuSize`                                                    |
-| `GattTypes.hpp`                 | The attribute value types `GattDescriptor`, `GattCharacteristic` and `GattService`, plus `GattRequestStatus`, `GattResult` and `GattResultFromAttErrorCode` |
-| `GattClientConnection.hpp`      | `GattClientConnection`, its two observers and `GattClientConnectionDecorator`                                |
-| `GattClient.hpp`                | `GattClient` and `GattClientObserver`: the connections a client holds                                        |
-| `GattClientCharacteristic.hpp`  | `GattClientCharacteristic` and `GattClientService`: the application facing model of a discovered database    |
-| `GattServer.hpp`                | The server side: `GattServerService`, `GattServerCharacteristic` and `GattServerDescriptor`                  |
+| Header                         | Contents                                                                                                                                                    |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Att.hpp`                      | `AttAttribute`, `AttErrorCode` and `attDefaultMaxMtuSize`                                                                                                   |
+| `GattTypes.hpp`                | The attribute value types `GattDescriptor`, `GattCharacteristic` and `GattService`, plus `GattRequestStatus`, `GattResult` and `GattResultFromAttErrorCode` |
+| `GattClientConnection.hpp`     | `GattClientConnection`, its two observers and `GattClientConnectionDecorator`                                                                               |
+| `GattClient.hpp`               | `GattClient` and `GattClientObserver`: the connections a client holds                                                                                       |
+| `GattClientCharacteristic.hpp` | `GattClientCharacteristic` and `GattClientService`: the application facing model of a discovered database                                                   |
+| `GattServer.hpp`               | The server side: `GattServerService`, `GattServerCharacteristic` and `GattServerDescriptor`                                                                 |
 
 ### One object per connection
 
@@ -133,7 +133,7 @@ A connection completes its outstanding operations when its link is lost, reporti
 `GattResult::disconnected`. That is what releases the claims a decorator holds, so nothing
 has to watch a GAP role to notice a disconnection.
 
-### Asynchronous procedures
+### Asynchronous operations
 
 GATT follows the same two stage contract as GAP. Each operation returns a
 `GattRequestStatus` saying whether the request was accepted, and reports how it ended
@@ -188,7 +188,7 @@ locally. A stack translates the byte it receives with `GattResultFromAttErrorCod
 the mapping from Core Specification Volume 3, Part F, section 3.4.1.1 lives in one place
 rather than in each caller.
 
-### ECHO interface
+### GATT ECHO interface
 
 `GattClient.proto` and `GattServer.proto` mirror the split, in the packages `gatt.client`
 and `gatt.server`. Each file is self contained and imports nothing but
