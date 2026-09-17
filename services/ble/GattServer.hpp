@@ -107,7 +107,7 @@ namespace services
 
         PermissionFlags Permissions() const;
         uint16_t ValueLength() const;
-        uint8_t GetAttributeCount() const;
+        uint16_t GetAttributeCount() const;
 
         void AddDescriptor(GattServerDescriptor& descriptor);
         infra::IntrusiveForwardList<GattServerDescriptor>& Descriptors();
@@ -117,6 +117,23 @@ namespace services
         PermissionFlags permissions;
         uint16_t valueLength;
         infra::IntrusiveForwardList<GattServerDescriptor> descriptors;
+    };
+
+    class GattServerService;
+
+    // An Include declaration needs its own node type: GattServerService is already a node of the
+    // server's own list of services, and one object cannot be a node of two lists of the same
+    // type. This refers to the included service rather than owning it.
+    class GattServerIncludedService
+        : public infra::IntrusiveForwardList<GattServerIncludedService>::NodeType
+    {
+    public:
+        explicit GattServerIncludedService(GattServerService& service);
+
+        GattServerService& Service() const;
+
+    private:
+        GattServerService& service;
     };
 
     class GattServerService
@@ -131,10 +148,15 @@ namespace services
         infra::IntrusiveForwardList<GattServerCharacteristic>& Characteristics();
         const infra::IntrusiveForwardList<GattServerCharacteristic>& Characteristics() const;
 
-        uint8_t GetAttributeCount() const;
+        void AddIncludedService(GattServerIncludedService& includedService);
+        infra::IntrusiveForwardList<GattServerIncludedService>& IncludedServices();
+        const infra::IntrusiveForwardList<GattServerIncludedService>& IncludedServices() const;
+
+        uint16_t GetAttributeCount() const;
 
     private:
         infra::IntrusiveForwardList<GattServerCharacteristic> characteristics;
+        infra::IntrusiveForwardList<GattServerIncludedService> includedServices;
     };
 
     class GattServer

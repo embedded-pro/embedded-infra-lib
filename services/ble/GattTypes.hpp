@@ -199,7 +199,9 @@ namespace services
         AttAttribute::Handle& Handle();
         AttAttribute::Handle EndHandle() const;
         AttAttribute::Handle& EndHandle();
-        uint8_t GetAttributeCount() const;
+        // Wide enough for the whole ATT handle space; an included service pushes a service
+        // closer to what a uint8_t could hold.
+        uint16_t GetAttributeCount() const;
 
     private:
         AttAttribute::Uuid type;

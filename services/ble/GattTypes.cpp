@@ -193,7 +193,7 @@ namespace services
         return endHandle;
     }
 
-    uint8_t GattService::GetAttributeCount() const
+    uint16_t GattService::GetAttributeCount() const
     {
         return 0;
     }

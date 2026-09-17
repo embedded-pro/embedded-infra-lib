@@ -38,7 +38,7 @@ namespace services
         return valueLength;
     }
 
-    uint8_t GattServerCharacteristic::GetAttributeCount() const
+    uint16_t GattServerCharacteristic::GetAttributeCount() const
     {
         constexpr uint8_t attributeCountWithoutCCCD = 2;
         constexpr uint8_t attributeCountWithCCCD = 3;
@@ -78,15 +78,43 @@ namespace services
         : GattService(type, 0, 0)
     {}
 
-    uint8_t GattServerService::GetAttributeCount() const
-    {
-        constexpr uint8_t serviceAttributeCount = 1;
+    GattServerIncludedService::GattServerIncludedService(GattServerService& service)
+        : service(service)
+    {}
 
-        uint8_t attributeCount = serviceAttributeCount;
+    GattServerService& GattServerIncludedService::Service() const
+    {
+        return service;
+    }
+
+    uint16_t GattServerService::GetAttributeCount() const
+    {
+        constexpr uint16_t serviceAttributeCount = 1;
+        constexpr uint16_t includeAttributeCount = 1;
+
+        uint16_t attributeCount = serviceAttributeCount;
         for (auto& characteristic : characteristics)
             attributeCount += characteristic.GetAttributeCount();
 
+        for ([[maybe_unused]] auto& includedService : includedServices)
+            attributeCount += includeAttributeCount;
+
         return attributeCount;
+    }
+
+    void GattServerService::AddIncludedService(GattServerIncludedService& includedService)
+    {
+        includedServices.push_front(includedService);
+    }
+
+    infra::IntrusiveForwardList<GattServerIncludedService>& GattServerService::IncludedServices()
+    {
+        return includedServices;
+    }
+
+    const infra::IntrusiveForwardList<GattServerIncludedService>& GattServerService::IncludedServices() const
+    {
+        return includedServices;
     }
 
     void GattServerService::AddCharacteristic(GattServerCharacteristic& characteristic)

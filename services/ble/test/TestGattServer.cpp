@@ -212,3 +212,46 @@ TEST(GattServerServiceTest, should_calculate_attribute_count_with_characteristic
     const auto& descriptors = char2.Descriptors();
     EXPECT_EQ(std::distance(descriptors.begin(), descriptors.end()), 2);
 }
+
+TEST(GattServerServiceTest, should_count_one_attribute_for_each_included_service)
+{
+    services::GattServerService service{ uuid16 };
+    services::GattServerService other{ services::AttAttribute::Uuid16{ 0x180F } };
+    services::GattServerService third{ services::AttAttribute::Uuid16{ 0x1810 } };
+
+    EXPECT_EQ(1, service.GetAttributeCount());
+
+    services::GattServerIncludedService firstInclude{ other };
+    service.AddIncludedService(firstInclude);
+    EXPECT_EQ(2, service.GetAttributeCount());
+
+    services::GattServerIncludedService secondInclude{ third };
+    service.AddIncludedService(secondInclude);
+    EXPECT_EQ(3, service.GetAttributeCount());
+}
+
+TEST(GattServerServiceTest, an_included_service_refers_to_the_service_it_includes)
+{
+    services::GattServerService service{ uuid16 };
+    services::GattServerService other{ services::AttAttribute::Uuid16{ 0x180F } };
+
+    services::GattServerIncludedService includedService{ other };
+    service.AddIncludedService(includedService);
+
+    auto& includedServices = service.IncludedServices();
+    ASSERT_EQ(1, std::distance(includedServices.begin(), includedServices.end()));
+    EXPECT_EQ(&other, &includedServices.begin()->Service());
+}
+
+TEST(GattServerServiceTest, should_count_beyond_what_a_byte_could_hold)
+{
+    // 128 characteristics are 256 attributes on top of the service declaration, which overflowed
+    // the uint8_t this count used to be.
+    services::GattServerService service{ uuid16 };
+
+    std::array<std::optional<services::GattServerCharacteristicImpl>, 128> characteristics;
+    for (auto& characteristic : characteristics)
+        characteristic.emplace(service, uuid16, 4);
+
+    EXPECT_EQ(257, service.GetAttributeCount());
+}
