@@ -1,17 +1,4 @@
 #include "services/ble/LinkConfiguringGapCentral.hpp"
-#include "infra/event/EventDispatcher.hpp"
-
-namespace
-{
-    template<class... Ts>
-    struct Overloaded : Ts...
-    {
-        using Ts::operator()...;
-    };
-
-    template<class... Ts>
-    Overloaded(Ts...) -> Overloaded<Ts...>;
-}
 
 namespace services
 {
@@ -25,72 +12,32 @@ namespace services
         GapCentralDecorator::StateChanged(state);
 
         if (state == GapCentralState::connected)
-            Start();
+            phyRequest.Start(infra::Duration{}, [this]()
+                {
+                    RaisePhy();
+                });
         else
-            Abandon();
+        {
+            phyRequest.Cancel();
+            dataLengthRequest.Cancel();
+        }
     }
 
-    void LinkConfiguringGapCentral::Start()
+    void LinkConfiguringGapCentral::PhyUpdated(GapPhy txPhy, GapPhy rxPhy)
     {
-        Abandon();
+        GapCentralDecorator::PhyUpdated(txPhy, rxPhy);
 
-        // A completion the controller never reported still holds the storage; leave the link as it
-        // is rather than assert.
-        if (!procedureStorage.Allocatable())
-            return;
-
-        procedure = procedureStorage.Emplace(*this, SettingPhy{});
-
-        // The state change is reported from within the controller's event handling, which is no
-        // place to start a procedure.
-        infra::EventDispatcher::Instance().Schedule([started = infra::WeakPtr<Procedure>(procedure)]()
+        dataLengthRequest.Start(infra::Duration{}, [this]()
             {
-                if (auto running = started.lock(); running != nullptr)
-                    running->gapCentral.Perform();
+                GapCentralDecorator::SetDataLength(configuration.dataLength);
             });
     }
 
-    void LinkConfiguringGapCentral::Abandon()
+    void LinkConfiguringGapCentral::RaisePhy()
     {
-        procedure = nullptr;
-    }
-
-    void LinkConfiguringGapCentral::Perform()
-    {
-        auto status = std::visit(Overloaded{ [this](SettingPhy)
-                                     {
-                                         return GapCentralDecorator::SetPhy(configuration.txPhy, configuration.rxPhy, StepCompletion());
-                                     },
-                                     [this](SettingDataLength)
-                                     {
-                                         return GapCentralDecorator::SetDataLength(configuration.dataLength, StepCompletion());
-                                     } },
-            procedure->step);
-
-        // A step the controller refuses reports nothing, so the one after it starts here.
-        if (status != GapRequestStatus::accepted)
-            StepDone();
-    }
-
-    void LinkConfiguringGapCentral::StepDone()
-    {
-        // The data length follows the PHY, because the time a payload takes on air depends on the
-        // PHY carrying it.
-        if (std::holds_alternative<SettingPhy>(procedure->step))
-        {
-            procedure->step = SettingDataLength{};
-            Perform();
-        }
-        else
-            Abandon();
-    }
-
-    infra::Function<void(GapCentral::Result)> LinkConfiguringGapCentral::StepCompletion() const
-    {
-        return [running = infra::WeakPtr<Procedure>(procedure)](Result)
-        {
-            if (auto alive = running.lock(); alive != nullptr)
-                alive->gapCentral.StepDone();
-        };
+        // A controller that will not run the PHY update reports nothing, leaving the link on the
+        // PHY it already has, where the longer payload is still worth asking for.
+        if (GapCentralDecorator::SetPhy(configuration.txPhy, configuration.rxPhy) != GapRequestStatus::accepted)
+            GapCentralDecorator::SetDataLength(configuration.dataLength);
     }
 }

@@ -1,5 +1,4 @@
-#include "infra/event/test_helper/EventDispatcherFixture.hpp"
-#include "infra/util/PostAssign.hpp"
+#include "infra/timer/test_helper/ClockFixture.hpp"
 #include "services/ble/LinkConfiguringGapCentral.hpp"
 #include "services/ble/test_doubles/GapCentralMock.hpp"
 #include "services/ble/test_doubles/GapCentralObserverMock.hpp"
@@ -11,7 +10,7 @@ namespace services
     {
         class LinkConfiguringGapCentralTest
             : public testing::Test
-            , public infra::EventDispatcherFixture
+            , public infra::ClockFixture
         {
         public:
             testing::StrictMock<GapCentralMock> gap;
@@ -19,17 +18,6 @@ namespace services
             testing::StrictMock<GapCentralObserverMock> observer{ linkConfiguring };
 
             const GapDataLength maximumDataLength{ GapDataLength::Maximum(GapPhy::le1M) };
-            infra::Function<void(GapCentral::Result)> onStepDone;
-
-            void ExpectSetPhy(GapRequestStatus status = GapRequestStatus::accepted)
-            {
-                EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M, testing::_)).WillOnce(testing::DoAll(testing::SaveArg<2>(&onStepDone), testing::Return(status)));
-            }
-
-            void ExpectSetDataLength(GapRequestStatus status = GapRequestStatus::accepted)
-            {
-                EXPECT_CALL(gap, SetDataLength(maximumDataLength, testing::_)).WillOnce(testing::DoAll(testing::SaveArg<1>(&onStepDone), testing::Return(status)));
-            }
 
             void Connect()
             {
@@ -43,150 +31,137 @@ namespace services
                 gap.ChangeState(GapCentralState::standby);
             }
 
-            // A port holds a completion in an infra::AutoResetFunction, which releases it before
-            // invoking it.
-            void CompleteStep(GapCentral::Result result = GapCentral::Result::success)
+            void ReportPhy(GapPhy txPhy = GapPhy::le2M, GapPhy rxPhy = GapPhy::le2M)
             {
-                infra::PostAssign(onStepDone, nullptr)(result);
+                EXPECT_CALL(observer, PhyUpdated(txPhy, rxPhy));
+                gap.ChangePhy(txPhy, rxPhy);
+            }
+
+            void Settle()
+            {
+                ForwardTime(std::chrono::milliseconds(1));
             }
         };
     }
 
-    TEST_F(LinkConfiguringGapCentralTest, sets_the_phy_when_a_connection_is_established)
+    TEST_F(LinkConfiguringGapCentralTest, raises_the_phy_when_a_connection_is_established)
     {
         Connect();
 
-        ExpectSetPhy();
-        ExecuteAllActions();
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
     }
 
-    TEST_F(LinkConfiguringGapCentralTest, sets_the_data_length_only_after_the_phy_has_settled)
+    TEST_F(LinkConfiguringGapCentralTest, does_not_ask_from_within_the_notification_that_prompted_it)
     {
         Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
-
-        ExpectSetDataLength();
-        CompleteStep();
+        ReportPhy();
     }
 
-    TEST_F(LinkConfiguringGapCentralTest, ends_after_the_data_length)
+    TEST_F(LinkConfiguringGapCentralTest, sets_the_data_length_once_the_link_layer_reports_its_phy)
     {
         Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
 
-        ExpectSetDataLength();
-        CompleteStep();
+        ReportPhy();
 
-        CompleteStep();
-        ExecuteAllActions();
+        EXPECT_CALL(gap, SetDataLength(maximumDataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
     }
 
-    TEST_F(LinkConfiguringGapCentralTest, sets_the_data_length_even_when_the_phy_could_not_be_raised)
+    TEST_F(LinkConfiguringGapCentralTest, sets_the_data_length_straight_away_when_the_controller_refuses_the_phy)
     {
         Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
 
-        ExpectSetDataLength();
-        CompleteStep(GapCentral::Result::controllerError);
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+        EXPECT_CALL(gap, SetDataLength(maximumDataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
     }
 
-    TEST_F(LinkConfiguringGapCentralTest, moves_on_when_the_controller_refuses_the_phy_procedure)
+    TEST_F(LinkConfiguringGapCentralTest, follows_a_phy_the_peer_asked_for)
     {
         Connect();
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
 
-        ExpectSetPhy(GapRequestStatus::notSupported);
-        ExpectSetDataLength();
-        ExecuteAllActions();
+        ReportPhy();
+        EXPECT_CALL(gap, SetDataLength(maximumDataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
+
+        // Nothing was asked for this time; the peer moved the link back to LE 1M.
+        ReportPhy(GapPhy::le1M, GapPhy::le1M);
+        EXPECT_CALL(gap, SetDataLength(maximumDataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
     }
 
-    TEST_F(LinkConfiguringGapCentralTest, ends_when_the_controller_refuses_the_data_length_procedure)
+    TEST_F(LinkConfiguringGapCentralTest, forwards_a_data_length_change_without_acting_on_it)
     {
-        Connect();
+        const GapDataLength negotiated{ 27, 328 };
 
-        ExpectSetPhy(GapRequestStatus::notSupported);
-        ExpectSetDataLength(GapRequestStatus::invalidState);
-        ExecuteAllActions();
-    }
+        EXPECT_CALL(observer, DataLengthChanged(negotiated));
+        gap.ChangeDataLength(negotiated);
 
-    TEST_F(LinkConfiguringGapCentralTest, discards_a_step_completion_that_arrives_after_the_connection_is_gone)
-    {
-        Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
-
-        Disconnect();
-
-        CompleteStep();
-        ExecuteAllActions();
-    }
-
-    TEST_F(LinkConfiguringGapCentralTest, discards_a_scheduled_start_when_the_connection_is_gone_before_it_runs)
-    {
-        Connect();
-        Disconnect();
-
-        ExecuteAllActions();
+        Settle();
     }
 
     TEST_F(LinkConfiguringGapCentralTest, leaves_the_link_alone_in_every_other_state)
     {
-        EXPECT_CALL(observer, StateChanged(GapCentralState::standby));
         EXPECT_CALL(observer, StateChanged(GapCentralState::scanning));
         EXPECT_CALL(observer, StateChanged(GapCentralState::initiating));
 
-        gap.ChangeState(GapCentralState::standby);
         gap.ChangeState(GapCentralState::scanning);
         gap.ChangeState(GapCentralState::initiating);
-        ExecuteAllActions();
+        Settle();
+    }
+
+    TEST_F(LinkConfiguringGapCentralTest, drops_a_pending_request_when_the_connection_goes)
+    {
+        Connect();
+        Disconnect();
+
+        Settle();
+    }
+
+    TEST_F(LinkConfiguringGapCentralTest, drops_a_pending_data_length_request_when_the_connection_goes)
+    {
+        Connect();
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
+
+        ReportPhy();
+        Disconnect();
+
+        Settle();
     }
 
     TEST_F(LinkConfiguringGapCentralTest, configures_the_link_again_on_the_next_connection)
     {
         Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
-
-        ExpectSetDataLength();
-        CompleteStep();
-        CompleteStep();
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
 
         Disconnect();
         Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
-    }
 
-    TEST_F(LinkConfiguringGapCentralTest, skips_a_connection_whose_predecessor_never_reported)
-    {
-        Connect();
-        ExpectSetPhy();
-        ExecuteAllActions();
-
-        Disconnect();
-        Connect();
-        ExecuteAllActions();
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
     }
 
     TEST(LinkConfiguringGapCentralConfigurationTest, applies_the_phy_and_data_length_it_is_configured_with)
     {
-        infra::EventDispatcherFixture eventDispatcher;
+        infra::ClockFixture clock;
         testing::StrictMock<GapCentralMock> gap;
         const LinkConfiguringGapCentral::Configuration configuration{ GapPhy::le1M, GapPhy::le1M, GapDataLength{ 100, 1000 } };
         LinkConfiguringGapCentral linkConfiguring{ gap, configuration };
 
-        infra::Function<void(GapCentral::Result)> onStepDone;
-
-        EXPECT_CALL(gap, SetPhy(GapPhy::le1M, GapPhy::le1M, testing::_)).WillOnce(testing::DoAll(testing::SaveArg<2>(&onStepDone), testing::Return(GapRequestStatus::accepted)));
-
+        EXPECT_CALL(gap, SetPhy(GapPhy::le1M, GapPhy::le1M)).WillOnce(testing::Return(GapRequestStatus::accepted));
         gap.ChangeState(GapCentralState::connected);
-        eventDispatcher.ExecuteAllActions();
+        clock.ForwardTime(std::chrono::milliseconds(1));
 
-        EXPECT_CALL(gap, SetDataLength(configuration.dataLength, testing::_)).WillOnce(testing::Return(GapRequestStatus::accepted));
-
-        infra::PostAssign(onStepDone, nullptr)(GapCentral::Result::success);
+        EXPECT_CALL(gap, SetDataLength(configuration.dataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        gap.ChangePhy(GapPhy::le1M, GapPhy::le1M);
+        clock.ForwardTime(std::chrono::milliseconds(1));
     }
 
     TEST(LinkConfiguringGapCentralConfigurationTest, asks_for_the_longest_payload_on_the_slowest_phy_by_default)

@@ -252,38 +252,40 @@ namespace services
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetAddress(GapAddress{ macAddress, GapDeviceAddressType::randomAddress }, RejectedCallback()));
     }
 
-    TEST_F(GapCentralDecoratorTest, set_data_length_forwards_request_and_result)
+    TEST_F(GapCentralDecoratorTest, set_data_length_forwards_request_and_status)
     {
         const GapDataLength dataLength{ GapDataLength::Maximum(GapPhy::le1M) };
 
-        EXPECT_CALL(gap, SetDataLength(dataLength, testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gap, SetDataLength(dataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetDataLength(dataLength));
 
-        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetDataLength(dataLength, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+        EXPECT_CALL(gap, SetDataLength(dataLength)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.SetDataLength(dataLength));
     }
 
-    TEST_F(GapCentralDecoratorTest, set_data_length_forwards_rejection_without_invoking_callback)
+    TEST_F(GapCentralDecoratorTest, set_phy_forwards_request_and_status)
     {
-        const GapDataLength dataLength{ GapDataLength::Maximum(GapPhy::le2M) };
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetPhy(GapPhy::le2M, GapPhy::le2M));
 
-        EXPECT_CALL(gap, SetDataLength(dataLength, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
-
-        EXPECT_EQ(GapRequestStatus::invalidState, decorator.SetDataLength(dataLength, RejectedCallback()));
+        EXPECT_CALL(gap, SetPhy(GapPhy::leCoded, GapPhy::leCoded)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetPhy(GapPhy::leCoded, GapPhy::leCoded));
     }
 
-    TEST_F(GapCentralDecoratorTest, set_phy_forwards_request_and_result)
+    TEST_F(GapCentralDecoratorTest, forwards_a_phy_update_to_observers)
     {
-        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M, testing::_))
-            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapCentral::Result::controllerError), testing::Return(GapRequestStatus::accepted)));
+        EXPECT_CALL(gapObserver, PhyUpdated(GapPhy::le2M, GapPhy::le1M));
 
-        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetPhy(GapPhy::le2M, GapPhy::le2M, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::controllerError)));
+        gap.ChangePhy(GapPhy::le2M, GapPhy::le1M);
     }
 
-    TEST_F(GapCentralDecoratorTest, set_phy_forwards_rejection_without_invoking_callback)
+    TEST_F(GapCentralDecoratorTest, forwards_a_data_length_change_to_observers)
     {
-        EXPECT_CALL(gap, SetPhy(GapPhy::leCoded, GapPhy::leCoded, testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+        const GapDataLength negotiated{ 27, 328 };
 
-        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetPhy(GapPhy::leCoded, GapPhy::leCoded, RejectedCallback()));
+        EXPECT_CALL(gapObserver, DataLengthChanged(negotiated));
+
+        gap.ChangeDataLength(negotiated);
     }
 
     TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_request_and_result)

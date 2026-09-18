@@ -18,6 +18,22 @@ namespace services
             });
     }
 
+    void GapCentralDecorator::PhyUpdated(GapPhy txPhy, GapPhy rxPhy)
+    {
+        GapCentralObserver::SubjectType::NotifyObservers([txPhy, rxPhy](auto& obs)
+            {
+                obs.PhyUpdated(txPhy, rxPhy);
+            });
+    }
+
+    void GapCentralDecorator::DataLengthChanged(const GapDataLength& dataLength)
+    {
+        GapCentralObserver::SubjectType::NotifyObservers([&dataLength](auto& obs)
+            {
+                obs.DataLengthChanged(dataLength);
+            });
+    }
+
     std::optional<GapAddress> GapCentralDecorator::ResolvePrivateAddress(hal::MacAddress address) const
     {
         return GapCentralObserver::Subject().ResolvePrivateAddress(address);
@@ -53,14 +69,14 @@ namespace services
         return GapCentralObserver::Subject().SetAddress(address, onDone);
     }
 
-    GapRequestStatus GapCentralDecorator::SetDataLength(const GapDataLength& dataLength, const infra::Function<void(Result)>& onDone)
+    GapRequestStatus GapCentralDecorator::SetDataLength(const GapDataLength& dataLength)
     {
-        return GapCentralObserver::Subject().SetDataLength(dataLength, onDone);
+        return GapCentralObserver::Subject().SetDataLength(dataLength);
     }
 
-    GapRequestStatus GapCentralDecorator::SetPhy(GapPhy txPhy, GapPhy rxPhy, const infra::Function<void(Result)>& onDone)
+    GapRequestStatus GapCentralDecorator::SetPhy(GapPhy txPhy, GapPhy rxPhy)
     {
-        return GapCentralObserver::Subject().SetPhy(txPhy, rxPhy, onDone);
+        return GapCentralObserver::Subject().SetPhy(txPhy, rxPhy);
     }
 
     GapRequestStatus GapCentral::StartDeviceDiscovery(const infra::Function<void(Result)>& onDone)
