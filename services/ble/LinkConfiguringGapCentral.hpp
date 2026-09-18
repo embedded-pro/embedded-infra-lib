@@ -1,14 +1,16 @@
 #ifndef SERVICES_LINK_CONFIGURING_GAP_CENTRAL_HPP
 #define SERVICES_LINK_CONFIGURING_GAP_CENTRAL_HPP
 
+#include "infra/util/SharedOptional.hpp"
 #include "services/ble/GapCentral.hpp"
+#include <variant>
 
 namespace services
 {
-    // A connection starts on the LE 1M PHY with a 27 octet payload, which the LE Set PHY and
-    // LE Set Data Length procedures raise. Neither is run by the controller on its own, so this
-    // decorator runs both once a connection is established and leaves the GapCentral it
-    // decorates with nothing but the procedures themselves.
+    // A connection starts on the LE 1M PHY carrying 27 octets, which the LE Set PHY and LE Set
+    // Data Length procedures raise. The controller runs neither on its own, and runs one at a
+    // time, so this decorator walks them in order once a connection is established and leaves the
+    // GapCentral it decorates with nothing but the procedures themselves.
     class LinkConfiguringGapCentral
         : public GapCentralDecorator
     {
@@ -28,10 +30,38 @@ namespace services
         void StateChanged(GapCentralState state) override;
 
     private:
-        void ConfigureLink();
+        struct SettingPhy
+        {};
+
+        struct SettingDataLength
+        {};
+
+        using Step = std::variant<SettingPhy, SettingDataLength>;
+
+        // The procedure is reached from its own completions through a WeakPtr, so a completion
+        // that arrives after the connection is gone finds nothing and is discarded.
+        struct Procedure //NOSONAR
+        {
+            Procedure(LinkConfiguringGapCentral& gapCentral, const Step& step)
+                : gapCentral(gapCentral)
+                , step(step)
+            {}
+
+            LinkConfiguringGapCentral& gapCentral;
+            Step step;
+        };
+
+        void Start();
+        void Abandon();
+        void Perform();
+        void StepDone();
+
+        infra::Function<void(Result)> StepCompletion() const;
 
     private:
         Configuration configuration;
+        infra::SharedOptional<Procedure> procedureStorage;
+        infra::SharedPtr<Procedure> procedure;
     };
 }
 
