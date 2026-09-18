@@ -18,6 +18,18 @@ namespace infra
         return stream;
     }
 
+    TextOutputStream& operator<<(TextOutputStream& stream, const services::GapPhy& phy)
+    {
+        if (phy == services::GapPhy::le1M)
+            stream << "LE 1M";
+        else if (phy == services::GapPhy::le2M)
+            stream << "LE 2M";
+        else
+            stream << "LE Coded";
+
+        return stream;
+    }
+
     TextOutputStream& operator<<(TextOutputStream& stream, const services::GapDeviceAddressType& addressType)
     {
         if (addressType == services::GapDeviceAddressType::publicAddress)
