@@ -11,9 +11,10 @@ namespace services
     // its own and runs one procedure at a time, so this decorator walks them in order once a
     // connection is established.
     //
-    // Destroy it only when no procedure is in flight: the GapCentral it decorates holds the step
-    // completion and offers no way to withdraw it. Disconnecting first is always enough, because a
-    // port completes its pending procedures when the link goes.
+    // Its lifetime is the GapCentral's, not a connection's. A disconnect arrives on its own and is
+    // safe, because a port completes its pending procedures before reporting standby, but the
+    // GapCentral offers no way to withdraw a completion already handed to it, so destroying this
+    // while a procedure is in flight is not.
     class LinkConfiguringGapCentral
         : public GapCentralDecorator
     {
