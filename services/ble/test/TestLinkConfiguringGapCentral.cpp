@@ -54,8 +54,17 @@ namespace services
 
     TEST_F(LinkConfiguringGapCentralTest, does_not_ask_from_within_the_notification_that_prompted_it)
     {
+        EXPECT_CALL(gap, SetPhy(testing::_, testing::_)).Times(0);
+        EXPECT_CALL(gap, SetDataLength(testing::_)).Times(0);
+
         Connect();
         ReportPhy();
+
+        testing::Mock::VerifyAndClearExpectations(&gap);
+
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        EXPECT_CALL(gap, SetDataLength(maximumDataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        Settle();
     }
 
     TEST_F(LinkConfiguringGapCentralTest, sets_the_data_length_once_the_link_layer_reports_its_phy)
