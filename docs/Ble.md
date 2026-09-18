@@ -6,7 +6,7 @@ The `services/ble` package provides the Generic Access Profile (GAP) and the Gen
 
 ## Scope and boundaries
 
-`services/ble` is not a Bluetooth stack. It is an abstraction over a vendor controller and host stack, and it has no consumers inside this repository — it exists to be implemented by downstream ports. What it deliberately leaves to the layer below is recorded here, so that an absence can be told apart from a gap.
+`services/ble` is not a Bluetooth stack. It is an abstraction over a vendor controller and host stack, and it exists to be implemented by downstream ports. Its one in-tree consumer is `services/ble/profile`, which builds on the GATT interfaces rather than on a controller. What it deliberately leaves to the layer below is recorded here, so that an absence can be told apart from a gap.
 
 **HCI and the Link Layer** are out of scope. No opcodes, no transport, no Link Layer control PDUs. Only the vocabulary appears, in the connection state enums.
 
@@ -328,3 +328,101 @@ the ids of the single connection interface are left unused.
 A message may not be called `Descriptor`: protoc generates a static `Descriptor` member on
 every generated C# message, which a message of that name would collide with. `Descriptr`
 keeps its spelling for that reason.
+
+## Profiles
+
+`services/ble/profile` holds concrete GATT services, built on the interfaces above and on
+nothing vendor specific. A profile is not a role: it says what attributes exist and what
+they mean, and leaves discovery, advertising and the link to GAP.
+
+What earns a place here is a service any product has regardless of what the product does.
+A heart rate or glucose service describes what a device *is*; device information, a battery
+level and a byte pipe describe what any device *has*.
+
+Every server side profile takes a `GattServer` and registers itself, and exposes its
+`GattServerService` so a port can reach the characteristics. None of them push a value from
+their constructor: `GattServerCharacteristicImpl::Update` asserts that a port has attached
+its `GattServerCharacteristicOperations`, and the only hook a port gets for that is
+`AddService`, which is still running at that point.
+
+### Device Information Service
+
+`DeviceInformationService` exposes the nine characteristics of the specification, and only
+the ones it is given: a field left empty in `DeviceInformation` gets no characteristic
+rather than an empty one, which keeps both the attribute count and the handle space down.
+The set of characteristics is therefore fixed at construction, and a later
+`SetDeviceInformation` can change the values of those that exist but cannot introduce one
+the database was not built with.
+
+The field names and their bounds come from `GattServerDisService` in `GattServer.proto`,
+which was here before the C++ was: 32 octets for the text fields, 8 for the System ID and 7
+for the PnP ID. A value is not copied, so the ranges handed to `SetDeviceInformation` must
+outlive the update, which costs nothing for the flash constants these usually are.
+
+### Battery Service
+
+One characteristic, one octet, read and notify. `BatteryLevelChanged` takes a percentage and
+rejects anything above 100. Nothing in `hal/` reports a battery, and that is the right
+layering: converting a cell voltage into a percentage is a device decision, and the profile
+takes the answer rather than the measurement.
+
+### Generic Attribute Service
+
+`GenericAttributeService` serves Service Changed, which is what a device whose database
+shifts after a firmware update needs in order to tell a client holding stale handles. The
+value it indicates is the one `GattServiceChangedFromValue` decodes on the client side, and
+a test asserts that round trip rather than re-stating the encoding.
+
+Database Hash is **not** here, and cannot be at this layer. Computing it means walking every
+attribute of the server database in handle order and serialising a defined subset of them;
+`GattServer` exposes nothing but `AddService`, so a profile cannot enumerate what the server
+holds. The primitive it needs is in tree — `services/crypto/AesCmac`, keyed with zeros — so
+what is missing is database enumeration on `GattServer`, not cryptography. Client Supported
+Features follows it: without a hash to guard, there is nothing for the bit to gate.
+
+### Nordic UART Service
+
+A byte pipe over GATT, and the vendor service that almost every serial-over-BLE product
+speaks. Its UUIDs are Nordic's, on the base `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`; they
+appear in no Bluetooth SIG document. Rx and Tx are named from the **peripheral's** point of
+view — a central writes into Rx and subscribes to Tx — which is the one thing about this
+profile that is reliably misread.
+
+Both roles implement `services::NordicUart`, which is a `hal::SerialCommunication` plus an
+`infra::Subject<NordicUartObserver>` for the open and closed transitions a serial port has
+no vocabulary for. That choice is the point of the profile: `services::Terminal`,
+`EchoOnSerialCommunication` and `SesameCobs` (through
+`hal::BufferedSerialCommunicationOnUnbuffered`) all take a `hal::SerialCommunication`, so
+each of them runs over BLE unchanged, on either side of the link.
+
+| Role                            | Sends by     | Receives by          |
+|---------------------------------|--------------|----------------------|
+| `NordicUartPeripheral` (server) | notifying Tx | a peer write to Rx   |
+| `NordicUartCentral` (client)    | writing Rx   | a notification on Tx |
+
+`SendData` splits its range into `MaxSendSize()` chunks, `ATT_MTU - 3`, and reports
+completion after the last one. Nothing is copied, so the caller's buffer must outlive the
+send, as it must for `GattClientLongOperations`.
+
+The peripheral is told things the central can ask for. `GattClientConnection` reports the
+MTU through `MtuChanged` and `EffectiveMaxAttMtuSize`, so `NordicUartCentral` reads it as it
+goes; `GattServer` reports neither the MTU nor a write to a Client Characteristic
+Configuration descriptor, so a port drives `NordicUartPeripheral` through
+`MaxAttMtuSizeChanged` and `NotificationsEnabled`. A port reports a lost link the same way,
+with `NotificationsEnabled(false)` or `NordicUartCentral::Close`.
+
+The central writes with a Write Request by default, so that the completion it reports means
+the peer has the data. `WriteMode::withoutResponse` trades that for throughput: a Write
+Command has no response, can be refused with `busy`, and only
+`RetryingGattClientConnection` re-attempts it, so a connection decorated with it is what
+that mode expects. A peer whose Rx characteristic does not offer the property gets a Write
+Request regardless.
+
+A peer that exposes neither the service nor both of its characteristics ends
+`NordicUartCentral::Discover` with `GattResult::unsupported`. That is this profile's reading
+of the outcome; no ATT error code says it.
+
+One limit is inherited rather than chosen: `GattServerCharacteristicUpdate::Update` has no
+failure path, and drops an update whose status is neither `accepted` nor `busy` without
+reporting it. A peripheral send that a stack rejects that way therefore never reports
+completion.

@@ -65,6 +65,7 @@ namespace services
         // Values taken from Assigned Numbers, section 3.4 (GATT Services)
         constexpr inline AttAttribute::Uuid16 genericAccessService{ 0x1800 };
         constexpr inline AttAttribute::Uuid16 genericAttributeService{ 0x1801 };
+        constexpr inline AttAttribute::Uuid16 batteryService{ 0x180F };
 
         // Values taken from Assigned Numbers, section 3.6 (GATT Declarations)
         constexpr inline AttAttribute::Uuid16 primaryService{ 0x2800 };
@@ -85,6 +86,7 @@ namespace services
         constexpr inline AttAttribute::Uuid16 clientSupportedFeatures{ 0x2B29 };
         constexpr inline AttAttribute::Uuid16 databaseHash{ 0x2B2A };
         constexpr inline AttAttribute::Uuid16 serverSupportedFeatures{ 0x2B3A };
+        constexpr inline AttAttribute::Uuid16 batteryLevel{ 0x2A19 };
 
         // Device Information Service, Assigned Numbers sections 3.4 and 3.8
         constexpr inline AttAttribute::Uuid16 deviceInformationService{ 0x180A };
