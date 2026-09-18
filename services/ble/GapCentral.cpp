@@ -53,6 +53,16 @@ namespace services
         return GapCentralObserver::Subject().SetAddress(address, onDone);
     }
 
+    GapRequestStatus GapCentralDecorator::SetDataLength(const GapDataLength& dataLength, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().SetDataLength(dataLength, onDone);
+    }
+
+    GapRequestStatus GapCentralDecorator::SetPhy(GapPhy txPhy, GapPhy rxPhy, const infra::Function<void(Result)>& onDone)
+    {
+        return GapCentralObserver::Subject().SetPhy(txPhy, rxPhy, onDone);
+    }
+
     GapRequestStatus GapCentral::StartDeviceDiscovery(const infra::Function<void(Result)>& onDone)
     {
         return StartDeviceDiscovery(defaultScanParameters, onDone);

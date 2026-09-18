@@ -181,7 +181,21 @@ namespace services
                     return static_cast<uint16_t>((initialMaxTxOctets + 14u) * 8u); // 2120 us
             }
         }
+
+        // The largest payload the link layer will carry, and the air time it may take.
+        // Bluetooth Core Specification, Volume 4, Part E, section 7.8.33
+        static constexpr GapDataLength Maximum(GapPhy phy);
+
+        uint16_t maxTxOctets;
+        uint16_t maxTxTime;
+
+        bool operator==(const GapDataLength& other) const = default;
     };
+
+    constexpr GapDataLength GapDataLength::Maximum(GapPhy phy)
+    {
+        return GapDataLength{ initialMaxTxOctets, InitialMaxTxTime(phy) };
+    }
 
     enum class GapScanType : uint8_t
     {

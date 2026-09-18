@@ -252,6 +252,40 @@ namespace services
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetAddress(GapAddress{ macAddress, GapDeviceAddressType::randomAddress }, RejectedCallback()));
     }
 
+    TEST_F(GapCentralDecoratorTest, set_data_length_forwards_request_and_result)
+    {
+        const GapDataLength dataLength{ GapDataLength::Maximum(GapPhy::le1M) };
+
+        EXPECT_CALL(gap, SetDataLength(dataLength, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<1>(GapCentral::Result::success), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetDataLength(dataLength, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::success)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, set_data_length_forwards_rejection_without_invoking_callback)
+    {
+        const GapDataLength dataLength{ GapDataLength::Maximum(GapPhy::le2M) };
+
+        EXPECT_CALL(gap, SetDataLength(dataLength, testing::_)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.SetDataLength(dataLength, RejectedCallback()));
+    }
+
+    TEST_F(GapCentralDecoratorTest, set_phy_forwards_request_and_result)
+    {
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M, testing::_))
+            .WillOnce(testing::DoAll(testing::InvokeArgument<2>(GapCentral::Result::controllerError), testing::Return(GapRequestStatus::accepted)));
+
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetPhy(GapPhy::le2M, GapPhy::le2M, infra::VerifyingFunction<void(GapCentral::Result)>(GapCentral::Result::controllerError)));
+    }
+
+    TEST_F(GapCentralDecoratorTest, set_phy_forwards_rejection_without_invoking_callback)
+    {
+        EXPECT_CALL(gap, SetPhy(GapPhy::leCoded, GapPhy::leCoded, testing::_)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetPhy(GapPhy::leCoded, GapPhy::leCoded, RejectedCallback()));
+    }
+
     TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_request_and_result)
     {
         EXPECT_CALL(gap, StartDeviceDiscovery(testing::_, testing::_))
