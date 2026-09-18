@@ -350,10 +350,10 @@ no vocabulary for. That choice is the point of the profile: `services::Terminal`
 `hal::BufferedSerialCommunicationOnUnbuffered`) all take a `hal::SerialCommunication`, so
 each of them runs over BLE unchanged, on either side of the link.
 
-| Role                             | Sends by            | Receives by                     |
-|----------------------------------|---------------------|---------------------------------|
-| `NordicUartPeripheral` (server)  | notifying Tx        | a peer write to Rx              |
-| `NordicUartCentral` (client)     | writing Rx          | a notification on Tx            |
+| Role                            | Sends by     | Receives by          |
+|---------------------------------|--------------|----------------------|
+| `NordicUartPeripheral` (server) | notifying Tx | a peer write to Rx   |
+| `NordicUartCentral` (client)    | writing Rx   | a notification on Tx |
 
 `SendData` splits its range into `MaxSendSize()` chunks, `ATT_MTU - 3`, and reports
 completion after the last one. Nothing is copied, so the caller's buffer must outlive the
