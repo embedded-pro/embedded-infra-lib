@@ -27,6 +27,10 @@ namespace services
 
         virtual void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) = 0;
         virtual void StateChanged(GapCentralState state) = 0;
+
+        // Reported whenever the link layer settles on new values, whichever side asked for them.
+        virtual void PhyUpdated(GapPhy txPhy, GapPhy rxPhy) = 0;
+        virtual void DataLengthChanged(const GapDataLength& dataLength) = 0;
     };
 
     class GapCentral
@@ -60,6 +64,13 @@ namespace services
         virtual GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetAddress(const GapAddress& address, const infra::Function<void(Result)>& onDone) = 0;
+
+        // What the link layer settles on is reported to every observer through DataLengthChanged
+        // and PhyUpdated, so neither request carries a completion of its own.
+        // Bluetooth Core Specification, Volume 4, Part E, sections 7.8.33 and 7.8.49
+        virtual GapRequestStatus SetDataLength(const GapDataLength& dataLength) = 0;
+        virtual GapRequestStatus SetPhy(GapPhy txPhy, GapPhy rxPhy) = 0;
+
         static constexpr GapScanParameters defaultScanParameters{ 0x0010u, 0x0010u, GapScanType::active };
 
         virtual GapRequestStatus StartDeviceDiscovery(const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone) = 0;
@@ -77,6 +88,8 @@ namespace services
         // Implementation of GapCentralObserver
         void DeviceDiscovered(const GapAdvertisingReport& deviceDiscovered) override;
         void StateChanged(GapCentralState state) override;
+        void PhyUpdated(GapPhy txPhy, GapPhy rxPhy) override;
+        void DataLengthChanged(const GapDataLength& dataLength) override;
 
         // Implementation of GapCentral
         std::optional<GapAddress> ResolvePrivateAddress(hal::MacAddress address) const override;
@@ -86,6 +99,8 @@ namespace services
         GapRequestStatus CancelConnect(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus SetAddress(const GapAddress& address, const infra::Function<void(Result)>& onDone) override;
+        GapRequestStatus SetDataLength(const GapDataLength& dataLength) override;
+        GapRequestStatus SetPhy(GapPhy txPhy, GapPhy rxPhy) override;
         using GapCentral::StartDeviceDiscovery;
         GapRequestStatus StartDeviceDiscovery(const GapScanParameters& parameters, const infra::Function<void(Result)>& onDone) override;
         GapRequestStatus StopDeviceDiscovery(const infra::Function<void(Result)>& onDone) override;

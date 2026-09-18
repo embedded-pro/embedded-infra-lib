@@ -14,6 +14,8 @@ namespace services
     public:
         MOCK_METHOD(void, DeviceDiscovered, (const GapAdvertisingReport& deviceDiscovered), (override));
         MOCK_METHOD(void, StateChanged, (GapCentralState state), (override));
+        MOCK_METHOD(void, PhyUpdated, (GapPhy txPhy, GapPhy rxPhy), (override));
+        MOCK_METHOD(void, DataLengthChanged, (const GapDataLength& dataLength), (override));
     };
 }
 

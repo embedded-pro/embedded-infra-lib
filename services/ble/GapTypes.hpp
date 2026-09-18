@@ -181,7 +181,19 @@ namespace services
                     return static_cast<uint16_t>((initialMaxTxOctets + 14u) * 8u); // 2120 us
             }
         }
+
+        static constexpr GapDataLength Maximum(GapPhy phy);
+
+        uint16_t maxTxOctets;
+        uint16_t maxTxTime;
+
+        bool operator==(const GapDataLength& other) const = default;
     };
+
+    constexpr GapDataLength GapDataLength::Maximum(GapPhy phy)
+    {
+        return GapDataLength{ initialMaxTxOctets, InitialMaxTxTime(phy) };
+    }
 
     enum class GapScanType : uint8_t
     {
@@ -260,6 +272,7 @@ namespace infra
 {
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapAdvertisingEventType& eventType);
     infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapDeviceAddressType& addressType);
+    infra::TextOutputStream& operator<<(infra::TextOutputStream& stream, const services::GapPhy& phy);
 }
 
 #endif

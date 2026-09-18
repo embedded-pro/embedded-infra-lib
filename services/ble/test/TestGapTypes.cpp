@@ -34,6 +34,22 @@ namespace services
         EXPECT_EQ(17040u, GapDataLength::InitialMaxTxTime(GapPhy::leCoded));
     }
 
+    TEST(GapDataLengthTest, maximum_carries_the_longest_payload_for_the_phy)
+    {
+        EXPECT_EQ((GapDataLength{ 251u, 2120u }), GapDataLength::Maximum(GapPhy::le1M));
+        EXPECT_EQ((GapDataLength{ 251u, 1064u }), GapDataLength::Maximum(GapPhy::le2M));
+        EXPECT_EQ((GapDataLength{ 251u, 17040u }), GapDataLength::Maximum(GapPhy::leCoded));
+    }
+
+    TEST(GapInsertionOperatorPhyTest, phy_overload_operator)
+    {
+        infra::StringOutputStream::WithStorage<128> stream;
+
+        stream << GapPhy::le1M << " " << GapPhy::le2M << " " << GapPhy::leCoded;
+
+        EXPECT_EQ("LE 1M LE 2M LE Coded", stream.Storage());
+    }
+
     TEST(GapInsertionOperatorEventAddressTypeTest, address_event_type_overload_operator)
     {
         infra::StringOutputStream::WithStorage<128> stream;

@@ -252,6 +252,42 @@ namespace services
         EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetAddress(GapAddress{ macAddress, GapDeviceAddressType::randomAddress }, RejectedCallback()));
     }
 
+    TEST_F(GapCentralDecoratorTest, set_data_length_forwards_request_and_status)
+    {
+        const GapDataLength dataLength{ GapDataLength::Maximum(GapPhy::le1M) };
+
+        EXPECT_CALL(gap, SetDataLength(dataLength)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetDataLength(dataLength));
+
+        EXPECT_CALL(gap, SetDataLength(dataLength)).WillOnce(testing::Return(GapRequestStatus::invalidState));
+        EXPECT_EQ(GapRequestStatus::invalidState, decorator.SetDataLength(dataLength));
+    }
+
+    TEST_F(GapCentralDecoratorTest, set_phy_forwards_request_and_status)
+    {
+        EXPECT_CALL(gap, SetPhy(GapPhy::le2M, GapPhy::le2M)).WillOnce(testing::Return(GapRequestStatus::accepted));
+        EXPECT_EQ(GapRequestStatus::accepted, decorator.SetPhy(GapPhy::le2M, GapPhy::le2M));
+
+        EXPECT_CALL(gap, SetPhy(GapPhy::leCoded, GapPhy::leCoded)).WillOnce(testing::Return(GapRequestStatus::notSupported));
+        EXPECT_EQ(GapRequestStatus::notSupported, decorator.SetPhy(GapPhy::leCoded, GapPhy::leCoded));
+    }
+
+    TEST_F(GapCentralDecoratorTest, forwards_a_phy_update_to_observers)
+    {
+        EXPECT_CALL(gapObserver, PhyUpdated(GapPhy::le2M, GapPhy::le1M));
+
+        gap.ChangePhy(GapPhy::le2M, GapPhy::le1M);
+    }
+
+    TEST_F(GapCentralDecoratorTest, forwards_a_data_length_change_to_observers)
+    {
+        const GapDataLength negotiated{ 27, 328 };
+
+        EXPECT_CALL(gapObserver, DataLengthChanged(negotiated));
+
+        gap.ChangeDataLength(negotiated);
+    }
+
     TEST_F(GapCentralDecoratorTest, start_device_discovery_forwards_request_and_result)
     {
         EXPECT_CALL(gap, StartDeviceDiscovery(testing::_, testing::_))
