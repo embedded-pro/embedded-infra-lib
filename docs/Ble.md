@@ -335,6 +335,51 @@ keeps its spelling for that reason.
 nothing vendor specific. A profile is not a role: it says what attributes exist and what
 they mean, and leaves discovery, advertising and the link to GAP.
 
+What earns a place here is a service any product has regardless of what the product does.
+A heart rate or glucose service describes what a device *is*; device information, a battery
+level and a byte pipe describe what any device *has*.
+
+Every server side profile takes a `GattServer` and registers itself, and exposes its
+`GattServerService` so a port can reach the characteristics. None of them push a value from
+their constructor: `GattServerCharacteristicImpl::Update` asserts that a port has attached
+its `GattServerCharacteristicOperations`, and the only hook a port gets for that is
+`AddService`, which is still running at that point.
+
+### Device Information Service
+
+`DeviceInformationService` exposes the nine characteristics of the specification, and only
+the ones it is given: a field left empty in `DeviceInformation` gets no characteristic
+rather than an empty one, which keeps both the attribute count and the handle space down.
+The set of characteristics is therefore fixed at construction, and a later
+`SetDeviceInformation` can change the values of those that exist but cannot introduce one
+the database was not built with.
+
+The field names and their bounds come from `GattServerDisService` in `GattServer.proto`,
+which was here before the C++ was: 32 octets for the text fields, 8 for the System ID and 7
+for the PnP ID. A value is not copied, so the ranges handed to `SetDeviceInformation` must
+outlive the update, which costs nothing for the flash constants these usually are.
+
+### Battery Service
+
+One characteristic, one octet, read and notify. `BatteryLevelChanged` takes a percentage and
+rejects anything above 100. Nothing in `hal/` reports a battery, and that is the right
+layering: converting a cell voltage into a percentage is a device decision, and the profile
+takes the answer rather than the measurement.
+
+### Generic Attribute Service
+
+`GenericAttributeService` serves Service Changed, which is what a device whose database
+shifts after a firmware update needs in order to tell a client holding stale handles. The
+value it indicates is the one `GattServiceChangedFromValue` decodes on the client side, and
+a test asserts that round trip rather than re-stating the encoding.
+
+Database Hash is **not** here, and cannot be at this layer. Computing it means walking every
+attribute of the server database in handle order and serialising a defined subset of them;
+`GattServer` exposes nothing but `AddService`, so a profile cannot enumerate what the server
+holds. The primitive it needs is in tree — `services/crypto/AesCmac`, keyed with zeros — so
+what is missing is database enumeration on `GattServer`, not cryptography. Client Supported
+Features follows it: without a hash to guard, there is nothing for the bit to gate.
+
 ### Nordic UART Service
 
 A byte pipe over GATT, and the vendor service that almost every serial-over-BLE product

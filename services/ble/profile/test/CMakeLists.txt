@@ -10,6 +10,9 @@ target_link_libraries(services.ble_profile_test PUBLIC
 )
 
 target_sources(services.ble_profile_test PRIVATE
+    TestBatteryService.cpp
+    TestDeviceInformationService.cpp
+    TestGenericAttributeService.cpp
     TestNordicUartCentral.cpp
     TestNordicUartPeripheral.cpp
 )

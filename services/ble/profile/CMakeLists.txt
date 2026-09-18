@@ -8,6 +8,12 @@ target_link_libraries(services.ble_profile PUBLIC
 )
 
 target_sources(services.ble_profile PRIVATE
+    BatteryService.cpp
+    BatteryService.hpp
+    DeviceInformationService.cpp
+    DeviceInformationService.hpp
+    GenericAttributeService.cpp
+    GenericAttributeService.hpp
     NordicUart.hpp
     NordicUartCentral.cpp
     NordicUartCentral.hpp
