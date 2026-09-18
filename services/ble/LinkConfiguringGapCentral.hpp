@@ -7,10 +7,9 @@
 
 namespace services
 {
-    // A connection starts on the LE 1M PHY carrying 27 octets, which the LE Set PHY and LE Set
-    // Data Length procedures raise. The controller runs neither on its own, and runs one at a
-    // time, so this decorator walks them in order once a connection is established and leaves the
-    // GapCentral it decorates with nothing but the procedures themselves.
+    // A connection starts on the LE 1M PHY carrying 27 octets. The controller raises neither on
+    // its own and runs one procedure at a time, so this decorator walks them in order once a
+    // connection is established.
     class LinkConfiguringGapCentral
         : public GapCentralDecorator
     {
@@ -38,8 +37,8 @@ namespace services
 
         using Step = std::variant<SettingPhy, SettingDataLength>;
 
-        // The procedure is reached from its own completions through a WeakPtr, so a completion
-        // that arrives after the connection is gone finds nothing and is discarded.
+        // Completions reach this through a WeakPtr, so one arriving after the connection is gone
+        // finds nothing and is discarded.
         struct Procedure //NOSONAR
         {
             Procedure(LinkConfiguringGapCentral& gapCentral, const Step& step)

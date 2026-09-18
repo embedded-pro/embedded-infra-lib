@@ -34,15 +34,15 @@ namespace services
     {
         Abandon();
 
-        // A procedure whose completion the controller never reported still holds the storage. The
-        // link is then left as the controller set it up, rather than asserting on this connection.
+        // A completion the controller never reported still holds the storage; leave the link as it
+        // is rather than assert.
         if (!procedureStorage.Allocatable())
             return;
 
         procedure = procedureStorage.Emplace(*this, SettingPhy{});
 
         // The state change is reported from within the controller's event handling, which is no
-        // place to start a procedure, so the first step waits for the event dispatcher.
+        // place to start a procedure.
         infra::EventDispatcher::Instance().Schedule([started = infra::WeakPtr<Procedure>(procedure)]()
             {
                 if (auto running = started.lock(); running != nullptr)
@@ -75,8 +75,7 @@ namespace services
     void LinkConfiguringGapCentral::StepDone()
     {
         // The data length follows the PHY, because the time a payload takes on air depends on the
-        // PHY carrying it. Whether the PHY changed does not decide that: the payload is worth
-        // asking for on the PHY the link ends up with either way.
+        // PHY carrying it.
         if (std::holds_alternative<SettingPhy>(procedure->step))
         {
             procedure->step = SettingDataLength{};

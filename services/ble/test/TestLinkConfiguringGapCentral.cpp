@@ -165,7 +165,6 @@ namespace services
         ExpectSetPhy();
         ExecuteAllActions();
 
-        // The completion is still outstanding, so the procedure's storage is still held.
         Disconnect();
         Connect();
         ExecuteAllActions();

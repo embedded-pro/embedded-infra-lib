@@ -182,8 +182,6 @@ namespace services
             }
         }
 
-        // The largest payload the link layer will carry, and the air time it may take.
-        // Bluetooth Core Specification, Volume 4, Part E, section 7.8.33
         static constexpr GapDataLength Maximum(GapPhy phy);
 
         uint16_t maxTxOctets;

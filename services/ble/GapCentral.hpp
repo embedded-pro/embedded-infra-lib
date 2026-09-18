@@ -61,13 +61,13 @@ namespace services
         virtual GapRequestStatus Disconnect(const infra::Function<void(Result)>& onDone) = 0;
         virtual GapRequestStatus SetAddress(const GapAddress& address, const infra::Function<void(Result)>& onDone) = 0;
 
-        // The LE Set Data Length procedure. It completes with success once the controller reports
-        // the requested length, and with controllerError when it settles on anything else.
+        // Completes with success once the controller reports the requested length, and with
+        // controllerError when it settles on anything else.
         // Bluetooth Core Specification, Volume 4, Part E, section 7.8.33
         virtual GapRequestStatus SetDataLength(const GapDataLength& dataLength, const infra::Function<void(Result)>& onDone) = 0;
 
-        // The LE Set PHY procedure. It completes with success once the controller reports the
-        // requested PHYs, and with controllerError when it settles on anything else.
+        // Completes with success once the controller reports the requested PHYs, and with
+        // controllerError when it settles on anything else.
         // Bluetooth Core Specification, Volume 4, Part E, section 7.8.49
         virtual GapRequestStatus SetPhy(GapPhy txPhy, GapPhy rxPhy, const infra::Function<void(Result)>& onDone) = 0;
 
