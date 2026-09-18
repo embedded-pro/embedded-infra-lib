@@ -20,6 +20,7 @@ target_sources(services.ble_test PRIVATE
     TestGapPeripheral.cpp
     TestGapProto.cpp
     TestLinkConfiguringGapCentral.cpp
+    TestLinkConfiguringGapCentralLifetime.cpp
     TestGattProto.cpp
     TestGapTypes.cpp
     TestGattTypes.cpp

@@ -10,6 +10,10 @@ namespace services
     // A connection starts on the LE 1M PHY carrying 27 octets. The controller raises neither on
     // its own and runs one procedure at a time, so this decorator walks them in order once a
     // connection is established.
+    //
+    // Destroy it only when no procedure is in flight: the GapCentral it decorates holds the step
+    // completion and offers no way to withdraw it. Disconnecting first is always enough, because a
+    // port completes its pending procedures when the link goes.
     class LinkConfiguringGapCentral
         : public GapCentralDecorator
     {
