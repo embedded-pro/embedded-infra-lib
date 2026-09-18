@@ -14,6 +14,10 @@ target_sources(drivers.imu.l3gd20 PRIVATE
     L3gd20BusAccessSpi.hpp
     L3gd20Core.cpp
     L3gd20Core.hpp
+    L3gd20WithFifo.hpp
+    L3gd20WithPolling.hpp
+    L3gd20WithSelfTest.hpp
+    L3gd20WithThresholdInterrupt.hpp
 )
 
 add_subdirectory(test)

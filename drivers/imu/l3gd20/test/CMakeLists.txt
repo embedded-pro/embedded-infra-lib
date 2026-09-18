@@ -14,4 +14,7 @@ target_link_libraries(drivers.imu.l3gd20_test PUBLIC
 target_sources(drivers.imu.l3gd20_test PRIVATE
     TestL3gd20BusAccess.cpp
     TestL3gd20Core.cpp
+    TestL3gd20Lifetime.cpp
+    TestL3gd20Mixins.cpp
+    TestL3gd20SelfTestAndThreshold.cpp
 )

@@ -312,7 +312,7 @@ namespace drivers
 
         infra::Function<void(Gyroscope::Samples)> onGyroscopeMeasurement;
         infra::AutoResetFunction<void(InitializationResult)> onInitialized;
-        infra::AutoResetFunction<void()> onPowerModeSet;
+        infra::AutoResetFunction<void()> onSequenceDone;
         infra::AutoResetFunction<void(Temperature)> onTemperature;
         infra::AutoResetFunction<void()> onRegisterAccessed;
         infra::AutoResetFunction<void()> onModified;

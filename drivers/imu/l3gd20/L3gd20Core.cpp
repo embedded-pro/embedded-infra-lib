@@ -153,7 +153,7 @@ namespace drivers
         really_assert(!runner.Busy());
 
         bool waitForTurnOn = powerMode == PowerMode::powerDown && mode != PowerMode::powerDown;
-        onPowerModeSet = onDone;
+        onSequenceDone = onDone;
 
         runner.Clear();
         runner.Push(services::RegisterStepRunner::WriteRegister{ registerControl1, Control1Value(mode) });
@@ -164,7 +164,7 @@ namespace drivers
         runner.Start([this, mode]()
             {
                 powerMode = mode;
-                onPowerModeSet();
+                onSequenceDone();
             });
     }
 
@@ -187,7 +187,7 @@ namespace drivers
 
         // The low rate block is only allowed to change while the output stage is off
         really_assert(!runner.Busy());
-        onPowerModeSet = onDone;
+        onSequenceDone = onDone;
 
         runner.Clear();
         runner.Push(services::RegisterStepRunner::WriteRegister{ registerControl1, 0 });
@@ -196,7 +196,7 @@ namespace drivers
 
         runner.Start([this]()
             {
-                onPowerModeSet();
+                onSequenceDone();
             });
     }
 
