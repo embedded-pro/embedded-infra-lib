@@ -76,6 +76,7 @@ namespace drivers
         static constexpr uint8_t durationMask = 0x7f;
         static constexpr uint8_t decrementMode = 0x80;
         static constexpr uint8_t thresholdHighMask = 0x7f;
+        static constexpr uint16_t maximumThreshold = 0x7fff;
 
         static constexpr uint8_t interruptSelectMask = 0x0c;
         static constexpr uint8_t interruptSelectHighPass = 0x04;
@@ -98,7 +99,9 @@ namespace drivers
     {
         really_assert(this->Initialized());
         really_assert(!this->runner.Busy());
+        really_assert(!this->Sampling());
         really_assert(this->HasLowOutputDataRateRegister() || !thresholdConfig.decrementMode);
+        really_assert(thresholdConfig.threshold[0] <= maximumThreshold && thresholdConfig.threshold[1] <= maximumThreshold && thresholdConfig.threshold[2] <= maximumThreshold);
 
         this->thresholdConfig = thresholdConfig;
         this->onThreshold = onThreshold;
@@ -217,7 +220,11 @@ namespace drivers
     template<class Base>
     uint8_t L3gd20WithThresholdInterrupt<Base>::Control5Value() const
     {
-        return thresholdConfig.useHighPassFilter ? static_cast<uint8_t>(Base::highPassEnable | interruptSelectHighPass) : 0;
+        // The high pass stage is shared with the configured output path, so it stays on while either
+        // user still needs it
+        bool highPass = thresholdConfig.useHighPassFilter || this->HighPassRequired();
+
+        return static_cast<uint8_t>((highPass ? Base::highPassEnable : 0) | (thresholdConfig.useHighPassFilter ? interruptSelectHighPass : 0));
     }
 }
 

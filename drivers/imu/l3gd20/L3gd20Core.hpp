@@ -218,7 +218,7 @@ namespace drivers
         static constexpr uint8_t highPassEnable = 0x10;
 
         static constexpr uint8_t dataReadyActiveLow = 0x20;
-        static constexpr uint8_t i2cDisable = 0x10;
+        static constexpr uint8_t i2cDisable = 0x08;
         static constexpr uint8_t softwareResetRequest = 0x04;
         static constexpr uint8_t lowOutputDataRateEnable = 0x01;
 
@@ -251,6 +251,7 @@ namespace drivers
         bool Sampling() const;
         bool TransactionOutstanding() const;
         bool HasLowOutputDataRateRegister() const;
+        bool HighPassRequired() const;
 
         void DeliverAngularVelocity(infra::MemoryRange<const AngularVelocity> samples);
 

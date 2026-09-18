@@ -255,6 +255,11 @@ namespace drivers
 
     void L3gd20Core::ReadRegister(uint8_t address, infra::ByteRange data, const infra::Function<void()>& onDone)
     {
+        // A continuation may still run after Stop; the device is not touched again once stopped, and
+        // Stop reports through sharedAccess when the last transaction in flight releases it
+        if (stopping)
+            return;
+
         really_assert(!onRegisterAccessed);
         onRegisterAccessed = onDone;
 
@@ -266,6 +271,9 @@ namespace drivers
 
     void L3gd20Core::WriteRegister(uint8_t address, uint8_t value, const infra::Function<void()>& onDone)
     {
+        if (stopping)
+            return;
+
         really_assert(!onRegisterAccessed);
         writeValue = value;
         onRegisterAccessed = onDone;
@@ -285,13 +293,8 @@ namespace drivers
         modifySetMask = setMask;
         onModified = onDone;
 
-        bus.ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [self = KeepAlive(*this)]()
+        ReadRegister(modifyAddress, infra::MakeByteRange(modifyValue), [self = KeepAlive(*this)]()
             {
-                // Stop() may have been called while the read was in flight; the device must not be
-                // written to after it has been stopped
-                if (self->stopping)
-                    return;
-
                 self->WriteRegister(self->modifyAddress, static_cast<uint8_t>((self->modifyValue & ~self->modifyClearMask) | self->modifySetMask), [self]()
                     {
                         self->onModified();
@@ -363,7 +366,7 @@ namespace drivers
 
     int16_t L3gd20Core::RawSample(const uint8_t* data)
     {
-        // Little endian while BLE is clear, the opposite of the threshold registers
+        // Little endian while CTRL_REG4.BLE is clear, the opposite of the threshold registers
         return static_cast<int16_t>(static_cast<uint16_t>(static_cast<uint16_t>(data[1]) << 8) | data[0]);
     }
 
@@ -404,6 +407,11 @@ namespace drivers
     bool L3gd20Core::HasLowOutputDataRateRegister() const
     {
         return config.variant == Variant::l3gd20h;
+    }
+
+    bool L3gd20Core::HighPassRequired() const
+    {
+        return config.outputSelection != OutputSelection::lowPassOnly;
     }
 
     hal::InterruptTrigger L3gd20Core::DataReadyTrigger() const
@@ -455,9 +463,7 @@ namespace drivers
 
     uint8_t L3gd20Core::Control5Value() const
     {
-        bool highPassUsed = config.outputSelection != OutputSelection::lowPassOnly;
-
-        return static_cast<uint8_t>((highPassUsed ? highPassEnable : 0) | (static_cast<uint8_t>(config.outputSelection) & 0x03));
+        return static_cast<uint8_t>((HighPassRequired() ? highPassEnable : 0) | (static_cast<uint8_t>(config.outputSelection) & 0x03));
     }
 
     uint8_t L3gd20Core::LowOutputDataRateValue() const

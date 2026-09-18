@@ -263,6 +263,86 @@ namespace
         EXPECT_TRUE(result);
     }
 
+    // CTRL_REG1 only means 200 Hz while the low rate block is off, so the procedure suspends it
+    TEST_F(L3gd20SelfTestTest, self_test_suspends_and_restores_the_low_rate_block_on_the_l3gd20h)
+    {
+        Initialize(Variant::l3gd20h);
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x28, 6)).WillRepeatedly(testing::Invoke([](uint8_t, std::size_t)
+            {
+                return Measurement(0, 0, 0);
+            }));
+
+        {
+            testing::InSequence sequence;
+
+            EXPECT_CALL(bus, ReadRegisterMock(0x20, 5)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x0f, 0x00, 0x00, 0x80, 0x00 }));
+            // Data ready is held active low alongside the low rate bit, so only the low rate bit moves
+            EXPECT_CALL(bus, ReadRegisterMock(0x39, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x21 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x20, std::vector<uint8_t>{ 0x6f, 0x00, 0x00, 0xa0, 0x00 }));
+            EXPECT_CALL(bus, ReadRegisterMock(0x39, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x21 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x39, std::vector<uint8_t>{ 0x20 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x23, std::vector<uint8_t>{ 0xa2 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x23, std::vector<uint8_t>{ 0xa0 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x20, std::vector<uint8_t>{ 0x0f, 0x00, 0x00, 0x80, 0x00 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x39, std::vector<uint8_t>{ 0x21 }));
+        }
+
+        device.SelfTest([this](SelfTestDevice::SelfTestResult measured)
+            {
+                result = measured;
+            });
+
+        ForwardTime(std::chrono::milliseconds(1000));
+
+        EXPECT_TRUE(result);
+    }
+
+    // The high pass stage is shared with the configured output path, so arming a threshold that does
+    // not use it may not tear it down
+    TEST_F(L3gd20ThresholdTest, enabling_preserves_the_high_pass_stage_the_output_path_uses)
+    {
+        Core::Config config;
+        config.turnOnTime = std::chrono::milliseconds(5);
+        config.outputSelection = Core::OutputSelection::highPass;
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x0f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0xd4 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x20, std::vector<uint8_t>{ 0x00 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x24, std::vector<uint8_t>{ 0x80 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x21, std::vector<uint8_t>{ 0x00 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x00 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x23, std::vector<uint8_t>{ 0x80 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x24, std::vector<uint8_t>{ 0x11 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x25, std::vector<uint8_t>{ 0x00 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x2e, std::vector<uint8_t>{ 0x00 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x30, std::vector<uint8_t>{ 0x00 }));
+        EXPECT_CALL(bus, WriteRegisterMock(0x20, std::vector<uint8_t>{ 0x0f }));
+
+        device.Initialize(config, [](Core::InitializationResult) {});
+        ForwardTime(std::chrono::milliseconds(30));
+
+        {
+            testing::InSequence sequence;
+
+            EXPECT_CALL(bus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x00 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x00 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x30, std::vector<uint8_t>{ 0x00 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x32, std::vector<uint8_t>{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x38, std::vector<uint8_t>{ 0x00 }));
+            EXPECT_CALL(bus, ReadRegisterMock(0x24, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x11 }));
+            // The high pass bit survives, the interrupt source bits do not select it
+            EXPECT_CALL(bus, WriteRegisterMock(0x24, std::vector<uint8_t>{ 0x11 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x30, std::vector<uint8_t>{ 0x6a }));
+            EXPECT_CALL(bus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x00 }));
+            EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x80 }));
+        }
+
+        infra::VerifyingFunction<void()> done;
+        device.EnableThresholdInterrupt(ThresholdDevice::ThresholdConfig(), [](ThresholdDevice::ThresholdEvent) {}, done);
+
+        ExecuteAllActions();
+    }
+
     TEST_F(L3gd20ThresholdTest, enabling_writes_the_thresholds_high_byte_first)
     {
         Initialize();

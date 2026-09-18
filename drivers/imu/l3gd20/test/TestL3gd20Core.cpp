@@ -254,8 +254,9 @@ namespace
         auto config = DefaultConfig(Variant::l3gd20h);
         config.disableI2cInterface = true;
 
+        // I2C_DIS is bit 3 of LOW_ODR; bit 4 is reserved
         ExpectReboot(0xd7);
-        ExpectConfiguration(Variant::l3gd20h, 0x0f, 0x80, 0x00, 0x10);
+        ExpectConfiguration(Variant::l3gd20h, 0x0f, 0x80, 0x00, 0x08);
         Initialize(config);
 
         EXPECT_EQ(InitializationResult::success, initializationResult);

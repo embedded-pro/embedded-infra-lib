@@ -79,7 +79,9 @@ namespace drivers
 
         this->ReadRegister(Base::registerStatus, infra::MakeByteRange(status), [self = this->KeepAlive(*this)]()
             {
-                if ((self->status & Base::dataAvailable) != 0)
+                // Stop may have cleared the callback while this read was in flight, and invoking a
+                // cleared infra::Function aborts rather than doing nothing
+                if (self->onSampleAvailable && (self->status & Base::dataAvailable) != 0)
                     self->onSampleAvailable();
             });
     }

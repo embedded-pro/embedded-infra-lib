@@ -63,6 +63,8 @@ namespace drivers
 
         infra::AutoResetFunction<void(SelfTestResult)> onSelfTestDone;
 
+        uint8_t savedLowOutputDataRate = 0;
+
         infra::Duration configurationSettlingTime{ std::chrono::milliseconds(800) };
         infra::Duration polaritySettlingTime{ std::chrono::milliseconds(60) };
         int32_t minimumDelta = defaultMinimumDelta;
@@ -76,6 +78,7 @@ namespace drivers
     template<class Base>
     void L3gd20WithSelfTest<Base>::SetAcceptanceWindow(int32_t minimum, int32_t maximum)
     {
+        really_assert(minimum >= 0);
         really_assert(minimum <= maximum);
 
         minimumDelta = minimum;
@@ -108,10 +111,18 @@ namespace drivers
         measuringSelfTest = false;
 
         auto control4 = selfTestConfiguration[3];
+        bool suspendsLowOutputDataRate = this->HasLowOutputDataRateRegister();
 
         this->runner.Clear();
         this->runner.Push(services::RegisterStepRunner::ReadBurst{ Base::registerControl1, infra::MakeRange(savedConfiguration) });
+
+        if (suspendsLowOutputDataRate)
+            this->runner.Push(services::RegisterStepRunner::ReadBurst{ Base::registerLowOutputDataRate, infra::MakeByteRange(savedLowOutputDataRate) });
+
         this->runner.Push(services::RegisterStepRunner::WriteBurst{ Base::registerControl1, infra::MakeRange(selfTestConfiguration) });
+
+        if (suspendsLowOutputDataRate)
+            this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerLowOutputDataRate, Base::lowOutputDataRateEnable, 0 });
         this->runner.Push(services::RegisterStepRunner::Delay{ configurationSettlingTime });
         this->runner.Push(services::RegisterStepRunner::Await{ [this]()
             {
@@ -126,6 +137,11 @@ namespace drivers
         this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerControl4, control4 });
         this->runner.Push(services::RegisterStepRunner::Delay{ polaritySettlingTime });
         this->runner.Push(services::RegisterStepRunner::WriteBurst{ Base::registerControl1, infra::MakeRange(savedConfiguration) });
+
+        // A burst over the saved byte, because WriteRegister would capture its value now, while the
+        // register has not been read back yet
+        if (suspendsLowOutputDataRate)
+            this->runner.Push(services::RegisterStepRunner::WriteBurst{ Base::registerLowOutputDataRate, infra::MakeByteRange(savedLowOutputDataRate) });
 
         this->runner.Start([this]()
             {

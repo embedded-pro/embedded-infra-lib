@@ -234,6 +234,52 @@ namespace
         ExecuteAllActions();
     }
 
+    TEST_F(L3gd20FifoTest, an_overrun_recovery_issues_no_second_write_after_stop)
+    {
+        Initialize();
+        EnableFifo();
+        StartStreaming(0x06);
+
+        bus.completeAutomatically = false;
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x2f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x5f }));
+        dataReadyPin.SetStubState(true);
+        ExecuteAllActions();
+
+        EXPECT_CALL(bus, WriteRegisterMock(0x2e, std::vector<uint8_t>{ 0x00 }));
+        bus.CompletePending();
+
+        infra::VerifyingFunction<void()> stopped;
+        device.Stop(stopped);
+
+        // The second FIFO control write would land on a stopped device; a strict mock fails if it does
+        bus.CompletePending();
+        ExecuteAllActions();
+    }
+
+    TEST_F(L3gd20FifoTest, a_drain_issues_no_further_batch_read_after_stop)
+    {
+        Initialize();
+        EnableFifo();
+        StartStreaming(0x06);
+
+        bus.completeAutomatically = false;
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x2f, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x0a }));
+        dataReadyPin.SetStubState(true);
+        ExecuteAllActions();
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x28, 48)).WillOnce(testing::Return(Frames(8)));
+        bus.CompletePending();
+
+        infra::VerifyingFunction<void()> stopped;
+        device.Stop(stopped);
+
+        // Two frames are still owed, but the trailing read must not reach a stopped device
+        bus.CompletePending();
+        ExecuteAllActions();
+    }
+
     TEST_F(L3gd20FifoTest, disabling_the_buffer_restores_the_direct_measurement_read)
     {
         Initialize();
@@ -323,6 +369,58 @@ namespace
 
         EXPECT_TRUE(bus.CompletionPending());
         bus.CompletePending();
+    }
+
+    // The read half of a read-modify-write must count as an outstanding transaction, or a poll tick
+    // starts a second transfer over the bus adapter's shared buffers
+    TEST_F(L3gd20PollingTest, a_tick_during_the_read_of_a_read_modify_write_is_skipped)
+    {
+        Initialize();
+
+        bus.completeAutomatically = false;
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x22, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x00 }));
+
+        device.AsGyroscope().Start([](Core::Gyroscope::Samples) {});
+        ExecuteAllActions();
+
+        EXPECT_TRUE(bus.CompletionPending());
+
+        // A strict mock fails the test if the tick read the status register anyway
+        ForwardTime(std::chrono::milliseconds(15));
+
+        EXPECT_CALL(bus, WriteRegisterMock(0x22, std::vector<uint8_t>{ 0x08 }));
+        bus.CompletePending();
+        bus.CompletePending();
+        bus.completeAutomatically = true;
+        ExecuteAllActions();
+    }
+
+    // Stop clears the callback while the status read is in flight, and invoking a cleared
+    // infra::Function aborts rather than doing nothing
+    TEST_F(L3gd20PollingTest, a_status_read_completing_after_stop_delivers_nothing)
+    {
+        Initialize();
+        StartStreaming();
+
+        bus.completeAutomatically = false;
+
+        EXPECT_CALL(bus, ReadRegisterMock(0x27, 1)).WillOnce(testing::Return(std::vector<uint8_t>{ 0x08 }));
+        ForwardTime(std::chrono::milliseconds(5));
+
+        EXPECT_TRUE(bus.CompletionPending());
+
+        bool stopped = false;
+        device.Stop([&stopped]()
+            {
+                stopped = true;
+            });
+
+        bus.CompletePending();
+        ExecuteAllActions();
+
+        EXPECT_TRUE(stopped);
+        EXPECT_TRUE(received.empty());
     }
 
     TEST_F(L3gd20PollingTest, stopping_cancels_the_poll_timer)
