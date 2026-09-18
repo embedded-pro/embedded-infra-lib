@@ -8,7 +8,7 @@
 namespace drivers
 {
     // Wrap the master in a services::SpiMasterWithChipSelect before handing it here; this adapter
-    // drives no chip select of its own. The part runs up to 10 MHz in four wire mode.
+    // drives no chip select of its own.
     class L3gd20BusAccessSpi
         : public services::RegisterBusAccess
     {

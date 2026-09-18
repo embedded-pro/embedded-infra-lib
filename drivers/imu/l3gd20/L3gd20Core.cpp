@@ -455,7 +455,6 @@ namespace drivers
 
     uint8_t L3gd20Core::Control5Value() const
     {
-        // The high pass stage only has to run when the selected output path routes through it
         bool highPassUsed = config.outputSelection != OutputSelection::lowPassOnly;
 
         return static_cast<uint8_t>((highPassUsed ? highPassEnable : 0) | (static_cast<uint8_t>(config.outputSelection) & 0x03));

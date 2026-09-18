@@ -154,7 +154,6 @@ namespace
         EXPECT_FALSE(SelfTestDevice::WithinAcceptanceWindow(12501, 2500, 12500));
     }
 
-    // The sign of the response differs between the two parts and between the two test polarities
     TEST(L3gd20SelfTestWindowTest, a_negative_response_is_judged_on_its_magnitude)
     {
         EXPECT_TRUE(SelfTestDevice::WithinAcceptanceWindow(-5000, 2500, 12500));

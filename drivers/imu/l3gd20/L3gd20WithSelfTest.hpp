@@ -23,8 +23,7 @@ namespace drivers
             bool y = false;
             bool z = false;
 
-            // Counts at the 2000 dps scale the procedure forces, reported so a failing board can be
-            // diagnosed without running the test again
+            // Counts at the 2000 dps scale the procedure forces
             std::array<int32_t, 3> delta = {};
 
             bool Passed() const

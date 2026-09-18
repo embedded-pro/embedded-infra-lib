@@ -39,7 +39,7 @@ namespace drivers
             bool interruptOnOverrun = true;
             bool interruptOnEmpty = false;
 
-            // L3GD20H only; holding the buffer at the watermark rather than overwriting
+            // L3GD20H only
             bool stopOnWatermark = false;
         };
 
@@ -91,7 +91,6 @@ namespace drivers
         onFifoConfigured = onDone;
 
         this->runner.Clear();
-        // A pass through bypass is what empties the buffer of whatever it still held
         this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerFifoControl, 0 });
         this->runner.Push(services::RegisterStepRunner::ModifyRegister{ Base::registerControl5, Control5Mask(), Control5Value() });
         this->runner.Push(services::RegisterStepRunner::WriteRegister{ Base::registerFifoControl, FifoControlValue() });

@@ -7,8 +7,7 @@
 
 namespace drivers
 {
-    // Serves a board that leaves the data ready line unwired, by reading the status register on a
-    // timer instead of waiting for an edge
+    // Serves a board that leaves the data ready line unwired
     template<class Base>
     class L3gd20WithPolling
         : public Base

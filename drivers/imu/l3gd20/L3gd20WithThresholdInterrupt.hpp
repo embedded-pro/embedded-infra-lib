@@ -6,9 +6,8 @@
 
 namespace drivers
 {
-    // Raises INT1 when the angular rate on a selected axis crosses its threshold, which is how a
-    // sleeping application is woken by motion. The data ready and buffer sources stay on INT2, so
-    // every touch of CTRL_REG3 leaves their bits alone.
+    // Raises INT1 when the angular rate on a selected axis crosses its threshold. The data ready and
+    // buffer sources stay on INT2, so every touch of CTRL_REG3 leaves their bits alone.
     template<class Base>
     class L3gd20WithThresholdInterrupt
         : public Base
@@ -34,7 +33,7 @@ namespace drivers
             bool waitBeforeRelease = false;
             bool useHighPassFilter = false;
 
-            // L3GD20H only; counts the duration down instead of resetting it
+            // L3GD20H only
             bool decrementMode = false;
         };
 
