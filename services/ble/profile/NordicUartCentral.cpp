@@ -27,7 +27,6 @@ namespace services
 
     NordicUartCentral::~NordicUartCentral()
     {
-        // Tx is destroyed before this observer's own base is, so the detach cannot wait for it.
         GattClientCharacteristicUpdateObserver::Detach();
     }
 
@@ -59,8 +58,6 @@ namespace services
 
         open = false;
 
-        // Whatever is left of a send can no longer go out, and the caller is told its buffer is
-        // free.
         CompleteSend();
 
         NotifyObservers([](auto& observer)
@@ -118,9 +115,7 @@ namespace services
     {}
 
     void NordicUartCentral::MtuChanged(uint16_t mtu)
-    {
-        // MaxSendSize reads the connection's MTU as it goes, so nothing is cached here.
-    }
+    {}
 
     void NordicUartCentral::NotificationReceived(infra::ConstByteRange data)
     {
@@ -130,8 +125,6 @@ namespace services
 
     void NordicUartCentral::IndicationReceived(infra::ConstByteRange data, const infra::Function<void()>& onDone)
     {
-        // Tx notifies; a peer that indicates on it is outside the profile and is acknowledged
-        // without being delivered.
         onDone();
     }
 
@@ -215,8 +208,6 @@ namespace services
 
         remaining = infra::DiscardHead(remaining, chunk.size());
 
-        // A Write Command has no response to wait for, so the next chunk is scheduled rather than
-        // written here, where it would nest one call frame per chunk.
         if (WritesWithoutResponse())
             infra::EventDispatcher::Instance().Schedule([this]()
                 {

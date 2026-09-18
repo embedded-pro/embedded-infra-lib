@@ -19,7 +19,6 @@ namespace services
 
     NordicUartPeripheral::~NordicUartPeripheral()
     {
-        // Rx is destroyed before this observer's own base is, so the detach cannot wait for it.
         GattServerCharacteristicObserver::Detach();
     }
 
@@ -44,8 +43,6 @@ namespace services
                 });
         else
         {
-            // Whatever is left of a send can no longer go out, and the caller is told its buffer
-            // is free.
             CompleteSend();
 
             NotifyObservers([](auto& observer)
@@ -102,8 +99,6 @@ namespace services
 
         tx.Update(chunk, [this]()
             {
-                // GattServerCharacteristicImpl reports an accepted update from inside Update
-                // itself, so continuing here directly would nest one call frame per chunk.
                 infra::EventDispatcher::Instance().Schedule([this]()
                     {
                         SendNextChunk();
