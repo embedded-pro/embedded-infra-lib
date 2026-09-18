@@ -66,5 +66,6 @@ target_sources(services.ble PRIVATE
     RetryingGattClientConnection.hpp
 )
 
+add_subdirectory(profile)
 add_subdirectory(test)
 add_subdirectory(test_doubles)
