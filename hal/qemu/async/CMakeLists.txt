@@ -8,10 +8,14 @@ target_include_directories(hal.qemu.async PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>")
 
 target_sources(hal.qemu.async PRIVATE
+    CmsdkWatchdogRegisters.hpp
     UartQemu.hpp
-    UartQemu.cpp)
+    UartQemu.cpp
+    WatchdogQemu.hpp
+    WatchdogQemu.cpp)
 
 target_link_libraries(hal.qemu.async PUBLIC
     hal.qemu.cortex
     hal.interfaces
-    infra.event)
+    infra.event
+    infra.timer)

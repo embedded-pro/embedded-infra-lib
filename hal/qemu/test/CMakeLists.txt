@@ -10,7 +10,8 @@ target_sources(hal.qemu.test PRIVATE
     TestLowPowerStrategyCortex.cpp
     TestLowPriorityInterrupt.cpp
     TestSemihostingWriter.cpp
-    TestSystemTickTimerService.cpp)
+    TestSystemTickTimerService.cpp
+    TestWatchdogQemu.cpp)
 
 target_link_libraries(hal.qemu.test PRIVATE
     hal.cortex_m
@@ -18,6 +19,7 @@ target_link_libraries(hal.qemu.test PRIVATE
     hal.qemu.syscalls
     hal.qemu.default_init
     hal.qemu.sync
+    hal.qemu.async
     hal.qemu.cortex
     infra.event
     infra.timer
