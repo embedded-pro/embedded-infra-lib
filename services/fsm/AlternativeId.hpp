@@ -67,6 +67,7 @@ namespace services
     {
         constexpr std::size_t index = detail::AlternativeTraits<Variant>::template IndexOf<T>();
         static_assert(index != count, "T is not an alternative of Variant");
+        static_assert(detail::AlternativeTraits<Variant>::names[index] != nullptr, "Alternatives must provide a static constexpr name");
         return AlternativeId{ index };
     }
 

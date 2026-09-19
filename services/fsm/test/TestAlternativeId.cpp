@@ -20,11 +20,6 @@ namespace
         static constexpr const char* name{ "Blue" };
     };
 
-    struct Yellow
-    {
-        static constexpr const char* name{ "Yellow" };
-    };
-
     using Colour = std::variant<Red, Green, Blue>;
     using ColourId = services::AlternativeId<Colour>;
 }

@@ -153,7 +153,7 @@ namespace services
     TableStateMachine<State, Event>& TableStateMachine<State, Event>::Add(Guard guard, Action action)
     {
         really_assert(!Started());
-        transitions.emplace_back(Transition{ StateId::template Of<From>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, false });
+        transitions.emplace_back(Transition{ StateId::template Of<From>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, false, nullptr, nullptr });
         this->template StoreGuard<From, Ev>(transitions.back(), guard);
         transitions.back().execute = [this, action](const Event& event)
         {
@@ -167,7 +167,7 @@ namespace services
     TableStateMachine<State, Event>& TableStateMachine<State, Event>::AddFromAny(Guard guard, Action action)
     {
         really_assert(!Started());
-        transitions.emplace_back(Transition{ std::nullopt, EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, false });
+        transitions.emplace_back(Transition{ std::nullopt, EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, false, nullptr, nullptr });
         this->template StoreGuard<State, Ev>(transitions.back(), guard);
         transitions.back().execute = [this, action](const Event& event)
         {
@@ -181,7 +181,7 @@ namespace services
     TableStateMachine<State, Event>& TableStateMachine<State, Event>::AddInternal(Action action, Guard guard)
     {
         really_assert(!Started());
-        transitions.emplace_back(Transition{ StateId::template Of<S>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<S>().Index(), true, false });
+        transitions.emplace_back(Transition{ StateId::template Of<S>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<S>().Index(), true, false, nullptr, nullptr });
         this->template StoreGuard<S, Ev>(transitions.back(), guard);
         transitions.back().execute = [this, action](const Event& event)
         {
