@@ -43,10 +43,12 @@ namespace hal
         watchdog.control = 0;
         watchdog.intClr = 0;
         watchdog.load = ToTicks(config.clockHz, config.timeout);
-        watchdog.control = watchdogControlIntEnable | (config.resetOnMissedInterrupt ? watchdogControlResetEnable : 0);
 
-        // The watchdog drives NMI on the MPS2 machines, which is always enabled and has a fixed priority
+        // The watchdog drives NMI on the MPS2 machines, which is always enabled and has a fixed priority,
+        // so the handler has to be in place before the peripheral is allowed to raise it
         Register(cortex::nmiIrq);
+
+        watchdog.control = watchdogControlIntEnable | (config.resetOnMissedInterrupt ? watchdogControlResetEnable : 0);
 
         feedTimer.Start(config.feedTimerInterval, [this]()
             {

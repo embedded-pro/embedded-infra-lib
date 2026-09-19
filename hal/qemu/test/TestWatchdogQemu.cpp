@@ -73,6 +73,13 @@ TEST_F(WatchdogQemuTest, construction_enables_the_interrupt)
     EXPECT_EQ(hal::watchdogControlIntEnable, registers.control);
 }
 
+TEST_F(WatchdogQemuTest, construction_registers_the_interrupt_handler_before_enabling_the_peripheral)
+{
+    hal::WatchdogQemu watchdog(onExpired, config);
+
+    EXPECT_NE(nullptr, interruptTable.Handler(hal::cortex::nmiIrq));
+}
+
 TEST_F(WatchdogQemuTest, construction_writes_the_unlock_key)
 {
     hal::WatchdogQemu watchdog(onExpired, config);
