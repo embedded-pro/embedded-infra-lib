@@ -186,9 +186,9 @@ TEST_F(TableStateMachineTest, guarded_rows_for_same_pair_are_allowed)
 {
     AddCommon();
     fsm.Add<Off, Press, On>([](const Off&, const Press&)
-        {
-            return true;
-        },
+           {
+               return true;
+           },
            [this](Off&, const Press&)
            {
                return On{ &hooks };
@@ -376,9 +376,9 @@ TEST_F(TableStateMachineTest, first_row_whose_guard_accepts_wins_and_later_guard
 {
     AddCommon();
     fsm.Add<Off, Press, On>([this](const Off&, const Press&)
-        {
-            return hooks.Guard("first");
-        },
+           {
+               return hooks.Guard("first");
+           },
            [this](Off&, const Press&)
            {
                return On{ &hooks };
@@ -676,6 +676,28 @@ TEST_F(TableStateMachineTest, completion_after_self_transition_is_discarded)
 
     EXPECT_CALL(observer, EventDiscarded(Id<On>(), With<Press>()));
     done();
+}
+
+TEST_F(TableStateMachineTest, completion_created_in_action_belongs_to_target_state)
+{
+    AddCommon();
+    infra::Function<void()> done;
+    fsm.Add<Off, Press, On>(nullptr, [this, &done](Off&, const Press&)
+        {
+            done = fsm.Completion<Press>();
+            return On{ &hooks };
+        });
+    Start<Off>();
+
+    EXPECT_CALL(hooks, Entry(testing::StrEq("On")));
+    EXPECT_CALL(observer, StateChanged(Id<Off>(), With<Press>(), Id<On>()));
+    fsm.Dispatch(Press{});
+
+    EXPECT_CALL(hooks, Exit(testing::StrEq("On")));
+    EXPECT_CALL(observer, StateChanged(Id<On>(), With<Press>(), Id<Off>()));
+    done();
+
+    EXPECT_TRUE(fsm.Is<Off>());
 }
 
 TEST_F(TableStateMachineTest, completion_is_not_discarded_by_internal_transition)

@@ -318,9 +318,9 @@ namespace services
     void TableStateMachine<State, Event>::Execute(const Action& action, const Event& event)
     {
         RunExit();
+        ++epoch;
         To next{ this->template Build<To>(action, this->template Source<From>(), std::get<Ev>(event)) };
         currentState->template emplace<To>(std::move(next));
-        ++epoch;
         RunEntry();
     }
 
