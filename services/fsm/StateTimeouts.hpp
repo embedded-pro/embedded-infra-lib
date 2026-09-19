@@ -52,7 +52,7 @@ namespace services
     }
 
     template<class State, class Event>
-    void StateTimeouts<State, Event>::StateChanged(StateId from, const Event& event, StateId to)
+    void StateTimeouts<State, Event>::StateChanged(StateId, const Event&, StateId to)
     {
         Arm(to);
     }

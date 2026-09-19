@@ -151,7 +151,7 @@ The owning object must outlive the callback, as for every other callback in this
 
 - `services::StateMachineTracer` writes every transition and every forbidden, rejected or discarded event to a `services::Tracer`, for instance `fsm: Idle --Calibrate--> Calibrating` and `fsm: forbidden Enable in Idle`.
 - `services::StateTimeouts` holds a table of `services::StateTimeout` rows, each naming a state, a duration and an event. When the state becomes active a single-shot timer is started; when it expires the event is dispatched; leaving the state cancels the timer.
-- `services::WriteMermaid` is not an observer but a function that writes the transition table as a `stateDiagram-v2` block, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation.
+- `services::WriteMermaid` is not an observer but a function that writes the transition table as a `stateDiagram-v2` block, with one edge per state for rows added with `AddFromAny`, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation.
 
 ```cpp
 constexpr std::array<services::StateTimeout<State, Event>, 1> timeouts{ {
@@ -165,7 +165,8 @@ services::StateTimeouts<State, Event> stateTimeouts{ fsm, infra::MakeRange(timeo
 ## Execution context
 
 The machine holds no locks and runs entirely on the context that calls `Dispatch()`, which is expected to be the event dispatcher.
-An interrupt handler that must react before the event dispatcher runs does its immediate work in the interrupt and schedules the dispatch of the corresponding event on `infra::EventDispatcher`; it may read `CurrentStateId()` at any time, since the index of a `std::variant` is a single load.
+Reading the state from another context, such as an interrupt handler, while the dispatcher may be transitioning is a data race, so the state is only inspected from the dispatcher context as well.
+An interrupt handler that must react before the event dispatcher runs does its immediate work in the interrupt, on data it owns, and schedules the dispatch of the corresponding event on `infra::EventDispatcher`.
 
 ## Testing
 

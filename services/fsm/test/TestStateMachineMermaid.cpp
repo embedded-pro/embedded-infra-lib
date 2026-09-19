@@ -67,7 +67,9 @@ TEST(StateMachineMermaidTest, mermaid_output_lists_initial_state_and_every_row)
         "    Idle --> Running : Start\n"
         "    Running --> Idle : Stop [guarded]\n"
         "    Running --> Running : Tick (internal)\n"
-        "    [*] --> Fault : Error (from any state)\n"
+        "    Idle --> Fault : Error\n"
+        "    Running --> Fault : Error\n"
+        "    Fault --> Fault : Error\n"
         "    Fault --> Idle : Stop\n",
         stream.Storage());
 }

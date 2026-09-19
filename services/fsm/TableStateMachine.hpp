@@ -469,7 +469,7 @@ namespace services
     {
         while (!queue.empty())
         {
-            Event event{ queue.front() };
+            Event event{ std::move(queue.front()) };
             queue.pop_front();
             DispatchNow(event);
         }

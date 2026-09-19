@@ -14,19 +14,26 @@ namespace services
     namespace detail
     {
         template<class State, class Event>
-        void WriteMermaidRow(infra::TextOutputStream& stream, const typename TableStateMachine<State, Event>::Transition& row)
+        void WriteMermaidEdge(infra::TextOutputStream& stream, AlternativeId<State> from, const typename TableStateMachine<State, Event>::Transition& row)
         {
-            const char* from = row.from ? AlternativeId<State>::FromIndex(*row.from).Name() : "[*]";
-            stream << "    " << from << " --> " << AlternativeId<State>::FromIndex(row.to).Name() << " : " << AlternativeId<Event>::FromIndex(row.event).Name();
+            stream << "    " << from.Name() << " --> " << AlternativeId<State>::FromIndex(row.to).Name() << " : " << AlternativeId<Event>::FromIndex(row.event).Name();
 
             if (row.guarded)
                 stream << " [guarded]";
             if (row.internal)
                 stream << " (internal)";
-            if (!row.from)
-                stream << " (from any state)";
 
             stream << "\n";
+        }
+
+        template<class State, class Event>
+        void WriteMermaidRow(infra::TextOutputStream& stream, const typename TableStateMachine<State, Event>::Transition& row)
+        {
+            if (row.from)
+                WriteMermaidEdge<State, Event>(stream, AlternativeId<State>::FromIndex(*row.from), row);
+            else
+                for (std::size_t from = 0; from != AlternativeId<State>::count; ++from)
+                    WriteMermaidEdge<State, Event>(stream, AlternativeId<State>::FromIndex(from), row);
         }
     }
 
