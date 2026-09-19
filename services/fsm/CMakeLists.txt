@@ -1,6 +1,6 @@
-add_library(services.fsm ${EMIL_EXCLUDE_FROM_ALL} STATIC)
+add_library(services.fsm ${EMIL_EXCLUDE_FROM_ALL} INTERFACE)
 
-target_link_libraries(services.fsm PUBLIC
+target_link_libraries(services.fsm INTERFACE
     infra.event
     infra.timer
     infra.util
