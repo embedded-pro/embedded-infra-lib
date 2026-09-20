@@ -463,17 +463,19 @@ TEST_F(TableStateMachineTest, internal_row_runs_action_without_exit_or_entry)
     Start<On>(On{ &hooks, 10 });
 
     EXPECT_CALL(hooks, Action(testing::StrEq("dim")));
+    EXPECT_CALL(observer, EventHandled(Id<On>(), With<Dim>()));
     EXPECT_EQ(services::DispatchResult::transitioned, fsm.Dispatch(Dim{ -3 }));
 
     EXPECT_EQ(7, std::get<On>(fsm.CurrentState()).level);
 }
 
-TEST_F(TableStateMachineTest, internal_row_without_action_ignores_event)
+TEST_F(TableStateMachineTest, internal_row_without_action_ignores_event_and_notifies_event_handled)
 {
     AddBaseline();
     fsm.AddInternal<Off, Dim>();
     Start<Off>();
 
+    EXPECT_CALL(observer, EventHandled(Id<Off>(), With<Dim>()));
     EXPECT_EQ(services::DispatchResult::transitioned, fsm.Dispatch(Dim{ 1 }));
 
     EXPECT_TRUE(fsm.Is<Off>());
@@ -707,6 +709,7 @@ TEST_F(TableStateMachineTest, completion_is_not_discarded_by_internal_transition
     Start<Off>();
     auto done = fsm.Completion<Press>();
 
+    EXPECT_CALL(observer, EventHandled(Id<Off>(), With<Dim>()));
     fsm.Dispatch(Dim{});
 
     EXPECT_CALL(hooks, Entry(testing::StrEq("On")));
@@ -764,4 +767,111 @@ TEST_F(TableStateMachineTest, current_state_is_readable_while_dispatching)
     fsm.Dispatch(Press{});
 
     EXPECT_FALSE(fsm.Dispatching());
+}
+
+TEST_F(TableStateMachineTest, on_entered_hook_runs_after_observers_when_state_is_entered)
+{
+    AddBaseline();
+    fsm.OnEntered<On>([this]()
+        {
+            hooks.Action("entered On");
+        });
+    Start<Off>();
+
+    testing::InSequence sequence;
+    EXPECT_CALL(hooks, Entry(testing::StrEq("On")));
+    EXPECT_CALL(observer, StateChanged(Id<Off>(), With<Press>(), Id<On>()));
+    EXPECT_CALL(hooks, Action(testing::StrEq("entered On")));
+    fsm.Dispatch(Press{});
+}
+
+TEST_F(TableStateMachineTest, on_entered_hook_runs_for_initial_state_on_start)
+{
+    AddBaseline();
+    fsm.OnEntered<Off>([this]()
+        {
+            hooks.Action("entered Off");
+        });
+
+    testing::InSequence sequence;
+    EXPECT_CALL(observer, Started(Id<Off>()));
+    EXPECT_CALL(hooks, Action(testing::StrEq("entered Off")));
+    fsm.Start<Off>();
+}
+
+TEST_F(TableStateMachineTest, internal_row_does_not_run_on_entered_hook)
+{
+    AddBaseline();
+    fsm.AddInternal<Off, Dim>();
+    fsm.OnEntered<Off>([this]()
+        {
+            hooks.Action("entered Off");
+        });
+    EXPECT_CALL(hooks, Action(testing::StrEq("entered Off")));
+    Start<Off>();
+
+    EXPECT_CALL(observer, EventHandled(Id<Off>(), With<Dim>()));
+    fsm.Dispatch(Dim{});
+}
+
+TEST_F(TableStateMachineTest, dispatch_from_on_entered_hook_is_queued_and_handled_afterwards)
+{
+    AddBaseline();
+    fsm.OnEntered<On>([this]()
+        {
+            EXPECT_EQ(services::DispatchResult::queued, fsm.Dispatch(Press{}));
+        });
+    Start<Off>();
+
+    testing::InSequence sequence;
+    EXPECT_CALL(hooks, Entry(testing::StrEq("On")));
+    EXPECT_CALL(observer, StateChanged(Id<Off>(), With<Press>(), Id<On>()));
+    EXPECT_CALL(hooks, Exit(testing::StrEq("On")));
+    EXPECT_CALL(observer, StateChanged(Id<On>(), With<Press>(), Id<Off>()));
+    fsm.Dispatch(Press{});
+
+    EXPECT_TRUE(fsm.Is<Off>());
+}
+
+TEST_F(TableStateMachineTest, on_entered_after_start_asserts)
+{
+    AddBaseline();
+    Start<Off>();
+
+    EXPECT_DEATH((fsm.OnEntered<Off>([]() {})), "");
+}
+
+TEST_F(TableStateMachineTest, completion_with_maps_callback_arguments_to_event)
+{
+    AddBaseline();
+    Start<Off>();
+
+    auto done = fsm.CompletionWith<void(int)>([](int code)
+        {
+            return Break{ code };
+        });
+
+    EXPECT_CALL(observer, StateChanged(Id<Off>(), testing::VariantWith<Break>(testing::Field(&Break::code, 4)), Id<Broken>()));
+    done(4);
+
+    EXPECT_EQ(4, std::get<Broken>(fsm.CurrentState()).code);
+}
+
+TEST_F(TableStateMachineTest, completion_with_is_discarded_after_transition)
+{
+    AddBaseline();
+    Start<Off>();
+    auto done = fsm.CompletionWith<void(int)>([](int code)
+        {
+            return Break{ code };
+        });
+
+    EXPECT_CALL(hooks, Entry(testing::StrEq("On")));
+    EXPECT_CALL(observer, StateChanged(Id<Off>(), With<Press>(), Id<On>()));
+    fsm.Dispatch(Press{});
+
+    EXPECT_CALL(observer, EventDiscarded(Id<On>(), testing::VariantWith<Break>(testing::Field(&Break::code, 4))));
+    done(4);
+
+    EXPECT_TRUE(fsm.Is<On>());
 }

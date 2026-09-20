@@ -105,7 +105,9 @@ fsm.Start<Idle>();
 | `AddInternal<S, Ev>(action, guard)`                     | The event is handled in the state without leaving it: no exit, no entry, no notification. Without an action the event is accepted and ignored  |
 | `Start<Initial>(args...)`                               | Checks the table, constructs the initial state, runs its `OnEntry()` and notifies observers                                                    |
 | `Dispatch(event)`                                       | Handles an event and returns a `services::DispatchResult`                                                                                      |
+| `OnEntered<S>(hook)`                                    | Registers a callable that runs after `S` has been committed and announced to observers, also for the initial state                             |
 | `Completion<Ev>()`                                      | Returns an `infra::Function<void()>` that dispatches `Ev{}` unless the machine has moved on since                                              |
+| `CompletionWith<void(Args...)>(mapper)`                 | Returns an `infra::Function<void(Args...)>` that builds an event from the callback arguments with a captureless `mapper` and dispatches it unless the machine has moved on since |
 | `CurrentState()`, `CurrentStateId()`, `Is<S>()`         | Inspect the active state                                                                                                                       |
 | `CheckConsistency<Initial>()`, `HasTransition<S, Ev>()` | Inspect the table                                                                                                                              |
 
@@ -135,21 +137,25 @@ In both cases the state is unchanged and observers are notified, but nothing ass
 Such an event is stored in the queue and handled after the current transition has fully committed and been notified, so every action always observes a consistent machine.
 A full queue asserts.
 
-A transition is committed in a fixed order: `OnExit()` of the source state, the action which builds the target state object, replacement of the state, `OnEntry()` of the target state, notification of observers. Side effects that must see the new state belong in `OnEntry()`.
+A transition is committed in a fixed order: `OnExit()` of the source state, the action which builds the target state object, replacement of the state, `OnEntry()` of the target state, notification of observers, and finally the hook registered with `OnEntered<S>()` for the target state. Side effects that must see the new state belong in `OnEntry()` when the state class can carry what they need.
+They belong in an `OnEntered<S>()` hook registered on the table when they need the owning object, such as starting a drive the owner holds or completing a command callback the owner stores.
+An event dispatched from either is queued like any other nested dispatch.
 
 ## Asynchronous completions
 
 An action that starts an asynchronous operation passes `fsm.Completion<Ev>()` as its completion callback.
 The returned function dispatches `Ev` when invoked, but only when the machine has not transitioned since the callback was created.
 A completion that arrives after the machine has left the state that started the operation, for instance because a fault occurred in the meantime, is discarded and reported to observers as `EventDiscarded`.
+The check compares an epoch that every transition advances, not the state, so a completion from an earlier run of the same state is discarded as well.
+When the service reports a result, `fsm.CompletionWith<void(Result)>([](Result result) { return Saved{ result }; })` builds the event from the callback arguments with a captureless mapper and applies the same rule.
 This replaces the manual generation counters and "am I still in the right state" checks that asynchronous state machines otherwise need in every callback.
 The owning object must outlive the callback, as for every other callback in this library; objects managed by shared pointers wrap the completion in the usual `infra::WeakPtr` construction.
 
 ## Observers
 
-`services::TableStateMachine` is an `infra::Subject` for `services::StateMachineObserver<State, Event>`, which reports `Started`, `StateChanged`, `EventForbidden`, `EventRejected` and `EventDiscarded`. Any number of observers may attach. Three observers are provided:
+`services::TableStateMachine` is an `infra::Subject` for `services::StateMachineObserver<State, Event>`, which reports `Started`, `StateChanged`, `EventHandled` for internal rows, `EventForbidden`, `EventRejected` and `EventDiscarded`. Any number of observers may attach. Three observers are provided:
 
-- `services::StateMachineTracer` writes every transition and every forbidden, rejected or discarded event to a `services::Tracer`, for instance `fsm: Idle --Calibrate--> Calibrating` and `fsm: forbidden Enable in Idle`.
+- `services::StateMachineTracer` writes every transition, every internally handled event and every forbidden, rejected or discarded event to a `services::Tracer`, for instance `fsm: Idle --Calibrate--> Calibrating`, `fsm: handled Setpoint in Enabled` and `fsm: forbidden Enable in Idle`.
 - `services::StateTimeouts` holds a table of `services::StateTimeout` rows, each naming a state, a duration and an event. When the state becomes active a single-shot timer is started; when it expires the event is dispatched; leaving the state cancels the timer.
 - `services::WriteMermaid` is not an observer but a function that writes the transition table as a `stateDiagram-v2` block, with one edge per state for rows added with `AddFromAny`, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation.
 

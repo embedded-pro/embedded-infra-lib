@@ -82,12 +82,27 @@ namespace services
         DispatchResult Dispatch(const Event& event) override;
         bool Dispatching() const;
 
+        template<class S, class F>
+        TableStateMachine& OnEntered(F hook);
+
         template<class E, std::size_t ExtraSize = INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>
         infra::Function<void(), ExtraSize> Completion();
         template<class E, std::size_t ExtraSize = INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>
         infra::Function<void(), ExtraSize> Completion(E event);
+        template<class Signature, class Mapper, std::size_t ExtraSize = INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>
+        infra::Function<Signature, ExtraSize> CompletionWith(Mapper mapper);
 
     private:
+        template<class Signature>
+        struct CompletionSignature;
+
+        template<class... Args>
+        struct CompletionSignature<void(Args...)>
+        {
+            template<class Mapper, std::size_t ExtraSize>
+            static infra::Function<void(Args...), ExtraSize> Make(TableStateMachine& machine, uint32_t epochAtRequest);
+        };
+
         template<class From, class Ev, class To, class Action>
         void Execute(const Action& action, const Event& event);
         template<class S, class Ev, class Action>
@@ -107,6 +122,7 @@ namespace services
         DispatchResult Reject(const Event& event, bool rowExists);
         void DrainQueue();
         void CompleteWith(const Event& event, uint32_t epochAtRequest);
+        void RunEnteredHook();
 
         bool HasDuplicate() const;
         bool HasShadowed() const;
@@ -117,6 +133,7 @@ namespace services
         infra::BoundedVector<Transition>& transitions;
         infra::BoundedDeque<Event>& queue;
         std::optional<State> currentState;
+        std::array<infra::Function<void(), SERVICES_FSM_FUNCTION_EXTRA_SIZE>, StateId::count> enteredHooks;
         uint32_t epoch{ 0 };
         bool dispatching{ false };
     };
@@ -205,6 +222,7 @@ namespace services
             {
                 observer.Started(this->CurrentStateId());
             });
+        RunEnteredHook();
         DrainQueue();
         dispatching = false;
     }
@@ -314,6 +332,35 @@ namespace services
     }
 
     template<class State, class Event>
+    template<class S, class F>
+    TableStateMachine<State, Event>& TableStateMachine<State, Event>::OnEntered(F hook)
+    {
+        really_assert(!Started());
+        static_assert(std::is_invocable_v<F>, "Entered hook must be callable as void()");
+        enteredHooks[StateId::template Of<S>().Index()] = hook;
+        return *this;
+    }
+
+    template<class State, class Event>
+    template<class Signature, class Mapper, std::size_t ExtraSize>
+    infra::Function<Signature, ExtraSize> TableStateMachine<State, Event>::CompletionWith(Mapper)
+    {
+        static_assert(std::is_empty_v<Mapper> && std::is_default_constructible_v<Mapper>, "Completion mapper must be a captureless callable");
+        return CompletionSignature<Signature>::template Make<Mapper, ExtraSize>(*this, epoch);
+    }
+
+    template<class State, class Event>
+    template<class... Args>
+    template<class Mapper, std::size_t ExtraSize>
+    infra::Function<void(Args...), ExtraSize> TableStateMachine<State, Event>::CompletionSignature<void(Args...)>::Make(TableStateMachine& machine, uint32_t epochAtRequest)
+    {
+        return [&machine, epochAtRequest](Args... args)
+        {
+            machine.CompleteWith(Event{ Mapper{}(args...) }, epochAtRequest);
+        };
+    }
+
+    template<class State, class Event>
     template<class From, class Ev, class To, class Action>
     void TableStateMachine<State, Event>::Execute(const Action& action, const Event& event)
     {
@@ -410,11 +457,19 @@ namespace services
         auto from = this->CurrentStateId();
         selected->execute(event);
 
-        if (!selected->internal)
+        if (selected->internal)
+            this->NotifyObservers([&](StateMachineObserver<State, Event>& observer)
+                {
+                    observer.EventHandled(from, event);
+                });
+        else
+        {
             this->NotifyObservers([&](StateMachineObserver<State, Event>& observer)
                 {
                     observer.StateChanged(from, event, this->CurrentStateId());
                 });
+            RunEnteredHook();
+        }
 
         return DispatchResult::transitioned;
     }
@@ -485,6 +540,15 @@ namespace services
                 {
                     observer.EventDiscarded(this->CurrentStateId(), event);
                 });
+    }
+
+    template<class State, class Event>
+    void TableStateMachine<State, Event>::RunEnteredHook()
+    {
+        const auto& hook = enteredHooks[currentState->index()];
+
+        if (hook != nullptr)
+            hook();
     }
 
     template<class State, class Event>

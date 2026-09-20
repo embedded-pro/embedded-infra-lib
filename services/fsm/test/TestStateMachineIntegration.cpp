@@ -468,7 +468,7 @@ TEST_F(StateMachineIntegrationTest, setpoint_is_internal_and_applied_without_lea
     EXPECT_NEAR(2.5f, drive.setpoint, 1e-6f);
     EXPECT_EQ(1, drive.starts);
     EXPECT_EQ(0, drive.stops);
-    EXPECT_EQ("", stream.Storage());
+    EXPECT_EQ("\r\nfsm: handled Setpoint in Enabled", stream.Storage());
 }
 
 TEST_F(StateMachineIntegrationTest, fault_from_any_state_runs_enabled_exit_only_when_enabled)

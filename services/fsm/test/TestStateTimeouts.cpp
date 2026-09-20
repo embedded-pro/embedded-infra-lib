@@ -145,6 +145,7 @@ TEST_F(StateTimeoutsTest, internal_transition_does_not_restart_timeout)
     fsm.Dispatch(Begin{});
 
     ForwardTime(std::chrono::seconds(8));
+    EXPECT_CALL(observer, EventHandled(Id<Waiting>(), testing::VariantWith<Begin>(testing::_)));
     fsm.Dispatch(Begin{});
 
     EXPECT_CALL(observer, StateChanged(Id<Waiting>(), testing::VariantWith<Expired>(testing::_), Id<Resting>()));

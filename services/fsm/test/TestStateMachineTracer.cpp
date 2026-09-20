@@ -53,7 +53,8 @@ public:
             .Add<Open, Pull, Closed>([this](const Open&, const Pull&)
                 {
                     return allowPull;
-                });
+                })
+            .AddInternal<Open, Push>();
     }
 
     infra::StringOutputStream::WithStorage<128> stream;
@@ -111,4 +112,14 @@ TEST_F(StateMachineTracerTest, discarded_completion_is_traced)
     done();
 
     EXPECT_EQ("\r\nfsm: discarded Pull in Open", stream.Storage());
+}
+
+TEST_F(StateMachineTracerTest, internal_transition_is_traced)
+{
+    fsm.Start<Open>();
+    stream.Storage().clear();
+
+    fsm.Dispatch(Push{});
+
+    EXPECT_EQ("\r\nfsm: handled Push in Open", stream.Storage());
 }
