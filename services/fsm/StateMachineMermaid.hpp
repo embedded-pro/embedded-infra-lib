@@ -6,15 +6,15 @@
 
 namespace services
 {
-    template<class State, class Event>
-    void WriteMermaid(infra::TextOutputStream& stream, const TableStateMachine<State, Event>& machine, AlternativeId<State> initial);
+    template<class State, class Event, class Context>
+    void WriteMermaid(infra::TextOutputStream& stream, const TableStateMachine<State, Event, Context>& machine, AlternativeId<State> initial);
 
     ////    Implementation    ////
 
     namespace detail
     {
-        template<class State, class Event>
-        void WriteMermaidEdge(infra::TextOutputStream& stream, AlternativeId<State> from, const typename TableStateMachine<State, Event>::Transition& row)
+        template<class State, class Event, class Row>
+        void WriteMermaidEdge(infra::TextOutputStream& stream, AlternativeId<State> from, const Row& row)
         {
             stream << "    " << from.Name() << " --> " << AlternativeId<State>::FromIndex(row.to).Name() << " : " << AlternativeId<Event>::FromIndex(row.event).Name();
 
@@ -26,8 +26,8 @@ namespace services
             stream << "\n";
         }
 
-        template<class State, class Event>
-        void WriteMermaidRow(infra::TextOutputStream& stream, const typename TableStateMachine<State, Event>::Transition& row)
+        template<class State, class Event, class Row>
+        void WriteMermaidRow(infra::TextOutputStream& stream, const Row& row)
         {
             if (row.from)
                 WriteMermaidEdge<State, Event>(stream, AlternativeId<State>::FromIndex(*row.from), row);
@@ -37,8 +37,8 @@ namespace services
         }
     }
 
-    template<class State, class Event>
-    void WriteMermaid(infra::TextOutputStream& stream, const TableStateMachine<State, Event>& machine, AlternativeId<State> initial)
+    template<class State, class Event, class Context>
+    void WriteMermaid(infra::TextOutputStream& stream, const TableStateMachine<State, Event, Context>& machine, AlternativeId<State> initial)
     {
         stream << "stateDiagram-v2\n";
         stream << "    [*] --> " << initial.Name() << "\n";

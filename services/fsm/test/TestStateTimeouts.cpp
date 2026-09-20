@@ -42,13 +42,25 @@ namespace
 
     using Event = std::variant<Begin, Expired, Finish>;
 
+    struct Job
+    {};
+
     using StateId = services::AlternativeId<State>;
     using Timeout = services::StateTimeout<State, Event>;
+    using Machine = services::TableStateMachine<State, Event, Job>;
 
     constexpr std::array<Timeout, 2> timeouts{ {
         { StateId::Of<Waiting>(), std::chrono::seconds(10), Event{ Expired{} } },
         { StateId::Of<Done>(), std::chrono::seconds(2), Event{ Begin{} } },
     } };
+
+    constexpr std::array rows{
+        Machine::Row<Resting, Begin, Waiting>(),
+        Machine::Row<Waiting, Expired, Resting>(),
+        Machine::Row<Waiting, Finish, Done>(),
+        Machine::Row<Done, Begin, Waiting>(),
+        Machine::InternalRow<Waiting, Begin>(),
+    };
 
     template<class T>
     StateId Id()
@@ -62,16 +74,8 @@ class StateTimeoutsTest
     , public infra::ClockFixture
 {
 public:
-    StateTimeoutsTest()
-    {
-        fsm.Add<Resting, Begin, Waiting>()
-            .Add<Waiting, Expired, Resting>()
-            .Add<Waiting, Finish, Done>()
-            .Add<Done, Begin, Waiting>()
-            .AddInternal<Waiting, Begin>();
-    }
-
-    services::TableStateMachine<State, Event>::WithStorage<8, 2> fsm;
+    Job job;
+    Machine::WithStorage<2> fsm{ job, infra::MakeRange(rows) };
     services::StateTimeouts<State, Event> stateTimeouts{ fsm, infra::MakeRange(timeouts) };
     testing::StrictMock<services::StateMachineObserverMock<State, Event>> observer{ fsm };
 };

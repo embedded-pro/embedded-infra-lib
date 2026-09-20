@@ -5,7 +5,7 @@
 Many components in an embedded application are state machines: a connection is closed, connecting or connected; a motor is idle, calibrating, ready or enabled; a firmware upgrade is downloading, verifying or installing.
 Writing such a component by hand tends to scatter the rules over many methods: every command checks the current state, every asynchronous callback checks it again, and the set of forbidden transitions exists only in the head of the author.
 The `services/fsm` package provides a generic, heap-less state machine in which the transition table is the single source of truth.
-The table is checked for consistency before the machine starts, every event that is not allowed in the current state is reported rather than silently ignored, and asynchronous completions cannot corrupt the machine when they arrive late.
+The table is a compile-time constant that lives in flash, it is checked for consistency before the machine starts, every event that is not allowed in the current state is reported rather than silently ignored, and asynchronous completions cannot corrupt the machine when they arrive late.
 
 This package complements two idioms that already exist in the library.
 `infra::Sequencer` expresses a linear or structured sequence of asynchronous steps; it is the right tool when there is one path through the work.
@@ -57,61 +57,89 @@ using Event = std::variant<Calibrate, CalibrationDone, Enable, Disable, FaultDet
 
 ## The transition table
 
-`services::TableStateMachine<State, Event>` is instantiated with storage for a maximum number of transitions and for the queue of events dispatched while the machine is busy, and is filled with rows before it is started.
-Guards and actions are callables, typically lambdas capturing the owning object.
-A guard receives the current state object and the event and returns whether the row applies; an action receives the current state object and the event and returns the new state object.
+`services::TableStateMachine<State, Event, Context>` runs a table of rows over a context object, normally the component that owns the machine.
+Rows are built with the `constexpr` functions `Row`, `RowFromAny` and `InternalRow`, so that a table declared `static constexpr` is a constant in flash and costs no RAM; the machine itself only holds the current state and a queue for events dispatched while it is busy.
+Guards and actions are captureless callables, typically lambdas, that receive the context as their first argument.
+A guard receives the context, the current state object and the event and returns whether the row applies; an action receives the context, the current state object and the event and returns the new state object.
+Because the callables are captureless they can call whatever the context exposes, including its private members when the table is built inside one of its member functions.
 
 ```cpp
-services::TableStateMachine<State, Event>::WithStorage<16, 4> fsm;
+class Motor
+{
+public:
+    Motor(Calibration& calibration, Drive& drive)
+        : calibration(calibration)
+        , drive(drive)
+        , fsm(*this, Table())
+    {
+        fsm.Start<Idle>();
+    }
 
-fsm.Add<Idle, Calibrate, Calibrating>(nullptr, [this](Idle&, const Calibrate&)
-       {
-           calibration.Start(fsm.Completion<CalibrationDone>());
-           return Calibrating{};
-       })
-    .Add<Calibrating, CalibrationDone, Ready>([this](const Calibrating&, const CalibrationDone&)
-        {
-            return calibration.Result().has_value();
-        },
-        [this](Calibrating&, const CalibrationDone&)
-        {
-            return Ready{ *calibration.Result() };
-        })
-    .Add<Calibrating, CalibrationDone, Idle>()
-    .Add<Ready, Enable, Enabled>(nullptr, [this](Ready&, const Enable&)
-        {
-            return Enabled{ drive };
-        })
-    .Add<Enabled, Disable, Ready>(nullptr, [](Enabled& from, const Disable&)
-        {
-            return Ready{ from.data };
-        })
-    .AddInternal<Enabled, Setpoint>([this](Enabled&, const Setpoint& event)
-        {
-            drive.Apply(event.value);
-        })
-    .AddFromAny<FaultDetected, Fault>(nullptr, [](State&, const FaultDetected& event)
-        {
-            return Fault{ event.code };
-        });
+private:
+    using Machine = services::TableStateMachine<State, Event, Motor>;
 
-fsm.Start<Idle>();
+    static Machine::Table Table();
+
+    Calibration& calibration;
+    Drive& drive;
+    Machine::WithStorage<4> fsm;
+};
+
+Motor::Machine::Table Motor::Table()
+{
+    static constexpr std::array rows{
+        Machine::Row<Idle, Calibrate, Calibrating>(nullptr, [](Motor& motor, Idle&, const Calibrate&)
+            {
+                motor.calibration.Start(motor.fsm.Completion<CalibrationDone>());
+                return Calibrating{};
+            }),
+        Machine::Row<Calibrating, CalibrationDone, Ready>([](Motor& motor, const Calibrating&, const CalibrationDone&)
+            {
+                return motor.calibration.Result().has_value();
+            },
+            [](Motor& motor, Calibrating&, const CalibrationDone&)
+            {
+                return Ready{ *motor.calibration.Result() };
+            }),
+        Machine::Row<Calibrating, CalibrationDone, Idle>(),
+        Machine::Row<Ready, Enable, Enabled>(nullptr, [](Motor& motor, Ready&, const Enable&)
+            {
+                return Enabled{ motor.drive };
+            }),
+        Machine::Row<Enabled, Disable, Ready>(nullptr, [](Motor&, Enabled& from, const Disable&)
+            {
+                return Ready{ from.data };
+            }),
+        Machine::InternalRow<Enabled, Setpoint>([](Motor& motor, Enabled&, const Setpoint& event)
+            {
+                motor.drive.Apply(event.value);
+            }),
+        Machine::RowFromAny<FaultDetected, Fault>(nullptr, [](Motor&, State&, const FaultDetected& event)
+            {
+                return Fault{ event.code };
+            }),
+    };
+
+    return infra::MakeRange(rows);
+}
 ```
 
 | Method                                                  | Meaning                                                                                                                                                                          |
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Add<From, Ev, To>(guard, action)`                      | External transition. Runs `OnExit()` of the source, the action, `OnEntry()` of the target. Without an action the target is default constructed                                   |
-| `AddFromAny<Ev, To>(guard, action)`                     | External transition from every state. The guard and action receive the `State` variant. A row for the specific state is consulted first                                          |
-| `AddInternal<S, Ev>(action, guard)`                     | The event is handled in the state without leaving it: no exit, no entry, no notification. Without an action the event is accepted and ignored                                    |
+| `Row<From, Ev, To>(guard, action)`                      | External transition. Runs `OnExit()` of the source, the action, `OnEntry()` of the target. Without an action the target is default constructed                                   |
+| `RowFromAny<Ev, To>(guard, action)`                     | External transition from every state. The guard and action receive the `State` variant. A row for the specific state is consulted first                                          |
+| `InternalRow<S, Ev>(action, guard)`                     | The event is handled in the state without leaving it: no exit, no entry, no state change. Without an action the event is accepted and ignored                                    |
+| `services::JoinRows(arrays...)`                         | Concatenates `std::array`s of rows, so that a table can be assembled from named groups                                                                                           |
+| `WithStorage<QueueDepth>(context, table)`               | The machine with storage for the queue of events dispatched while it is busy                                                                                                     |
 | `Start<Initial>(args...)`                               | Checks the table, constructs the initial state, runs its `OnEntry()` and notifies observers                                                                                      |
 | `Dispatch(event)`                                       | Handles an event and returns a `services::DispatchResult`                                                                                                                        |
-| `OnEntered<S>(hook)`                                    | Registers a callable that runs after `S` has been committed and announced to observers, also for the initial state                                                               |
+| `OnEntered<S>(hook)`                                    | Registers a captureless `void(Context&, S&)` that runs after `S` has been committed and announced to observers, also for the initial state                                      |
 | `Completion<Ev>()`                                      | Returns an `infra::Function<void()>` that dispatches `Ev{}` unless the machine has moved on since                                                                                |
 | `CompletionWith<void(Args...)>(mapper)`                 | Returns an `infra::Function<void(Args...)>` that builds an event from the callback arguments with a captureless `mapper` and dispatches it unless the machine has moved on since |
 | `CurrentState()`, `CurrentStateId()`, `Is<S>()`         | Inspect the active state                                                                                                                                                         |
 | `CheckConsistency<Initial>()`, `HasTransition<S, Ev>()` | Inspect the table                                                                                                                                                                |
 
-Several rows for the same state and event are allowed when all but the last carry a guard; they are consulted in the order they were added and the first row whose guard accepts wins.
+Several rows for the same state and event are allowed when all but the last carry a guard; they are consulted in the order of the table and the first row whose guard accepts wins.
 
 ## Consistency
 
@@ -119,7 +147,7 @@ Several rows for the same state and event are allowed when all but the last carr
 
 | Error                 | Meaning                                                                                             |
 |-----------------------|-----------------------------------------------------------------------------------------------------|
-| `emptyTable`          | No rows were added                                                                                  |
+| `emptyTable`          | The table has no rows                                                                               |
 | `duplicateTransition` | Two unguarded rows for the same state and event                                                     |
 | `shadowedTransition`  | A row for a state and event follows an unguarded row for the same pair, so it can never be selected |
 | `unreachableState`    | A state class of the variant that no sequence of rows reaches from the initial state                |
@@ -133,12 +161,12 @@ Because the set of states is the variant itself, every state class must take par
 `forbidden` means no row exists for the event in the current state;
 `rejected` means rows exist but every guard refused.
 In both cases the state is unchanged and observers are notified, but nothing asserts: whether a forbidden event is a programming error or a normal occurrence, such as a command received over a bus in the wrong state, is for the owner to decide.
-`queued` means `Dispatch()` was called while the machine was already handling an event, from an action, an entry or exit method, or an observer.
+`queued` means `Dispatch()` was called while the machine was already handling an event, from an action, an entry or exit method, an observer or an entered hook.
 Such an event is stored in the queue and handled after the current transition has fully committed and been notified, so every action always observes a consistent machine.
 A full queue asserts.
 
 A transition is committed in a fixed order: `OnExit()` of the source state, the action which builds the target state object, replacement of the state, `OnEntry()` of the target state, notification of observers, and finally the hook registered with `OnEntered<S>()` for the target state. Side effects that must see the new state belong in `OnEntry()` when the state class can carry what they need.
-They belong in an `OnEntered<S>()` hook registered on the table when they need the owning object, such as starting a drive the owner holds or completing a command callback the owner stores.
+They belong in an `OnEntered<S>()` hook when they need the context, such as starting a drive the owner holds or completing a command callback the owner stores.
 An event dispatched from either is queued like any other nested dispatch.
 
 ## Asynchronous completions
@@ -153,11 +181,11 @@ The owning object must outlive the callback, as for every other callback in this
 
 ## Observers
 
-`services::TableStateMachine` is an `infra::Subject` for `services::StateMachineObserver<State, Event>`, which reports `Started`, `StateChanged`, `EventHandled` for internal rows, `EventForbidden`, `EventRejected` and `EventDiscarded`. Any number of observers may attach. Three observers are provided:
+`services::TableStateMachine` is an `infra::Subject` for `services::StateMachineObserver<State, Event>`, which reports `Started`, `StateChanged`, `EventHandled` for internal rows, `EventForbidden`, `EventRejected` and `EventDiscarded`. Any number of observers may attach. Three helpers are provided:
 
 - `services::StateMachineTracer` writes every transition, every internally handled event and every forbidden, rejected or discarded event to a `services::Tracer`, for instance `fsm: Idle --Calibrate--> Calibrating`, `fsm: handled Setpoint in Enabled` and `fsm: forbidden Enable in Idle`.
 - `services::StateTimeouts` holds a table of `services::StateTimeout` rows, each naming a state, a duration and an event. When the state becomes active a single-shot timer is started; when it expires the event is dispatched; leaving the state cancels the timer.
-- `services::WriteMermaid` is not an observer but a function that writes the transition table as a `stateDiagram-v2` block, with one edge per state for rows added with `AddFromAny`, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation.
+- `services::WriteMermaid` is not an observer but a function that writes the transition table as a `stateDiagram-v2` block, with one edge per state for rows built with `RowFromAny`, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation.
 
 ```cpp
 constexpr std::array<services::StateTimeout<State, Event>, 1> timeouts{ {

@@ -216,9 +216,11 @@ namespace
 
     using Event = std::variant<Calibrate, CalibrationDone, Saved, Enable, Disable, Setpoint, FaultDetected, EmergencyStop, ClearFault, Timeout>;
 
+    class DeviceLifecycle;
+
     using StateId = services::AlternativeId<State>;
     using EventId = services::AlternativeId<Event>;
-    using Machine = services::TableStateMachine<State, Event>;
+    using Machine = services::TableStateMachine<State, Event, DeviceLifecycle>;
     using Tester = services::StateMachineTester<State, Event>;
 
     constexpr std::array<services::StateTimeout<State, Event>, 1> timeouts{ {
@@ -232,12 +234,9 @@ namespace
             : calibration(calibration)
             , storage(storage)
             , drive(drive)
+            , fsm(*this, Table())
             , stateMachineTracer(fsm, tracer)
-        {
-            AddCalibrationRows();
-            AddOperationRows();
-            AddSafetyRows();
-        }
+        {}
 
         void Start()
         {
@@ -257,78 +256,95 @@ namespace
         }
 
     private:
-        void AddCalibrationRows()
-        {
-            fsm.Add<Idle, Calibrate, Calibrating>(nullptr, [this](Idle&, const Calibrate&)
-                   {
-                       calibration.Start(fsm.Completion<CalibrationDone>());
-                       return Calibrating{};
-                   })
-                .Add<Calibrating, CalibrationDone, Saving>([this](const Calibrating&, const CalibrationDone&)
-                    {
-                        return calibration.Result().has_value();
-                    },
-                    [this](Calibrating&, const CalibrationDone&)
-                    {
-                        storage.Save(*calibration.Result(), fsm.Completion<Saved>());
-                        return Saving{ *calibration.Result() };
-                    })
-                .Add<Calibrating, CalibrationDone, Idle>()
-                .Add<Calibrating, Timeout, Idle>(nullptr, [this](Calibrating&, const Timeout&)
-                    {
-                        calibration.Abort();
-                        return Idle{};
-                    })
-                .Add<Saving, Saved, Ready>(nullptr, [](Saving& from, const Saved&)
-                    {
-                        return Ready{ from.data };
-                    });
-        }
-
-        void AddOperationRows()
-        {
-            fsm.Add<Ready, Enable, Enabled>([](const Ready& from, const Enable&)
-                   {
-                       return from.data.rotorReferenceValid;
-                   },
-                   [this](Ready& from, const Enable&)
-                   {
-                       return Enabled{ drive, from.data };
-                   })
-                .Add<Enabled, Disable, Ready>(nullptr, [](Enabled& from, const Disable&)
-                    {
-                        return Ready{ from.data };
-                    })
-                .AddInternal<Enabled, Setpoint>([this](Enabled&, const Setpoint& event)
-                    {
-                        drive.Apply(event.value);
-                    });
-        }
-
-        void AddSafetyRows()
-        {
-            fsm.AddFromAny<FaultDetected, Fault>(nullptr, [this](State&, const FaultDetected& event)
-                   {
-                       calibration.Abort();
-                       return Fault{ event.code };
-                   })
-                .Add<Fault, ClearFault, Idle>()
-                .AddInternal<Idle, EmergencyStop>()
-                .AddFromAny<EmergencyStop, Idle>(nullptr, [this](State&, const EmergencyStop&)
-                    {
-                        calibration.Abort();
-                        return Idle{};
-                    });
-        }
+        static Machine::Table Table();
+        static constexpr std::array<Machine::Transition, 5> CalibrationRows();
+        static constexpr std::array<Machine::Transition, 3> OperationRows();
+        static constexpr std::array<Machine::Transition, 4> SafetyRows();
 
     private:
         CalibrationServiceStub& calibration;
         StorageStub& storage;
         DriveStub& drive;
-        Machine::WithStorage<16, 4> fsm;
+        Machine::WithStorage<4> fsm;
         services::StateMachineTracer<State, Event> stateMachineTracer;
         services::StateTimeouts<State, Event> stateTimeouts{ fsm, infra::MakeRange(timeouts) };
     };
+
+    constexpr std::array<Machine::Transition, 5> DeviceLifecycle::CalibrationRows()
+    {
+        return {
+            Machine::Row<Idle, Calibrate, Calibrating>(nullptr, [](DeviceLifecycle& device, Idle&, const Calibrate&)
+                {
+                    device.calibration.Start(device.fsm.Completion<CalibrationDone>());
+                    return Calibrating{};
+                }),
+            Machine::Row<Calibrating, CalibrationDone, Saving>([](DeviceLifecycle& device, const Calibrating&, const CalibrationDone&)
+                {
+                    return device.calibration.Result().has_value();
+                },
+                [](DeviceLifecycle& device, Calibrating&, const CalibrationDone&)
+                {
+                    device.storage.Save(*device.calibration.Result(), device.fsm.Completion<Saved>());
+                    return Saving{ *device.calibration.Result() };
+                }),
+            Machine::Row<Calibrating, CalibrationDone, Idle>(),
+            Machine::Row<Calibrating, Timeout, Idle>(nullptr, [](DeviceLifecycle& device, Calibrating&, const Timeout&)
+                {
+                    device.calibration.Abort();
+                    return Idle{};
+                }),
+            Machine::Row<Saving, Saved, Ready>(nullptr, [](DeviceLifecycle&, Saving& from, const Saved&)
+                {
+                    return Ready{ from.data };
+                }),
+        };
+    }
+
+    constexpr std::array<Machine::Transition, 3> DeviceLifecycle::OperationRows()
+    {
+        return {
+            Machine::Row<Ready, Enable, Enabled>([](DeviceLifecycle&, const Ready& from, const Enable&)
+                {
+                    return from.data.rotorReferenceValid;
+                },
+                [](DeviceLifecycle& device, Ready& from, const Enable&)
+                {
+                    return Enabled{ device.drive, from.data };
+                }),
+            Machine::Row<Enabled, Disable, Ready>(nullptr, [](DeviceLifecycle&, Enabled& from, const Disable&)
+                {
+                    return Ready{ from.data };
+                }),
+            Machine::InternalRow<Enabled, Setpoint>([](DeviceLifecycle& device, Enabled&, const Setpoint& event)
+                {
+                    device.drive.Apply(event.value);
+                }),
+        };
+    }
+
+    constexpr std::array<Machine::Transition, 4> DeviceLifecycle::SafetyRows()
+    {
+        return {
+            Machine::RowFromAny<FaultDetected, Fault>(nullptr, [](DeviceLifecycle& device, State&, const FaultDetected& event)
+                {
+                    device.calibration.Abort();
+                    return Fault{ event.code };
+                }),
+            Machine::Row<Fault, ClearFault, Idle>(),
+            Machine::InternalRow<Idle, EmergencyStop>(),
+            Machine::RowFromAny<EmergencyStop, Idle>(nullptr, [](DeviceLifecycle& device, State&, const EmergencyStop&)
+                {
+                    device.calibration.Abort();
+                    return Idle{};
+                }),
+        };
+    }
+
+    Machine::Table DeviceLifecycle::Table()
+    {
+        static constexpr auto rows = services::JoinRows(CalibrationRows(), OperationRows(), SafetyRows());
+        return infra::MakeRange(rows);
+    }
 
     class TracerToStreamWithoutHeader
         : public services::TracerToStream

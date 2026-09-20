@@ -2,7 +2,6 @@
 #define SERVICES_TABLE_STATE_MACHINE_HPP
 
 #include "infra/util/BoundedDeque.hpp"
-#include "infra/util/BoundedVector.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "infra/util/ReallyAssert.hpp"
@@ -13,10 +12,6 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
-
-#ifndef SERVICES_FSM_FUNCTION_EXTRA_SIZE
-#define SERVICES_FSM_FUNCTION_EXTRA_SIZE (INFRA_DEFAULT_FUNCTION_EXTRA_SIZE + (2 * sizeof(void*)))
-#endif
 
 namespace services
 {
@@ -35,7 +30,13 @@ namespace services
     template<class T>
     concept HasOnExit = requires(T& state) { state.OnExit(); };
 
-    template<class State, class Event>
+    template<class T>
+    concept Captureless = std::is_empty_v<T> && std::is_default_constructible_v<T>;
+
+    template<class T, std::size_t... N>
+    constexpr std::array<T, (N + ... + 0)> JoinRows(const std::array<T, N>&... parts);
+
+    template<class State, class Event, class Context>
     class TableStateMachine
         : public StateMachine<State, Event>
     {
@@ -50,21 +51,23 @@ namespace services
             std::size_t to;
             bool internal;
             bool guarded;
-            infra::Function<bool(const Event&), SERVICES_FSM_FUNCTION_EXTRA_SIZE> guard;
-            infra::Function<void(const Event&), SERVICES_FSM_FUNCTION_EXTRA_SIZE> execute;
+            bool (*guard)(TableStateMachine& machine, const Event& event);
+            void (*execute)(TableStateMachine& machine, const Event& event);
         };
 
-        template<std::size_t MaxTransitions, std::size_t QueueDepth>
+        using Table = infra::MemoryRange<const Transition>;
+
+        template<std::size_t QueueDepth>
         class WithStorage;
 
-        TableStateMachine(infra::BoundedVector<Transition>& transitions, infra::BoundedDeque<Event>& queue);
+        TableStateMachine(Context& context, Table table, infra::BoundedDeque<Event>& queue);
 
         template<class From, class Ev, class To, class Guard = std::nullptr_t, class Action = std::nullptr_t>
-        TableStateMachine& Add(Guard guard = nullptr, Action action = nullptr);
+        static constexpr Transition Row(Guard guard = nullptr, Action action = nullptr);
         template<class Ev, class To, class Guard = std::nullptr_t, class Action = std::nullptr_t>
-        TableStateMachine& AddFromAny(Guard guard = nullptr, Action action = nullptr);
+        static constexpr Transition RowFromAny(Guard guard = nullptr, Action action = nullptr);
         template<class S, class Ev, class Action = std::nullptr_t, class Guard = std::nullptr_t>
-        TableStateMachine& AddInternal(Action action = nullptr, Guard guard = nullptr);
+        static constexpr Transition InternalRow(Action action = nullptr, Guard guard = nullptr);
 
         template<class Initial, class... Args>
         void Start(Args&&... args);
@@ -76,14 +79,14 @@ namespace services
         template<class S, class E>
         bool HasTransition() const;
         bool HasTransition(StateId from, EventId event) const;
-        infra::MemoryRange<const Transition> Transitions() const;
+        Table Transitions() const;
 
         const State& CurrentState() const override;
         DispatchResult Dispatch(const Event& event) override;
         bool Dispatching() const;
 
-        template<class S, class F>
-        TableStateMachine& OnEntered(F hook);
+        template<class S, class Hook>
+        TableStateMachine& OnEntered(Hook hook);
 
         template<class E, std::size_t ExtraSize = INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>
         infra::Function<void(), ExtraSize> Completion();
@@ -103,22 +106,27 @@ namespace services
             static infra::Function<void(Args...), ExtraSize> Make(TableStateMachine& machine, uint32_t epochAtRequest);
         };
 
-        template<class From, class Ev, class To, class Action>
-        void Execute(const Action& action, const Event& event);
-        template<class S, class Ev, class Action>
-        void ExecuteInternal(const Action& action, const Event& event);
         template<class From, class Ev, class Guard>
-        void StoreGuard(Transition& transition, const Guard& guard);
+        static bool Guarded(TableStateMachine& machine, const Event& event);
+        template<class From, class Ev, class To, class Action>
+        static void Executed(TableStateMachine& machine, const Event& event);
+        template<class S, class Ev, class Action>
+        static void ExecutedInternal(TableStateMachine& machine, const Event& event);
+        template<class S, class Hook>
+        static void Entered(TableStateMachine& machine);
         template<class From>
-        auto& Source();
+        static auto& Source(State& state);
+
+        template<class From, class Ev, class To, class Action>
+        void Execute(const Event& event);
         template<class To, class From, class Ev, class Action>
-        To Build(const Action& action, From& from, const Ev& event);
+        To Build(From& from, const Ev& event);
         void RunExit();
         void RunEntry();
 
         DispatchResult DispatchNow(const Event& event);
-        const Transition* Select(const Event& event, bool& rowExists) const;
-        const Transition* SelectFrom(std::optional<std::size_t> from, const Event& event, bool& rowExists) const;
+        const Transition* Select(const Event& event, bool& rowExists);
+        const Transition* SelectFrom(std::optional<std::size_t> from, const Event& event, bool& rowExists);
         DispatchResult Reject(const Event& event, bool rowExists);
         void DrainQueue();
         void CompleteWith(const Event& event, uint32_t epochAtRequest);
@@ -130,86 +138,82 @@ namespace services
         static bool SamePair(const Transition& a, const Transition& b);
 
     private:
-        infra::BoundedVector<Transition>& transitions;
+        Context& context;
+        Table table;
         infra::BoundedDeque<Event>& queue;
         std::optional<State> currentState;
-        std::array<infra::Function<void(), SERVICES_FSM_FUNCTION_EXTRA_SIZE>, StateId::count> enteredHooks;
+        std::array<void (*)(TableStateMachine&), StateId::count> enteredHooks{};
         uint32_t epoch{ 0 };
         bool dispatching{ false };
     };
 
-    template<class State, class Event>
-    template<std::size_t MaxTransitions, std::size_t QueueDepth>
-    class TableStateMachine<State, Event>::WithStorage
-        : public TableStateMachine<State, Event>
+    template<class State, class Event, class Context>
+    template<std::size_t QueueDepth>
+    class TableStateMachine<State, Event, Context>::WithStorage
+        : public TableStateMachine<State, Event, Context>
     {
     public:
-        WithStorage();
+        WithStorage(Context& context, Table table);
 
     private:
-        typename infra::BoundedVector<Transition>::template WithMaxSize<MaxTransitions> transitionsStorage;
         typename infra::BoundedDeque<Event>::template WithMaxSize<QueueDepth> queueStorage;
     };
 
     ////    Implementation    ////
 
-    template<class State, class Event>
-    TableStateMachine<State, Event>::TableStateMachine(infra::BoundedVector<Transition>& transitions, infra::BoundedDeque<Event>& queue)
-        : transitions(transitions)
+    template<class T, std::size_t... N>
+    constexpr std::array<T, (N + ... + 0)> JoinRows(const std::array<T, N>&... parts)
+    {
+        std::array<T, (N + ... + 0)> result{};
+        std::size_t index = 0;
+
+        auto append = [&result, &index](const auto& part)
+        {
+            for (const auto& row : part)
+                result[index++] = row;
+        };
+        (append(parts), ...);
+
+        return result;
+    }
+
+    template<class State, class Event, class Context>
+    TableStateMachine<State, Event, Context>::TableStateMachine(Context& context, Table table, infra::BoundedDeque<Event>& queue)
+        : context(context)
+        , table(table)
         , queue(queue)
     {}
 
-    template<class State, class Event>
-    template<std::size_t MaxTransitions, std::size_t QueueDepth>
-    TableStateMachine<State, Event>::WithStorage<MaxTransitions, QueueDepth>::WithStorage()
-        : TableStateMachine<State, Event>(transitionsStorage, queueStorage)
+    template<class State, class Event, class Context>
+    template<std::size_t QueueDepth>
+    TableStateMachine<State, Event, Context>::WithStorage<QueueDepth>::WithStorage(Context& context, Table table)
+        : TableStateMachine<State, Event, Context>(context, table, queueStorage)
     {}
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class From, class Ev, class To, class Guard, class Action>
-    TableStateMachine<State, Event>& TableStateMachine<State, Event>::Add(Guard guard, Action action)
+    constexpr typename TableStateMachine<State, Event, Context>::Transition TableStateMachine<State, Event, Context>::Row(Guard, Action)
     {
-        really_assert(!Started());
-        transitions.emplace_back(Transition{ StateId::template Of<From>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, false, nullptr, nullptr });
-        this->template StoreGuard<From, Ev>(transitions.back(), guard);
-        transitions.back().execute = [this, action](const Event& event)
-        {
-            this->template Execute<From, Ev, To>(action, event);
-        };
-        return *this;
+        return Transition{ StateId::template Of<From>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, !std::is_null_pointer_v<Guard>, &Guarded<From, Ev, Guard>, &Executed<From, Ev, To, Action> };
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class Ev, class To, class Guard, class Action>
-    TableStateMachine<State, Event>& TableStateMachine<State, Event>::AddFromAny(Guard guard, Action action)
+    constexpr typename TableStateMachine<State, Event, Context>::Transition TableStateMachine<State, Event, Context>::RowFromAny(Guard, Action)
     {
-        really_assert(!Started());
-        transitions.emplace_back(Transition{ std::nullopt, EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, false, nullptr, nullptr });
-        this->template StoreGuard<State, Ev>(transitions.back(), guard);
-        transitions.back().execute = [this, action](const Event& event)
-        {
-            this->template Execute<State, Ev, To>(action, event);
-        };
-        return *this;
+        return Transition{ std::nullopt, EventId::template Of<Ev>().Index(), StateId::template Of<To>().Index(), false, !std::is_null_pointer_v<Guard>, &Guarded<State, Ev, Guard>, &Executed<State, Ev, To, Action> };
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class S, class Ev, class Action, class Guard>
-    TableStateMachine<State, Event>& TableStateMachine<State, Event>::AddInternal(Action action, Guard guard)
+    constexpr typename TableStateMachine<State, Event, Context>::Transition TableStateMachine<State, Event, Context>::InternalRow(Action, Guard)
     {
-        really_assert(!Started());
-        transitions.emplace_back(Transition{ StateId::template Of<S>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<S>().Index(), true, false, nullptr, nullptr });
-        this->template StoreGuard<S, Ev>(transitions.back(), guard);
-        transitions.back().execute = [this, action](const Event& event)
-        {
-            this->template ExecuteInternal<S, Ev>(action, event);
-        };
-        return *this;
+        return Transition{ StateId::template Of<S>().Index(), EventId::template Of<Ev>().Index(), StateId::template Of<S>().Index(), true, !std::is_null_pointer_v<Guard>, &Guarded<S, Ev, Guard>, &ExecutedInternal<S, Ev, Action> };
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class Initial, class... Args>
-    void TableStateMachine<State, Event>::Start(Args&&... args)
+    void TableStateMachine<State, Event, Context>::Start(Args&&... args)
     {
         really_assert(!Started());
         really_assert(CheckConsistency<Initial>() == ConsistencyError::none);
@@ -227,23 +231,23 @@ namespace services
         dispatching = false;
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::Started() const
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::Started() const
     {
         return currentState.has_value();
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class Initial>
-    ConsistencyError TableStateMachine<State, Event>::CheckConsistency() const
+    ConsistencyError TableStateMachine<State, Event, Context>::CheckConsistency() const
     {
         return CheckConsistency(StateId::template Of<Initial>());
     }
 
-    template<class State, class Event>
-    ConsistencyError TableStateMachine<State, Event>::CheckConsistency(StateId initial) const
+    template<class State, class Event, class Context>
+    ConsistencyError TableStateMachine<State, Event, Context>::CheckConsistency(StateId initial) const
     {
-        if (transitions.empty())
+        if (table.empty())
             return ConsistencyError::emptyTable;
         if (HasDuplicate())
             return ConsistencyError::duplicateTransition;
@@ -255,38 +259,38 @@ namespace services
         return ConsistencyError::none;
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class S, class E>
-    bool TableStateMachine<State, Event>::HasTransition() const
+    bool TableStateMachine<State, Event, Context>::HasTransition() const
     {
         return HasTransition(StateId::template Of<S>(), EventId::template Of<E>());
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::HasTransition(StateId from, EventId event) const
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::HasTransition(StateId from, EventId event) const
     {
-        for (const auto& transition : transitions)
+        for (const auto& transition : table)
             if ((!transition.from || *transition.from == from.Index()) && transition.event == event.Index())
                 return true;
 
         return false;
     }
 
-    template<class State, class Event>
-    infra::MemoryRange<const typename TableStateMachine<State, Event>::Transition> TableStateMachine<State, Event>::Transitions() const
+    template<class State, class Event, class Context>
+    typename TableStateMachine<State, Event, Context>::Table TableStateMachine<State, Event, Context>::Transitions() const
     {
-        return transitions.range();
+        return table;
     }
 
-    template<class State, class Event>
-    const State& TableStateMachine<State, Event>::CurrentState() const
+    template<class State, class Event, class Context>
+    const State& TableStateMachine<State, Event, Context>::CurrentState() const
     {
         really_assert(Started());
         return *currentState;
     }
 
-    template<class State, class Event>
-    DispatchResult TableStateMachine<State, Event>::Dispatch(const Event& event)
+    template<class State, class Event, class Context>
+    DispatchResult TableStateMachine<State, Event, Context>::Dispatch(const Event& event)
     {
         really_assert(Started());
 
@@ -304,15 +308,24 @@ namespace services
         return result;
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::Dispatching() const
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::Dispatching() const
     {
         return dispatching;
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
+    template<class S, class Hook>
+    TableStateMachine<State, Event, Context>& TableStateMachine<State, Event, Context>::OnEntered(Hook)
+    {
+        really_assert(!Started());
+        enteredHooks[StateId::template Of<S>().Index()] = &Entered<S, Hook>;
+        return *this;
+    }
+
+    template<class State, class Event, class Context>
     template<class E, std::size_t ExtraSize>
-    infra::Function<void(), ExtraSize> TableStateMachine<State, Event>::Completion()
+    infra::Function<void(), ExtraSize> TableStateMachine<State, Event, Context>::Completion()
     {
         static_assert(std::is_default_constructible_v<E>, "Completion events without payload must be default constructible");
         return [this, epochAtRequest = epoch]()
@@ -321,9 +334,9 @@ namespace services
         };
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class E, std::size_t ExtraSize>
-    infra::Function<void(), ExtraSize> TableStateMachine<State, Event>::Completion(E event)
+    infra::Function<void(), ExtraSize> TableStateMachine<State, Event, Context>::Completion(E event)
     {
         return [this, epochAtRequest = epoch, event]()
         {
@@ -331,28 +344,18 @@ namespace services
         };
     }
 
-    template<class State, class Event>
-    template<class S, class F>
-    TableStateMachine<State, Event>& TableStateMachine<State, Event>::OnEntered(F hook)
-    {
-        really_assert(!Started());
-        static_assert(std::is_invocable_v<F>, "Entered hook must be callable as void()");
-        enteredHooks[StateId::template Of<S>().Index()] = hook;
-        return *this;
-    }
-
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class Signature, class Mapper, std::size_t ExtraSize>
-    infra::Function<Signature, ExtraSize> TableStateMachine<State, Event>::CompletionWith(Mapper)
+    infra::Function<Signature, ExtraSize> TableStateMachine<State, Event, Context>::CompletionWith(Mapper)
     {
-        static_assert(std::is_empty_v<Mapper> && std::is_default_constructible_v<Mapper>, "Completion mapper must be a captureless callable");
+        static_assert(Captureless<Mapper>, "Completion mapper must be a captureless callable");
         return CompletionSignature<Signature>::template Make<Mapper, ExtraSize>(*this, epoch);
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class... Args>
     template<class Mapper, std::size_t ExtraSize>
-    infra::Function<void(Args...), ExtraSize> TableStateMachine<State, Event>::CompletionSignature<void(Args...)>::Make(TableStateMachine& machine, uint32_t epochAtRequest)
+    infra::Function<void(Args...), ExtraSize> TableStateMachine<State, Event, Context>::CompletionSignature<void(Args...)>::Make(TableStateMachine& machine, uint32_t epochAtRequest)
     {
         return [&machine, epochAtRequest](Args... args)
         {
@@ -360,56 +363,72 @@ namespace services
         };
     }
 
-    template<class State, class Event>
+    template<class State, class Event, class Context>
+    template<class From, class Ev, class Guard>
+    bool TableStateMachine<State, Event, Context>::Guarded(TableStateMachine& machine, const Event& event)
+    {
+        if constexpr (std::is_null_pointer_v<Guard>)
+            return true;
+        else
+        {
+            static_assert(Captureless<Guard>, "Guards must be captureless; the context is passed as their first argument");
+            static_assert(std::is_invocable_r_v<bool, Guard, Context&, const From&, const Ev&>, "Guard must be callable as bool(Context&, const From&, const Ev&)");
+            return Guard{}(machine.context, std::as_const(Source<From>(*machine.currentState)), std::get<Ev>(event));
+        }
+    }
+
+    template<class State, class Event, class Context>
     template<class From, class Ev, class To, class Action>
-    void TableStateMachine<State, Event>::Execute(const Action& action, const Event& event)
+    void TableStateMachine<State, Event, Context>::Executed(TableStateMachine& machine, const Event& event)
+    {
+        machine.template Execute<From, Ev, To, Action>(event);
+    }
+
+    template<class State, class Event, class Context>
+    template<class S, class Ev, class Action>
+    void TableStateMachine<State, Event, Context>::ExecutedInternal(TableStateMachine& machine, const Event& event)
+    {
+        if constexpr (!std::is_null_pointer_v<Action>)
+        {
+            static_assert(Captureless<Action>, "Actions must be captureless; the context is passed as their first argument");
+            static_assert(std::is_invocable_v<Action, Context&, S&, const Ev&>, "Internal action must be callable as void(Context&, S&, const Ev&)");
+            Action{}(machine.context, std::get<S>(*machine.currentState), std::get<Ev>(event));
+        }
+    }
+
+    template<class State, class Event, class Context>
+    template<class S, class Hook>
+    void TableStateMachine<State, Event, Context>::Entered(TableStateMachine& machine)
+    {
+        static_assert(Captureless<Hook>, "Entered hooks must be captureless; the context is passed as their first argument");
+        static_assert(std::is_invocable_v<Hook, Context&, S&>, "Entered hook must be callable as void(Context&, S&)");
+        Hook{}(machine.context, std::get<S>(*machine.currentState));
+    }
+
+    template<class State, class Event, class Context>
+    template<class From>
+    auto& TableStateMachine<State, Event, Context>::Source(State& state)
+    {
+        if constexpr (std::is_same_v<From, State>)
+            return state;
+        else
+            return std::get<From>(state);
+    }
+
+    template<class State, class Event, class Context>
+    template<class From, class Ev, class To, class Action>
+    void TableStateMachine<State, Event, Context>::Execute(const Event& event)
     {
         RunExit();
         ++epoch;
-        To next{ this->template Build<To>(action, this->template Source<From>(), std::get<Ev>(event)) };
+        To next{ this->template Build<To, From, Ev, Action>(Source<From>(*currentState), std::get<Ev>(event)) };
         currentState->template emplace<To>(std::move(next));
         RunEntry();
     }
 
-    template<class State, class Event>
-    template<class S, class Ev, class Action>
-    void TableStateMachine<State, Event>::ExecuteInternal(const Action& action, const Event& event)
-    {
-        if constexpr (!std::is_null_pointer_v<Action>)
-        {
-            static_assert(std::is_invocable_v<Action, S&, const Ev&>, "Internal action must be callable as void(S&, const Ev&)");
-            action(std::get<S>(*currentState), std::get<Ev>(event));
-        }
-    }
-
-    template<class State, class Event>
-    template<class From, class Ev, class Guard>
-    void TableStateMachine<State, Event>::StoreGuard(Transition& transition, const Guard& guard)
-    {
-        if constexpr (!std::is_null_pointer_v<Guard>)
-        {
-            static_assert(std::is_invocable_r_v<bool, Guard, const From&, const Ev&>, "Guard must be callable as bool(const From&, const Ev&)");
-            transition.guarded = true;
-            transition.guard = [this, guard](const Event& event)
-            {
-                return guard(std::as_const(this->template Source<From>()), std::get<Ev>(event));
-            };
-        }
-    }
-
-    template<class State, class Event>
-    template<class From>
-    auto& TableStateMachine<State, Event>::Source()
-    {
-        if constexpr (std::is_same_v<From, State>)
-            return *currentState;
-        else
-            return std::get<From>(*currentState);
-    }
-
-    template<class State, class Event>
+    template<class State, class Event, class Context>
     template<class To, class From, class Ev, class Action>
-    To TableStateMachine<State, Event>::Build(const Action& action, From& from, const Ev& event)
+    To TableStateMachine<State, Event, Context>::Build(From& from, const Ev& event)
     {
         if constexpr (std::is_null_pointer_v<Action>)
         {
@@ -418,13 +437,14 @@ namespace services
         }
         else
         {
-            static_assert(std::is_invocable_r_v<To, Action, From&, const Ev&>, "Action must be callable as To(From&, const Ev&)");
-            return action(from, event);
+            static_assert(Captureless<Action>, "Actions must be captureless; the context is passed as their first argument");
+            static_assert(std::is_invocable_r_v<To, Action, Context&, From&, const Ev&>, "Action must be callable as To(Context&, From&, const Ev&)");
+            return Action{}(context, from, event);
         }
     }
 
-    template<class State, class Event>
-    void TableStateMachine<State, Event>::RunExit()
+    template<class State, class Event, class Context>
+    void TableStateMachine<State, Event, Context>::RunExit()
     {
         std::visit([](auto& state)
             {
@@ -434,8 +454,8 @@ namespace services
             *currentState);
     }
 
-    template<class State, class Event>
-    void TableStateMachine<State, Event>::RunEntry()
+    template<class State, class Event, class Context>
+    void TableStateMachine<State, Event, Context>::RunEntry()
     {
         std::visit([](auto& state)
             {
@@ -445,8 +465,8 @@ namespace services
             *currentState);
     }
 
-    template<class State, class Event>
-    DispatchResult TableStateMachine<State, Event>::DispatchNow(const Event& event)
+    template<class State, class Event, class Context>
+    DispatchResult TableStateMachine<State, Event, Context>::DispatchNow(const Event& event)
     {
         bool rowExists = false;
         const Transition* selected = Select(event, rowExists);
@@ -455,7 +475,7 @@ namespace services
             return Reject(event, rowExists);
 
         auto from = this->CurrentStateId();
-        selected->execute(event);
+        selected->execute(*this, event);
 
         if (selected->internal)
             this->NotifyObservers([&](StateMachineObserver<State, Event>& observer)
@@ -474,8 +494,8 @@ namespace services
         return DispatchResult::transitioned;
     }
 
-    template<class State, class Event>
-    const typename TableStateMachine<State, Event>::Transition* TableStateMachine<State, Event>::Select(const Event& event, bool& rowExists) const
+    template<class State, class Event, class Context>
+    const typename TableStateMachine<State, Event, Context>::Transition* TableStateMachine<State, Event, Context>::Select(const Event& event, bool& rowExists)
     {
         const Transition* specific = SelectFrom(currentState->index(), event, rowExists);
         if (specific != nullptr)
@@ -484,22 +504,22 @@ namespace services
         return SelectFrom(std::nullopt, event, rowExists);
     }
 
-    template<class State, class Event>
-    const typename TableStateMachine<State, Event>::Transition* TableStateMachine<State, Event>::SelectFrom(std::optional<std::size_t> from, const Event& event, bool& rowExists) const
+    template<class State, class Event, class Context>
+    const typename TableStateMachine<State, Event, Context>::Transition* TableStateMachine<State, Event, Context>::SelectFrom(std::optional<std::size_t> from, const Event& event, bool& rowExists)
     {
-        for (const auto& transition : transitions)
+        for (const auto& transition : table)
             if (transition.from == from && transition.event == event.index())
             {
                 rowExists = true;
-                if (!transition.guarded || transition.guard(event))
+                if (!transition.guarded || transition.guard(*this, event))
                     return &transition;
             }
 
         return nullptr;
     }
 
-    template<class State, class Event>
-    DispatchResult TableStateMachine<State, Event>::Reject(const Event& event, bool rowExists)
+    template<class State, class Event, class Context>
+    DispatchResult TableStateMachine<State, Event, Context>::Reject(const Event& event, bool rowExists)
     {
         auto state = this->CurrentStateId();
 
@@ -519,8 +539,8 @@ namespace services
         return DispatchResult::forbidden;
     }
 
-    template<class State, class Event>
-    void TableStateMachine<State, Event>::DrainQueue()
+    template<class State, class Event, class Context>
+    void TableStateMachine<State, Event, Context>::DrainQueue()
     {
         while (!queue.empty())
         {
@@ -530,8 +550,8 @@ namespace services
         }
     }
 
-    template<class State, class Event>
-    void TableStateMachine<State, Event>::CompleteWith(const Event& event, uint32_t epochAtRequest)
+    template<class State, class Event, class Context>
+    void TableStateMachine<State, Event, Context>::CompleteWith(const Event& event, uint32_t epochAtRequest)
     {
         if (epochAtRequest == epoch)
             Dispatch(event);
@@ -542,39 +562,39 @@ namespace services
                 });
     }
 
-    template<class State, class Event>
-    void TableStateMachine<State, Event>::RunEnteredHook()
+    template<class State, class Event, class Context>
+    void TableStateMachine<State, Event, Context>::RunEnteredHook()
     {
-        const auto& hook = enteredHooks[currentState->index()];
+        auto hook = enteredHooks[currentState->index()];
 
         if (hook != nullptr)
-            hook();
+            hook(*this);
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::HasDuplicate() const
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::HasDuplicate() const
     {
-        for (auto first = transitions.begin(); first != transitions.end(); ++first)
-            for (auto second = first + 1; second != transitions.end(); ++second)
+        for (auto first = table.begin(); first != table.end(); ++first)
+            for (auto second = first + 1; second != table.end(); ++second)
                 if (SamePair(*first, *second) && !first->guarded && !second->guarded)
                     return true;
 
         return false;
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::HasShadowed() const
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::HasShadowed() const
     {
-        for (auto first = transitions.begin(); first != transitions.end(); ++first)
-            for (auto second = first + 1; second != transitions.end(); ++second)
+        for (auto first = table.begin(); first != table.end(); ++first)
+            for (auto second = first + 1; second != table.end(); ++second)
                 if (SamePair(*first, *second) && !first->guarded)
                     return true;
 
         return false;
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::HasUnreachable(StateId initial) const
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::HasUnreachable(StateId initial) const
     {
         std::array<bool, StateId::count> reached{};
         reached[initial.Index()] = true;
@@ -583,7 +603,7 @@ namespace services
         while (changed)
         {
             changed = false;
-            for (const auto& transition : transitions)
+            for (const auto& transition : table)
                 if (!reached[transition.to] && (!transition.from || reached[*transition.from]))
                 {
                     reached[transition.to] = true;
@@ -598,8 +618,8 @@ namespace services
         return false;
     }
 
-    template<class State, class Event>
-    bool TableStateMachine<State, Event>::SamePair(const Transition& a, const Transition& b)
+    template<class State, class Event, class Context>
+    bool TableStateMachine<State, Event, Context>::SamePair(const Transition& a, const Transition& b)
     {
         return a.from == b.from && a.event == b.event;
     }
