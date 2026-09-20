@@ -34,6 +34,7 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `network_instantiations/` — Platform-specific (BSD/Windows) network stack implementations
   - `ble/` — Bluetooth Low Energy
   - `sesame/` — SESAME secured serial protocol
+  - `fsm/` — Table-driven finite state machine (see `docs/Fsm.md`)
   - `crypto/`, `flash/`, `tracer/`, `util/`
 - **application/** — Standalone CLI tools and build-time executables
 - **upgrade/** — Firmware upgrade and bootloader support
@@ -208,3 +209,4 @@ Consult `docs/` before implementing in relevant areas:
 - `docs/NetworkConnections.md` — Connection/ConnectionObserver, SharedPtr lifetime
 - `docs/Echo.md` — ECHO RPC, protobuf encoding, service/method IDs
 - `docs/Sesame.md` — SESAME serial protocol stack layers
+- `docs/Fsm.md` — Table-driven state machine: states and events as classes, consistency checks, completions, observers
