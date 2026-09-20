@@ -98,18 +98,18 @@ fsm.Add<Idle, Calibrate, Calibrating>(nullptr, [this](Idle&, const Calibrate&)
 fsm.Start<Idle>();
 ```
 
-| Method                                                  | Meaning                                                                                                                                        |
-|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Add<From, Ev, To>(guard, action)`                      | External transition. Runs `OnExit()` of the source, the action, `OnEntry()` of the target. Without an action the target is default constructed |
-| `AddFromAny<Ev, To>(guard, action)`                     | External transition from every state. The guard and action receive the `State` variant. A row for the specific state is consulted first        |
-| `AddInternal<S, Ev>(action, guard)`                     | The event is handled in the state without leaving it: no exit, no entry, no notification. Without an action the event is accepted and ignored  |
-| `Start<Initial>(args...)`                               | Checks the table, constructs the initial state, runs its `OnEntry()` and notifies observers                                                    |
-| `Dispatch(event)`                                       | Handles an event and returns a `services::DispatchResult`                                                                                      |
-| `OnEntered<S>(hook)`                                    | Registers a callable that runs after `S` has been committed and announced to observers, also for the initial state                             |
-| `Completion<Ev>()`                                      | Returns an `infra::Function<void()>` that dispatches `Ev{}` unless the machine has moved on since                                              |
+| Method                                                  | Meaning                                                                                                                                                                          |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Add<From, Ev, To>(guard, action)`                      | External transition. Runs `OnExit()` of the source, the action, `OnEntry()` of the target. Without an action the target is default constructed                                   |
+| `AddFromAny<Ev, To>(guard, action)`                     | External transition from every state. The guard and action receive the `State` variant. A row for the specific state is consulted first                                          |
+| `AddInternal<S, Ev>(action, guard)`                     | The event is handled in the state without leaving it: no exit, no entry, no notification. Without an action the event is accepted and ignored                                    |
+| `Start<Initial>(args...)`                               | Checks the table, constructs the initial state, runs its `OnEntry()` and notifies observers                                                                                      |
+| `Dispatch(event)`                                       | Handles an event and returns a `services::DispatchResult`                                                                                                                        |
+| `OnEntered<S>(hook)`                                    | Registers a callable that runs after `S` has been committed and announced to observers, also for the initial state                                                               |
+| `Completion<Ev>()`                                      | Returns an `infra::Function<void()>` that dispatches `Ev{}` unless the machine has moved on since                                                                                |
 | `CompletionWith<void(Args...)>(mapper)`                 | Returns an `infra::Function<void(Args...)>` that builds an event from the callback arguments with a captureless `mapper` and dispatches it unless the machine has moved on since |
-| `CurrentState()`, `CurrentStateId()`, `Is<S>()`         | Inspect the active state                                                                                                                       |
-| `CheckConsistency<Initial>()`, `HasTransition<S, Ev>()` | Inspect the table                                                                                                                              |
+| `CurrentState()`, `CurrentStateId()`, `Is<S>()`         | Inspect the active state                                                                                                                                                         |
+| `CheckConsistency<Initial>()`, `HasTransition<S, Ev>()` | Inspect the table                                                                                                                                                                |
 
 Several rows for the same state and event are allowed when all but the last carry a guard; they are consulted in the order they were added and the first row whose guard accepts wins.
 
