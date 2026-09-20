@@ -18,6 +18,7 @@ namespace services
 
         void Started(StateId initial) override;
         void StateChanged(StateId from, const Event& event, StateId to) override;
+        void EventHandled(StateId state, const Event& event) override;
         void EventForbidden(StateId state, const Event& event) override;
         void EventRejected(StateId state, const Event& event) override;
         void EventDiscarded(StateId state, const Event& event) override;
@@ -47,6 +48,12 @@ namespace services
     void StateMachineTracer<State, Event>::StateChanged(StateId from, const Event& event, StateId to)
     {
         tracer.Trace() << "fsm: " << from.Name() << " --" << EventId::Of(event).Name() << "--> " << to.Name();
+    }
+
+    template<class State, class Event>
+    void StateMachineTracer<State, Event>::EventHandled(StateId state, const Event& event)
+    {
+        TraceEventIn("handled", state, event);
     }
 
     template<class State, class Event>

@@ -31,6 +31,9 @@ namespace services
 
         virtual void StateChanged(StateId from, const Event& event, StateId to) = 0;
 
+        virtual void EventHandled(StateId state, const Event& event)
+        {}
+
         virtual void EventForbidden(StateId state, const Event& event)
         {}
 

@@ -44,19 +44,28 @@ namespace
     };
 
     using Event = std::variant<Start, Stop, Error, Tick>;
+
+    struct Engine
+    {};
+
+    using Machine = services::TableStateMachine<State, Event, Engine>;
+
+    constexpr std::array rows{
+        Machine::Row<Idle, Start, Running>(),
+        Machine::Row<Running, Stop, Idle>([](Engine&, const Running&, const Stop&)
+            {
+                return true;
+            }),
+        Machine::InternalRow<Running, Tick>(),
+        Machine::RowFromAny<Error, Fault>(),
+        Machine::Row<Fault, Stop, Idle>(),
+    };
 }
 
 TEST(StateMachineMermaidTest, mermaid_output_lists_initial_state_and_every_row)
 {
-    services::TableStateMachine<State, Event>::WithStorage<8, 1> fsm;
-    fsm.Add<Idle, Start, Running>()
-        .Add<Running, Stop, Idle>([](const Running&, const Stop&)
-            {
-                return true;
-            })
-        .AddInternal<Running, Tick>()
-        .AddFromAny<Error, Fault>()
-        .Add<Fault, Stop, Idle>();
+    Engine engine;
+    Machine::WithStorage<1> fsm{ engine, infra::MakeRange(rows) };
 
     infra::StringOutputStream::WithStorage<512> stream;
     services::WriteMermaid(stream, fsm, services::AlternativeId<State>::Of<Idle>());

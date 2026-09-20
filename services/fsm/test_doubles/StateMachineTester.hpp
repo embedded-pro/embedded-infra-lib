@@ -49,7 +49,7 @@ namespace services
     {
         ForEachStateAndEvent(sampleEvents, [&](StateId state, const Event& event)
             {
-                TableStateMachine<State, Event>& machine = machineIn(state);
+                auto& machine = machineIn(state);
                 ASSERT_EQ(state, machine.CurrentStateId());
 
                 bool allowed = machine.HasTransition(state, EventId::Of(event));

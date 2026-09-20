@@ -23,6 +23,7 @@ namespace services
 
         MOCK_METHOD(void, Started, (StateId initial), (override));
         MOCK_METHOD(void, StateChanged, (StateId from, const Event& event, StateId to), (override));
+        MOCK_METHOD(void, EventHandled, (StateId state, const Event& event), (override));
         MOCK_METHOD(void, EventForbidden, (StateId state, const Event& event), (override));
         MOCK_METHOD(void, EventRejected, (StateId state, const Event& event), (override));
         MOCK_METHOD(void, EventDiscarded, (StateId state, const Event& event), (override));

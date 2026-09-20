@@ -31,6 +31,22 @@ namespace
 
     using Event = std::variant<Push, Pull>;
 
+    struct Door
+    {
+        bool allowPull{ true };
+    };
+
+    using Machine = services::TableStateMachine<State, Event, Door>;
+
+    constexpr std::array rows{
+        Machine::Row<Closed, Push, Open>(),
+        Machine::Row<Open, Pull, Closed>([](Door& door, const Open&, const Pull&)
+            {
+                return door.allowPull;
+            }),
+        Machine::InternalRow<Open, Push>(),
+    };
+
     class TracerToStreamWithoutHeader
         : public services::TracerToStream
     {
@@ -47,20 +63,11 @@ class StateMachineTracerTest
     : public testing::Test
 {
 public:
-    StateMachineTracerTest()
-    {
-        fsm.Add<Closed, Push, Open>(nullptr, nullptr)
-            .Add<Open, Pull, Closed>([this](const Open&, const Pull&)
-                {
-                    return allowPull;
-                });
-    }
-
     infra::StringOutputStream::WithStorage<128> stream;
     TracerToStreamWithoutHeader tracer{ stream };
-    services::TableStateMachine<State, Event>::WithStorage<4, 2> fsm;
+    Door door;
+    Machine::WithStorage<2> fsm{ door, infra::MakeRange(rows) };
     services::StateMachineTracer<State, Event> stateMachineTracer{ fsm, tracer };
-    bool allowPull{ true };
 };
 
 TEST_F(StateMachineTracerTest, start_is_traced)
@@ -93,7 +100,7 @@ TEST_F(StateMachineTracerTest, forbidden_event_is_traced)
 TEST_F(StateMachineTracerTest, rejected_event_is_traced)
 {
     fsm.Start<Open>();
-    allowPull = false;
+    door.allowPull = false;
     stream.Storage().clear();
 
     fsm.Dispatch(Pull{});
@@ -111,4 +118,14 @@ TEST_F(StateMachineTracerTest, discarded_completion_is_traced)
     done();
 
     EXPECT_EQ("\r\nfsm: discarded Pull in Open", stream.Storage());
+}
+
+TEST_F(StateMachineTracerTest, internal_transition_is_traced)
+{
+    fsm.Start<Open>();
+    stream.Storage().clear();
+
+    fsm.Dispatch(Push{});
+
+    EXPECT_EQ("\r\nfsm: handled Push in Open", stream.Storage());
 }
