@@ -1,4 +1,4 @@
-#include "services/fsm/test/compile_fail/Toggle.hpp"
+#include "services/fsm/test/CompileFailToggle.hpp"
 
 namespace
 {

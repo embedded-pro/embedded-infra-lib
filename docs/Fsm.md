@@ -348,6 +348,6 @@ The table itself is verified by the build, see [Mandatory validation](#mandatory
 
 The engine's own tests need tables that are deliberately inconsistent, or that start in different states;
 `services::UncheckedTableStateMachine<State, Event, Context>::WithStorage<N>` in `services/fsm/test_doubles` constructs a machine from an unchecked table for that purpose and is not meant for product code.
-`services/fsm/test/compile_fail` holds sources that are compiled with a deliberate mistake by `ctest`, to prove that such a machine is rejected by the compiler.
+The `CompileFail*.cpp` sources in `services/fsm/test` are compiled with a deliberate mistake by `ctest`, to prove that such a machine is rejected by the compiler.
 
 `services/fsm/test/JobLifecycle.hpp` contains a complete example component: an asynchronous job that prepares, commits its settings and runs, with timeouts, guarded rows, internal rows, rows from any state and completions. It is exercised by `TestStateMachineIntegration.cpp` and validated by the `application.fsm_validator_example` tool.
