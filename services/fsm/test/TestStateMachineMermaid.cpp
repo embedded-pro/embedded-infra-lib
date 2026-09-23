@@ -82,3 +82,26 @@ TEST(StateMachineMermaidTest, mermaid_output_lists_initial_state_and_every_row)
         "    Fault --> Idle : Stop\n",
         stream.Storage());
 }
+
+TEST(StateMachineMermaidTest, any_state_edge_is_omitted_where_unguarded_specific_row_wins)
+{
+    static constexpr std::array table{
+        Machine::Row<Idle, Start, Running>(),
+        Machine::Row<Running, Error, Idle>(),
+        Machine::RowFromAny<Error, Fault>(),
+        Machine::Row<Fault, Stop, Idle>(),
+    };
+
+    infra::StringOutputStream::WithStorage<512> stream;
+    services::WriteMermaid(stream, services::TransitionTableAnalysis<Machine>(table), services::AlternativeId<State>::Of<Idle>());
+
+    EXPECT_EQ(
+        "stateDiagram-v2\n"
+        "    [*] --> Idle\n"
+        "    Idle --> Running : Start\n"
+        "    Running --> Idle : Error\n"
+        "    Idle --> Fault : Error\n"
+        "    Fault --> Fault : Error\n"
+        "    Fault --> Idle : Stop\n",
+        stream.Storage());
+}
