@@ -11,7 +11,7 @@ namespace hal
     {
     public:
         MOCK_METHOD(void, SetBaseFrequency, (Hertz baseFrequency), (override));
-        MOCK_METHOD(void, Start, (Percent globalDutyCycle), (override));
+        MOCK_METHOD(void, Start, (FractionalPercent globalDutyCycle), (override));
         MOCK_METHOD(void, Stop, (), (override));
     };
 }

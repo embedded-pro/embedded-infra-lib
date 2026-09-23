@@ -7,6 +7,7 @@ namespace hal
 {
     using Hertz = infra::Quantity<infra::Hertz, uint32_t>;
     using Percent = infra::Quantity<infra::Percent, uint8_t>;
+    using FractionalPercent = infra::Quantity<infra::Percent, float>;
 
     class Pwm
     {
@@ -19,28 +20,28 @@ namespace hal
         : public Pwm
     {
     public:
-        virtual void Start(Percent globalDutyCycle) = 0;
+        virtual void Start(FractionalPercent globalDutyCycle) = 0;
     };
 
     class TwoChannelsPwm
         : public Pwm
     {
     public:
-        virtual void Start(Percent dutyCycle1, Percent dutyCycle2) = 0;
+        virtual void Start(FractionalPercent dutyCycle1, FractionalPercent dutyCycle2) = 0;
     };
 
     class ThreeChannelsPwm
         : public Pwm
     {
     public:
-        virtual void Start(Percent dutyCycle1, Percent dutyCycle2, Percent dutyCycle3) = 0;
+        virtual void Start(FractionalPercent dutyCycle1, FractionalPercent dutyCycle2, FractionalPercent dutyCycle3) = 0;
     };
 
     class FourChannelsPwm
         : public Pwm
     {
     public:
-        virtual void Start(Percent dutyCycle1, Percent dutyCycle2, Percent dutyCycle3, Percent dutyCycle4) = 0;
+        virtual void Start(FractionalPercent dutyCycle1, FractionalPercent dutyCycle2, FractionalPercent dutyCycle3, FractionalPercent dutyCycle4) = 0;
     };
 }
 
