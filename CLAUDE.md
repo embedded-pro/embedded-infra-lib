@@ -209,4 +209,4 @@ Consult `docs/` before implementing in relevant areas:
 - `docs/NetworkConnections.md` — Connection/ConnectionObserver, SharedPtr lifetime
 - `docs/Echo.md` — ECHO RPC, protobuf encoding, service/method IDs
 - `docs/Sesame.md` — SESAME serial protocol stack layers
-- `docs/Fsm.md` — Table-driven state machine: states and events as classes, consistency checks, completions, observers
+- `docs/Fsm.md` — Table-driven state machine: states and events as classes, consistency checks, compile-time validation and the `fsm_validator` tool, completions, observers
