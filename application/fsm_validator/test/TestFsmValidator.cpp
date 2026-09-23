@@ -60,6 +60,39 @@ namespace
         Machine::Row<Running, Halt, Stopped>(),
         Machine::Row<Halted, Halt, Stopped>(),
     };
+
+    struct Unrestricted
+    {
+        static constexpr Machine::Rules Get()
+        {
+            return {};
+        }
+    };
+
+    struct StopAndGoOnly
+    {
+        static constexpr Machine::Rules Get()
+        {
+            return Machine::Rules{}.Allow<Stopped, Running>().Allow<Running, Stopped>().Allow<Halted, Stopped>();
+        }
+    };
+
+    template<const auto& table, class RuleSet = Unrestricted>
+    struct DefinitionOf
+    {
+        using Machine = services::TableStateMachine<State, Event, Engine>;
+        using Initial = Stopped;
+
+        static constexpr auto Rows()
+        {
+            return table;
+        }
+
+        static constexpr Machine::Rules Rules()
+        {
+            return RuleSet::Get();
+        }
+    };
 }
 
 class FsmValidatorTest
@@ -69,8 +102,8 @@ public:
     infra::IntrusiveList<application::FsmRegistration> registrations;
     infra::StringOutputStream::WithStorage<2048> report;
     application::FsmValidator validator{ registrations, report };
-    application::FsmRegistrationFor<Machine, Stopped> first{ "Valid", infra::MakeRange(valid), registrations };
-    application::FsmRegistrationFor<Machine, Stopped> second{ "DeadEnd", infra::MakeRange(withDeadEnd), registrations };
+    application::FsmRegistrationFor<DefinitionOf<valid>> first{ "Valid", registrations };
+    application::FsmRegistrationFor<DefinitionOf<withDeadEnd>> second{ "DeadEnd", registrations };
 };
 
 TEST_F(FsmValidatorTest, list_writes_every_registered_name)
@@ -127,7 +160,7 @@ TEST_F(FsmValidatorTest, info_findings_are_reported_on_request)
 
 TEST_F(FsmValidatorTest, errors_fail_validation)
 {
-    application::FsmRegistrationFor<Machine, Stopped> duplicate{ "Duplicate", infra::MakeRange(withDuplicate), registrations };
+    application::FsmRegistrationFor<DefinitionOf<withDuplicate>> duplicate{ "Duplicate", registrations };
     application::FsmValidatorOptions options;
     options.names = { "Duplicate" };
 
@@ -152,7 +185,7 @@ TEST_F(FsmValidatorTest, unknown_name_fails_validation)
 TEST_F(FsmValidatorTest, registration_is_removed_on_destruction)
 {
     {
-        application::FsmRegistrationFor<Machine, Stopped> temporary{ "Temporary", infra::MakeRange(valid), registrations };
+        application::FsmRegistrationFor<DefinitionOf<valid>> temporary{ "Temporary", registrations };
         EXPECT_NE(nullptr, validator.Find("Temporary"));
     }
 
@@ -171,5 +204,21 @@ TEST_F(FsmValidatorTest, registration_writes_mermaid)
         "    Running --> Halted : Go [guarded]\n"
         "    Halted --> Halted : Go [guarded]\n"
         "    Halted --> Stopped : Halt\n",
+        report.Storage());
+}
+
+TEST_F(FsmValidatorTest, transitions_outside_the_rules_fail_validation)
+{
+    application::FsmRegistrationFor<DefinitionOf<valid, StopAndGoOnly>> restricted{ "Restricted", registrations };
+    application::FsmValidatorOptions options;
+    options.names = { "Restricted" };
+
+    EXPECT_FALSE(validator.Validate(options));
+
+    EXPECT_EQ(
+        "[Restricted]\n"
+        "error disallowedTransition: row 2 (* --Go--> Halted [guarded]) makes Running -> Halted, which the rules do not allow\n"
+        "error disallowedTransition: row 2 (* --Go--> Halted [guarded]) makes Halted -> Halted, which the rules do not allow\n"
+        "[Restricted] failed\n",
         report.Storage());
 }
