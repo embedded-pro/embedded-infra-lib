@@ -1,6 +1,7 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include "services/fsm/StateMachineMermaid.hpp"
 #include "services/fsm/TableStateMachine.hpp"
+#include "services/fsm/test_doubles/UncheckedTableStateMachine.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -49,6 +50,7 @@ namespace
     {};
 
     using Machine = services::TableStateMachine<State, Event, Engine>;
+    using Unchecked = services::UncheckedTableStateMachine<State, Event, Engine>;
 
     constexpr std::array rows{
         Machine::Row<Idle, Start, Running>(),
@@ -65,7 +67,7 @@ namespace
 TEST(StateMachineMermaidTest, mermaid_output_lists_initial_state_and_every_row)
 {
     Engine engine;
-    Machine::WithStorage<1> fsm{ engine, infra::MakeRange(rows) };
+    Unchecked::WithStorage<1> fsm{ engine, infra::MakeRange(rows) };
 
     infra::StringOutputStream::WithStorage<512> stream;
     services::WriteMermaid(stream, fsm, services::AlternativeId<State>::Of<Idle>());

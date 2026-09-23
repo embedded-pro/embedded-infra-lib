@@ -1,6 +1,7 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include "services/fsm/StateMachineTracer.hpp"
 #include "services/fsm/TableStateMachine.hpp"
+#include "services/fsm/test_doubles/UncheckedTableStateMachine.hpp"
 #include "services/tracer/Tracer.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -37,6 +38,7 @@ namespace
     };
 
     using Machine = services::TableStateMachine<State, Event, Door>;
+    using Unchecked = services::UncheckedTableStateMachine<State, Event, Door>;
 
     constexpr std::array rows{
         Machine::Row<Closed, Push, Open>(),
@@ -66,7 +68,7 @@ public:
     infra::StringOutputStream::WithStorage<128> stream;
     TracerToStreamWithoutHeader tracer{ stream };
     Door door;
-    Machine::WithStorage<2> fsm{ door, infra::MakeRange(rows) };
+    Unchecked::WithStorage<2> fsm{ door, infra::MakeRange(rows) };
     services::StateMachineTracer<State, Event> stateMachineTracer{ fsm, tracer };
 };
 

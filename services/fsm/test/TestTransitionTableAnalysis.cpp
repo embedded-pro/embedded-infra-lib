@@ -110,16 +110,31 @@ namespace
         return EventId::Of<E>();
     }
 
-    infra::BoundedVector<Finding>::WithMaxSize<16> FindingsOf(const Analysis& analysis, services::Severity minimum, const Analysis::TerminalStates& terminal = {})
+    infra::BoundedVector<Finding>::WithMaxSize<16> FindingsOf(const Analysis& analysis, services::Severity minimum, const Analysis::Rules& rules = {})
     {
         infra::BoundedVector<Finding>::WithMaxSize<16> findings;
-        analysis.ForEachFinding(Id<Off>(), terminal, minimum, [&findings](const Finding& finding)
+        analysis.ForEachFinding(Id<Off>(), rules, minimum, [&findings](const Finding& finding)
             {
                 findings.push_back(finding);
             });
         return findings;
     }
 
+    constexpr auto allowAll = Analysis::Rules{}.Allow<Off, On>().Allow<On, Off>().Allow<Broken, Off>().AllowFromAny<Broken>();
+    constexpr auto withoutBrokenToOff = Analysis::Rules{}.Allow<Off, On>().Allow<On, Off>().AllowFromAny<Broken>();
+
+    template<services::FindingKind Kind, class Findings>
+    std::optional<Finding> FirstOf(const Findings& findings)
+    {
+        for (const auto& finding : findings)
+            if (finding.kind == Kind)
+                return finding;
+
+        return std::nullopt;
+    }
+
+    static_assert(Analysis(baseline).IsValid(Id<Off>(), allowAll, services::Severity::warning));
+    static_assert(!Analysis(baseline).IsValid(Id<Off>(), withoutBrokenToOff));
     static_assert(Analysis(baseline).IsValid(Id<Off>(), {}, services::Severity::info));
     static_assert(Analysis(duplicate).CheckConsistency(Id<Off>()) == services::ConsistencyError::duplicateTransition);
     static_assert(!Analysis(deadEnd).IsValid(Id<Off>(), {}, services::Severity::warning));
@@ -256,4 +271,100 @@ TEST(TransitionTableAnalysisTest, has_transition_and_unguarded_specific_row)
     EXPECT_FALSE(analysis.HasUnguardedSpecificRow(Id<Off>(), Ev<Break>()));
     EXPECT_TRUE(analysis.HasUnguardedSpecificRow(Id<Off>(), Ev<Press>()));
     EXPECT_FALSE(analysis.HasTransition(Id<Off>(), Ev<Lock>()));
+}
+
+TEST(TransitionTableAnalysisTest, rules_allowing_every_edge_have_no_findings)
+{
+    EXPECT_TRUE(FindingsOf(Analysis(baseline), services::Severity::info, allowAll).empty());
+}
+
+TEST(TransitionTableAnalysisTest, edge_missing_from_rules_is_disallowed)
+{
+    auto findings = FindingsOf(Analysis(baseline), services::Severity::error, withoutBrokenToOff);
+
+    ASSERT_EQ(1, findings.size());
+    EXPECT_EQ(services::FindingKind::disallowedTransition, findings[0].kind);
+    EXPECT_EQ(3, findings[0].row);
+    EXPECT_EQ(Id<Broken>(), findings[0].state);
+    EXPECT_EQ(Id<Off>(), findings[0].target);
+}
+
+TEST(TransitionTableAnalysisTest, any_state_row_is_checked_for_every_source_state)
+{
+    constexpr auto rules = Analysis::Rules{}.Allow<Off, On, Broken>().Allow<On, Off, Broken>().Allow<Broken, Off>();
+
+    auto findings = FindingsOf(Analysis(baseline), services::Severity::error, rules);
+
+    ASSERT_EQ(1, findings.size());
+    EXPECT_EQ(services::FindingKind::disallowedTransition, findings[0].kind);
+    EXPECT_EQ(2, findings[0].row);
+    EXPECT_EQ(Id<Broken>(), findings[0].state);
+    EXPECT_EQ(Id<Broken>(), findings[0].target);
+}
+
+TEST(TransitionTableAnalysisTest, any_state_row_is_not_checked_where_unguarded_specific_row_wins)
+{
+    constexpr auto rules = Analysis::Rules{}.Allow<Off, On, Broken>().Allow<On, Off, Broken>().Allow<Broken, Off>();
+
+    EXPECT_TRUE(FindingsOf(Analysis(overridden), services::Severity::error, rules).empty());
+}
+
+TEST(TransitionTableAnalysisTest, forbid_wins_over_allow_from_any)
+{
+    auto findings = FindingsOf(Analysis(baseline), services::Severity::error, allowAll.Forbid<On, Broken>());
+
+    ASSERT_EQ(1, findings.size());
+    EXPECT_EQ(services::FindingKind::forbiddenTransition, findings[0].kind);
+    EXPECT_EQ(2, findings[0].row);
+    EXPECT_EQ(Id<On>(), findings[0].state);
+    EXPECT_EQ(Id<Broken>(), findings[0].target);
+}
+
+TEST(TransitionTableAnalysisTest, forbid_without_allow_list_restricts_only_forbidden_edges)
+{
+    auto findings = FindingsOf(Analysis(baseline), services::Severity::error, Analysis::Rules{}.Forbid<Off, On>());
+
+    ASSERT_EQ(1, findings.size());
+    EXPECT_EQ(services::FindingKind::forbiddenTransition, findings[0].kind);
+    EXPECT_EQ(0, findings[0].row);
+}
+
+TEST(TransitionTableAnalysisTest, explicit_allow_and_forbid_of_same_edge_contradict)
+{
+    auto findings = FindingsOf(Analysis(baseline), services::Severity::error, allowAll.Forbid<On, Off>());
+
+    ASSERT_EQ(2, findings.size());
+    EXPECT_EQ(services::FindingKind::contradictoryRule, findings[0].kind);
+    EXPECT_EQ(Id<On>(), findings[0].state);
+    EXPECT_EQ(Id<Off>(), findings[0].target);
+    EXPECT_EQ(services::FindingKind::forbiddenTransition, findings[1].kind);
+    EXPECT_EQ(1, findings[1].row);
+}
+
+TEST(TransitionTableAnalysisTest, allowed_edge_without_row_is_unused_allowance)
+{
+    auto findings = FindingsOf(Analysis(baseline), services::Severity::warning, allowAll.Allow<Off, Off>());
+
+    ASSERT_EQ(1, findings.size());
+    EXPECT_EQ(services::FindingKind::unusedAllowance, findings[0].kind);
+    EXPECT_EQ(Id<Off>(), findings[0].state);
+    EXPECT_EQ(Id<Off>(), findings[0].target);
+    EXPECT_EQ(services::Severity::warning, services::SeverityOf(findings[0].kind));
+}
+
+TEST(TransitionTableAnalysisTest, allow_from_any_without_row_into_target_is_unused_allowance)
+{
+    auto findings = FindingsOf(Analysis(unreachable), services::Severity::warning, Analysis::Rules{}.Allow<Off, On>().Allow<On, Off>().Allow<Broken, Off>().AllowFromAny<Broken>());
+
+    auto unused = FirstOf<services::FindingKind::unusedAllowance>(findings);
+    ASSERT_TRUE(unused.has_value());
+    EXPECT_EQ(std::nullopt, unused->state);
+    EXPECT_EQ(Id<Broken>(), unused->target);
+}
+
+TEST(TransitionTableAnalysisTest, internal_rows_are_not_transitions)
+{
+    constexpr auto rules = Analysis::Rules{}.Allow<Off, On>().Allow<On, Off>().Allow<Broken, Off>().AllowFromAny<Broken>();
+
+    EXPECT_FALSE(FirstOf<services::FindingKind::disallowedTransition>(FindingsOf(Analysis(deadEnd), services::Severity::error, rules)).has_value());
 }

@@ -10,7 +10,7 @@ namespace services
 {
     template<class Machine>
     std::optional<Severity> WriteValidationReport(infra::TextOutputStream& stream, const TransitionTableAnalysis<Machine>& analysis, typename Machine::StateId initial,
-        const typename TransitionTableAnalysis<Machine>::TerminalStates& terminal = {}, Severity minimum = Severity::info);
+        const typename TransitionTableAnalysis<Machine>::Rules& rules = {}, Severity minimum = Severity::info);
 
     ////    Implementation    ////
 
@@ -44,6 +44,36 @@ namespace services
         }
 
         template<class Machine>
+        void WriteRuleFinding(infra::TextOutputStream& stream, const TransitionTableAnalysis<Machine>& analysis, const typename TransitionTableAnalysis<Machine>::Finding& finding)
+        {
+            const char* from = finding.state ? finding.state->Name() : "*";
+
+            if (finding.row)
+            {
+                WriteValidationRow(stream, analysis, *finding.row);
+                stream << " makes ";
+            }
+
+            stream << from << " -> " << finding.target->Name();
+
+            switch (finding.kind)
+            {
+                case FindingKind::contradictoryRule:
+                    stream << ", which the rules both allow and forbid";
+                    break;
+                case FindingKind::forbiddenTransition:
+                    stream << ", which the rules forbid";
+                    break;
+                case FindingKind::disallowedTransition:
+                    stream << ", which the rules do not allow";
+                    break;
+                default:
+                    stream << " is allowed but no row makes it";
+                    break;
+            }
+        }
+
+        template<class Machine>
         void WriteFindingMessage(infra::TextOutputStream& stream, const TransitionTableAnalysis<Machine>& analysis, const typename TransitionTableAnalysis<Machine>::Finding& finding, typename Machine::StateId initial)
         {
             switch (finding.kind)
@@ -68,6 +98,12 @@ namespace services
                     WriteValidationRow(stream, analysis, *finding.row);
                     stream << " is overridden by an unguarded row in every state";
                     break;
+                case FindingKind::contradictoryRule:
+                case FindingKind::forbiddenTransition:
+                case FindingKind::disallowedTransition:
+                case FindingKind::unusedAllowance:
+                    WriteRuleFinding(stream, analysis, finding);
+                    break;
                 case FindingKind::canReject:
                     stream << finding.event->Name() << " in " << finding.state->Name() << " is rejected when every guard refuses";
                     break;
@@ -77,11 +113,11 @@ namespace services
 
     template<class Machine>
     std::optional<Severity> WriteValidationReport(infra::TextOutputStream& stream, const TransitionTableAnalysis<Machine>& analysis, typename Machine::StateId initial,
-        const typename TransitionTableAnalysis<Machine>::TerminalStates& terminal, Severity minimum)
+        const typename TransitionTableAnalysis<Machine>::Rules& rules, Severity minimum)
     {
         std::optional<Severity> highest;
 
-        analysis.ForEachFinding(initial, terminal, minimum, [&](const typename TransitionTableAnalysis<Machine>::Finding& finding)
+        analysis.ForEachFinding(initial, rules, minimum, [&](const typename TransitionTableAnalysis<Machine>::Finding& finding)
             {
                 auto severity = SeverityOf(finding.kind);
 

@@ -9,4 +9,5 @@ target_link_libraries(services.fsm_test_doubles INTERFACE
 target_sources(services.fsm_test_doubles PRIVATE
     StateMachineObserverMock.hpp
     StateMachineTester.hpp
+    UncheckedTableStateMachine.hpp
 )

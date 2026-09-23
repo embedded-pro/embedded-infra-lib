@@ -18,7 +18,7 @@ namespace
     using Tester = services::StateMachineTester<example::State, Event>;
     using Analysis = services::TransitionTableAnalysis<Machine>;
 
-    static_assert(Analysis(JobLifecycle::Rows()).IsValid(StateId::Of<example::Idle>(), {}, services::Severity::warning));
+    static_assert(Analysis(JobLifecycle::Rows()).IsValid(StateId::Of<example::Idle>(), JobLifecycle::Rules(), services::Severity::warning));
 
     class TracerToStreamWithoutHeader
         : public services::TracerToStream

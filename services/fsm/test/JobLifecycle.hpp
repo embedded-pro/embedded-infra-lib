@@ -3,6 +3,7 @@
 
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/Function.hpp"
+#include "services/fsm/StateMachineDefinition.hpp"
 #include "services/fsm/StateMachineTracer.hpp"
 #include "services/fsm/StateTimeouts.hpp"
 #include "services/fsm/TableStateMachine.hpp"
@@ -226,14 +227,9 @@ namespace example
     {
     public:
         using Machine = services::TableStateMachine<State, Event, JobLifecycle>;
+        using Initial = Idle;
 
-        JobLifecycle(AsyncOperationStub& preparation, StorageStub& storage, WorkerStub& worker, services::Tracer& tracer)
-            : preparation(preparation)
-            , storage(storage)
-            , worker(worker)
-            , fsm(*this, Table())
-            , stateMachineTracer(fsm, tracer)
-        {}
+        JobLifecycle(AsyncOperationStub& preparation, StorageStub& storage, WorkerStub& worker, services::Tracer& tracer);
 
         void Start()
         {
@@ -253,9 +249,9 @@ namespace example
         }
 
         static constexpr std::array<Machine::Transition, 12> Rows();
+        static constexpr Machine::Rules Rules();
 
     private:
-        static Machine::Table Table();
         static constexpr std::array<Machine::Transition, 5> PreparationRows();
         static constexpr std::array<Machine::Transition, 3> OperationRows();
         static constexpr std::array<Machine::Transition, 4> SafetyRows();
@@ -344,11 +340,25 @@ namespace example
         return services::JoinRows(PreparationRows(), OperationRows(), SafetyRows());
     }
 
-    inline JobLifecycle::Machine::Table JobLifecycle::Table()
+    constexpr JobLifecycle::Machine::Rules JobLifecycle::Rules()
     {
-        static constexpr auto rows = Rows();
-        return infra::MakeRange(rows);
+        return Machine::Rules{}
+            .Allow<Idle, Preparing>()
+            .Allow<Preparing, Committing, Idle>()
+            .Allow<Committing, Ready>()
+            .Allow<Ready, Active>()
+            .Allow<Active, Ready>()
+            .AllowFromAny<Fault, Idle>()
+            .Forbid<Fault, Preparing, Committing, Ready, Active>();
     }
+
+    inline JobLifecycle::JobLifecycle(AsyncOperationStub& preparation, StorageStub& storage, WorkerStub& worker, services::Tracer& tracer)
+        : preparation(preparation)
+        , storage(storage)
+        , worker(worker)
+        , fsm(*this, services::Validated<JobLifecycle>())
+        , stateMachineTracer(fsm, tracer)
+    {}
 }
 
 #endif

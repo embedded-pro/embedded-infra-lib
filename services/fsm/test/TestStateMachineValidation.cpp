@@ -142,3 +142,18 @@ TEST_F(StateMachineValidationTest, internal_row_is_marked_in_report)
 
     EXPECT_EQ("error duplicateTransition: row 5 (Open --Push--> Open (internal)) duplicates unguarded row 4 (Open --Push--> Open (internal))\n", stream.Storage());
 }
+
+TEST_F(StateMachineValidationTest, rule_findings_are_written)
+{
+    constexpr auto rules = Analysis::Rules{}.Allow<Closed, Open>().Allow<Open, Closed, Open>().AllowFromAny<Jammed>().Forbid<Closed, Jammed>().Forbid<Open, Closed>();
+
+    EXPECT_EQ(services::Severity::error, services::WriteValidationReport(stream, Analysis(valid), StateId::Of<Closed>(), rules));
+
+    EXPECT_EQ(
+        "error contradictoryRule: Open -> Closed, which the rules both allow and forbid\n"
+        "error forbiddenTransition: row 1 (Open --Pull--> Closed) makes Open -> Closed, which the rules forbid\n"
+        "error forbiddenTransition: row 2 (* --Kick--> Jammed) makes Closed -> Jammed, which the rules forbid\n"
+        "error disallowedTransition: row 3 (Jammed --Pull--> Closed) makes Jammed -> Closed, which the rules do not allow\n"
+        "warning unusedAllowance: Open -> Open is allowed but no row makes it\n",
+        stream.Storage());
+}

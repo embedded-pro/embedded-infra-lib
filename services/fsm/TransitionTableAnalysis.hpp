@@ -2,6 +2,7 @@
 #define SERVICES_TRANSITION_TABLE_ANALYSIS_HPP
 
 #include "services/fsm/AlternativeId.hpp"
+#include "services/fsm/TransitionRules.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -24,11 +25,17 @@ namespace services
         duplicateTransition,
         shadowedTransition,
         unreachableState,
+        contradictoryRule,
+        forbiddenTransition,
+        disallowedTransition,
         unusedEvent,
         deadEndState,
         overriddenAnyRow,
+        unusedAllowance,
         canReject
     };
+
+    inline constexpr std::size_t findingKindCount = 12;
 
     enum class Severity : uint8_t
     {
@@ -49,7 +56,7 @@ namespace services
         using EventId = typename Machine::EventId;
         using Transition = typename Machine::Transition;
         using Table = typename Machine::Table;
-        using TerminalStates = std::array<bool, StateId::count>;
+        using Rules = typename Machine::Rules;
 
         struct Finding
         {
@@ -58,6 +65,7 @@ namespace services
             std::optional<std::size_t> otherRow{};
             std::optional<StateId> state{};
             std::optional<EventId> event{};
+            std::optional<StateId> target{};
         };
 
         template<std::size_t N>
@@ -65,26 +73,31 @@ namespace services
         explicit TransitionTableAnalysis(Table table);
 
         template<class... S>
-        static constexpr TerminalStates Terminal();
+        static constexpr Rules Terminal();
 
         constexpr std::size_t Size() const;
         constexpr const Transition& Row(std::size_t index) const;
 
         constexpr ConsistencyError CheckConsistency(StateId initial) const;
-        constexpr bool IsValid(StateId initial, const TerminalStates& terminal = {}, Severity failAt = Severity::error) const;
-        constexpr std::optional<Severity> HighestSeverity(StateId initial, const TerminalStates& terminal = {}) const;
+        constexpr bool IsValid(StateId initial, const Rules& rules = {}, Severity failAt = Severity::error) const;
+        constexpr std::optional<Severity> HighestSeverity(StateId initial, const Rules& rules = {}) const;
 
         template<class F>
-        constexpr void ForEachFinding(StateId initial, const TerminalStates& terminal, Severity minimum, F callback) const;
+        constexpr void ForEachFinding(StateId initial, const Rules& rules, Severity minimum, F callback) const;
 
         constexpr bool HasTransition(StateId from, EventId event) const;
         constexpr bool HasUnguardedSpecificRow(StateId from, EventId event) const;
 
     private:
+        using StateSet = std::array<bool, StateId::count>;
+        using Edges = std::array<StateSet, StateId::count>;
+
         template<class F>
-        constexpr void ForEachError(StateId initial, F& callback) const;
+        constexpr void ForEachStructuralError(StateId initial, F& callback) const;
         template<class F>
-        constexpr void ForEachWarning(const TerminalStates& terminal, F& callback) const;
+        constexpr void ForEachRuleError(const Rules& rules, F& callback) const;
+        template<class F>
+        constexpr void ForEachWarning(const Rules& rules, F& callback) const;
         template<class F>
         constexpr void ForEachInfo(F& callback) const;
 
@@ -93,18 +106,28 @@ namespace services
         template<class F>
         constexpr void ForEachUnreachableState(StateId initial, F& callback) const;
         template<class F>
+        constexpr void ForEachContradictoryRule(const Rules& rules, F& callback) const;
+        template<class F>
+        constexpr void ForEachRuleViolation(const Rules& rules, F& callback) const;
+        template<class F>
         constexpr void ForEachUnusedEvent(F& callback) const;
         template<class F>
-        constexpr void ForEachDeadEndState(const TerminalStates& terminal, F& callback) const;
+        constexpr void ForEachDeadEndState(const Rules& rules, F& callback) const;
         template<class F>
         constexpr void ForEachOverriddenAnyRow(F& callback) const;
+        template<class F>
+        constexpr void ForEachUnusedAllowance(const Rules& rules, F& callback) const;
+        template<class F>
+        constexpr void ForEachEdge(F callback) const;
 
-        constexpr TerminalStates Reachable(StateId initial) const;
+        constexpr StateSet Reachable(StateId initial) const;
+        constexpr Edges RealizedEdges() const;
         constexpr bool Leaves(std::size_t state) const;
         constexpr bool Handles(std::size_t event) const;
         constexpr bool IsOverriddenEverywhere(const Transition& anyRow) const;
         constexpr bool CanReject(std::size_t state, std::size_t event) const;
         static constexpr bool SamePair(const Transition& a, const Transition& b);
+        static constexpr bool Enters(const Edges& edges, std::size_t to);
 
     private:
         const Transition* first;
@@ -120,6 +143,7 @@ namespace services
             case FindingKind::unusedEvent:
             case FindingKind::deadEndState:
             case FindingKind::overriddenAnyRow:
+            case FindingKind::unusedAllowance:
                 return Severity::warning;
             case FindingKind::canReject:
                 return Severity::info;
@@ -130,7 +154,8 @@ namespace services
 
     constexpr const char* NameOf(FindingKind kind)
     {
-        constexpr std::array<const char*, 8> names{ "emptyTable", "duplicateTransition", "shadowedTransition", "unreachableState", "unusedEvent", "deadEndState", "overriddenAnyRow", "canReject" };
+        constexpr std::array<const char*, findingKindCount> names{ "emptyTable", "duplicateTransition", "shadowedTransition", "unreachableState", "contradictoryRule", "forbiddenTransition",
+            "disallowedTransition", "unusedEvent", "deadEndState", "overriddenAnyRow", "unusedAllowance", "canReject" };
         return names[static_cast<std::size_t>(kind)];
     }
 
@@ -155,11 +180,9 @@ namespace services
 
     template<class Machine>
     template<class... S>
-    constexpr typename TransitionTableAnalysis<Machine>::TerminalStates TransitionTableAnalysis<Machine>::Terminal()
+    constexpr typename TransitionTableAnalysis<Machine>::Rules TransitionTableAnalysis<Machine>::Terminal()
     {
-        TerminalStates terminal{};
-        ((terminal[StateId::template Of<S>().Index()] = true), ...);
-        return terminal;
+        return Rules{}.template Terminal<S...>();
     }
 
     template<class Machine>
@@ -183,7 +206,7 @@ namespace services
             if (!worst || finding.kind < *worst)
                 worst = finding.kind;
         };
-        ForEachError(initial, record);
+        ForEachStructuralError(initial, record);
 
         if (!worst)
             return ConsistencyError::none;
@@ -193,17 +216,17 @@ namespace services
     }
 
     template<class Machine>
-    constexpr bool TransitionTableAnalysis<Machine>::IsValid(StateId initial, const TerminalStates& terminal, Severity failAt) const
+    constexpr bool TransitionTableAnalysis<Machine>::IsValid(StateId initial, const Rules& rules, Severity failAt) const
     {
-        auto highest = HighestSeverity(initial, terminal);
+        auto highest = HighestSeverity(initial, rules);
         return !highest || *highest < failAt;
     }
 
     template<class Machine>
-    constexpr std::optional<Severity> TransitionTableAnalysis<Machine>::HighestSeverity(StateId initial, const TerminalStates& terminal) const
+    constexpr std::optional<Severity> TransitionTableAnalysis<Machine>::HighestSeverity(StateId initial, const Rules& rules) const
     {
         std::optional<Severity> highest;
-        ForEachFinding(initial, terminal, Severity::info, [&highest](const Finding& finding)
+        ForEachFinding(initial, rules, Severity::info, [&highest](const Finding& finding)
             {
                 if (!highest || SeverityOf(finding.kind) > *highest)
                     highest = SeverityOf(finding.kind);
@@ -213,15 +236,16 @@ namespace services
 
     template<class Machine>
     template<class F>
-    constexpr void TransitionTableAnalysis<Machine>::ForEachFinding(StateId initial, const TerminalStates& terminal, Severity minimum, F callback) const
+    constexpr void TransitionTableAnalysis<Machine>::ForEachFinding(StateId initial, const Rules& rules, Severity minimum, F callback) const
     {
-        ForEachError(initial, callback);
+        ForEachStructuralError(initial, callback);
+        ForEachRuleError(rules, callback);
 
         if (Size() == 0)
             return;
 
         if (minimum <= Severity::warning)
-            ForEachWarning(terminal, callback);
+            ForEachWarning(rules, callback);
         if (minimum <= Severity::info)
             ForEachInfo(callback);
     }
@@ -248,7 +272,7 @@ namespace services
 
     template<class Machine>
     template<class F>
-    constexpr void TransitionTableAnalysis<Machine>::ForEachError(StateId initial, F& callback) const
+    constexpr void TransitionTableAnalysis<Machine>::ForEachStructuralError(StateId initial, F& callback) const
     {
         if (Size() == 0)
         {
@@ -262,11 +286,20 @@ namespace services
 
     template<class Machine>
     template<class F>
-    constexpr void TransitionTableAnalysis<Machine>::ForEachWarning(const TerminalStates& terminal, F& callback) const
+    constexpr void TransitionTableAnalysis<Machine>::ForEachRuleError(const Rules& rules, F& callback) const
+    {
+        ForEachContradictoryRule(rules, callback);
+        ForEachRuleViolation(rules, callback);
+    }
+
+    template<class Machine>
+    template<class F>
+    constexpr void TransitionTableAnalysis<Machine>::ForEachWarning(const Rules& rules, F& callback) const
     {
         ForEachUnusedEvent(callback);
-        ForEachDeadEndState(terminal, callback);
+        ForEachDeadEndState(rules, callback);
         ForEachOverriddenAnyRow(callback);
+        ForEachUnusedAllowance(rules, callback);
     }
 
     template<class Machine>
@@ -308,6 +341,29 @@ namespace services
 
     template<class Machine>
     template<class F>
+    constexpr void TransitionTableAnalysis<Machine>::ForEachContradictoryRule(const Rules& rules, F& callback) const
+    {
+        for (std::size_t from = 0; from != StateId::count; ++from)
+            for (std::size_t to = 0; to != StateId::count; ++to)
+                if (rules.IsExplicitlyAllowed(from, to) && rules.IsForbidden(from, to))
+                    callback(Finding{ FindingKind::contradictoryRule, std::nullopt, std::nullopt, StateId::FromIndex(from), std::nullopt, StateId::FromIndex(to) });
+    }
+
+    template<class Machine>
+    template<class F>
+    constexpr void TransitionTableAnalysis<Machine>::ForEachRuleViolation(const Rules& rules, F& callback) const
+    {
+        ForEachEdge([&rules, &callback](std::size_t row, std::size_t from, std::size_t to)
+            {
+                if (rules.IsForbidden(from, to))
+                    callback(Finding{ FindingKind::forbiddenTransition, row, std::nullopt, StateId::FromIndex(from), std::nullopt, StateId::FromIndex(to) });
+                else if (!rules.IsAllowed(from, to))
+                    callback(Finding{ FindingKind::disallowedTransition, row, std::nullopt, StateId::FromIndex(from), std::nullopt, StateId::FromIndex(to) });
+            });
+    }
+
+    template<class Machine>
+    template<class F>
     constexpr void TransitionTableAnalysis<Machine>::ForEachUnusedEvent(F& callback) const
     {
         for (std::size_t event = 0; event != EventId::count; ++event)
@@ -317,10 +373,10 @@ namespace services
 
     template<class Machine>
     template<class F>
-    constexpr void TransitionTableAnalysis<Machine>::ForEachDeadEndState(const TerminalStates& terminal, F& callback) const
+    constexpr void TransitionTableAnalysis<Machine>::ForEachDeadEndState(const Rules& rules, F& callback) const
     {
         for (std::size_t state = 0; state != StateId::count; ++state)
-            if (!terminal[state] && !Leaves(state))
+            if (!rules.IsTerminal(state) && !Leaves(state))
                 callback(Finding{ FindingKind::deadEndState, std::nullopt, std::nullopt, StateId::FromIndex(state) });
     }
 
@@ -334,9 +390,45 @@ namespace services
     }
 
     template<class Machine>
-    constexpr typename TransitionTableAnalysis<Machine>::TerminalStates TransitionTableAnalysis<Machine>::Reachable(StateId initial) const
+    template<class F>
+    constexpr void TransitionTableAnalysis<Machine>::ForEachUnusedAllowance(const Rules& rules, F& callback) const
     {
-        TerminalStates reached{};
+        auto edges = RealizedEdges();
+
+        for (std::size_t from = 0; from != StateId::count; ++from)
+            for (std::size_t to = 0; to != StateId::count; ++to)
+                if (rules.IsExplicitlyAllowed(from, to) && !edges[from][to])
+                    callback(Finding{ FindingKind::unusedAllowance, std::nullopt, std::nullopt, StateId::FromIndex(from), std::nullopt, StateId::FromIndex(to) });
+
+        for (std::size_t to = 0; to != StateId::count; ++to)
+            if (rules.IsAllowedFromAny(to) && !Enters(edges, to))
+                callback(Finding{ FindingKind::unusedAllowance, std::nullopt, std::nullopt, std::nullopt, std::nullopt, StateId::FromIndex(to) });
+    }
+
+    template<class Machine>
+    template<class F>
+    constexpr void TransitionTableAnalysis<Machine>::ForEachEdge(F callback) const
+    {
+        for (std::size_t index = 0; index != Size(); ++index)
+        {
+            const auto& row = first[index];
+
+            if (row.internal)
+                continue;
+
+            if (row.from)
+                callback(index, *row.from, row.to);
+            else
+                for (std::size_t from = 0; from != StateId::count; ++from)
+                    if (!HasUnguardedSpecificRow(StateId::FromIndex(from), EventId::FromIndex(row.event)))
+                        callback(index, from, row.to);
+        }
+    }
+
+    template<class Machine>
+    constexpr typename TransitionTableAnalysis<Machine>::StateSet TransitionTableAnalysis<Machine>::Reachable(StateId initial) const
+    {
+        StateSet reached{};
         reached[initial.Index()] = true;
 
         bool changed = true;
@@ -352,6 +444,17 @@ namespace services
         }
 
         return reached;
+    }
+
+    template<class Machine>
+    constexpr typename TransitionTableAnalysis<Machine>::Edges TransitionTableAnalysis<Machine>::RealizedEdges() const
+    {
+        Edges edges{};
+        ForEachEdge([&edges](std::size_t, std::size_t from, std::size_t to)
+            {
+                edges[from][to] = true;
+            });
+        return edges;
     }
 
     template<class Machine>
@@ -404,6 +507,16 @@ namespace services
     constexpr bool TransitionTableAnalysis<Machine>::SamePair(const Transition& a, const Transition& b)
     {
         return a.from == b.from && a.event == b.event;
+    }
+
+    template<class Machine>
+    constexpr bool TransitionTableAnalysis<Machine>::Enters(const Edges& edges, std::size_t to)
+    {
+        for (const auto& from : edges)
+            if (from[to])
+                return true;
+
+        return false;
     }
 }
 
