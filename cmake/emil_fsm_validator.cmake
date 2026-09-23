@@ -11,6 +11,7 @@ function(emil_add_fsm_validator target)
     add_executable(${target})
     target_sources(${target} PRIVATE ${FSM_VALIDATOR_SOURCES})
     target_link_libraries(${target} PRIVATE application.fsm_validator ${FSM_VALIDATOR_LINK_LIBRARIES})
+    emil_exclude_from_coverage(${target})
 
     set(arguments "")
     if (FSM_VALIDATOR_STRICT)

@@ -10,6 +10,9 @@ function(services_fsm_compile_fail name expected)
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target services.fsm_compile_fail_${name} --config $<CONFIG>
     )
     set_tests_properties(services.fsm_compile_fail_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${expected}")
+
+    emil_exclude_from_coverage(services.fsm_compile_ok_${name})
+    emil_exclude_from_coverage(services.fsm_compile_fail_${name})
 endfunction()
 
 services_fsm_compile_fail(UncheckedConstruction "protected")
