@@ -12,6 +12,7 @@ target_link_libraries(services.fsm_test PUBLIC
 )
 
 target_sources(services.fsm_test PRIVATE
+    JobLifecycle.hpp
     TestAlternativeId.cpp
     TestStateMachineIntegration.cpp
     TestStateMachineMermaid.cpp
