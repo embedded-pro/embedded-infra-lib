@@ -11,9 +11,11 @@ target_sources(services.fsm PRIVATE
     AlternativeId.hpp
     StateMachine.hpp
     StateMachineMermaid.hpp
+    StateMachineValidation.hpp
     StateMachineTracer.hpp
     StateTimeouts.hpp
     TableStateMachine.hpp
+    TransitionTableAnalysis.hpp
 )
 
 add_subdirectory(test)

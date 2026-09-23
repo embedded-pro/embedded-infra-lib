@@ -16,6 +16,8 @@ target_sources(services.fsm_test PRIVATE
     TestStateMachineIntegration.cpp
     TestStateMachineMermaid.cpp
     TestStateMachineTracer.cpp
+    TestStateMachineValidation.cpp
     TestStateTimeouts.cpp
     TestTableStateMachine.cpp
+    TestTransitionTableAnalysis.cpp
 )

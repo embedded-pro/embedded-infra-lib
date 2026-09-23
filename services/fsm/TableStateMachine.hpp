@@ -6,6 +6,7 @@
 #include "infra/util/MemoryRange.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include "services/fsm/StateMachine.hpp"
+#include "services/fsm/TransitionTableAnalysis.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -15,15 +16,6 @@
 
 namespace services
 {
-    enum class ConsistencyError : uint8_t
-    {
-        none,
-        emptyTable,
-        duplicateTransition,
-        shadowedTransition,
-        unreachableState
-    };
-
     template<class T>
     concept HasOnEntry = requires(T& state) { state.OnEntry(); };
 
@@ -131,11 +123,6 @@ namespace services
         void DrainQueue();
         void CompleteWith(const Event& event, uint32_t epochAtRequest);
         void RunEnteredHook();
-
-        bool HasDuplicate() const;
-        bool HasShadowed() const;
-        bool HasUnreachable(StateId initial) const;
-        static bool SamePair(const Transition& a, const Transition& b);
 
     private:
         Context& context;
@@ -247,16 +234,7 @@ namespace services
     template<class State, class Event, class Context>
     ConsistencyError TableStateMachine<State, Event, Context>::CheckConsistency(StateId initial) const
     {
-        if (table.empty())
-            return ConsistencyError::emptyTable;
-        if (HasDuplicate())
-            return ConsistencyError::duplicateTransition;
-        if (HasShadowed())
-            return ConsistencyError::shadowedTransition;
-        if (HasUnreachable(initial))
-            return ConsistencyError::unreachableState;
-
-        return ConsistencyError::none;
+        return TransitionTableAnalysis<TableStateMachine>(table).CheckConsistency(initial);
     }
 
     template<class State, class Event, class Context>
@@ -269,11 +247,7 @@ namespace services
     template<class State, class Event, class Context>
     bool TableStateMachine<State, Event, Context>::HasTransition(StateId from, EventId event) const
     {
-        for (const auto& transition : table)
-            if ((!transition.from || *transition.from == from.Index()) && transition.event == event.Index())
-                return true;
-
-        return false;
+        return TransitionTableAnalysis<TableStateMachine>(table).HasTransition(from, event);
     }
 
     template<class State, class Event, class Context>
@@ -569,59 +543,6 @@ namespace services
 
         if (hook != nullptr)
             hook(*this);
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::HasDuplicate() const
-    {
-        for (auto first = table.begin(); first != table.end(); ++first)
-            for (auto second = first + 1; second != table.end(); ++second)
-                if (SamePair(*first, *second) && !first->guarded && !second->guarded)
-                    return true;
-
-        return false;
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::HasShadowed() const
-    {
-        for (auto first = table.begin(); first != table.end(); ++first)
-            for (auto second = first + 1; second != table.end(); ++second)
-                if (SamePair(*first, *second) && !first->guarded)
-                    return true;
-
-        return false;
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::HasUnreachable(StateId initial) const
-    {
-        std::array<bool, StateId::count> reached{};
-        reached[initial.Index()] = true;
-
-        bool changed = true;
-        while (changed)
-        {
-            changed = false;
-            for (const auto& transition : table)
-                if (!reached[transition.to] && (!transition.from || reached[*transition.from]))
-                {
-                    reached[transition.to] = true;
-                    changed = true;
-                }
-        }
-
-        for (bool state : reached)
-            if (!state)
-                return true;
-
-        return false;
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::SamePair(const Transition& a, const Transition& b)
-    {
-        return a.from == b.from && a.event == b.event;
     }
 }
 
