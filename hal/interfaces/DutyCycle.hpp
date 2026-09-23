@@ -5,8 +5,6 @@
 
 namespace hal
 {
-    // A PWM duty cycle in Q16: fullScale is 100 %. Integer so that the conversion to timer counts
-    // needs a multiply and a shift, never a division, in the interrupts that update it.
     class DutyCycle
     {
     public:
@@ -34,8 +32,6 @@ namespace hal
             return value <= fullScale;
         }
 
-        // Rounds to the nearest count of a timer period of the given length; 64-bit so that a 32-bit
-        // timer's full 2^32-count period fits
         constexpr uint64_t ToCounts(uint64_t periodCounts) const
         {
             return (periodCounts * value + fullScale / 2) >> fractionalBits;
