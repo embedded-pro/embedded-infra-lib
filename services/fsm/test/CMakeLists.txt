@@ -22,3 +22,7 @@ target_sources(services.fsm_test PRIVATE
     TestTableStateMachine.cpp
     TestTransitionTableAnalysis.cpp
 )
+
+if (EMIL_BUILD_TESTS)
+    add_subdirectory(compile_fail)
+endif()
