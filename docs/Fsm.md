@@ -175,12 +175,12 @@ Because the set of states is the variant itself, every state class must take par
 
 The consistency checks say nothing about which transitions a component is supposed to make. `Rules()` declares that separately from the rows, as a picture of the state diagram, so that a row that makes any other transition is an error:
 
-| Rule                     | Meaning                                                                                                                  |
-|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `Allow<From, To...>()`   | The transitions from `From` to each `To` are allowed. The first `Allow` or `AllowFromAny` turns the rules into an allow-list |
-| `AllowFromAny<To...>()`  | The transitions from every state to each `To` are allowed                                                                  |
-| `Forbid<From, To...>()`  | The transitions from `From` to each `To` are forbidden, also when `AllowFromAny` allows them                              |
-| `Terminal<S...>()`       | The states are intentionally final, so that no `deadEndState` is reported for them                                     |
+| Rule                    | Meaning                                                                                                                      |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `Allow<From, To...>()`  | The transitions from `From` to each `To` are allowed. The first `Allow` or `AllowFromAny` turns the rules into an allow-list |
+| `AllowFromAny<To...>()` | The transitions from every state to each `To` are allowed                                                                    |
+| `Forbid<From, To...>()` | The transitions from `From` to each `To` are forbidden, also when `AllowFromAny` allows them                                 |
+| `Terminal<S...>()`      | The states are intentionally final, so that no `deadEndState` is reported for them                                           |
 
 The rules concern external transitions only; internal rows never change the state and are always permitted, while an external self-transition `S --> S` must be allowed like any other.
 A row built with `RowFromAny` is checked once for every source state, except for states in which an unguarded specific row for the same event always wins.
@@ -188,7 +188,8 @@ A row built with `RowFromAny` is checked once for every source state, except for
 
 ## Mandatory validation
 
-`services::Validated<Definition>()` evaluates `services::TransitionTableAnalysis` at compile time and refuses every finding of severity warning or error, so warnings count as errors. It returns the `services::ValidatedTable` that `TableStateMachine` and `WithStorage` require; there is no other public way to construct a machine, so every state machine in a product is validated by the build, and nothing of the validation remains in flash or runs at start.
+`services::Validated<Definition>()` evaluates `services::TransitionTableAnalysis` at compile time and refuses every finding of severity warning or error, so warnings count as errors.
+It returns the `services::ValidatedTable` that `TableStateMachine` and `WithStorage` require; there is no other public way to construct a machine, so every state machine in a product is validated by the build, and nothing of the validation remains in flash or runs at start.
 
 | Finding                | Severity | Meaning                                                                                                   |
 |------------------------|----------|-----------------------------------------------------------------------------------------------------------|
@@ -202,24 +203,24 @@ A row built with `RowFromAny` is checked once for every source state, except for
 | `unusedEvent`          | warning  | An event class of the variant that no row handles, so it is forbidden in every state                      |
 | `deadEndState`         | warning  | A state that no external row leaves and that is not declared `Terminal`                                   |
 | `overriddenAnyRow`     | warning  | A row built with `RowFromAny` for which every state has an unguarded specific row, so that it never fires |
-| `unusedAllowance`      | warning  | `Rules()` allows a transition that no row makes, so the rules and the table have drifted apart             |
+| `unusedAllowance`      | warning  | `Rules()` allows a transition that no row makes, so the rules and the table have drifted apart            |
 | `canReject`            | info     | A state and event for which every applicable row is guarded, so that `Dispatch()` may return `rejected`   |
 
 A violation stops the build with one `static_assert` per finding kind. The message names the finding and the value in the failing comparison locates it, for instance the index of the offending row:
 
-```
+```text
 error: static assertion failed: disallowedTransition: a row makes a transition that Rules() does not allow; the value is the index of the row
 note: the comparison reduces to '(3 == 18446744073709551615)'
 ```
 
 The analysis can also be used directly, for instance in a unit test or on a table that is not yet used by a machine:
 
-| Method                                        | Meaning                                                                                    |
-|-----------------------------------------------|--------------------------------------------------------------------------------------------|
-| `CheckConsistency(initial)`                   | The first consistency error                                                                |
-| `IsValid(initial, rules, failAt)`             | Whether no finding has severity `failAt` or higher; `failAt` defaults to `error`           |
-| `HighestSeverity(initial, rules)`             | The severity of the most severe finding, if any                                            |
-| `ForEachFinding(initial, rules, minimum, f)`  | Calls `f` for each finding of severity `minimum` or higher, with its rows, states and event |
+| Method                                       | Meaning                                                                                     |
+|----------------------------------------------|---------------------------------------------------------------------------------------------|
+| `CheckConsistency(initial)`                  | The first consistency error                                                                 |
+| `IsValid(initial, rules, failAt)`            | Whether no finding has severity `failAt` or higher; `failAt` defaults to `error`            |
+| `HighestSeverity(initial, rules)`            | The severity of the most severe finding, if any                                             |
+| `ForEachFinding(initial, rules, minimum, f)` | Calls `f` for each finding of severity `minimum` or higher, with its rows, states and event |
 
 ```cpp
 using Analysis = services::TransitionTableAnalysis<Motor::Machine>;
@@ -229,7 +230,7 @@ static_assert(Analysis(Motor::Rows()).IsValid(Analysis::StateId::Of<Idle>(), Mot
 
 `services::WriteValidationReport(stream, analysis, initial, rules, minimum)` writes the findings as text, one per line, naming the rows by their index and their states and events by name:
 
-```
+```text
 error disallowedTransition: row 3 (Jammed --Pull--> Closed) makes Jammed -> Closed, which the rules do not allow
 error shadowedTransition: row 1 (Closed --Push--> Open [guarded]) follows unguarded row 0 (Closed --Push--> Open) and is never selected
 warning unusedAllowance: Open -> Open is allowed but no row makes it
@@ -253,7 +254,9 @@ namespace
 }
 ```
 
-The template argument is the definition. The registration source only needs the definition's header; when the component's constructor, which calls `Validated<>()`, is defined in a source file rather than inline in the header, the tool also builds for a definition that violates its rules and reports every violation by name, where the compiler stops at the first. The CMake function `emil_add_fsm_validator` builds the tool for host builds and registers it with `ctest`, so that a broken table fails the test run:
+The template argument is the definition.
+The registration source only needs the definition's header; when the component's constructor, which calls `Validated<>()`, is defined in a source file rather than inline in the header, the tool also builds for a definition that violates its rules and reports every violation by name, where the compiler stops at the first.
+The CMake function `emil_add_fsm_validator` builds the tool for host builds and registers it with `ctest`, so that a broken table fails the test run:
 
 ```cmake
 emil_add_fsm_validator(motor.fsm_validator
@@ -274,7 +277,7 @@ emil_add_fsm_validator(motor.fsm_validator
 | `--list`          | List the registered state machines                        |
 | `--mermaid <dir>` | Write a `<name>.mmd` diagram per state machine to `<dir>` |
 
-```
+```text
 $ motor.fsm_validator --info
 [Motor]
 info canReject: Enable in Ready is rejected when every guard refuses
@@ -316,7 +319,8 @@ The owning object must outlive the callback, as for every other callback in this
 
 - `services::StateMachineTracer` writes every transition, every internally handled event and every forbidden, rejected or discarded event to a `services::Tracer`, for instance `fsm: Idle --Calibrate--> Calibrating`, `fsm: handled Setpoint in Enabled` and `fsm: forbidden Enable in Idle`.
 - `services::StateTimeouts` holds a table of `services::StateTimeout` rows, each naming a state, a duration and an event. When the state becomes active a single-shot timer is started; when it expires the event is dispatched; leaving the state cancels the timer.
-- `services::WriteMermaid` is not an observer but a function that writes the transition table of a machine or of a `services::TransitionTableAnalysis` as a `stateDiagram-v2` block, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation. A row built with `RowFromAny` is drawn as one edge per state, except from states in which an unguarded specific row for the same event always wins.
+- `services::WriteMermaid` is not an observer but a function that writes the transition table of a machine or of a `services::TransitionTableAnalysis` as a `stateDiagram-v2` block, so that documentation can be generated from the table, or a test can compare the table with a diagram kept in the documentation.
+A row built with `RowFromAny` is drawn as one edge per state, except from states in which an unguarded specific row for the same event always wins.
 
 ```cpp
 constexpr std::array<services::StateTimeout<State, Event>, 1> timeouts{ {
@@ -338,9 +342,12 @@ An interrupt handler that must react before the event dispatcher runs does its i
 `services/fsm/test_doubles` provides `services::StateMachineObserverMock` and `services::StateMachineTester`.
 The tester drives a machine to a state along a declared path of events and, given one sample of every event class, dispatches every event in every state and checks that the machine forbids an event exactly when the table has no row for it.
 This one test replaces the hand-written list of "command X is rejected in state Y" tests that a state machine otherwise accumulates.
-Because the expectation is derived from the table itself, it verifies that the machine and the component behave as the table says, for instance that no action or entry method dispatches unexpectedly; it does not detect that a row was added or removed on purpose. Which events a component accepts in which state is a requirement of the component, and is best tested directly on the component's own interface.
+Because the expectation is derived from the table itself, it verifies that the machine and the component behave as the table says, for instance that no action or entry method dispatches unexpectedly; it does not detect that a row was added or removed on purpose.
+Which events a component accepts in which state is a requirement of the component, and is best tested directly on the component's own interface.
 The table itself is verified by the build, see [Mandatory validation](#mandatory-validation).
 
-The engine's own tests need tables that are deliberately inconsistent, or that start in different states; `services::UncheckedTableStateMachine<State, Event, Context>::WithStorage<N>` in `services/fsm/test_doubles` constructs a machine from an unchecked table for that purpose and is not meant for product code. `services/fsm/test/compile_fail` holds sources that are compiled with a deliberate mistake by `ctest`, to prove that such a machine is rejected by the compiler.
+The engine's own tests need tables that are deliberately inconsistent, or that start in different states;
+`services::UncheckedTableStateMachine<State, Event, Context>::WithStorage<N>` in `services/fsm/test_doubles` constructs a machine from an unchecked table for that purpose and is not meant for product code.
+`services/fsm/test/compile_fail` holds sources that are compiled with a deliberate mistake by `ctest`, to prove that such a machine is rejected by the compiler.
 
 `services/fsm/test/JobLifecycle.hpp` contains a complete example component: an asynchronous job that prepares, commits its settings and runs, with timeouts, guarded rows, internal rows, rows from any state and completions. It is exercised by `TestStateMachineIntegration.cpp` and validated by the `application.fsm_validator_example` tool.
