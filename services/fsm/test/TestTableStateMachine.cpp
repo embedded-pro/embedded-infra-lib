@@ -1,5 +1,6 @@
 #include "services/fsm/TableStateMachine.hpp"
 #include "services/fsm/test_doubles/StateMachineObserverMock.hpp"
+#include "services/fsm/test_doubles/UncheckedTableStateMachine.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <optional>
@@ -96,6 +97,7 @@ namespace
 
     using StateId = services::AlternativeId<State>;
     using Machine = services::TableStateMachine<State, Event, Lamp>;
+    using Unchecked = services::UncheckedTableStateMachine<State, Event, Lamp>;
 
     struct Lamp
     {
@@ -167,7 +169,7 @@ public:
 
     testing::StrictMock<Hooks> hooks;
     Lamp lamp{ hooks };
-    std::optional<Machine::WithStorage<4>> fsm;
+    std::optional<Unchecked::WithStorage<4>> fsm;
     std::optional<testing::StrictMock<services::StateMachineObserverMock<State, Event>>> observer;
 };
 
@@ -645,7 +647,7 @@ namespace
     {
         testing::StrictMock<Hooks> hooks;
         Lamp lamp{ hooks };
-        Machine::WithStorage<1> fsm{ lamp, infra::MakeRange(overflowing) };
+        Unchecked::WithStorage<1> fsm{ lamp, infra::MakeRange(overflowing) };
         lamp.fsm = &fsm;
         fsm.Start<Off>();
         fsm.Dispatch(Press{});

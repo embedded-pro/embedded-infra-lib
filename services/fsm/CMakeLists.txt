@@ -10,10 +10,15 @@ target_link_libraries(services.fsm INTERFACE
 target_sources(services.fsm PRIVATE
     AlternativeId.hpp
     StateMachine.hpp
+    StateMachineDefinition.hpp
     StateMachineMermaid.hpp
+    StateMachineValidation.hpp
     StateMachineTracer.hpp
     StateTimeouts.hpp
     TableStateMachine.hpp
+    TransitionRules.hpp
+    TransitionTableAnalysis.hpp
+    ValidatedTable.hpp
 )
 
 add_subdirectory(test)

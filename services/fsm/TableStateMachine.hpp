@@ -6,6 +6,9 @@
 #include "infra/util/MemoryRange.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include "services/fsm/StateMachine.hpp"
+#include "services/fsm/TransitionRules.hpp"
+#include "services/fsm/TransitionTableAnalysis.hpp"
+#include "services/fsm/ValidatedTable.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -15,15 +18,6 @@
 
 namespace services
 {
-    enum class ConsistencyError : uint8_t
-    {
-        none,
-        emptyTable,
-        duplicateTransition,
-        shadowedTransition,
-        unreachableState
-    };
-
     template<class T>
     concept HasOnEntry = requires(T& state) { state.OnEntry(); };
 
@@ -43,6 +37,7 @@ namespace services
     public:
         using StateId = AlternativeId<State>;
         using EventId = AlternativeId<Event>;
+        using Rules = TransitionRules<State>;
 
         struct Transition
         {
@@ -60,7 +55,7 @@ namespace services
         template<std::size_t QueueDepth>
         class WithStorage;
 
-        TableStateMachine(Context& context, Table table, infra::BoundedDeque<Event>& queue);
+        TableStateMachine(Context& context, ValidatedTable<TableStateMachine> table, infra::BoundedDeque<Event>& queue);
 
         template<class From, class Ev, class To, class Guard = std::nullptr_t, class Action = std::nullptr_t>
         static constexpr Transition Row(Guard guard = nullptr, Action action = nullptr);
@@ -94,6 +89,9 @@ namespace services
         infra::Function<void(), ExtraSize> Completion(E event);
         template<class Signature, class Mapper, std::size_t ExtraSize = INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>
         infra::Function<Signature, ExtraSize> CompletionWith(Mapper mapper);
+
+    protected:
+        TableStateMachine(Context& context, Table table, infra::BoundedDeque<Event>& queue);
 
     private:
         template<class Signature>
@@ -132,14 +130,10 @@ namespace services
         void CompleteWith(const Event& event, uint32_t epochAtRequest);
         void RunEnteredHook();
 
-        bool HasDuplicate() const;
-        bool HasShadowed() const;
-        bool HasUnreachable(StateId initial) const;
-        static bool SamePair(const Transition& a, const Transition& b);
-
     private:
         Context& context;
         Table table;
+        std::optional<StateId> validatedInitial;
         infra::BoundedDeque<Event>& queue;
         std::optional<State> currentState;
         std::array<void (*)(TableStateMachine&), StateId::count> enteredHooks{};
@@ -153,6 +147,9 @@ namespace services
         : public TableStateMachine<State, Event, Context>
     {
     public:
+        WithStorage(Context& context, ValidatedTable<TableStateMachine> table);
+
+    protected:
         WithStorage(Context& context, Table table);
 
     private:
@@ -178,10 +175,24 @@ namespace services
     }
 
     template<class State, class Event, class Context>
+    TableStateMachine<State, Event, Context>::TableStateMachine(Context& context, ValidatedTable<TableStateMachine> table, infra::BoundedDeque<Event>& queue)
+        : context(context)
+        , table(table.Table())
+        , validatedInitial(table.Initial())
+        , queue(queue)
+    {}
+
+    template<class State, class Event, class Context>
     TableStateMachine<State, Event, Context>::TableStateMachine(Context& context, Table table, infra::BoundedDeque<Event>& queue)
         : context(context)
         , table(table)
         , queue(queue)
+    {}
+
+    template<class State, class Event, class Context>
+    template<std::size_t QueueDepth>
+    TableStateMachine<State, Event, Context>::WithStorage<QueueDepth>::WithStorage(Context& context, ValidatedTable<TableStateMachine> table)
+        : TableStateMachine<State, Event, Context>(context, table, queueStorage)
     {}
 
     template<class State, class Event, class Context>
@@ -216,7 +227,14 @@ namespace services
     void TableStateMachine<State, Event, Context>::Start(Args&&... args)
     {
         really_assert(!Started());
-        really_assert(CheckConsistency<Initial>() == ConsistencyError::none);
+        if (validatedInitial)
+        {
+            really_assert(*validatedInitial == StateId::template Of<Initial>());
+        }
+        else
+        {
+            really_assert(CheckConsistency<Initial>() == ConsistencyError::none);
+        }
 
         dispatching = true;
         currentState.emplace(std::in_place_type<Initial>, std::forward<Args>(args)...);
@@ -247,16 +265,7 @@ namespace services
     template<class State, class Event, class Context>
     ConsistencyError TableStateMachine<State, Event, Context>::CheckConsistency(StateId initial) const
     {
-        if (table.empty())
-            return ConsistencyError::emptyTable;
-        if (HasDuplicate())
-            return ConsistencyError::duplicateTransition;
-        if (HasShadowed())
-            return ConsistencyError::shadowedTransition;
-        if (HasUnreachable(initial))
-            return ConsistencyError::unreachableState;
-
-        return ConsistencyError::none;
+        return TransitionTableAnalysis<TableStateMachine>(table).CheckConsistency(initial);
     }
 
     template<class State, class Event, class Context>
@@ -269,11 +278,7 @@ namespace services
     template<class State, class Event, class Context>
     bool TableStateMachine<State, Event, Context>::HasTransition(StateId from, EventId event) const
     {
-        for (const auto& transition : table)
-            if ((!transition.from || *transition.from == from.Index()) && transition.event == event.Index())
-                return true;
-
-        return false;
+        return TransitionTableAnalysis<TableStateMachine>(table).HasTransition(from, event);
     }
 
     template<class State, class Event, class Context>
@@ -569,59 +574,6 @@ namespace services
 
         if (hook != nullptr)
             hook(*this);
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::HasDuplicate() const
-    {
-        for (auto first = table.begin(); first != table.end(); ++first)
-            for (auto second = first + 1; second != table.end(); ++second)
-                if (SamePair(*first, *second) && !first->guarded && !second->guarded)
-                    return true;
-
-        return false;
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::HasShadowed() const
-    {
-        for (auto first = table.begin(); first != table.end(); ++first)
-            for (auto second = first + 1; second != table.end(); ++second)
-                if (SamePair(*first, *second) && !first->guarded)
-                    return true;
-
-        return false;
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::HasUnreachable(StateId initial) const
-    {
-        std::array<bool, StateId::count> reached{};
-        reached[initial.Index()] = true;
-
-        bool changed = true;
-        while (changed)
-        {
-            changed = false;
-            for (const auto& transition : table)
-                if (!reached[transition.to] && (!transition.from || reached[*transition.from]))
-                {
-                    reached[transition.to] = true;
-                    changed = true;
-                }
-        }
-
-        for (bool state : reached)
-            if (!state)
-                return true;
-
-        return false;
-    }
-
-    template<class State, class Event, class Context>
-    bool TableStateMachine<State, Event, Context>::SamePair(const Transition& a, const Transition& b)
-    {
-        return a.from == b.from && a.event == b.event;
     }
 }
 

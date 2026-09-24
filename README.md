@@ -60,7 +60,7 @@ Documentation is available in the [docs](docs/) folder:
 - [Echo](docs/Echo.md) - ECHO RPC mechanism
 - [Sesame](docs/Sesame.md) - SESAME serial protocol
 - [Network Connections](docs/NetworkConnections.md) - Connection and ConnectionObserver
-- [Finite State Machine](docs/Fsm.md) - Table-driven state machine with consistency checks
+- [Finite State Machine](docs/Fsm.md) - Table-driven state machine with compile-time validation and a validator tool
 - [Coding Standard](docs/CodingStandard.md) - C++ coding standard for embedded projects
 
 ## Contributing

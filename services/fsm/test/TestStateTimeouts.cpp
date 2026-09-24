@@ -2,6 +2,7 @@
 #include "services/fsm/StateTimeouts.hpp"
 #include "services/fsm/TableStateMachine.hpp"
 #include "services/fsm/test_doubles/StateMachineObserverMock.hpp"
+#include "services/fsm/test_doubles/UncheckedTableStateMachine.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <chrono>
@@ -48,6 +49,7 @@ namespace
     using StateId = services::AlternativeId<State>;
     using Timeout = services::StateTimeout<State, Event>;
     using Machine = services::TableStateMachine<State, Event, Job>;
+    using Unchecked = services::UncheckedTableStateMachine<State, Event, Job>;
 
     constexpr std::array<Timeout, 2> timeouts{ {
         { StateId::Of<Waiting>(), std::chrono::seconds(10), Event{ Expired{} } },
@@ -75,7 +77,7 @@ class StateTimeoutsTest
 {
 public:
     Job job;
-    Machine::WithStorage<2> fsm{ job, infra::MakeRange(rows) };
+    Unchecked::WithStorage<2> fsm{ job, infra::MakeRange(rows) };
     services::StateTimeouts<State, Event> stateTimeouts{ fsm, infra::MakeRange(timeouts) };
     testing::StrictMock<services::StateMachineObserverMock<State, Event>> observer{ fsm };
 };

@@ -1,6 +1,7 @@
 #include "infra/stream/StringOutputStream.hpp"
 #include "services/fsm/StateMachineMermaid.hpp"
 #include "services/fsm/TableStateMachine.hpp"
+#include "services/fsm/test_doubles/UncheckedTableStateMachine.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -49,6 +50,7 @@ namespace
     {};
 
     using Machine = services::TableStateMachine<State, Event, Engine>;
+    using Unchecked = services::UncheckedTableStateMachine<State, Event, Engine>;
 
     constexpr std::array rows{
         Machine::Row<Idle, Start, Running>(),
@@ -65,7 +67,7 @@ namespace
 TEST(StateMachineMermaidTest, mermaid_output_lists_initial_state_and_every_row)
 {
     Engine engine;
-    Machine::WithStorage<1> fsm{ engine, infra::MakeRange(rows) };
+    Unchecked::WithStorage<1> fsm{ engine, infra::MakeRange(rows) };
 
     infra::StringOutputStream::WithStorage<512> stream;
     services::WriteMermaid(stream, fsm, services::AlternativeId<State>::Of<Idle>());
@@ -78,6 +80,29 @@ TEST(StateMachineMermaidTest, mermaid_output_lists_initial_state_and_every_row)
         "    Running --> Running : Tick (internal)\n"
         "    Idle --> Fault : Error\n"
         "    Running --> Fault : Error\n"
+        "    Fault --> Fault : Error\n"
+        "    Fault --> Idle : Stop\n",
+        stream.Storage());
+}
+
+TEST(StateMachineMermaidTest, any_state_edge_is_omitted_where_unguarded_specific_row_wins)
+{
+    static constexpr std::array table{
+        Machine::Row<Idle, Start, Running>(),
+        Machine::Row<Running, Error, Idle>(),
+        Machine::RowFromAny<Error, Fault>(),
+        Machine::Row<Fault, Stop, Idle>(),
+    };
+
+    infra::StringOutputStream::WithStorage<512> stream;
+    services::WriteMermaid(stream, services::TransitionTableAnalysis<Machine>(table), services::AlternativeId<State>::Of<Idle>());
+
+    EXPECT_EQ(
+        "stateDiagram-v2\n"
+        "    [*] --> Idle\n"
+        "    Idle --> Running : Start\n"
+        "    Running --> Idle : Error\n"
+        "    Idle --> Fault : Error\n"
         "    Fault --> Fault : Error\n"
         "    Fault --> Idle : Stop\n",
         stream.Storage());
