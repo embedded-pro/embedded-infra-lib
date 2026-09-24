@@ -230,16 +230,22 @@ TEST_F(StepperMotorControllerDrv8711Test, OnBemfMeasuresAnalogPin)
         });
 }
 
-TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, SetResetActiveDrivesLow)
+TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, ResetIsReleasedAtConstruction)
 {
-    driver.SetReset(true);
     EXPECT_FALSE(resetPinStub.GetStubState());
 }
 
-TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, SetResetInactiveDrivesHigh)
+TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, SetResetActiveDrivesHigh)
 {
-    driver.SetReset(false);
+    driver.SetReset(true);
     EXPECT_TRUE(resetPinStub.GetStubState());
+}
+
+TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, SetResetInactiveDrivesLow)
+{
+    driver.SetReset(true);
+    driver.SetReset(false);
+    EXPECT_FALSE(resetPinStub.GetStubState());
 }
 
 TEST_F(StepperMotorControllerDrv8711WithOptionalPinsTest, SetSleepTrueDrivesLow)
@@ -474,4 +480,180 @@ TEST_F(DirectPwmStepperMotorDrv8711DecoratorTest, OnFaultForwards)
     faultPinStub.SetStubState(true);
     EXPECT_CALL(faultCallback, callback());
     faultPinStub.SetStubState(false);
+}
+
+namespace
+{
+    std::vector<uint8_t> Frame(uint16_t frame)
+    {
+        return { static_cast<uint8_t>(frame >> 8), static_cast<uint8_t>(frame & 0xFF) };
+    }
+
+    class StepperMotorControllerDrv8711ConfigureTest
+        : public StepperMotorControllerDrv8711Test
+    {
+    public:
+        void ExpectWrite(uint16_t frame)
+        {
+            EXPECT_CALL(spi, SendDataMock(Frame(frame), hal::SpiAction::stop));
+        }
+
+        void ExpectRead(uint8_t address, uint16_t data)
+        {
+            EXPECT_CALL(spi, SendDataMock(Frame(static_cast<uint16_t>(0x8000 | (address << 12))), hal::SpiAction::stop));
+            EXPECT_CALL(spi, ReceiveDataMock(hal::SpiAction::stop)).WillOnce(testing::Return(Frame(data)));
+        }
+
+        void ExpectDefaultConfigurationWrittenDisabled()
+        {
+            ExpectWrite(0x0C00);
+            ExpectWrite(0x11FF);
+            ExpectWrite(0x2030);
+            ExpectWrite(0x3080);
+            ExpectWrite(0x4110);
+            ExpectWrite(0x5040);
+            ExpectWrite(0x6A59);
+        }
+
+        void ExpectDefaultConfigurationReadBack()
+        {
+            ExpectRead(0, 0x0C00);
+            ExpectRead(1, 0x01FF);
+            ExpectRead(2, 0x0030);
+            ExpectRead(3, 0x0080);
+            ExpectRead(4, 0x0110);
+            ExpectRead(5, 0x0040);
+            ExpectRead(6, 0x0A59);
+        }
+
+        infra::MockCallback<void(bool)> configured;
+        infra::Function<void(bool)> onConfigured{ [this](bool verified)
+            {
+                configured.callback(verified);
+            } };
+    };
+}
+
+TEST_F(StepperMotorControllerDrv8711ConfigureTest, ConfigureWritesDisabledReadsBackClearsStatusThenEnables)
+{
+    testing::InSequence sequence;
+    ExpectDefaultConfigurationWrittenDisabled();
+    ExpectDefaultConfigurationReadBack();
+    ExpectWrite(0x7000);
+    ExpectWrite(0x0C01);
+    EXPECT_CALL(configured, callback(true));
+
+    driver.Configure(drivers::StepperMotorControllerDrv8711::Configuration{}, onConfigured);
+    ExecuteAllActions();
+}
+
+TEST_F(StepperMotorControllerDrv8711ConfigureTest, ConfigureWithoutEnableLeavesDriverDisabled)
+{
+    drivers::StepperMotorControllerDrv8711::Configuration configuration;
+    configuration.enable = false;
+
+    testing::InSequence sequence;
+    ExpectDefaultConfigurationWrittenDisabled();
+    ExpectDefaultConfigurationReadBack();
+    ExpectWrite(0x7000);
+    EXPECT_CALL(configured, callback(true));
+
+    driver.Configure(configuration, onConfigured);
+    ExecuteAllActions();
+}
+
+TEST_F(StepperMotorControllerDrv8711ConfigureTest, WriteOnlyTorqueBitIsIgnoredOnReadBack)
+{
+    testing::InSequence sequence;
+    ExpectDefaultConfigurationWrittenDisabled();
+    ExpectRead(0, 0x0C00);
+    ExpectRead(1, 0x05FF);
+    ExpectRead(2, 0x0030);
+    ExpectRead(3, 0x0080);
+    ExpectRead(4, 0x0110);
+    ExpectRead(5, 0x0040);
+    ExpectRead(6, 0x0A59);
+    ExpectWrite(0x7000);
+    ExpectWrite(0x0C01);
+    EXPECT_CALL(configured, callback(true));
+
+    driver.Configure(drivers::StepperMotorControllerDrv8711::Configuration{}, onConfigured);
+    ExecuteAllActions();
+}
+
+TEST_F(StepperMotorControllerDrv8711ConfigureTest, ReadBackMismatchFailsWithoutEnabling)
+{
+    testing::InSequence sequence;
+    ExpectDefaultConfigurationWrittenDisabled();
+    ExpectRead(0, 0x0C00);
+    ExpectRead(1, 0x01FF);
+    ExpectRead(2, 0x0000);
+    EXPECT_CALL(configured, callback(false));
+
+    driver.Configure(drivers::StepperMotorControllerDrv8711::Configuration{}, onConfigured);
+    ExecuteAllActions();
+}
+
+TEST_F(StepperMotorControllerDrv8711ConfigureTest, AbsentDriverFailsOnTheFirstReadBack)
+{
+    drivers::StepperMotorControllerDrv8711::Configuration configuration;
+    configuration.isgain = drivers::StepperMotorControllerDrv8711::Isgain::gain40;
+
+    testing::InSequence sequence;
+    ExpectWrite(0x0F00);
+    EXPECT_CALL(spi, SendDataMock(testing::_, hal::SpiAction::stop)).Times(6);
+    ExpectRead(0, 0x0000);
+    EXPECT_CALL(configured, callback(false));
+
+    driver.Configure(configuration, onConfigured);
+    ExecuteAllActions();
+}
+
+TEST_F(DirectPwmStepperMotorDrv8711DecoratorTest, ConfigureSelectsDirectPwmMode)
+{
+    std::vector<std::vector<uint8_t>> sent;
+    EXPECT_CALL(spi, SendDataMock(testing::_, hal::SpiAction::stop)).WillRepeatedly([&sent](std::vector<uint8_t> frame, hal::SpiAction)
+        {
+            sent.push_back(frame);
+        });
+    EXPECT_CALL(spi, ReceiveDataMock(hal::SpiAction::stop)).WillOnce(testing::Return(Frame(0x0000)));
+
+    infra::MockCallback<void(bool)> configured;
+    EXPECT_CALL(configured, callback(false));
+
+    directPwm.Configure(drivers::StepperMotorControllerDrv8711::Configuration{}, [&configured](bool verified)
+        {
+            configured.callback(verified);
+        });
+    ExecuteAllActions();
+
+    ASSERT_LE(3u, sent.size());
+    EXPECT_EQ(Frame(0x2130), sent[2]);
+}
+
+TEST_F(StepDirStepperMotorDrv8711DecoratorTest, ConfigureSelectsTheIndexerAndInternalStallDetection)
+{
+    drivers::StepperMotorControllerDrv8711::Configuration configuration;
+    configuration.pwmMode = true;
+    configuration.exStall = true;
+
+    std::vector<std::vector<uint8_t>> sent;
+    EXPECT_CALL(spi, SendDataMock(testing::_, hal::SpiAction::stop)).WillRepeatedly([&sent](std::vector<uint8_t> frame, hal::SpiAction)
+        {
+            sent.push_back(frame);
+        });
+    EXPECT_CALL(spi, ReceiveDataMock(hal::SpiAction::stop)).WillOnce(testing::Return(Frame(0xFFFF)));
+
+    infra::MockCallback<void(bool)> configured;
+    EXPECT_CALL(configured, callback(false));
+
+    stepDir.Configure(configuration, [&configured](bool verified)
+        {
+            configured.callback(verified);
+        });
+    ExecuteAllActions();
+
+    ASSERT_LE(3u, sent.size());
+    EXPECT_EQ(Frame(0x0C00), sent[0]);
+    EXPECT_EQ(Frame(0x2030), sent[2]);
 }

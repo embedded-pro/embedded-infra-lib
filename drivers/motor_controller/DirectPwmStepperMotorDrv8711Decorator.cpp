@@ -49,6 +49,12 @@ namespace drivers
         controller.Drive(ocpth, ocpdeg, tdriven, tdrivep, idriven, idrivep, onDone);
     }
 
+    void DirectPwmStepperMotorDrv8711Decorator::Configure(StepperMotorControllerDrv8711::Configuration configuration, const infra::Function<void(bool verified)>& onDone)
+    {
+        configuration.pwmMode = true;
+        controller.Configure(configuration, onDone);
+    }
+
     void DirectPwmStepperMotorDrv8711Decorator::ReadStatus(const infra::Function<void(StepperMotorControllerDrv8711::Status)>& onDone)
     {
         controller.ReadStatus(onDone);
