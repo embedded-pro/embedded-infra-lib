@@ -11,9 +11,10 @@ function(emil_fetch_echo_plugins)
         include(ExternalProject)
 
         set(_native_binary_dir "${CMAKE_BINARY_DIR}/_native_echo_plugins")
+        get_filename_component(_emil_source_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../.." ABSOLUTE)
 
         ExternalProject_Add(emil_native_echo_plugins
-            SOURCE_DIR "${CMAKE_SOURCE_DIR}"
+            SOURCE_DIR "${_emil_source_dir}"
             BINARY_DIR "${_native_binary_dir}"
             CMAKE_GENERATOR "Ninja"
             CMAKE_ARGS
