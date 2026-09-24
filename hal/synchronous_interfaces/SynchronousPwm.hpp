@@ -1,12 +1,12 @@
 #ifndef HAL_SYNCHRONOUS_PWM_HPP
 #define HAL_SYNCHRONOUS_PWM_HPP
 
+#include "hal/interfaces/DutyCycle.hpp"
 #include "infra/util/Unit.hpp"
 
 namespace hal
 {
     using Hertz = infra::Quantity<infra::Hertz, uint32_t>;
-    using Percent = infra::Quantity<infra::Percent, uint8_t>;
 
     class SynchronousPwm
     {
@@ -19,28 +19,28 @@ namespace hal
         : public SynchronousPwm
     {
     public:
-        virtual void Start(Percent globalDutyCycle) = 0;
+        virtual void Start(DutyCycle globalDutyCycle) = 0;
     };
 
     class SynchronousTwoChannelsPwm
         : public SynchronousPwm
     {
     public:
-        virtual void Start(Percent dutyCycle1, Percent dutyCycle2) = 0;
+        virtual void Start(DutyCycle dutyCycle1, DutyCycle dutyCycle2) = 0;
     };
 
     class SynchronousThreeChannelsPwm
         : public SynchronousPwm
     {
     public:
-        virtual void Start(Percent dutyCycle1, Percent dutyCycle2, Percent dutyCycle3) = 0;
+        virtual void Start(DutyCycle dutyCycle1, DutyCycle dutyCycle2, DutyCycle dutyCycle3) = 0;
     };
 
     class SynchronousFourChannelsPwm
         : public SynchronousPwm
     {
     public:
-        virtual void Start(Percent dutyCycle1, Percent dutyCycle2, Percent dutyCycle3, Percent dutyCycle4) = 0;
+        virtual void Start(DutyCycle dutyCycle1, DutyCycle dutyCycle2, DutyCycle dutyCycle3, DutyCycle dutyCycle4) = 0;
     };
 }
 
