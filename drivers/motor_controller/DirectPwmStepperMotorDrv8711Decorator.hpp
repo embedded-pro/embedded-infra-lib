@@ -26,6 +26,8 @@ namespace drivers
             StepperMotorControllerDrv8711::IdriveN idriven, StepperMotorControllerDrv8711::IdriveP idrivep,
             const infra::Function<void()>& onDone);
 
+        void Configure(StepperMotorControllerDrv8711::Configuration configuration, const infra::Function<void(bool verified)>& onDone);
+
         void ReadStatus(const infra::Function<void(StepperMotorControllerDrv8711::Status)>& onDone);
 
         void OnFault(const infra::Function<void()>& callback);

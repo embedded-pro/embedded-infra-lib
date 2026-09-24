@@ -44,6 +44,13 @@ namespace drivers
         controller.Decay(tdecay, decayMode, onDone);
     }
 
+    void StepDirStepperMotorDrv8711Decorator::Configure(StepperMotorControllerDrv8711::Configuration configuration, const infra::Function<void(bool verified)>& onDone)
+    {
+        configuration.pwmMode = false;
+        configuration.exStall = false;
+        controller.Configure(configuration, onDone);
+    }
+
     void StepDirStepperMotorDrv8711Decorator::ReadStatus(const infra::Function<void(StepperMotorControllerDrv8711::Status)>& onDone)
     {
         controller.ReadStatus(onDone);
