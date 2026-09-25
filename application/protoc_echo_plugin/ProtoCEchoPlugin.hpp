@@ -109,6 +109,7 @@ namespace application
         void GenerateFieldConstants();
         void GenerateFieldSizes();
         virtual void GenerateMaxMessageSize();
+        virtual std::string SerializerParameter() const;
         virtual std::string SerializerBody();
         virtual std::string DeserializerBody();
         virtual std::string CompareEqualBody() const;
@@ -141,6 +142,7 @@ namespace application
         void GenerateNestedMessages(Entities& formatter) override;
         void GenerateFieldDeclarations() override;
         void GenerateMaxMessageSize() override;
+        std::string SerializerParameter() const override;
         std::string SerializerBody() override;
 
         std::string ClassName() const override;
