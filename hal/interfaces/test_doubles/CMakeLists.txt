@@ -47,6 +47,7 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     SerialCommunicationStub.hpp
     SpiMock.cpp
     SpiMock.hpp
+    WatchdogMock.hpp
 )
 
 add_subdirectory(test)

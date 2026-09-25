@@ -7,6 +7,7 @@ target_include_directories(hal.interfaces PUBLIC
 
 target_link_libraries(hal.interfaces PUBLIC
     infra.event
+    infra.timer
     $<$<BOOL:${EMIL_BUILD_UNIX}>:stdc++fs>
 )
 
@@ -52,6 +53,7 @@ target_sources(hal.interfaces PRIVATE
     Spi.hpp
     UsbCustomHid.hpp
     UsbLinkLayer.hpp
+    Watchdog.hpp
     $<$<BOOL:${EMIL_HOST_BUILD}>:FileSystem.cpp>
     $<$<BOOL:${EMIL_HOST_BUILD}>:FileSystem.hpp>
 )

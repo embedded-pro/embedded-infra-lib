@@ -11,6 +11,7 @@ target_link_libraries(services.util_test PUBLIC
     services.tracer
     services.util
     services.util.register_access
+    services.util.watchdog
     services.util_test_doubles
     hal.interfaces_test_doubles
     infra.timer_test_helper
@@ -21,6 +22,7 @@ target_link_libraries(services.util_test PUBLIC
 target_sources(services.util_test PRIVATE
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestConfigurationStore.cpp>
     TestCyclicStore.cpp
+    TestEventLoopWatchdog.cpp
     TestRegisterStepRunner.cpp
     TestTerminal.cpp
     TestTerminalWithStorage.cpp

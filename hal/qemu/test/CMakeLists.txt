@@ -25,6 +25,7 @@ target_link_libraries(hal.qemu.test PRIVATE
     infra.timer
     infra.event_test_helper
     services.tracer
+    services.util.watchdog
     gmock_main)
 
 emil_add_test(hal.qemu.test)

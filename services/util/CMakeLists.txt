@@ -13,6 +13,18 @@ target_sources(services.util.register_access PRIVATE
     RegisterStepRunner.hpp
 )
 
+add_library(services.util.watchdog ${EMIL_EXCLUDE_FROM_ALL} STATIC)
+
+target_link_libraries(services.util.watchdog PUBLIC
+    hal.interfaces
+    infra.timer
+)
+
+target_sources(services.util.watchdog PRIVATE
+    EventLoopWatchdog.cpp
+    EventLoopWatchdog.hpp
+)
+
 add_library(services.util ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
 target_link_libraries(services.util PUBLIC
