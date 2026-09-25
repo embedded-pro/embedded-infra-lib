@@ -7,6 +7,7 @@ target_link_libraries(services.ble_test PUBLIC
     infra.timer_test_helper
     services.ble
     services.ble_test_doubles
+    services.util_test_doubles
 )
 
 target_sources(services.ble_test PRIVATE
@@ -30,5 +31,6 @@ target_sources(services.ble_test PRIVATE
     TestGapAdvertisementFormatter.cpp
     TestGattServer.cpp
     TestRetryingGattClientConnection.cpp
+    TestPersistentBondStorage.cpp
     TestVolatileBondStorage.cpp
 )

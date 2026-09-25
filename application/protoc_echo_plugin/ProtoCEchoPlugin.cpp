@@ -668,7 +668,7 @@ namespace application
         auto functions = std::make_shared<Access>("public");
 
         auto serialize = std::make_shared<Function>("Serialize", SerializerBody(), "void", Function::fConst);
-        serialize->Parameter("infra::ProtoFormatter& formatter");
+        serialize->Parameter(SerializerParameter());
         functions->Add(serialize);
 
         auto deserialize = std::make_shared<Function>("Deserialize", DeserializerBody(), "void", 0);
@@ -900,6 +900,11 @@ namespace application
         }
     }
 
+    std::string MessageGenerator::SerializerParameter() const
+    {
+        return "infra::ProtoFormatter& formatter";
+    }
+
     std::string MessageGenerator::SerializerBody()
     {
         std::ostringstream result;
@@ -1112,6 +1117,11 @@ namespace application
 
     void MessageReferenceGenerator::GenerateMaxMessageSize()
     {}
+
+    std::string MessageReferenceGenerator::SerializerParameter() const
+    {
+        return "infra::ProtoFormatter&";
+    }
 
     std::string MessageReferenceGenerator::SerializerBody()
     {

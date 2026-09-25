@@ -13,4 +13,5 @@ target_sources(services.crypto_test PRIVATE
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestAesMbedTls.cpp>
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestEllipticCurveDiffieHellman.cpp>
     TestKeyGenerator.cpp
+    TestSha256Software.cpp
 )
