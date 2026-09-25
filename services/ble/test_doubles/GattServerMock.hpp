@@ -14,6 +14,15 @@ namespace services
         MOCK_METHOD(void, AddService, (GattServerService & service), (override));
     };
 
+    class GattServerObserverMock
+        : public GattServerObserver
+    {
+    public:
+        using GattServerObserver::GattServerObserver;
+
+        MOCK_METHOD(void, MaxAttMtuSizeChanged, (uint16_t maxAttMtuSize), (override));
+    };
+
     class GattServerCharacteristicOperationsMock
         : public services::GattServerCharacteristicOperations
     {
