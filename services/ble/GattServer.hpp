@@ -157,7 +157,19 @@ namespace services
         infra::IntrusiveForwardList<GattServerIncludedService> includedServices;
     };
 
+    class GattServer;
+
+    class GattServerObserver
+        : public infra::Observer<GattServerObserver, GattServer>
+    {
+    public:
+        using infra::Observer<GattServerObserver, GattServer>::Observer;
+
+        virtual void MaxAttMtuSizeChanged(uint16_t maxAttMtuSize) = 0;
+    };
+
     class GattServer
+        : public infra::Subject<GattServerObserver>
     {
     public:
         GattServer() = default;
