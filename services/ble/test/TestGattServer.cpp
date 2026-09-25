@@ -77,6 +77,19 @@ TEST(GattServerTest, bitwise_and_permissions_supported)
     EXPECT_FALSE((permissions & GattPermissionFlags::encryptedRead) == GattPermissionFlags::encryptedRead);
 }
 
+TEST(GattServerTest, reports_a_changed_max_att_mtu_size_to_its_observers)
+{
+    testing::StrictMock<services::GattServerMock> gattServer;
+    testing::StrictMock<services::GattServerObserverMock> observer{ gattServer };
+
+    EXPECT_CALL(observer, MaxAttMtuSizeChanged(247));
+
+    gattServer.NotifyObservers([](auto& gattServerObserver)
+        {
+            gattServerObserver.MaxAttMtuSizeChanged(247);
+        });
+}
+
 class GattServerCharacteristicTest
     : public testing::Test
     , public infra::EventDispatcherFixture

@@ -64,6 +64,8 @@ target_sources(services.ble PRIVATE
     GattServerCharacteristicImpl.hpp
     RetryingGattClientConnection.cpp
     RetryingGattClientConnection.hpp
+    VolatileBondStorage.cpp
+    VolatileBondStorage.hpp
 )
 
 add_subdirectory(profile)
