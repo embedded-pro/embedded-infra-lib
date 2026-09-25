@@ -30,4 +30,5 @@ target_sources(services.ble_test PRIVATE
     TestGapAdvertisementFormatter.cpp
     TestGattServer.cpp
     TestRetryingGattClientConnection.cpp
+    TestVolatileBondStorage.cpp
 )
