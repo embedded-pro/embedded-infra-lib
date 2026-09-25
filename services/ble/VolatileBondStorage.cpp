@@ -7,7 +7,7 @@ namespace services
         : addresses(addresses)
     {}
 
-    void VolatileBondStorage::BondStorageSynchronizerCreated(BondStorageSynchronizer& manager)
+    void VolatileBondStorage::BondStorageSynchronizerCreated(BondStorageSynchronizer&)
     {}
 
     void VolatileBondStorage::UpdateBondedDevice(hal::MacAddress address)
@@ -23,7 +23,8 @@ namespace services
 
     void VolatileBondStorage::RemoveBond(hal::MacAddress address)
     {
-        addresses.erase(std::remove(addresses.begin(), addresses.end(), address), addresses.end());
+        const auto removed = std::ranges::remove(addresses, address);
+        addresses.erase(removed.begin(), removed.end());
     }
 
     void VolatileBondStorage::RemoveAllBonds()
@@ -33,11 +34,11 @@ namespace services
 
     void VolatileBondStorage::RemoveBondIf(const infra::Function<bool(hal::MacAddress)>& onAddress)
     {
-        addresses.erase(std::remove_if(addresses.begin(), addresses.end(), [&onAddress](const auto& address)
-                            {
-                                return onAddress(address);
-                            }),
-            addresses.end());
+        const auto removed = std::ranges::remove_if(addresses, [&onAddress](const auto& address)
+            {
+                return onAddress(address);
+            });
+        addresses.erase(removed.begin(), removed.end());
     }
 
     uint32_t VolatileBondStorage::GetMaxNumberOfBonds() const
@@ -47,7 +48,7 @@ namespace services
 
     bool VolatileBondStorage::IsBondStored(hal::MacAddress address) const
     {
-        return std::find(addresses.begin(), addresses.end(), address) != addresses.end();
+        return std::ranges::find(addresses, address) != addresses.end();
     }
 
     void VolatileBondStorage::IterateBondedDevices(const infra::Function<void(hal::MacAddress)>& onAddress)
