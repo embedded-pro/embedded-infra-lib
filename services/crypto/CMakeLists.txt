@@ -16,6 +16,8 @@ target_sources(services.crypto PRIVATE
     Secp256r1.cpp
     Secp256r1.hpp
     Sha256.hpp
+    Sha256Software.cpp
+    Sha256Software.hpp
 )
 
 if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")

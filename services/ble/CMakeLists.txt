@@ -62,6 +62,8 @@ target_sources(services.ble PRIVATE
     GattServer.hpp
     GattServerCharacteristicImpl.cpp
     GattServerCharacteristicImpl.hpp
+    PersistentBondStorage.cpp
+    PersistentBondStorage.hpp
     RetryingGattClientConnection.cpp
     RetryingGattClientConnection.hpp
     VolatileBondStorage.cpp
