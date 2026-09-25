@@ -36,7 +36,7 @@ namespace
         const hal::MacAddress third{ 3, 4, 5, 6, 7, 8 };
         testing::StrictMock<services::ConfigurationStoreInterfaceMock> store;
         infra::BoundedVector<uint8_t>::WithMaxSize<12> stored;
-        std::optional<services::PersistentBondStorage::WithMaxBonds<2>> storage;
+        std::optional<services::PersistentBondStorage> storage;
     };
 }
 
@@ -55,6 +55,35 @@ TEST_F(PersistentBondStorageTest, starts_empty_from_an_empty_store)
     Construct();
 
     EXPECT_TRUE(Bonded().empty());
+    EXPECT_FALSE(storage->IsBondStored(first));
+}
+
+TEST_F(PersistentBondStorageTest, holds_as_many_bonds_as_the_store_has_room_for)
+{
+    Construct();
+
+    EXPECT_EQ(2u, storage->GetMaxNumberOfBonds());
+}
+
+TEST_F(PersistentBondStorageTest, ignores_an_incomplete_trailing_address)
+{
+    stored.insert(stored.end(), first.begin(), first.end());
+    stored.push_back(9);
+
+    Construct();
+
+    EXPECT_EQ(std::vector<hal::MacAddress>{ first }, Bonded());
+}
+
+TEST_F(PersistentBondStorageTest, an_already_bonded_device_is_not_written_again)
+{
+    Construct();
+    EXPECT_CALL(store, Write()).WillOnce(testing::Return(1));
+
+    storage->UpdateBondedDevice(first);
+    storage->UpdateBondedDevice(first);
+
+    EXPECT_TRUE(storage->IsBondStored(first));
 }
 
 TEST_F(PersistentBondStorageTest, a_new_bond_is_written)
