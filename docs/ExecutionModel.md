@@ -27,3 +27,26 @@ A thread may have its own event dispatcher. This removes the need for starting a
 Some applications do not benefit from having an event dispatcher. A boot loader's main focus is to be small and execute one thing; it only loads an application and therefore has no need to execute multiple actions in parallel. The small overhead that an event dispatcher brings does not bring any benefits, and should therefore not be needed in a boot loader. For this kind of usecase, variations of the interfaces for interacting with peripherals exist which work synchronously; they do not need to schedule their completion on an event dispatcher, but they complete their activities before returning. While for other libraries this is often the default behaviour, for Embedded Infrastructure Library this is the exception.
 
 A number of components in Embedded Infrastructure Library assume the presence of an event dispatcher. This includes any component that makes use of an asynchronous interface. Obviously, without an event dispatcher such components cannot be used.
+
+## Idling in low power
+
+When the event dispatcher runs out of work it calls `Idle()`. `infra::LowPowerEventDispatcher` forwards that call to an `infra::LowPowerStrategy`, which decides how the processor waits for the next interrupt.
+
+On Cortex-M, `hal::cortex::LowPowerStrategyWithModes` masks interrupts, checks that the event dispatcher is still idle, and then asks a `hal::LowPowerMode` to enter `hal::PowerMode::sleep` or `hal::PowerMode::deepSleep`. The core wakes on any pending interrupt, even with interrupts masked, so work scheduled from an interrupt between the idle check and the wait is never missed.
+
+Deep sleep is chosen only when both of these hold:
+
+- No component holds the `infra::MainClockReference`. Peripherals that need the main clock while a transfer is in progress, such as `services::LowPowerSpiMaster` and `services::LowPowerSerialCommunication`, hold it for that time.
+- No timer is pending. The system tick stops in deep sleep, so a pending timer would be delayed until some other interrupt wakes the core.
+
+`hal::LowPowerMode` is implemented per vendor, because deep sleep requires vendor-specific clock configuration. `hal::cortex::LowPowerModeCortex` is the portable fallback: it only sleeps.
+
+## Supervising the event loop with a watchdog
+
+A stuck event loop does not stop interrupts, so refreshing a hardware watchdog from an interrupt alone does not detect it. `services::EventLoopWatchdog` combines both:
+
+- A `hal::WatchdogWithEarlyWarning` raises an early-warning interrupt every `EarlyWarningPeriod()`. `EventLoopWatchdog` refreshes the hardware from that interrupt and counts it as a missed feed.
+- A repeating timer on the event dispatcher resets the count. It only runs while the event loop makes progress.
+- Once the missed feeds cover `expirationTimeout`, `onExpired` is called from the interrupt so it can record why the device resets. After that the hardware is no longer refreshed, so it resets the device even when `onExpired` returns.
+
+Code that has to keep interrupts disabled for longer than the early-warning period, such as a flash erase, calls `Refresh()` through the `hal::Watchdog` interface.
