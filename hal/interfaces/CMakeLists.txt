@@ -39,6 +39,7 @@ target_sources(hal.interfaces PRIVATE
     I2c.hpp
     I2cRegisterAccess.cpp
     I2cRegisterAccess.hpp
+    LowPowerMode.hpp
     MacAddress.cpp
     MacAddress.hpp
     Magnetometer.hpp
