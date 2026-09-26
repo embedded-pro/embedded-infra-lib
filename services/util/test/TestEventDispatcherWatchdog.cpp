@@ -1,4 +1,5 @@
 #include "hal/interfaces/test_doubles/WatchdogMock.hpp"
+#include "infra/util/SharedObjectAllocatorFixedSize.hpp"
 #include "services/util/EventDispatcherWatchdog.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -166,5 +167,28 @@ TEST_F(EventDispatcherWatchdogVariantsTest, extends_the_low_power_event_dispatch
             EXPECT_CALL(expired, Call());
             earlyWarning();
         });
+    eventDispatcher.ExecuteAllActions();
+}
+
+TEST_F(EventDispatcherWatchdogVariantsTest, the_low_power_event_dispatcher_supervises_actions_scheduled_with_a_weak_ptr)
+{
+    LowPowerStrategyStub lowPowerStrategy;
+    EXPECT_CALL(watchdog, EarlyWarningPeriod()).WillRepeatedly(testing::Return(std::chrono::milliseconds(50)));
+    EXPECT_CALL(watchdog, Start(testing::_)).WillOnce(testing::SaveArg<0>(&earlyWarning));
+    services::LowPowerEventDispatcherWithWatchdog::WithSize<10> eventDispatcher(watchdog, std::chrono::milliseconds(50), onExpired, lowPowerStrategy);
+
+    infra::SharedObjectAllocatorFixedSize<int, void()>::WithStorage<1> allocator;
+    infra::SharedPtr<int> object = allocator.Allocate();
+    infra::WeakPtr<int> weakObject = object;
+
+    eventDispatcher.Schedule([this](const infra::SharedPtr<int>& object)
+        {
+            EXPECT_CALL(watchdog, Refresh()).Times(2);
+            earlyWarning();
+
+            EXPECT_CALL(expired, Call());
+            earlyWarning();
+        },
+        weakObject);
     eventDispatcher.ExecuteAllActions();
 }
