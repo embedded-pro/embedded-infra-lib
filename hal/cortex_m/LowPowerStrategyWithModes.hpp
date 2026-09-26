@@ -4,14 +4,26 @@
 #include "hal/interfaces/LowPowerMode.hpp"
 #include "infra/event/LowPowerEventDispatcher.hpp"
 #include "infra/timer/Timer.hpp"
+#include "infra/util/Observer.hpp"
 #include <cstdint>
 
 namespace hal::cortex
 {
-    // Enters deep sleep only when no peripheral holds the main clock and no timer is pending,
-    // because the system tick stops in deep sleep and would delay every pending timer
+    class LowPowerStrategyWithModes;
+
+    class DeepSleepObserver
+        : public infra::Observer<DeepSleepObserver, LowPowerStrategyWithModes>
+    {
+    public:
+        using infra::Observer<DeepSleepObserver, LowPowerStrategyWithModes>::Observer;
+
+        virtual void EnteringDeepSleep() = 0;
+        virtual void LeftDeepSleep() = 0;
+    };
+
     class LowPowerStrategyWithModes
         : public infra::LowPowerStrategy
+        , public infra::Subject<DeepSleepObserver>
     {
     public:
         LowPowerStrategyWithModes(LowPowerMode& lowPowerMode, const infra::MainClockReference& mainClock, uint32_t timerServiceId = infra::systemTimerServiceId);
@@ -20,7 +32,8 @@ namespace hal::cortex
         void Idle(const infra::EventDispatcherWorker& eventDispatcher) override;
 
     private:
-        PowerMode SelectMode() const;
+        bool DeepSleepAllowed() const;
+        void DeepSleep();
 
         LowPowerMode& lowPowerMode;
         const infra::MainClockReference& mainClock;

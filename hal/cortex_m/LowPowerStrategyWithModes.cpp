@@ -34,24 +34,38 @@ namespace hal::cortex
     {}
 
     void LowPowerStrategyWithModes::RequestExecution()
-    {
-        // Interrupts are masked between the idle check and entering low power, so a request raised
-        // in between leaves its interrupt pending and that wakes the core
-    }
+    {}
 
     void LowPowerStrategyWithModes::Idle(const infra::EventDispatcherWorker& eventDispatcher)
     {
         InterruptsMasked interruptsMasked;
 
-        if (eventDispatcher.IsIdle())
-            lowPowerMode.Enter(SelectMode());
+        if (!eventDispatcher.IsIdle())
+            return;
+
+        if (DeepSleepAllowed())
+            DeepSleep();
+        else
+            lowPowerMode.Enter(PowerMode::sleep);
     }
 
-    PowerMode LowPowerStrategyWithModes::SelectMode() const
+    bool LowPowerStrategyWithModes::DeepSleepAllowed() const
     {
-        if (mainClock.IsReferenced() || infra::TimerService::GetTimerService(timerServiceId).NextTrigger() != infra::TimePoint::max())
-            return PowerMode::sleep;
+        return !mainClock.IsReferenced() && infra::TimerService::GetTimerService(timerServiceId).NextTrigger() == infra::TimePoint::max();
+    }
 
-        return PowerMode::deepSleep;
+    void LowPowerStrategyWithModes::DeepSleep()
+    {
+        NotifyObservers([](auto& observer)
+            {
+                observer.EnteringDeepSleep();
+            });
+
+        lowPowerMode.Enter(PowerMode::deepSleep);
+
+        NotifyObservers([](auto& observer)
+            {
+                observer.LeftDeepSleep();
+            });
     }
 }

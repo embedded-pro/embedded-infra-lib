@@ -20,7 +20,6 @@ namespace hal
         ~LowPowerMode() = default;
 
     public:
-        // Called with interrupts masked. Returns once an interrupt is pending, with the run-mode clocks restored
         virtual void Enter(PowerMode mode) = 0;
     };
 }

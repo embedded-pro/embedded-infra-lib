@@ -19,9 +19,6 @@ namespace services
         uint32_t EarlyWarningsUntilExpiry(infra::Duration expirationTimeout, infra::Duration earlyWarningPeriod);
     }
 
-    // Extends an event dispatcher worker with watchdog supervision. Every early warning refreshes the watchdog,
-    // unless the same action has been executing for expirationTimeout: then onExpired is invoked from the
-    // early-warning interrupt and the watchdog is no longer refreshed, so it resets the device
     template<class Worker>
     class EventDispatcherWatchdogWorker
         : public Worker
@@ -44,8 +41,6 @@ namespace services
         uint32_t expirationCount;
         infra::Function<void()> onExpired;
 
-        // Steps advance when an action starts and when it finishes, so an odd count means an action is executing.
-        // Only the dispatcher writes it, with plain stores that are lock-free on every core
         std::atomic<uint32_t> steps{ 0 };
         uint32_t stepsAtLastEarlyWarning{ 0 };
         uint32_t missedEarlyWarnings{ 0 };

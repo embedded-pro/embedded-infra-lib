@@ -6,6 +6,19 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+namespace
+{
+    class DeepSleepObserverMock
+        : public hal::cortex::DeepSleepObserver
+    {
+    public:
+        using hal::cortex::DeepSleepObserver::DeepSleepObserver;
+
+        MOCK_METHOD(void, EnteringDeepSleep, (), (override));
+        MOCK_METHOD(void, LeftDeepSleep, (), (override));
+    };
+}
+
 class LowPowerStrategyWithModesTest
     : public testing::Test
     , public infra::EventDispatcherFixture
@@ -92,4 +105,50 @@ TEST_F(LowPowerStrategyWithModesTest, idle_restores_the_interrupt_mask)
     uint32_t primask = 1;
     __asm volatile("mrs %0, primask" : "=r"(primask));
     EXPECT_EQ(0u, primask);
+}
+
+TEST_F(LowPowerStrategyWithModesTest, observers_are_notified_around_deep_sleep)
+{
+    testing::StrictMock<DeepSleepObserverMock> observer{ strategy };
+    testing::InSequence sequence;
+
+    EXPECT_CALL(observer, EnteringDeepSleep());
+    EXPECT_CALL(lowPowerMode, Enter(hal::PowerMode::deepSleep));
+    EXPECT_CALL(observer, LeftDeepSleep());
+    strategy.Idle(*this);
+}
+
+TEST_F(LowPowerStrategyWithModesTest, observers_are_not_notified_around_sleep)
+{
+    testing::StrictMock<DeepSleepObserverMock> observer{ strategy };
+    mainClock.Refere();
+
+    EXPECT_CALL(lowPowerMode, Enter(hal::PowerMode::sleep));
+    strategy.Idle(*this);
+}
+
+TEST_F(LowPowerStrategyWithModesTest, observers_are_not_notified_with_scheduled_work)
+{
+    testing::StrictMock<DeepSleepObserverMock> observer{ strategy };
+    Schedule([]() {});
+
+    strategy.Idle(*this);
+
+    ExecuteAllActions();
+}
+
+TEST_F(LowPowerStrategyWithModesTest, observers_are_notified_with_interrupts_masked)
+{
+    testing::StrictMock<DeepSleepObserverMock> observer{ strategy };
+    uint32_t primask = 0;
+
+    EXPECT_CALL(observer, EnteringDeepSleep()).WillOnce([&primask]()
+        {
+            __asm volatile("mrs %0, primask" : "=r"(primask));
+        });
+    EXPECT_CALL(lowPowerMode, Enter(hal::PowerMode::deepSleep));
+    EXPECT_CALL(observer, LeftDeepSleep());
+    strategy.Idle(*this);
+
+    EXPECT_EQ(1u, primask);
 }

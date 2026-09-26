@@ -41,6 +41,45 @@ Deep sleep is chosen only when both of these hold:
 
 `hal::LowPowerMode` is implemented per vendor, because deep sleep requires vendor-specific clock configuration.
 
+### Preparing for and resuming from deep sleep
+
+Work around deep sleep falls in two groups.
+
+Short, synchronous work that must happen right before and right after each deep sleep, such as switching pins to analog or notifying a radio, goes in a `hal::cortex::DeepSleepObserver` attached to the strategy. `EnteringDeepSleep()` and `LeftDeepSleep()` are called only around deep sleep, not around sleep, with interrupts masked. They must not block, but they may schedule work on the event dispatcher. Vendor implementations restore the run-mode clocks before `LeftDeepSleep()` is called.
+
+Asynchronous work, such as putting an external sensor or flash into its low-power state over SPI or I2C, cannot run with interrupts masked. It runs on the event dispatcher before deep sleep is allowed, coordinated by an `infra::SystemStateManager`. Every component that has to prepare is a `infra::SystemStateParticipant`: it starts its preparation when a state is requested, and calls `ReachedState()` when it has finished. The manager requests the next state only after all participants reached the current one. The application holds the `infra::MainClockReference` while running, and releases it in a final state, after all participants have prepared:
+
+```cpp
+struct StatePrepareForDeepSleep : infra::SystemState<StatePrepareForDeepSleep> {};
+struct StateReadyForDeepSleep : infra::SystemState<StateReadyForDeepSleep> {};
+
+class PowerManager
+    : public infra::SystemStateParticipant
+{
+public:
+    PowerManager(infra::SystemStateManager& manager, infra::MainClockReference& mainClock)
+        : infra::SystemStateParticipant(manager)
+        , mainClock(mainClock)
+    {
+        mainClock.Refere();
+    }
+
+protected:
+    void RequestState(infra::SystemStateBase state) override
+    {
+        if (state == StateReadyForDeepSleep())
+            mainClock.Release();
+
+        ReachedState();
+    }
+
+private:
+    infra::MainClockReference& mainClock;
+};
+```
+
+Resuming mirrors this: the interrupt that woke the device schedules a run of the states that restore the participants, and the application takes the `MainClockReference` again.
+
 ## Supervising the event dispatcher with a watchdog
 
 A stuck event dispatcher does not stop interrupts, so refreshing a hardware watchdog from an interrupt alone does not detect it. `services::EventDispatcherWatchdogWorker<Worker>` extends any event dispatcher worker with supervision by a `hal::Watchdog`:
