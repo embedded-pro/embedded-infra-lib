@@ -157,7 +157,7 @@ TEST_F(EventDispatcherWatchdogVariantsTest, extends_the_low_power_event_dispatch
     LowPowerStrategyStub lowPowerStrategy;
     EXPECT_CALL(watchdog, EarlyWarningPeriod()).WillRepeatedly(testing::Return(std::chrono::milliseconds(50)));
     EXPECT_CALL(watchdog, Start(testing::_)).WillOnce(testing::SaveArg<0>(&earlyWarning));
-    services::LowPowerEventDispatcherWithWatchdog::WithSize<10> eventDispatcher(watchdog, std::chrono::milliseconds(50), onExpired, lowPowerStrategy);
+    services::LowPowerEventDispatcherWithWeakPtrAndWatchdog::WithSize<10> eventDispatcher(watchdog, std::chrono::milliseconds(50), onExpired, lowPowerStrategy);
 
     eventDispatcher.Schedule([this]()
         {
@@ -175,7 +175,7 @@ TEST_F(EventDispatcherWatchdogVariantsTest, the_low_power_event_dispatcher_super
     LowPowerStrategyStub lowPowerStrategy;
     EXPECT_CALL(watchdog, EarlyWarningPeriod()).WillRepeatedly(testing::Return(std::chrono::milliseconds(50)));
     EXPECT_CALL(watchdog, Start(testing::_)).WillOnce(testing::SaveArg<0>(&earlyWarning));
-    services::LowPowerEventDispatcherWithWatchdog::WithSize<10> eventDispatcher(watchdog, std::chrono::milliseconds(50), onExpired, lowPowerStrategy);
+    services::LowPowerEventDispatcherWithWeakPtrAndWatchdog::WithSize<10> eventDispatcher(watchdog, std::chrono::milliseconds(50), onExpired, lowPowerStrategy);
 
     infra::SharedObjectAllocatorFixedSize<int, void()>::WithStorage<1> allocator;
     infra::SharedPtr<int> object = allocator.Allocate();

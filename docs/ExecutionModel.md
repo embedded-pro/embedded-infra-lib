@@ -88,10 +88,10 @@ A stuck event dispatcher does not stop interrupts, so refreshing a hardware watc
 - The watchdog raises an early-warning interrupt every `EarlyWarningPeriod()`, and the worker refreshes it from there. If the dispatcher is idle, or its steps advanced since the previous early warning, it is making progress. Otherwise the same action is still executing, and the early warning counts as missed.
 - Once the missed early warnings cover the expiration timeout, `onExpired` is called from the interrupt so it can record why the device resets. After that the watchdog is no longer refreshed, so it resets the device even when `onExpired` returns.
 
-`services::EventDispatcherWithWatchdog`, `services::EventDispatcherWithWeakPtrAndWatchdog` and `services::LowPowerEventDispatcherWithWatchdog` are ready-made combinations. They take the watchdog, the expiration timeout and `onExpired` before the arguments of the dispatcher they extend:
+`services::EventDispatcherWithWatchdog`, `services::EventDispatcherWithWeakPtrAndWatchdog` and `services::LowPowerEventDispatcherWithWeakPtrAndWatchdog` are ready-made combinations. They take the watchdog, the expiration timeout and `onExpired` before the arguments of the dispatcher they extend:
 
 ```cpp
-services::LowPowerEventDispatcherWithWatchdog::WithSize<50> eventDispatcher(watchdog, std::chrono::milliseconds(1500), onExpired, lowPowerStrategy);
+services::LowPowerEventDispatcherWithWeakPtrAndWatchdog::WithSize<50> eventDispatcher(watchdog, std::chrono::milliseconds(1500), onExpired, lowPowerStrategy);
 ```
 
 No timer is involved, so an idle dispatcher can enter deep sleep while it is supervised. Code that has to keep interrupts disabled for longer than the early-warning period, such as a flash erase, calls `Refresh()` on the watchdog directly.

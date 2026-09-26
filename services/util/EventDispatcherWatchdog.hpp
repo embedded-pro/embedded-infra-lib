@@ -49,7 +49,7 @@ namespace services
 
     using EventDispatcherWithWatchdog = infra::EventDispatcherConnector<EventDispatcherWatchdogWorker<infra::EventDispatcherWorkerImpl>>;
     using EventDispatcherWithWeakPtrAndWatchdog = infra::EventDispatcherWithWeakPtrConnector<EventDispatcherWatchdogWorker<infra::EventDispatcherWithWeakPtrWorker>>;
-    using LowPowerEventDispatcherWithWatchdog = infra::EventDispatcherWithWeakPtrConnector<EventDispatcherWatchdogWorker<infra::LowPowerEventDispatcherWorker>>;
+    using LowPowerEventDispatcherWithWeakPtrAndWatchdog = infra::EventDispatcherWithWeakPtrConnector<EventDispatcherWatchdogWorker<infra::LowPowerEventDispatcherWorker>>;
 
     ////    Implementation    ////
 
