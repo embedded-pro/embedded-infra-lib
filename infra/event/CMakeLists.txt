@@ -14,8 +14,6 @@ target_sources(infra.event PRIVATE
     EventDispatcher.hpp
     EventDispatcherWithWeakPtr.cpp
     EventDispatcherWithWeakPtr.hpp
-    ExecutionProgress.cpp
-    ExecutionProgress.hpp
     LowPowerEventDispatcher.cpp
     LowPowerEventDispatcher.hpp
     QueueForOneReaderOneIrqWriter.hpp

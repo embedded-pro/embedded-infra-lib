@@ -19,13 +19,10 @@ class WatchdogQemuTest
 {
 public:
     WatchdogQemuTest()
-        : timerService(hal::cmsdkWatchdogClockHz)
     {
         config.timeout = std::chrono::milliseconds(50);
         config.resetOnMissedInterrupt = false;
         config.base = reinterpret_cast<uintptr_t>(&registers);
-
-        supervisorConfig.expirationTimeout = std::chrono::milliseconds(150);
     }
 
     void Timeout()
@@ -34,26 +31,13 @@ public:
         interruptTable.Invoke(hal::cortex::nmiIrq);
     }
 
-    void WhileAnActionRuns(const infra::Function<void()>& duringAction)
-    {
-        infra::EventDispatcher::Instance().Schedule(duringAction);
-        ExecuteAllActions();
-    }
-
     hal::cortex::InterruptTable::WithStorage<64> interruptTable;
-    hal::cortex::SystemTickTimerService timerService;
     hal::CmsdkWatchdogRegisters registers{};
     hal::WatchdogQemu::Config config;
-    services::EventDispatcherWatchdog::Config supervisorConfig;
     uint32_t earlyWarnings{ 0 };
     infra::Function<void()> onEarlyWarning{ [this]()
         {
             ++earlyWarnings;
-        } };
-    uint32_t expirations{ 0 };
-    infra::Function<void()> onExpired{ [this]()
-        {
-            ++expirations;
         } };
 };
 
@@ -165,33 +149,60 @@ TEST_F(WatchdogQemuTest, refresh_clears_a_raised_timeout)
     EXPECT_EQ(0u, registers.intClr);
 }
 
-TEST_F(WatchdogQemuTest, a_supervised_timeout_clears_the_interrupt_so_the_hardware_does_not_reset)
+class WatchdogQemuSupervisionTest
+    : public testing::Test
 {
-    hal::WatchdogQemu watchdog(config);
-    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
+public:
+    static hal::WatchdogQemu::Config Config(hal::CmsdkWatchdogRegisters& registers)
+    {
+        hal::WatchdogQemu::Config config;
+        config.timeout = std::chrono::milliseconds(50);
+        config.resetOnMissedInterrupt = false;
+        config.base = reinterpret_cast<uintptr_t>(&registers);
+        return config;
+    }
 
+    void Timeout()
+    {
+        registers.ris = hal::watchdogRisTimeout;
+        interruptTable.Invoke(hal::cortex::nmiIrq);
+    }
+
+    void WhileAnActionRuns(const infra::Function<void()>& duringAction)
+    {
+        eventDispatcher.Schedule(duringAction);
+        eventDispatcher.ExecuteAllActions();
+    }
+
+    hal::cortex::InterruptTable::WithStorage<64> interruptTable;
+    hal::CmsdkWatchdogRegisters registers{};
+    hal::WatchdogQemu watchdog{ Config(registers) };
+    uint32_t expirations{ 0 };
+    infra::Function<void()> onExpired{ [this]()
+        {
+            ++expirations;
+        } };
+    services::EventDispatcherWithWatchdog::WithSize<10> eventDispatcher{ watchdog, std::chrono::milliseconds(150), onExpired };
+};
+
+TEST_F(WatchdogQemuSupervisionTest, a_timeout_clears_the_interrupt_so_the_hardware_does_not_reset)
+{
     registers.intClr = 0xffffffffu;
     Timeout();
 
     EXPECT_EQ(0u, registers.intClr);
 }
 
-TEST_F(WatchdogQemuTest, a_supervised_idle_event_dispatcher_does_not_expire)
+TEST_F(WatchdogQemuSupervisionTest, an_idle_event_dispatcher_does_not_expire)
 {
-    hal::WatchdogQemu watchdog(config);
-    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
-
     for (uint32_t iteration = 0; iteration != 10; ++iteration)
         Timeout();
 
     EXPECT_EQ(0u, expirations);
 }
 
-TEST_F(WatchdogQemuTest, a_supervised_action_that_does_not_return_expires_the_watchdog)
+TEST_F(WatchdogQemuSupervisionTest, an_action_that_does_not_return_expires_the_watchdog)
 {
-    hal::WatchdogQemu watchdog(config);
-    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
-
     WhileAnActionRuns([this]()
         {
             for (uint32_t iteration = 0; iteration != 3; ++iteration)
@@ -203,11 +214,8 @@ TEST_F(WatchdogQemuTest, a_supervised_action_that_does_not_return_expires_the_wa
         });
 }
 
-TEST_F(WatchdogQemuTest, a_supervised_expired_watchdog_leaves_the_timeout_raised_for_the_hardware_reset)
+TEST_F(WatchdogQemuSupervisionTest, an_expired_watchdog_leaves_the_timeout_raised_for_the_hardware_reset)
 {
-    hal::WatchdogQemu watchdog(config);
-    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
-
     WhileAnActionRuns([this]()
         {
             for (uint32_t iteration = 0; iteration != 4; ++iteration)

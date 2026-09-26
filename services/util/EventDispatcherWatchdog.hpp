@@ -2,42 +2,132 @@
 #define SERVICES_EVENT_DISPATCHER_WATCHDOG_HPP
 
 #include "hal/interfaces/Watchdog.hpp"
-#include "infra/event/ExecutionProgress.hpp"
+#include "infra/event/EventDispatcher.hpp"
+#include "infra/event/EventDispatcherWithWeakPtr.hpp"
+#include "infra/event/LowPowerEventDispatcher.hpp"
 #include "infra/timer/Timer.hpp"
 #include "infra/util/Function.hpp"
-#include <chrono>
+#include <atomic>
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 
 namespace services
 {
-    class EventDispatcherWatchdog
-        : public hal::Watchdog
+    namespace detail
+    {
+        uint32_t EarlyWarningsUntilExpiry(infra::Duration expirationTimeout, infra::Duration earlyWarningPeriod);
+    }
+
+    // Extends an event dispatcher worker with watchdog supervision. Every early warning refreshes the watchdog,
+    // unless the same action has been executing for expirationTimeout: then onExpired is invoked from the
+    // early-warning interrupt and the watchdog is no longer refreshed, so it resets the device
+    template<class Worker>
+    class EventDispatcherWatchdogWorker
+        : public Worker
     {
     public:
-        struct Config
-        {
-            constexpr Config()
-            {}
+        template<std::size_t StorageSize, class T = EventDispatcherWatchdogWorker>
+        using WithSize = typename Worker::template WithSize<StorageSize, T>;
 
-            infra::Duration expirationTimeout{ std::chrono::milliseconds(1500) };
-        };
+        template<class ScheduledActionsStorage, class... WorkerArgs>
+        EventDispatcherWatchdogWorker(ScheduledActionsStorage scheduledActionsStorage, hal::Watchdog& watchdog, infra::Duration expirationTimeout, const infra::Function<void()>& onExpired, WorkerArgs&&... workerArgs);
 
-        EventDispatcherWatchdog(hal::WatchdogWithEarlyWarning& watchdog, const infra::Function<void()>& onExpired, const Config& config = Config());
-
-        void Refresh() override;
+        void ExecuteFirstAction() override;
 
     private:
-        bool EventDispatcherProgressed();
+        void Step();
+        bool Progressed();
         void EarlyWarning();
 
-        hal::WatchdogWithEarlyWarning& watchdog;
-        const infra::ExecutionProgress& progress;
+        hal::Watchdog& watchdog;
         uint32_t expirationCount;
-        uint32_t stepsAtLastEarlyWarning;
+        infra::Function<void()> onExpired;
+
+        // Steps advance when an action starts and when it finishes, so an odd count means an action is executing.
+        // Only the dispatcher writes it, with plain stores that are lock-free on every core
+        std::atomic<uint32_t> steps{ 0 };
+        uint32_t stepsAtLastEarlyWarning{ 0 };
         uint32_t missedEarlyWarnings{ 0 };
         bool expired{ false };
-        infra::Function<void()> onExpired;
     };
+
+    using EventDispatcherWithWatchdog = infra::EventDispatcherConnector<EventDispatcherWatchdogWorker<infra::EventDispatcherWorkerImpl>>;
+    using EventDispatcherWithWeakPtrAndWatchdog = infra::EventDispatcherWithWeakPtrConnector<EventDispatcherWatchdogWorker<infra::EventDispatcherWithWeakPtrWorker>>;
+    using LowPowerEventDispatcherWithWatchdog = infra::EventDispatcherWithWeakPtrConnector<EventDispatcherWatchdogWorker<infra::LowPowerEventDispatcherWorker>>;
+
+    ////    Implementation    ////
+
+    template<class Worker>
+    template<class ScheduledActionsStorage, class... WorkerArgs>
+    EventDispatcherWatchdogWorker<Worker>::EventDispatcherWatchdogWorker(ScheduledActionsStorage scheduledActionsStorage, hal::Watchdog& watchdog, infra::Duration expirationTimeout, const infra::Function<void()>& onExpired, WorkerArgs&&... workerArgs)
+        : Worker(scheduledActionsStorage, std::forward<WorkerArgs>(workerArgs)...)
+        , watchdog(watchdog)
+        , expirationCount(detail::EarlyWarningsUntilExpiry(expirationTimeout, watchdog.EarlyWarningPeriod()))
+        , onExpired(onExpired)
+    {
+        watchdog.Start([this]()
+            {
+                EarlyWarning();
+            });
+    }
+
+    template<class Worker>
+    void EventDispatcherWatchdogWorker<Worker>::ExecuteFirstAction()
+    {
+        struct StepOnExit
+        {
+            explicit StepOnExit(EventDispatcherWatchdogWorker& worker)
+                : worker(worker)
+            {}
+
+            StepOnExit(const StepOnExit&) = delete;
+            StepOnExit& operator=(const StepOnExit&) = delete;
+
+            ~StepOnExit()
+            {
+                worker.Step();
+            }
+
+            EventDispatcherWatchdogWorker& worker;
+        };
+
+        Step();
+        StepOnExit stepOnExit{ *this };
+        Worker::ExecuteFirstAction();
+    }
+
+    template<class Worker>
+    void EventDispatcherWatchdogWorker<Worker>::Step()
+    {
+        steps.store(steps.load() + 1);
+    }
+
+    template<class Worker>
+    bool EventDispatcherWatchdogWorker<Worker>::Progressed()
+    {
+        auto current = steps.load();
+        auto progressed = current % 2 == 0 || current != stepsAtLastEarlyWarning;
+        stepsAtLastEarlyWarning = current;
+        return progressed;
+    }
+
+    template<class Worker>
+    void EventDispatcherWatchdogWorker<Worker>::EarlyWarning()
+    {
+        if (expired)
+            return;
+
+        watchdog.Refresh();
+
+        if (Progressed())
+            missedEarlyWarnings = 0;
+        else if (++missedEarlyWarnings == expirationCount)
+        {
+            expired = true;
+            onExpired();
+        }
+    }
 }
 
 #endif

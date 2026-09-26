@@ -64,11 +64,6 @@ namespace infra
         return !scheduledActions[scheduledActionsPopIndex].second;
     }
 
-    const ExecutionProgress& EventDispatcherWithWeakPtrWorker::Progress() const
-    {
-        return progress;
-    }
-
     std::size_t EventDispatcherWithWeakPtrWorker::MinCapacity() const
     {
         return minCapacity;
@@ -104,7 +99,6 @@ namespace infra
             };
 
             ExceptionSafePop popAction{ *this };
-            ExecutionProgress::ActionScope actionScope{ progress };
             scheduledActions[scheduledActionsPopIndex].first->Execute();
         }
     }

@@ -11,27 +11,25 @@
 namespace hal
 {
     class WatchdogQemu
-        : public WatchdogWithEarlyWarning
+        : public Watchdog
         , private cortex::InterruptHandler
     {
     public:
         struct Config
         {
-            constexpr Config()
-            {}
-
             infra::Duration timeout{ std::chrono::milliseconds(50) };
             bool resetOnMissedInterrupt{ true };
             uintptr_t base{ cmsdkWatchdogBaseAddress };
             uint32_t clockHz{ cmsdkWatchdogClockHz };
         };
 
-        explicit WatchdogQemu(const Config& config = Config());
+        WatchdogQemu();
+        explicit WatchdogQemu(const Config& config);
         ~WatchdogQemu();
 
-        void Refresh() override;
         infra::Duration EarlyWarningPeriod() const override;
         void Start(const infra::Function<void()>& onEarlyWarning) override;
+        void Refresh() override;
 
     private:
         void Invoke() override;

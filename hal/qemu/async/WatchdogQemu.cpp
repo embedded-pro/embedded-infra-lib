@@ -16,6 +16,10 @@ namespace
 
 namespace hal
 {
+    WatchdogQemu::WatchdogQemu()
+        : WatchdogQemu(Config())
+    {}
+
     WatchdogQemu::WatchdogQemu(const Config& config)
         : base(config.base)
         , timeout(config.timeout)

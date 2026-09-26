@@ -15,24 +15,12 @@ namespace hal
         ~Watchdog() = default;
 
     public:
-        virtual void Refresh() = 0;
-    };
-
-    class WatchdogWithEarlyWarning
-        : public Watchdog
-    {
-    protected:
-        WatchdogWithEarlyWarning() = default;
-        WatchdogWithEarlyWarning(const WatchdogWithEarlyWarning& other) = delete;
-        WatchdogWithEarlyWarning& operator=(const WatchdogWithEarlyWarning& other) = delete;
-        ~WatchdogWithEarlyWarning() = default;
-
-    public:
         virtual infra::Duration EarlyWarningPeriod() const = 0;
 
         // Starts the watchdog, which cannot be stopped portably. onEarlyWarning is invoked from interrupt context
-        // once per EarlyWarningPeriod, and the watchdog resets the device unless onEarlyWarning calls Refresh
+        // once per EarlyWarningPeriod, and the watchdog resets the device unless it is refreshed in time
         virtual void Start(const infra::Function<void()>& onEarlyWarning) = 0;
+        virtual void Refresh() = 0;
     };
 }
 

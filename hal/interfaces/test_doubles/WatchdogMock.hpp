@@ -10,16 +10,9 @@ namespace hal
         : public Watchdog
     {
     public:
-        MOCK_METHOD(void, Refresh, (), (override));
-    };
-
-    class WatchdogWithEarlyWarningMock
-        : public WatchdogWithEarlyWarning
-    {
-    public:
-        MOCK_METHOD(void, Refresh, (), (override));
         MOCK_METHOD(infra::Duration, EarlyWarningPeriod, (), (const, override));
         MOCK_METHOD(void, Start, (const infra::Function<void()>& onEarlyWarning), (override));
+        MOCK_METHOD(void, Refresh, (), (override));
     };
 }
 
