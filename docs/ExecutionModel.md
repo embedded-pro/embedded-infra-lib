@@ -39,7 +39,7 @@ Deep sleep is chosen only when both of these hold:
 - No component holds the `infra::MainClockReference`. Peripherals that need the main clock while a transfer is in progress, such as `services::LowPowerSpiMaster` and `services::LowPowerSerialCommunication`, hold it for that time.
 - No timer is pending. The system tick stops in deep sleep, so a pending timer would be delayed until some other interrupt wakes the core.
 
-`hal::LowPowerMode` is implemented per vendor, because deep sleep requires vendor-specific clock configuration. `hal::cortex::LowPowerModeCortex` is the portable fallback: it only sleeps.
+`hal::LowPowerMode` is implemented per vendor, because deep sleep requires vendor-specific clock configuration.
 
 ## Supervising the event dispatcher with a watchdog
 

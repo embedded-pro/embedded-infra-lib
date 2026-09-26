@@ -4,11 +4,16 @@
 
 namespace
 {
-    uint32_t ToTicks(uint32_t clockHz, infra::Duration duration)
+    uint64_t ToMicroseconds(infra::Duration duration)
     {
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
         really_assert(microseconds > 0);
-        auto ticks = (static_cast<uint64_t>(clockHz) * static_cast<uint64_t>(microseconds)) / 1000000u;
+        return static_cast<uint64_t>(microseconds);
+    }
+
+    uint32_t ToTicks(uint32_t clockHz, infra::Duration duration)
+    {
+        auto ticks = (static_cast<uint64_t>(clockHz) * ToMicroseconds(duration)) / 1000000u;
         really_assert(ticks > 0 && ticks <= std::numeric_limits<uint32_t>::max());
         return static_cast<uint32_t>(ticks);
     }
@@ -16,10 +21,6 @@ namespace
 
 namespace hal
 {
-    WatchdogQemu::WatchdogQemu()
-        : WatchdogQemu(Config())
-    {}
-
     WatchdogQemu::WatchdogQemu(const Config& config)
         : base(config.base)
         , timeout(config.timeout)

@@ -23,7 +23,6 @@ namespace hal
             uint32_t clockHz{ cmsdkWatchdogClockHz };
         };
 
-        WatchdogQemu();
         explicit WatchdogQemu(const Config& config);
         ~WatchdogQemu();
 

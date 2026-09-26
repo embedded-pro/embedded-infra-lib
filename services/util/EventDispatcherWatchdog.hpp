@@ -75,26 +75,9 @@ namespace services
     template<class Worker>
     void EventDispatcherWatchdogWorker<Worker>::ExecuteFirstAction()
     {
-        struct StepOnExit
-        {
-            explicit StepOnExit(EventDispatcherWatchdogWorker& worker)
-                : worker(worker)
-            {}
-
-            StepOnExit(const StepOnExit&) = delete;
-            StepOnExit& operator=(const StepOnExit&) = delete;
-
-            ~StepOnExit()
-            {
-                worker.Step();
-            }
-
-            EventDispatcherWatchdogWorker& worker;
-        };
-
         Step();
-        StepOnExit stepOnExit{ *this };
         Worker::ExecuteFirstAction();
+        Step();
     }
 
     template<class Worker>
