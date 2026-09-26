@@ -83,6 +83,7 @@ namespace infra
             };
 
             ExceptionSafePop popAction{ *this };
+            ExecutionProgress::ActionScope actionScope{ progress };
 
             scheduledActions[scheduledActionsPopIndex]
                 .first();
@@ -92,6 +93,11 @@ namespace infra
     bool EventDispatcherWorkerImpl::IsIdle() const
     {
         return !scheduledActions[scheduledActionsPopIndex].second;
+    }
+
+    const ExecutionProgress& EventDispatcherWorkerImpl::Progress() const
+    {
+        return progress;
     }
 
     std::size_t EventDispatcherWorkerImpl::MinCapacity() const

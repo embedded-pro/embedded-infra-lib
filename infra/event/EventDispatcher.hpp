@@ -1,6 +1,7 @@
 #ifndef INFRA_EVENT_DISPATCHER_HPP
 #define INFRA_EVENT_DISPATCHER_HPP
 
+#include "infra/event/ExecutionProgress.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/InterfaceConnector.hpp"
 #include "infra/util/WithStorage.hpp"
@@ -22,6 +23,7 @@ namespace infra
         virtual void ExecuteUntil(const infra::Function<bool()>& predicate) = 0;
         virtual std::size_t MinCapacity() const = 0;
         virtual bool IsIdle() const = 0;
+        virtual const ExecutionProgress& Progress() const = 0;
     };
 
     class EventDispatcherWorkerImpl
@@ -38,6 +40,7 @@ namespace infra
         void ExecuteUntil(const infra::Function<bool()>& predicate) override;
         std::size_t MinCapacity() const override;
         bool IsIdle() const override;
+        const ExecutionProgress& Progress() const override;
 
         void Run();
         void ExecuteAllActions();
@@ -54,6 +57,7 @@ namespace infra
         std::atomic<uint32_t> scheduledActionsPushIndex{ 0 };
         uint32_t scheduledActionsPopIndex{ 0 };
         std::size_t minCapacity;
+        ExecutionProgress progress;
     };
 
     template<class T>

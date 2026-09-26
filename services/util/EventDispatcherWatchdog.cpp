@@ -1,4 +1,5 @@
-#include "services/util/EventLoopWatchdog.hpp"
+#include "services/util/EventDispatcherWatchdog.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 
@@ -14,36 +15,33 @@ namespace
 
 namespace services
 {
-    EventLoopWatchdog::EventLoopWatchdog(hal::WatchdogWithEarlyWarning& watchdog, const infra::Function<void()>& onExpired, const Config& config)
+    EventDispatcherWatchdog::EventDispatcherWatchdog(hal::WatchdogWithEarlyWarning& watchdog, const infra::Function<void()>& onExpired, const Config& config)
         : watchdog(watchdog)
+        , progress(infra::EventDispatcher::Instance().Progress())
         , expirationCount(ToNumberOfPeriods(config.expirationTimeout, watchdog.EarlyWarningPeriod()))
+        , stepsAtLastEarlyWarning(progress.Steps())
         , onExpired(onExpired)
     {
-        really_assert(config.feedInterval > infra::Duration::zero());
-        really_assert(config.feedInterval < config.expirationTimeout);
-
-        feedTimer.Start(config.feedInterval, [this]()
-            {
-                Feed();
-            });
-
         watchdog.Start([this]()
             {
                 EarlyWarning();
             });
     }
 
-    void EventLoopWatchdog::Refresh()
+    void EventDispatcherWatchdog::Refresh()
     {
         watchdog.Refresh();
     }
 
-    void EventLoopWatchdog::Feed()
+    bool EventDispatcherWatchdog::EventDispatcherProgressed()
     {
-        missedFeeds = 0;
+        auto steps = progress.Steps();
+        auto progressed = !infra::ExecutionProgress::IsExecuting(steps) || steps != stepsAtLastEarlyWarning;
+        stepsAtLastEarlyWarning = steps;
+        return progressed;
     }
 
-    void EventLoopWatchdog::EarlyWarning()
+    void EventDispatcherWatchdog::EarlyWarning()
     {
         // Once expired the watchdog is no longer refreshed, so the hardware resets the device if onExpired returns
         if (expired)
@@ -51,7 +49,9 @@ namespace services
 
         watchdog.Refresh();
 
-        if (++missedFeeds == expirationCount)
+        if (EventDispatcherProgressed())
+            missedEarlyWarnings = 0;
+        else if (++missedEarlyWarnings == expirationCount)
         {
             expired = true;
             onExpired();

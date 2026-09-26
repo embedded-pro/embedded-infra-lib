@@ -66,6 +66,7 @@ namespace infra
         void ExecuteUntil(const infra::Function<bool()>& predicate) override;
         std::size_t MinCapacity() const override;
         bool IsIdle() const override;
+        const ExecutionProgress& Progress() const override;
 
         void Run();
         void ExecuteAllActions();
@@ -82,6 +83,7 @@ namespace infra
         std::atomic<uint32_t> scheduledActionsPushIndex{ 0 };
         uint32_t scheduledActionsPopIndex{ 0 };
         std::size_t minCapacity;
+        ExecutionProgress progress;
     };
 
     template<class T>

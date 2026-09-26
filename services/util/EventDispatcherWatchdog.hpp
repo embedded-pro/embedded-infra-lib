@@ -1,16 +1,16 @@
-#ifndef SERVICES_EVENT_LOOP_WATCHDOG_HPP
-#define SERVICES_EVENT_LOOP_WATCHDOG_HPP
+#ifndef SERVICES_EVENT_DISPATCHER_WATCHDOG_HPP
+#define SERVICES_EVENT_DISPATCHER_WATCHDOG_HPP
 
 #include "hal/interfaces/Watchdog.hpp"
+#include "infra/event/ExecutionProgress.hpp"
 #include "infra/timer/Timer.hpp"
 #include "infra/util/Function.hpp"
-#include <atomic>
 #include <chrono>
 #include <cstdint>
 
 namespace services
 {
-    class EventLoopWatchdog
+    class EventDispatcherWatchdog
         : public hal::Watchdog
     {
     public:
@@ -19,24 +19,24 @@ namespace services
             constexpr Config()
             {}
 
-            infra::Duration feedInterval{ std::chrono::milliseconds(25) };
             infra::Duration expirationTimeout{ std::chrono::milliseconds(1500) };
         };
 
-        EventLoopWatchdog(hal::WatchdogWithEarlyWarning& watchdog, const infra::Function<void()>& onExpired, const Config& config = Config());
+        EventDispatcherWatchdog(hal::WatchdogWithEarlyWarning& watchdog, const infra::Function<void()>& onExpired, const Config& config = Config());
 
         void Refresh() override;
 
     private:
-        void Feed();
+        bool EventDispatcherProgressed();
         void EarlyWarning();
 
         hal::WatchdogWithEarlyWarning& watchdog;
+        const infra::ExecutionProgress& progress;
         uint32_t expirationCount;
-        std::atomic<uint32_t> missedFeeds{ 0 };
-        std::atomic<bool> expired{ false };
+        uint32_t stepsAtLastEarlyWarning;
+        uint32_t missedEarlyWarnings{ 0 };
+        bool expired{ false };
         infra::Function<void()> onExpired;
-        infra::TimerRepeating feedTimer;
     };
 }
 

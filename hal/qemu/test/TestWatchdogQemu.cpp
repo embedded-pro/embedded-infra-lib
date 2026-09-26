@@ -1,7 +1,7 @@
 #include "hal/cortex_m/SystemTickTimerService.hpp"
 #include "hal/qemu/async/WatchdogQemu.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
-#include "services/util/EventLoopWatchdog.hpp"
+#include "services/util/EventDispatcherWatchdog.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -25,7 +25,6 @@ public:
         config.resetOnMissedInterrupt = false;
         config.base = reinterpret_cast<uintptr_t>(&registers);
 
-        supervisorConfig.feedInterval = std::chrono::milliseconds(25);
         supervisorConfig.expirationTimeout = std::chrono::milliseconds(150);
     }
 
@@ -35,26 +34,17 @@ public:
         interruptTable.Invoke(hal::cortex::nmiIrq);
     }
 
-    void ForwardTime(std::chrono::milliseconds duration)
+    void WhileAnActionRuns(const infra::Function<void()>& duringAction)
     {
-        for (auto elapsed = 0; elapsed != duration.count(); ++elapsed)
-        {
-            timerService.SystemTickInterrupt();
-            ExecuteAllActions();
-        }
-    }
-
-    // The repeating timer first triggers one resolution after its interval, so forward past it
-    void ForwardPastAFeed()
-    {
-        ForwardTime(std::chrono::milliseconds(30));
+        infra::EventDispatcher::Instance().Schedule(duringAction);
+        ExecuteAllActions();
     }
 
     hal::cortex::InterruptTable::WithStorage<64> interruptTable;
     hal::cortex::SystemTickTimerService timerService;
     hal::CmsdkWatchdogRegisters registers{};
     hal::WatchdogQemu::Config config;
-    services::EventLoopWatchdog::Config supervisorConfig;
+    services::EventDispatcherWatchdog::Config supervisorConfig;
     uint32_t earlyWarnings{ 0 };
     infra::Function<void()> onEarlyWarning{ [this]()
         {
@@ -178,7 +168,7 @@ TEST_F(WatchdogQemuTest, refresh_clears_a_raised_timeout)
 TEST_F(WatchdogQemuTest, a_supervised_timeout_clears_the_interrupt_so_the_hardware_does_not_reset)
 {
     hal::WatchdogQemu watchdog(config);
-    services::EventLoopWatchdog supervisor(watchdog, onExpired, supervisorConfig);
+    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
 
     registers.intClr = 0xffffffffu;
     Timeout();
@@ -186,46 +176,49 @@ TEST_F(WatchdogQemuTest, a_supervised_timeout_clears_the_interrupt_so_the_hardwa
     EXPECT_EQ(0u, registers.intClr);
 }
 
-TEST_F(WatchdogQemuTest, a_supervised_fed_watchdog_does_not_expire)
+TEST_F(WatchdogQemuTest, a_supervised_idle_event_dispatcher_does_not_expire)
 {
     hal::WatchdogQemu watchdog(config);
-    services::EventLoopWatchdog supervisor(watchdog, onExpired, supervisorConfig);
+    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
 
     for (uint32_t iteration = 0; iteration != 10; ++iteration)
-    {
         Timeout();
-        ForwardPastAFeed();
-    }
 
     EXPECT_EQ(0u, expirations);
 }
 
-TEST_F(WatchdogQemuTest, supervised_consecutive_timeouts_without_a_feed_expire_the_watchdog)
+TEST_F(WatchdogQemuTest, a_supervised_action_that_does_not_return_expires_the_watchdog)
 {
     hal::WatchdogQemu watchdog(config);
-    services::EventLoopWatchdog supervisor(watchdog, onExpired, supervisorConfig);
+    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
 
-    Timeout();
-    Timeout();
-    EXPECT_EQ(0u, expirations);
+    WhileAnActionRuns([this]()
+        {
+            for (uint32_t iteration = 0; iteration != 3; ++iteration)
+                Timeout();
+            EXPECT_EQ(0u, expirations);
 
-    Timeout();
-    EXPECT_EQ(1u, expirations);
+            Timeout();
+            EXPECT_EQ(1u, expirations);
+        });
 }
 
 TEST_F(WatchdogQemuTest, a_supervised_expired_watchdog_leaves_the_timeout_raised_for_the_hardware_reset)
 {
     hal::WatchdogQemu watchdog(config);
-    services::EventLoopWatchdog supervisor(watchdog, onExpired, supervisorConfig);
+    services::EventDispatcherWatchdog supervisor(watchdog, onExpired, supervisorConfig);
 
-    for (uint32_t iteration = 0; iteration != 3; ++iteration)
-        Timeout();
+    WhileAnActionRuns([this]()
+        {
+            for (uint32_t iteration = 0; iteration != 4; ++iteration)
+                Timeout();
 
-    registers.intClr = 0xffffffffu;
-    Timeout();
+            registers.intClr = 0xffffffffu;
+            Timeout();
 
-    EXPECT_EQ(0xffffffffu, registers.intClr);
-    EXPECT_EQ(1u, expirations);
+            EXPECT_EQ(0xffffffffu, registers.intClr);
+            EXPECT_EQ(1u, expirations);
+        });
 }
 
 class WatchdogQemuPeripheralTest

@@ -14,6 +14,7 @@ target_sources(infra.event_test PRIVATE
     TestEventDispatcher.cpp
     TestEventDispatcherWithWeakPtr.cpp
     TestEventDispatcherThreadAware.cpp
+    TestExecutionProgress.cpp
     TestQueueForOneReaderOneIrqWriter.cpp
     TestSystemStateManager.cpp
 )
