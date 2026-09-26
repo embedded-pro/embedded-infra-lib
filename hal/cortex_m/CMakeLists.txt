@@ -18,6 +18,8 @@ target_sources(hal.cortex_m PRIVATE
     InterruptCortex.cpp
     LowPowerStrategyCortex.hpp
     LowPowerStrategyCortex.cpp
+    LowPowerStrategyWithModes.hpp
+    LowPowerStrategyWithModes.cpp
     LowPriorityInterrupt.hpp
     LowPriorityInterrupt.cpp
     SystemTick.hpp
