@@ -14,10 +14,28 @@
 
 namespace services
 {
-    namespace detail
+    class EventDispatcherWatchdogSupervision
     {
-        uint32_t EarlyWarningsUntilExpiry(infra::Duration expirationTimeout, infra::Duration earlyWarningPeriod);
-    }
+    public:
+        EventDispatcherWatchdogSupervision(hal::Watchdog& watchdog, infra::Duration expirationTimeout, const infra::Function<void()>& onExpired);
+        EventDispatcherWatchdogSupervision(const EventDispatcherWatchdogSupervision& other) = delete;
+        EventDispatcherWatchdogSupervision& operator=(const EventDispatcherWatchdogSupervision& other) = delete;
+        ~EventDispatcherWatchdogSupervision() = default;
+
+        void Step();
+
+    private:
+        bool Progressed();
+        void EarlyWarning();
+
+        hal::Watchdog& watchdog;
+        uint32_t expirationCount;
+        infra::Function<void()> onExpired;
+        std::atomic<uint32_t> steps{ 0 };
+        uint32_t stepsAtLastEarlyWarning{ 0 };
+        uint32_t missedEarlyWarnings{ 0 };
+        bool expired{ false };
+    };
 
     template<class Worker>
     class EventDispatcherWatchdogWorker
@@ -33,19 +51,12 @@ namespace services
         void ExecuteFirstAction() override;
 
     private:
-        void Step();
-        bool Progressed();
-        void EarlyWarning();
-
-        hal::Watchdog& watchdog;
-        uint32_t expirationCount;
-        infra::Function<void()> onExpired;
-
-        std::atomic<uint32_t> steps{ 0 };
-        uint32_t stepsAtLastEarlyWarning{ 0 };
-        uint32_t missedEarlyWarnings{ 0 };
-        bool expired{ false };
+        EventDispatcherWatchdogSupervision supervision;
     };
+
+    extern template class EventDispatcherWatchdogWorker<infra::EventDispatcherWorkerImpl>;
+    extern template class EventDispatcherWatchdogWorker<infra::EventDispatcherWithWeakPtrWorker>;
+    extern template class EventDispatcherWatchdogWorker<infra::LowPowerEventDispatcherWorker>;
 
     using EventDispatcherWithWatchdog = infra::EventDispatcherConnector<EventDispatcherWatchdogWorker<infra::EventDispatcherWorkerImpl>>;
     using EventDispatcherWithWeakPtrAndWatchdog = infra::EventDispatcherWithWeakPtrConnector<EventDispatcherWatchdogWorker<infra::EventDispatcherWithWeakPtrWorker>>;
@@ -57,54 +68,15 @@ namespace services
     template<class ScheduledActionsStorage, class... WorkerArgs>
     EventDispatcherWatchdogWorker<Worker>::EventDispatcherWatchdogWorker(ScheduledActionsStorage scheduledActionsStorage, hal::Watchdog& watchdog, infra::Duration expirationTimeout, const infra::Function<void()>& onExpired, WorkerArgs&&... workerArgs)
         : Worker(scheduledActionsStorage, std::forward<WorkerArgs>(workerArgs)...)
-        , watchdog(watchdog)
-        , expirationCount(detail::EarlyWarningsUntilExpiry(expirationTimeout, watchdog.EarlyWarningPeriod()))
-        , onExpired(onExpired)
-    {
-        watchdog.Start([this]()
-            {
-                EarlyWarning();
-            });
-    }
+        , supervision(watchdog, expirationTimeout, onExpired)
+    {}
 
     template<class Worker>
     void EventDispatcherWatchdogWorker<Worker>::ExecuteFirstAction()
     {
-        Step();
+        supervision.Step();
         Worker::ExecuteFirstAction();
-        Step();
-    }
-
-    template<class Worker>
-    void EventDispatcherWatchdogWorker<Worker>::Step()
-    {
-        steps.store(steps.load() + 1);
-    }
-
-    template<class Worker>
-    bool EventDispatcherWatchdogWorker<Worker>::Progressed()
-    {
-        auto current = steps.load();
-        auto progressed = current % 2 == 0 || current != stepsAtLastEarlyWarning;
-        stepsAtLastEarlyWarning = current;
-        return progressed;
-    }
-
-    template<class Worker>
-    void EventDispatcherWatchdogWorker<Worker>::EarlyWarning()
-    {
-        if (expired)
-            return;
-
-        watchdog.Refresh();
-
-        if (Progressed())
-            missedEarlyWarnings = 0;
-        else if (++missedEarlyWarnings == expirationCount)
-        {
-            expired = true;
-            onExpired();
-        }
+        supervision.Step();
     }
 }
 
