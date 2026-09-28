@@ -10,25 +10,25 @@ target_link_libraries(services.hil PUBLIC
 )
 
 target_sources(services.hil PRIVATE
-    Arguments.cpp
-    Arguments.hpp
-    BoardInfo.hpp
-    Command.hpp
-    DeadlineTimeKeeper.cpp
-    DeadlineTimeKeeper.hpp
+    HilArguments.cpp
+    HilArguments.hpp
+    HilBoardInfo.hpp
+    HilCommand.hpp
+    HilDeadlineTimeKeeper.cpp
+    HilDeadlineTimeKeeper.hpp
+    HilPinId.hpp
+    HilPinNaming.cpp
+    HilPinNaming.hpp
+    HilPinPool.cpp
+    HilPinPool.hpp
+    HilResponse.cpp
+    HilResponse.hpp
+    HilStatus.cpp
+    HilStatus.hpp
+    HilSystemCommands.cpp
+    HilSystemCommands.hpp
     HilTerminal.cpp
     HilTerminal.hpp
-    PinId.hpp
-    PinNaming.cpp
-    PinNaming.hpp
-    PinPool.cpp
-    PinPool.hpp
-    Response.cpp
-    Response.hpp
-    Status.cpp
-    Status.hpp
-    SystemCommands.cpp
-    SystemCommands.hpp
 )
 
 add_subdirectory(commands)

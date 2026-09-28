@@ -1,18 +1,18 @@
-#ifndef SERVICES_HIL_HIL_TERMINAL_HPP
-#define SERVICES_HIL_HIL_TERMINAL_HPP
+#ifndef SERVICES_HIL_TERMINAL_HPP
+#define SERVICES_HIL_TERMINAL_HPP
 
 #include "hal/interfaces/SerialCommunication.hpp"
 #include "infra/util/BoundedDeque.hpp"
 #include "infra/util/BoundedString.hpp"
 #include "infra/util/WithStorage.hpp"
-#include "services/hil/Response.hpp"
+#include "services/hil/HilResponse.hpp"
 #include "services/tracer/Tracer.hpp"
 #include "services/util/Terminal.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
-namespace services::hil
+namespace services
 {
     class HilTerminal
         : public services::TerminalWithCommandsImpl
@@ -23,7 +23,7 @@ namespace services::hil
         template<std::size_t MaxQueueSize, std::size_t MaxHistory>
         using WithMaxQueueAndMaxHistory = infra::WithStorage<infra::WithStorage<HilTerminal, std::array<uint8_t, MaxQueueSize + 1>>, typename History::template WithMaxSize<MaxHistory>>;
 
-        HilTerminal(infra::MemoryRange<uint8_t> bufferQueue, History& history, hal::SerialCommunication& communication, services::Tracer& tracer, Response& response);
+        HilTerminal(infra::MemoryRange<uint8_t> bufferQueue, History& history, hal::SerialCommunication& communication, services::Tracer& tracer, HilResponse& response);
 
     protected:
         void OnCommandStart() override;
@@ -31,7 +31,7 @@ namespace services::hil
         void OnUnrecognizedCommand() override;
 
     private:
-        Response& response;
+        HilResponse& response;
     };
 }
 

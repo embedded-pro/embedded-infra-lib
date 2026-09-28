@@ -1,13 +1,13 @@
-#ifndef SERVICES_HIL_HIL_FIXTURE_HPP
-#define SERVICES_HIL_HIL_FIXTURE_HPP
+#ifndef SERVICES_HIL_FIXTURE_HPP
+#define SERVICES_HIL_FIXTURE_HPP
 
 #include "hal/interfaces/test_doubles/GpioMock.hpp"
 #include "infra/stream/StringOutputStream.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
-#include "services/hil/Command.hpp"
-#include "services/hil/PinNaming.hpp"
-#include "services/hil/PinPool.hpp"
-#include "services/hil/Response.hpp"
+#include "services/hil/HilCommand.hpp"
+#include "services/hil/HilPinNaming.hpp"
+#include "services/hil/HilPinPool.hpp"
+#include "services/hil/HilResponse.hpp"
 #include "services/tracer/Tracer.hpp"
 #include "services/util/Terminal.hpp"
 #include "gmock/gmock.h"
@@ -15,28 +15,28 @@
 #include <optional>
 #include <string>
 
-namespace services::hil
+namespace services
 {
     class FakePinFactory
-        : public PinFactory
+        : public HilPinFactory
     {
     public:
-        bool IsValid(PinId pin) const override
+        bool IsValid(HilPinId pin) const override
         {
             return pin.port < 6 && pin.index <= 7;
         }
 
-        bool SupportsFunction(PinId pin, uint16_t, uint8_t) const override
+        bool SupportsFunction(HilPinId pin, uint16_t, uint8_t) const override
         {
             return pin != unsupportedFunctionPin;
         }
 
-        bool SupportsAnalog(PinId pin) const override
+        bool SupportsAnalog(HilPinId pin) const override
         {
             return pin.port == 4;
         }
 
-        bool SupportsInterrupt(PinId pin) const override
+        bool SupportsInterrupt(HilPinId pin) const override
         {
             return pin.port < 5;
         }
@@ -51,7 +51,7 @@ namespace services::hil
             return std::nullopt;
         }
 
-        hal::GpioPin& Construct(std::size_t slot, PinId pin, const PinOptions& options) override
+        hal::GpioPin& Construct(std::size_t slot, HilPinId pin, const HilPinOptions& options) override
         {
             constructed[slot] = pin;
             this->options[slot] = options;
@@ -63,10 +63,10 @@ namespace services::hil
             constructed[slot] = std::nullopt;
         }
 
-        PinId unsupportedFunctionPin{ 5, 7 };
+        HilPinId unsupportedFunctionPin{ 5, 7 };
         std::array<testing::StrictMock<hal::GpioPinMock>, 8> pins;
-        std::array<std::optional<PinId>, 8> constructed;
-        std::array<PinOptions, 8> options;
+        std::array<std::optional<HilPinId>, 8> constructed;
+        std::array<HilPinOptions, 8> options;
     };
 
     class HilFixture
@@ -93,21 +93,21 @@ namespace services::hil
             return result;
         }
 
-        static constexpr std::array<PinAlias, 3> aliases{ {
+        static constexpr std::array<HilPinAlias, 3> aliases{ {
             { "led", { 5, 1 } },
-            { "id0", { 2, 3 }, Pull::up },
+            { "id0", { 2, 3 }, HilPull::up },
             { "vbus", { 4, 0 } },
         } };
 
         infra::StringOutputStream::WithStorage<2048> stream;
         services::TracerToStream tracer{ stream };
-        Response response{ tracer };
+        HilResponse response{ tracer };
         FakePinFactory pinFactory;
-        std::array<PinId, 2> reserved{ { { 0, 0 }, { 0, 1 } } };
-        PinPool::WithCapacity<8> pins{ pinFactory, infra::MakeRange(std::as_const(reserved)) };
-        PinNamingDefault naming{ "ABCDEF", 7, infra::MakeRange(aliases) };
+        std::array<HilPinId, 2> reserved{ { { 0, 0 }, { 0, 1 } } };
+        HilPinPool::WithCapacity<8> pins{ pinFactory, infra::MakeRange(std::as_const(reserved)) };
+        HilPinNamingDefault naming{ "ABCDEF", 7, infra::MakeRange(aliases) };
         services::TerminalWithCommands terminal;
-        Context context{ response, pins, naming, terminal };
+        HilContext context{ response, pins, naming, terminal };
     };
 }
 

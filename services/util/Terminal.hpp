@@ -299,7 +299,7 @@ namespace services
 
         Print(" \b");
 
-        for (uint32_t i = buffer.size(); i > state.cursorPosition; --i)
+        for (auto i = static_cast<uint32_t>(buffer.size()); i > state.cursorPosition; --i)
             tracer.Continue() << '\b';
     }
 
@@ -316,7 +316,7 @@ namespace services
     {
         if (buffer.size() > 0 && state.cursorPosition < buffer.size())
             tracer.Continue() << ByteRangeAsString(infra::MakeRange(reinterpret_cast<const uint8_t*>(std::next(buffer.begin(), state.cursorPosition)), reinterpret_cast<const uint8_t*>(buffer.end())));
-        state.cursorPosition = buffer.size();
+        state.cursorPosition = static_cast<uint32_t>(buffer.size());
     }
 
     template<size_t MaxCommandLength>
@@ -350,7 +350,7 @@ namespace services
             history.pop_front();
 
         history.push_back(element);
-        state.historyIndex = history.size();
+        state.historyIndex = static_cast<uint32_t>(history.size());
     }
 
     template<size_t MaxCommandLength>
@@ -371,7 +371,7 @@ namespace services
         for (std::size_t size = buffer.size(); size < previousSize; ++size)
             tracer.Continue() << '\b';
 
-        state.cursorPosition = buffer.size();
+        state.cursorPosition = static_cast<uint32_t>(buffer.size());
     }
 
     template<size_t MaxCommandLength>

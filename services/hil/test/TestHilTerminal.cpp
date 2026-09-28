@@ -1,7 +1,7 @@
 #include "hal/interfaces/test_doubles/SerialCommunicationMock.hpp"
 #include "infra/event/test_helper/EventDispatcherWithWeakPtrFixture.hpp"
 #include "infra/stream/StringOutputStream.hpp"
-#include "services/hil/Command.hpp"
+#include "services/hil/HilCommand.hpp"
 #include "services/hil/HilTerminal.hpp"
 #include "gmock/gmock.h"
 #include <array>
@@ -14,12 +14,12 @@ namespace
         : public services::TerminalCommands
     {
     public:
-        ExampleCommands(services::TerminalWithCommands& terminal, services::hil::Response& response)
+        ExampleCommands(services::TerminalWithCommands& terminal, services::HilResponse& response)
             : services::TerminalCommands(terminal)
             , response(response)
             , commands{ {
-                  services::hil::Bind<ExampleCommands, &ExampleCommands::Ping>("ping", "", *this, response),
-                  services::hil::Bind<ExampleCommands, &ExampleCommands::Fail>("fail", "", *this, response),
+                  services::HilBind<ExampleCommands, &ExampleCommands::Ping>("ping", "", *this, response),
+                  services::HilBind<ExampleCommands, &ExampleCommands::Fail>("fail", "", *this, response),
               } }
         {}
 
@@ -29,22 +29,22 @@ namespace
         }
 
     private:
-        services::hil::Status Ping(const services::hil::Arguments& arguments)
+        services::HilStatus Ping(const services::HilArguments& arguments)
         {
             if (!arguments.Shape(0, 0, {}))
-                return services::hil::Status::usage;
+                return services::HilStatus::usage;
 
             response.Ok();
-            return services::hil::Status::done;
+            return services::HilStatus::done;
         }
 
-        services::hil::Status Fail(const services::hil::Arguments&)
+        services::HilStatus Fail(const services::HilArguments&)
         {
-            return services::hil::Status::range;
+            return services::HilStatus::range;
         }
 
     private:
-        services::hil::Response& response;
+        services::HilResponse& response;
         std::array<Command, 2> commands;
     };
 }
@@ -69,9 +69,9 @@ public:
 
     infra::StringOutputStream::WithStorage<256> stream;
     services::TracerToStream tracer{ stream };
-    services::hil::Response response{ tracer };
+    services::HilResponse response{ tracer };
     testing::StrictMock<hal::SerialCommunicationMock> communication;
-    services::hil::HilTerminal::WithMaxQueueAndMaxHistory<32, 1> terminal{ communication, tracer, response };
+    services::HilTerminal::WithMaxQueueAndMaxHistory<32, 1> terminal{ communication, tracer, response };
     ExampleCommands commands{ terminal, response };
 };
 

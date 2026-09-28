@@ -15,22 +15,22 @@ target_link_libraries(services.hil_test PUBLIC
 
 target_sources(services.hil_test PRIVATE
     HilFixture.hpp
-    TestAdcCommands.cpp
-    TestArguments.cpp
-    TestCanCommands.cpp
-    TestComparatorCommands.cpp
-    TestEepromCommands.cpp
-    TestEthernetCommands.cpp
-    TestGpioCommands.cpp
+    TestHilAdcCommands.cpp
+    TestHilArguments.cpp
+    TestHilCanCommands.cpp
+    TestHilComparatorCommands.cpp
+    TestHilEepromCommands.cpp
+    TestHilEthernetCommands.cpp
+    TestHilGpioCommands.cpp
+    TestHilPinNaming.cpp
+    TestHilPinPool.cpp
+    TestHilPwmCommands.cpp
+    TestHilQeiCommands.cpp
+    TestHilResponse.cpp
+    TestHilSpiCommands.cpp
+    TestHilSystemCommands.cpp
     TestHilTerminal.cpp
-    TestPinNaming.cpp
-    TestPinPool.cpp
-    TestPwmCommands.cpp
-    TestQeiCommands.cpp
-    TestResponse.cpp
-    TestSpiCommands.cpp
-    TestSystemCommands.cpp
-    TestUartCommands.cpp
-    TestUnsupportedCommands.cpp
-    TestWatchDogCommands.cpp
+    TestHilUartCommands.cpp
+    TestHilUnsupportedCommands.cpp
+    TestHilWatchDogCommands.cpp
 )

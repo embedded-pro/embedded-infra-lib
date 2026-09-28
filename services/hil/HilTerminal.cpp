@@ -1,8 +1,8 @@
 #include "services/hil/HilTerminal.hpp"
 
-namespace services::hil
+namespace services
 {
-    HilTerminal::HilTerminal(infra::MemoryRange<uint8_t> bufferQueue, History& history, hal::SerialCommunication& communication, services::Tracer& tracer, Response& response)
+    HilTerminal::HilTerminal(infra::MemoryRange<uint8_t> bufferQueue, History& history, hal::SerialCommunication& communication, services::Tracer& tracer, HilResponse& response)
         : services::TerminalWithCommandsImpl(bufferQueue, history, communication, tracer)
         , response(response)
     {}
@@ -19,6 +19,6 @@ namespace services::hil
 
     void HilTerminal::OnUnrecognizedCommand()
     {
-        response.Error(Status::usage);
+        response.Error(HilStatus::usage);
     }
 }
