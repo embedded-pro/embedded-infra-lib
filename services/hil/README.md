@@ -140,3 +140,10 @@ Buffers are provided through `WithStorage` aliases so a small target only pays f
 - HAL-specific open options are simply more keys in `OpenKeys()`, parsed in `Prepare` or `Open` (for example ADC digital comparators).
 - Extra groups claim pins with an owner from `owner::extension` upwards.
 - A peripheral the running MCU lacks is registered as an `UnsupportedCommands` group with its command names.
+
+### Factory notes
+
+- `Prepare` and `Open` both receive the same `Arguments`; a factory that needs the parsed options in `Open` parses them again (a shared private `Parse` helper keeps it in one place).
+- `Close` receives `onClosed` by reference; a factory that closes asynchronously (for example masking an interrupt and destroying the driver from a scheduled event so no queued event runs on a destroyed driver) copies it first.
+- `AdcFactory::Open` and `Close` receive the group's slot index, so the HAL can keep its drivers in an array sized like `AdcCommands::WithCapacity`.
+- Both libraries are ordinary static libraries; on small targets build them size-optimised (for example `-Os`) when the consumer's build type leaves optimisation off.

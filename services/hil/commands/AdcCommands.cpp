@@ -102,7 +102,7 @@ namespace services::hil
 
         slots[slot].handle = AdcHandle{};
         slots[slot].closing = true;
-        factory.Close(*slots[slot].key, [this, slot]()
+        factory.Close(slot, *slots[slot].key, [this, slot]()
             {
                 OwnerOf(slot).Release();
                 slots[slot] = Slot{};
@@ -136,7 +136,7 @@ namespace services::hil
     {
         auto pins = OwnerOf(slot);
         AdcHandle handle;
-        Status status = factory.Open(key, arguments, pins, handle);
+        Status status = factory.Open(slot, key, arguments, pins, handle);
         if (status != Status::done)
         {
             pins.Release();

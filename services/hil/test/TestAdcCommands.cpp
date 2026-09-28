@@ -45,7 +45,7 @@ namespace
             return status;
         }
 
-        services::hil::Status Open(uint16_t key, const services::hil::Arguments&, services::hil::PinOwner& pins, services::hil::AdcHandle& handle) override
+        services::hil::Status Open(std::size_t, uint16_t key, const services::hil::Arguments&, services::hil::PinOwner& pins, services::hil::AdcHandle& handle) override
         {
             hal::GpioPin* claimed = nullptr;
             services::hil::Status status = pins.ClaimAnalog(pin.value_or(services::hil::PinId{ 4, 0 }), claimed);
@@ -62,7 +62,7 @@ namespace
             return services::hil::Status::done;
         }
 
-        void Close(uint16_t key, const infra::Function<void()>& onClosed) override
+        void Close(std::size_t, uint16_t key, const infra::Function<void()>& onClosed) override
         {
             closed[key] = true;
             onClosed();

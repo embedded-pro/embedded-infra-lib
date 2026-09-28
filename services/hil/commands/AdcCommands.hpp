@@ -33,8 +33,8 @@ namespace services::hil
         virtual Status ParseKey(const Arguments& arguments, uint16_t& key) const = 0;
         virtual infra::MemoryRange<const char* const> OpenKeys() const = 0;
         virtual Status Prepare(uint16_t key, const Arguments& arguments) = 0;
-        virtual Status Open(uint16_t key, const Arguments& arguments, PinOwner& pins, AdcHandle& handle) = 0;
-        virtual void Close(uint16_t key, const infra::Function<void()>& onClosed) = 0;
+        virtual Status Open(std::size_t slot, uint16_t key, const Arguments& arguments, PinOwner& pins, AdcHandle& handle) = 0;
+        virtual void Close(std::size_t slot, uint16_t key, const infra::Function<void()>& onClosed) = 0;
     };
 
     class AdcCommands
