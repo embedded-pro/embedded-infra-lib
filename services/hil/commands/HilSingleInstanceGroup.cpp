@@ -76,4 +76,24 @@ namespace services
         instance.Closed();
         context.response.Ok();
     }
+
+    HilContext& HilSingleInstanceGroup::Context() const
+    {
+        return context;
+    }
+
+    HilSingleInstance& HilSingleInstanceGroup::Instance()
+    {
+        return instance;
+    }
+
+    const HilSingleInstance& HilSingleInstanceGroup::Instance() const
+    {
+        return instance;
+    }
+
+    HilPinOwner& HilSingleInstanceGroup::Pins()
+    {
+        return pins;
+    }
 }

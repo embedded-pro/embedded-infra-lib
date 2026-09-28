@@ -8,9 +8,9 @@ namespace services
         , factory(factory)
         , commands{ {
               OpenCommand("pwm.open", "<module> [key=value]..."),
-              HilBind<HilPwmCommands, &HilPwmCommands::Duty>("pwm.duty", "<module> <duty%>...", *this, context.response),
-              HilBind<HilPwmCommands, &HilPwmCommands::Frequency>("pwm.freq", "<module> <hz>", *this, context.response),
-              HilBind<HilPwmCommands, &HilPwmCommands::Stop>("pwm.stop", "<module>", *this, context.response),
+              HilBind<HilPwmCommands, &HilPwmCommands::Duty>("pwm.duty", "<module> <duty%>...", *this, Context().response),
+              HilBind<HilPwmCommands, &HilPwmCommands::Frequency>("pwm.freq", "<module> <hz>", *this, Context().response),
+              HilBind<HilPwmCommands, &HilPwmCommands::Stop>("pwm.stop", "<module>", *this, Context().response),
               CloseCommand("pwm.close", "<module>"),
           } }
     {}
@@ -25,7 +25,7 @@ namespace services
         if (!arguments.Shape(2, 1 + maximumChannels, {}))
             return HilStatus::usage;
 
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         if (status != HilStatus::done)
             return status;
 
@@ -44,7 +44,7 @@ namespace services
         }
 
         handle->Start(infra::Head(infra::MakeRange(std::as_const(dutyCycles)), count));
-        context.response.Ok();
+        Context().response.Ok();
         return HilStatus::done;
     }
 
@@ -54,15 +54,15 @@ namespace services
             return HilStatus::usage;
 
         uint32_t frequency = 0;
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         arguments.NumberAt(1, frequency, 1, std::numeric_limits<uint32_t>::max(), status);
         if (status == HilStatus::done)
-            status = factory.ChangeFrequency(instance.Index(), frequency);
+            status = factory.ChangeFrequency(Instance().Index(), frequency);
         if (status != HilStatus::done)
             return status;
 
         handle->SetBaseFrequency(hal::Hertz(frequency));
-        context.response.Ok();
+        Context().response.Ok();
         return HilStatus::done;
     }
 
@@ -71,19 +71,19 @@ namespace services
         if (!arguments.Shape(1, 1, {}))
             return HilStatus::usage;
 
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         if (status != HilStatus::done)
             return status;
 
         handle->Stop();
-        context.response.Ok();
+        Context().response.Ok();
         return HilStatus::done;
     }
 
     HilStatus HilPwmCommands::OpenInstance(uint8_t moduleIndex, const HilArguments& arguments)
     {
         HilPwmHandle* opened = nullptr;
-        HilStatus status = factory.Open(moduleIndex, arguments, pins, opened);
+        HilStatus status = factory.Open(moduleIndex, arguments, Pins(), opened);
         if (status != HilStatus::done)
             return status;
 
@@ -95,7 +95,7 @@ namespace services
 
     void HilPwmCommands::Opened(HilResponse::Line& line) const
     {
-        factory.ReportOpened(instance.Index(), line);
+        factory.ReportOpened(Instance().Index(), line);
     }
 
     void HilPwmCommands::CloseInstance()

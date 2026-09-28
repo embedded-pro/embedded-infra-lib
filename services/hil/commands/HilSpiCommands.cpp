@@ -14,10 +14,10 @@ namespace services
         , transmitBuffer(infra::Head(buffers, buffers.size() / 2))
         , receiveBuffer(infra::DiscardHead(buffers, buffers.size() / 2))
         , factory(factory)
-        , transfer(context.response)
+        , transfer(Context().response)
         , commands{ {
               OpenCommand("spi.open", "<index> [key=value]..."),
-              HilBind<HilSpiCommands, &HilSpiCommands::Transfer>("spi.xfer", "<index> <txHex|-> [rx=] [continue=]", *this, context.response),
+              HilBind<HilSpiCommands, &HilSpiCommands::Transfer>("spi.xfer", "<index> <txHex|-> [rx=] [continue=]", *this, Context().response),
               CloseCommand("spi.close", "<index>"),
           } }
     {}
@@ -34,7 +34,7 @@ namespace services
 
         std::size_t transmitSize = 0;
         bool continueSession = false;
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         if (status == HilStatus::done)
             status = HilArguments::ParseHex(arguments.Positional(1), transmitBuffer, transmitSize);
         auto receiveSize = static_cast<uint32_t>(transmitSize);
@@ -57,7 +57,7 @@ namespace services
     HilStatus HilSpiCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         HilSpiHandle opened;
-        HilStatus status = factory.Open(index, arguments, pins, opened);
+        HilStatus status = factory.Open(index, arguments, Pins(), opened);
         if (status != HilStatus::done)
             return status;
 
@@ -104,6 +104,6 @@ namespace services
 
     void HilSpiCommands::Report() const
     {
-        (context.response.Ok() << " rx=").Hex(infra::Head(infra::ConstByteRange(receiveBuffer), reportSize));
+        (Context().response.Ok() << " rx=").Hex(infra::Head(infra::ConstByteRange(receiveBuffer), reportSize));
     }
 }

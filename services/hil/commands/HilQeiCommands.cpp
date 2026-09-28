@@ -8,7 +8,7 @@ namespace services
         , factory(factory)
         , commands{ {
               OpenCommand("qei.open", "<index> [key=value]..."),
-              HilBind<HilQeiCommands, &HilQeiCommands::Read>("qei.read", "<index>", *this, context.response),
+              HilBind<HilQeiCommands, &HilQeiCommands::Read>("qei.read", "<index>", *this, Context().response),
               CloseCommand("qei.close", "<index>"),
           } }
     {}
@@ -23,19 +23,19 @@ namespace services
         if (!arguments.Shape(1, 1, {}))
             return HilStatus::usage;
 
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         if (status != HilStatus::done)
             return status;
 
         const auto direction = encoder->Direction() == hal::SynchronousQuadratureEncoder::MotionDirection::forward ? "fwd" : "rev";
-        context.response.Ok() << " pos=" << encoder->Position() << " dir=" << direction << " speed=" << encoder->Speed() << " res=" << encoder->Resolution();
+        Context().response.Ok() << " pos=" << encoder->Position() << " dir=" << direction << " speed=" << encoder->Speed() << " res=" << encoder->Resolution();
         return HilStatus::done;
     }
 
     HilStatus HilQeiCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         hal::SynchronousQuadratureEncoder* opened = nullptr;
-        HilStatus status = factory.Open(index, arguments, pins, opened);
+        HilStatus status = factory.Open(index, arguments, Pins(), opened);
         if (status != HilStatus::done)
             return status;
 

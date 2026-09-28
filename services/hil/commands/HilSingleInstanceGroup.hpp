@@ -41,17 +41,20 @@ namespace services
         virtual void Opened(HilResponse::Line& line) const;
         virtual void CloseInstance() = 0;
 
+        HilContext& Context() const;
+        HilSingleInstance& Instance();
+        const HilSingleInstance& Instance() const;
+        HilPinOwner& Pins();
+
     private:
         HilStatus Open(const HilArguments& arguments);
         HilStatus Close(const HilArguments& arguments);
         void Closed();
 
-    protected:
+    private:
         HilContext& context;
         HilSingleInstance instance;
         HilPinOwner pins;
-
-    private:
         HilInstanceFactory& factory;
     };
 }

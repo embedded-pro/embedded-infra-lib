@@ -19,11 +19,11 @@ namespace services
               {
                   CheckReceive();
               })
-        , sending(context.response)
+        , sending(Context().response)
         , commands{ {
               OpenCommand("uart.open", "<index> [key=value]..."),
-              HilBind<HilUartCommands, &HilUartCommands::Send>("uart.send", "<index> <hex>", *this, context.response),
-              HilBind<HilUartCommands, &HilUartCommands::Receive>("uart.recv", "<index> [timeout=] [len=]", *this, context.response),
+              HilBind<HilUartCommands, &HilUartCommands::Send>("uart.send", "<index> <hex>", *this, Context().response),
+              HilBind<HilUartCommands, &HilUartCommands::Receive>("uart.recv", "<index> [timeout=] [len=]", *this, Context().response),
               CloseCommand("uart.close", "<index>"),
           } }
     {}
@@ -38,7 +38,7 @@ namespace services
         if (!arguments.Shape(2, 2, {}))
             return HilStatus::usage;
 
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         if (status != HilStatus::done)
             return status;
 
@@ -58,7 +58,7 @@ namespace services
         if (handle.synchronous != nullptr)
         {
             handle.synchronous->SendData(data);
-            context.response.Ok();
+            Context().response.Ok();
         }
         else
             SendAsynchronous(data);
@@ -73,7 +73,7 @@ namespace services
 
         uint32_t timeout = defaultReceiveTimeoutMs;
         uint32_t length = 0;
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         arguments.Number("timeout", timeout, 0, maximumReceiveTimeoutMs, status);
         arguments.Number("len", length, 1, static_cast<uint32_t>(received.EmptySize()), status);
         if (status != HilStatus::done)
@@ -89,13 +89,13 @@ namespace services
     HilStatus HilUartCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         HilUartHandle opened;
-        HilStatus status = factory.Open(index, arguments, pins, timeKeeper, opened);
+        HilStatus status = factory.Open(index, arguments, Pins(), timeKeeper, opened);
         if (status != HilStatus::done)
             return status;
 
         really_assert(opened.synchronous != nullptr || (opened.serial != nullptr && opened.baudRate != 0));
 
-        received.Consume(received.Size());
+        received.Consume(static_cast<uint32_t>(received.Size()));
         handle = opened;
 
         if (handle.serial != nullptr)
@@ -122,7 +122,7 @@ namespace services
         handle.serial->SendData(data, [this, operation]()
             {
                 if (sending.Complete(operation))
-                    context.response.Ok();
+                    Context().response.Ok();
             });
     }
 
@@ -181,14 +181,14 @@ namespace services
     void HilUartCommands::FinishReceive()
     {
         receiveWanted = std::nullopt;
-        auto line = context.response.Ok();
+        auto line = Context().response.Ok();
         line << " data=";
 
         while (!received.Empty())
         {
             auto chunk = received.ContiguousRange();
             line.Hex(chunk);
-            received.Consume(chunk.size());
+            received.Consume(static_cast<uint32_t>(chunk.size()));
         }
     }
 }

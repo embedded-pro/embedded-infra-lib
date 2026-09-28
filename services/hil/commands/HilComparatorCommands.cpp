@@ -8,9 +8,9 @@ namespace services
         , factory(factory)
         , commands{ {
               OpenCommand("comp.open", "<index> [key=value]..."),
-              HilBind<HilComparatorCommands, &HilComparatorCommands::Read>("comp.read", "<index>", *this, context.response),
-              HilBind<HilComparatorCommands, &HilComparatorCommands::Interrupt>("comp.irq", "<index> <rising|falling|both|off>", *this, context.response),
-              HilBind<HilComparatorCommands, &HilComparatorCommands::Count>("comp.count", "<index> [clear=]", *this, context.response),
+              HilBind<HilComparatorCommands, &HilComparatorCommands::Read>("comp.read", "<index>", *this, Context().response),
+              HilBind<HilComparatorCommands, &HilComparatorCommands::Interrupt>("comp.irq", "<index> <rising|falling|both|off>", *this, Context().response),
+              HilBind<HilComparatorCommands, &HilComparatorCommands::Count>("comp.count", "<index> [clear=]", *this, Context().response),
               CloseCommand("comp.close", "<index>"),
           } }
     {}
@@ -25,12 +25,12 @@ namespace services
         if (!arguments.Shape(1, 1, {}))
             return HilStatus::usage;
 
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         if (status != HilStatus::done)
             return status;
 
         const bool output = handle.comparator != nullptr ? handle.comparator->GetOutput() : handle.synchronous->GetOutput();
-        context.response.Ok() << " out=" << (output ? 1u : 0u);
+        Context().response.Ok() << " out=" << (output ? 1u : 0u);
         return HilStatus::done;
     }
 
@@ -40,7 +40,7 @@ namespace services
             return HilStatus::usage;
 
         auto edge = HilEdge::off;
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         arguments.SelectAt(1, edge, hilEdges, status);
         if (status != HilStatus::done)
             return status;
@@ -57,7 +57,7 @@ namespace services
                 },
                 *trigger);
 
-        context.response.Ok();
+        Context().response.Ok();
         return HilStatus::done;
     }
 
@@ -67,19 +67,19 @@ namespace services
             return HilStatus::usage;
 
         bool clear = false;
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         arguments.Flag("clear", clear, status);
         if (status != HilStatus::done)
             return status;
 
-        context.response.Ok() << " count=" << count.Read(clear);
+        Context().response.Ok() << " count=" << count.Read(clear);
         return HilStatus::done;
     }
 
     HilStatus HilComparatorCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         HilComparatorHandle opened;
-        HilStatus status = factory.Open(index, arguments, pins, opened);
+        HilStatus status = factory.Open(index, arguments, Pins(), opened);
         if (status != HilStatus::done)
             return status;
 

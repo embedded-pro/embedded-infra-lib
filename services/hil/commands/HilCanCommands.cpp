@@ -14,10 +14,10 @@ namespace services
     HilCanCommands::HilCanCommands(HilContext& context, HilCanFactory& factory)
         : HilSingleInstanceGroup(context, factory, HilOwners::can)
         , factory(factory)
-        , sending(context.response)
+        , sending(Context().response)
         , commands{ {
               OpenCommand("can.open", "<index> [key=value]..."),
-              HilBind<HilCanCommands, &HilCanCommands::Send>("can.send", "<index> <id> <hex> [ext=]", *this, context.response),
+              HilBind<HilCanCommands, &HilCanCommands::Send>("can.send", "<index> <id> <hex> [ext=]", *this, Context().response),
               CloseCommand("can.close", "<index>"),
           } }
     {}
@@ -36,7 +36,7 @@ namespace services
         bool extended = false;
         std::array<uint8_t, maximumData> payload{};
         std::size_t size = 0;
-        HilStatus status = instance.Find(arguments);
+        HilStatus status = Instance().Find(arguments);
         arguments.Flag("ext", extended, status);
         arguments.NumberAt(1, id, 0, extended ? maximumExtendedId : maximumStandardId, status);
         if (status == HilStatus::done)
@@ -54,7 +54,7 @@ namespace services
     HilStatus HilCanCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         hal::Can* opened = nullptr;
-        HilStatus status = factory.Open(index, arguments, pins, [this](const char* error)
+        HilStatus status = factory.Open(index, arguments, Pins(), [this](const char* error)
             {
                 Error(error);
             },
@@ -89,25 +89,25 @@ namespace services
                     return;
 
                 if (success)
-                    context.response.Ok();
+                    Context().response.Ok();
                 else
-                    context.response.Error(HilStatus::failed);
+                    Context().response.Error(HilStatus::failed);
             });
     }
 
     void HilCanCommands::Received(hal::Can::Id id, const hal::Can::Message& data) const
     {
-        if (!instance.Occupied())
+        if (!Instance().Occupied())
             return;
 
         const bool extended = id.Is29BitId();
-        (context.response.Event("can") << " index=" << static_cast<uint32_t>(instance.Index()) << " id=" << (extended ? id.Get29BitId() : id.Get11BitId()) << " ext=" << (extended ? 1u : 0u) << " data=")
+        (Context().response.Event("can") << " index=" << static_cast<uint32_t>(Instance().Index()) << " id=" << (extended ? id.Get29BitId() : id.Get11BitId()) << " ext=" << (extended ? 1u : 0u) << " data=")
             .Hex(infra::MakeRange(data));
     }
 
     void HilCanCommands::Error(const char* error)
     {
-        if (!instance.Occupied())
+        if (!Instance().Occupied())
             return;
 
         const auto now = infra::Now();
@@ -116,6 +116,6 @@ namespace services
 
         lastError = error;
         lastErrorTime = now;
-        context.response.Event("can") << " index=" << static_cast<uint32_t>(instance.Index()) << " error=" << error;
+        Context().response.Event("can") << " index=" << static_cast<uint32_t>(Instance().Index()) << " error=" << error;
     }
 }
