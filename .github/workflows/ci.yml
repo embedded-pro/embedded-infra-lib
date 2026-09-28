@@ -101,7 +101,7 @@ jobs:
       - if: always()
         run: cat build/host-ClangMsvc/compile_commands.json
   host_build_test:
-    name: Host Build & Test
+    name: Host Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
