@@ -120,6 +120,11 @@ namespace services
 
         TerminalWithCommandsImplBase(infra::MemoryRange<uint8_t> bufferQueue, infra::BoundedDeque<infra::BoundedString::WithStorage<TerminalBase<MaxCommandLength>::MaxBuffer>>& history, hal::SerialCommunication& communication, services::Tracer& tracer);
 
+    protected:
+        virtual void OnCommandStart();
+        virtual void OnCommandEnd();
+        virtual void OnUnrecognizedCommand();
+
     private:
         void OnData(infra::BoundedConstString data) override;
     };
@@ -412,15 +417,33 @@ namespace services
     {}
 
     template<size_t MaxCommandLength>
+    void TerminalWithCommandsImplBase<MaxCommandLength>::OnCommandStart()
+    {}
+
+    template<size_t MaxCommandLength>
+    void TerminalWithCommandsImplBase<MaxCommandLength>::OnCommandEnd()
+    {}
+
+    template<size_t MaxCommandLength>
+    void TerminalWithCommandsImplBase<MaxCommandLength>::OnUnrecognizedCommand()
+    {
+        TerminalBase<MaxCommandLength>::Print("Unrecognized command.");
+    }
+
+    template<size_t MaxCommandLength>
     void TerminalWithCommandsImplBase<MaxCommandLength>::OnData(infra::BoundedConstString data)
     {
+        OnCommandStart();
+
         bool commandProcessed = NotifyObservers([data](TerminalCommands& observer)
             {
                 return observer.ProcessCommand(data);
             });
 
         if (!commandProcessed)
-            TerminalBase<MaxCommandLength>::Print("Unrecognized command.");
+            OnUnrecognizedCommand();
+
+        OnCommandEnd();
     }
 
     using Terminal = TerminalBase<256>;
