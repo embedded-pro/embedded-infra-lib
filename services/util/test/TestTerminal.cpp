@@ -57,16 +57,17 @@ public:
 
     infra::MemoryRange<const Command> Commands() override
     {
-        static const std::array<Command, 1> commands = { { { { "long", "l", "long command description" },
-            [this]([[maybe_unused]] const infra::BoundedConstString& params)
-            {
-                command.callback();
-            } } } };
-
         return infra::MakeRange(commands);
     }
 
     infra::MockCallback<void()> command;
+
+private:
+    const std::array<Command, 1> commands = { { { { "long", "l", "long command description" },
+        [this]([[maybe_unused]] const infra::BoundedConstString& params)
+        {
+            command.callback();
+        } } } };
 };
 
 class TerminalWithCommandsTest
@@ -74,6 +75,41 @@ class TerminalWithCommandsTest
 {
 protected:
     services::TerminalWithCommandsImpl::WithMaxQueueAndMaxHistory<> terminal{ communication, tracer };
+    TerminalCommandsStub commands{ terminal };
+};
+
+class TerminalWithCommandsHooks
+    : public services::TerminalWithCommandsImpl
+{
+public:
+    using services::TerminalWithCommandsImpl::TerminalWithCommandsImpl;
+
+    infra::MockCallback<void()> commandStart;
+    infra::MockCallback<void()> commandEnd;
+    infra::MockCallback<void()> unrecognizedCommand;
+
+protected:
+    void OnCommandStart() override
+    {
+        commandStart.callback();
+    }
+
+    void OnCommandEnd() override
+    {
+        commandEnd.callback();
+    }
+
+    void OnUnrecognizedCommand() override
+    {
+        unrecognizedCommand.callback();
+    }
+};
+
+class TerminalWithCommandsHooksTest
+    : public TerminalTestBase
+{
+protected:
+    infra::WithStorage<infra::WithStorage<TerminalWithCommandsHooks, std::array<uint8_t, 33>>, infra::BoundedDeque<infra::BoundedString::WithStorage<services::TerminalWithCommandsImpl::MaxBuffer>>::WithMaxSize<4>> terminal{ communication, tracer };
     TerminalCommandsStub commands{ terminal };
 };
 
@@ -399,6 +435,34 @@ TEST_F(TerminalWithCommandsTest, unrecognized_command_is_reported)
     EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { '>', ' ' } }), testing::_));
 
     communication.dataReceived(std::vector<uint8_t>{ ' ', '\r' });
+
+    ExecuteAllActions();
+}
+
+TEST_F(TerminalWithCommandsHooksTest, hooks_bracket_recognized_command)
+{
+    EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { 'l' } }), testing::_));
+    EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { '\r', '\n' } }), testing::_));
+    EXPECT_CALL(terminal.commandStart, callback());
+    EXPECT_CALL(commands.command, callback());
+    EXPECT_CALL(terminal.commandEnd, callback());
+    EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { '>', ' ' } }), testing::_));
+
+    communication.dataReceived(std::vector<uint8_t>{ 'l', '\r' });
+
+    ExecuteAllActions();
+}
+
+TEST_F(TerminalWithCommandsHooksTest, unrecognized_command_is_delegated_to_hook)
+{
+    EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { 'x' } }), testing::_));
+    EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { '\r', '\n' } }), testing::_));
+    EXPECT_CALL(terminal.commandStart, callback());
+    EXPECT_CALL(terminal.unrecognizedCommand, callback());
+    EXPECT_CALL(terminal.commandEnd, callback());
+    EXPECT_CALL(streamWriterMock, Insert(infra::CheckByteRangeContents(std::vector<uint8_t>{ { '>', ' ' } }), testing::_));
+
+    communication.dataReceived(std::vector<uint8_t>{ 'x', '\r' });
 
     ExecuteAllActions();
 }

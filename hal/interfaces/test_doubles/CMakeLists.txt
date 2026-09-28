@@ -15,6 +15,7 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     AdcMultiChannelStub.hpp
     AnalogComparatorMock.hpp
     AnalogToDigitalPinImplMock.hpp
+    CanMock.hpp
     CommunicationConfiguratorMock.hpp
     DigitalToAnalogPinImplMock.hpp
     FileSystemStub.cpp
@@ -23,6 +24,7 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     EepromMock.hpp
     EepromStub.cpp
     EepromStub.hpp
+    EthernetMock.hpp
     FlashMock.cpp
     FlashMock.hpp
     FlashStub.cpp

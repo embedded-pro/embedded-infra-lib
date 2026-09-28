@@ -7,6 +7,7 @@ target_link_libraries(hal.synchronous_interfaces_test_doubles PUBLIC
 )
 
 target_sources(hal.synchronous_interfaces_test_doubles PRIVATE
+    SynchronousAdcMock.hpp
     SynchronousAnalogComparatorMock.hpp
     SynchronousEncryptorMock.hpp
     SynchronousFixedRandomDataGenerator.cpp
