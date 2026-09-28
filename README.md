@@ -30,7 +30,7 @@ EmIL is know to build under the following configurations:
 
 ## How to build the software
 
-EmIL can be built by-itself, for example to execute the included micro-tests, or it can be built as part of a larger project. This paragraph describes how to build EmIL by-itself.
+EmIL can be built by itself, for example to execute the included micro-tests, or it can be built as part of a larger project. This section describes how to build EmIL by itself.
 
 ```shell
 cmake -B Build
