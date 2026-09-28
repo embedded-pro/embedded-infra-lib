@@ -1,4 +1,5 @@
 #include "services/hil/HilPinNaming.hpp"
+#include "services/hil/HilArguments.hpp"
 
 namespace services
 {
@@ -69,18 +70,10 @@ namespace services
         if (text.empty() || text.size() > maximumIndexDigits || (text.size() > 1 && text[0] == '0'))
             return std::nullopt;
 
-        uint32_t index = 0;
-        for (auto digit : text)
-        {
-            if (digit < '0' || digit > '9')
-                return std::nullopt;
-
-            index = index * 10 + static_cast<uint32_t>(digit - '0');
-        }
-
-        if (index > maximumIndex)
+        auto index = HilArguments::ParseNumber(text);
+        if (!index.has_value() || *index > maximumIndex)
             return std::nullopt;
 
-        return static_cast<uint8_t>(index);
+        return static_cast<uint8_t>(*index);
     }
 }

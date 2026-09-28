@@ -11,18 +11,23 @@ target_sources(services.hil.commands PRIVATE
     HilCanCommands.hpp
     HilComparatorCommands.cpp
     HilComparatorCommands.hpp
+    HilEdge.hpp
     HilEepromCommands.cpp
     HilEepromCommands.hpp
     HilEthernetCommands.cpp
     HilEthernetCommands.hpp
     HilGpioCommands.cpp
     HilGpioCommands.hpp
+    HilPendingOperation.cpp
+    HilPendingOperation.hpp
     HilPwmCommands.cpp
     HilPwmCommands.hpp
     HilQeiCommands.cpp
     HilQeiCommands.hpp
     HilSingleInstance.cpp
     HilSingleInstance.hpp
+    HilSingleInstanceGroup.cpp
+    HilSingleInstanceGroup.hpp
     HilSpiCommands.cpp
     HilSpiCommands.hpp
     HilUartCommands.cpp

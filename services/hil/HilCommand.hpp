@@ -23,7 +23,7 @@ namespace services
     template<class Group, HilStatus (Group::*Method)(const HilArguments&)>
     services::TerminalCommands::Command HilBind(const char* name, const char* usage, Group& group, HilResponse& response)
     {
-        return { { name, name, usage }, [&group, &response](const infra::BoundedConstString& parameters)
+        return { { name, name, "", usage }, [&group, &response](const infra::BoundedConstString& parameters)
             {
                 HilStatus status = (group.*Method)(HilArguments(parameters));
 
@@ -35,7 +35,7 @@ namespace services
     template<class Group, HilStatus (Group::*Method)(const HilArguments&) const>
     services::TerminalCommands::Command HilBind(const char* name, const char* usage, const Group& group, HilResponse& response)
     {
-        return { { name, name, usage }, [&group, &response](const infra::BoundedConstString& parameters)
+        return { { name, name, "", usage }, [&group, &response](const infra::BoundedConstString& parameters)
             {
                 HilStatus status = (group.*Method)(HilArguments(parameters));
 

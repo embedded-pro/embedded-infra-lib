@@ -1,5 +1,4 @@
 #include "services/hil/commands/HilWatchDogCommands.hpp"
-#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 namespace services
@@ -101,18 +100,14 @@ namespace services
     void HilWatchDogCommands::EarlyWarning()
     {
         warnings.fetch_add(1);
-
-        if (!reportPending.exchange(true))
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    Report();
-                });
+        reportScheduler.Schedule([this]()
+            {
+                Report();
+            });
     }
 
     void HilWatchDogCommands::Report()
     {
-        reportPending = false;
-
         if (autoFeed)
             watchDog->Refresh();
 

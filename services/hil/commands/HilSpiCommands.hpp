@@ -3,11 +3,10 @@
 
 #include "hal/interfaces/Spi.hpp"
 #include "hal/synchronous_interfaces/SynchronousSpi.hpp"
-#include "infra/timer/Timer.hpp"
 #include "infra/util/WithStorage.hpp"
 #include "services/hil/HilCommand.hpp"
-#include "services/hil/commands/HilSingleInstance.hpp"
-#include "services/util/Terminal.hpp"
+#include "services/hil/commands/HilPendingOperation.hpp"
+#include "services/hil/commands/HilSingleInstanceGroup.hpp"
 #include <array>
 
 namespace services
@@ -19,6 +18,7 @@ namespace services
     };
 
     class HilSpiFactory
+        : public HilInstanceFactory
     {
     protected:
         HilSpiFactory() = default;
@@ -27,15 +27,11 @@ namespace services
         ~HilSpiFactory() = default;
 
     public:
-        virtual uint8_t Instances() const = 0;
-        virtual infra::MemoryRange<const char* const> OpenKeys() const = 0;
-        virtual HilStatus Prepare(uint8_t index, const HilArguments& arguments) = 0;
         virtual HilStatus Open(uint8_t index, const HilArguments& arguments, HilPinOwner& pins, HilSpiHandle& handle) = 0;
-        virtual void Close(uint8_t index, const infra::Function<void()>& onClosed) = 0;
     };
 
     class HilSpiCommands
-        : public services::TerminalCommands
+        : public HilSingleInstanceGroup
     {
     public:
         template<std::size_t Capacity>
@@ -45,32 +41,24 @@ namespace services
 
         infra::MemoryRange<const Command> Commands() override;
 
-    private:
-        HilStatus Open(const HilArguments& arguments);
-        HilStatus Transfer(const HilArguments& arguments);
-        HilStatus Close(const HilArguments& arguments);
+    protected:
+        HilStatus OpenInstance(uint8_t index, const HilArguments& arguments) override;
+        void CloseInstance() override;
 
-        HilStatus OpenInstance(uint8_t index, const HilArguments& arguments);
+    private:
+        HilStatus Transfer(const HilArguments& arguments);
+
         void StartTransfer(std::size_t transmitSize, std::size_t receiveSize, std::size_t length, bool continueSession);
         void TransferAsynchronous(infra::ConstByteRange send, infra::ByteRange receive, hal::SpiAction nextAction);
-        void Done(uint32_t generation);
-        void Timeout();
-        void Report();
-        void Closed();
+        void Report() const;
 
     private:
         infra::ByteRange transmitBuffer;
         infra::ByteRange receiveBuffer;
-        HilContext& context;
         HilSpiFactory& factory;
-        HilSingleInstance instance;
-        HilPinOwner pins;
         HilSpiHandle handle;
         std::size_t reportSize = 0;
-        uint32_t generation = 0;
-        bool transferring = false;
-        bool awaiting = false;
-        infra::TimerSingleShot timer;
+        HilPendingOperation transfer;
         std::array<Command, 3> commands;
     };
 }

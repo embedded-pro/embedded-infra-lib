@@ -2,6 +2,7 @@
 #define SERVICES_HIL_WATCH_DOG_COMMANDS_HPP
 
 #include "hal/interfaces/Watchdog.hpp"
+#include "infra/event/AtomicTriggerScheduler.hpp"
 #include "services/hil/HilCommand.hpp"
 #include "services/hil/commands/HilSingleInstance.hpp"
 #include "services/util/Terminal.hpp"
@@ -49,7 +50,7 @@ namespace services
         hal::Watchdog* watchDog = nullptr;
         bool autoFeed = true;
         std::atomic<uint32_t> warnings{ 0 };
-        std::atomic<bool> reportPending{ false };
+        infra::AtomicTriggerScheduler reportScheduler;
         std::array<Command, 2> commands;
     };
 }

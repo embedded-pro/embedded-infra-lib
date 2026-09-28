@@ -17,9 +17,14 @@ namespace hal
             : value(value)
         {}
 
+        static constexpr DutyCycle FromRatio(uint64_t numerator, uint64_t denominator)
+        {
+            return DutyCycle(static_cast<uint32_t>((numerator * fullScale + denominator / 2) / denominator));
+        }
+
         static constexpr DutyCycle FromPercent(uint32_t percent)
         {
-            return DutyCycle((uint64_t{ percent } * fullScale + 50) / 100);
+            return FromRatio(percent, 100);
         }
 
         constexpr uint32_t Value() const

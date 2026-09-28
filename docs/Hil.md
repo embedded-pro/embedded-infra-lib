@@ -98,6 +98,8 @@ system.PrintBoot();
 
 ### Factories
 
+The UART, SPI, CAN, PWM, QEI and comparator factories derive from `HilInstanceFactory`, which declares the shared `Instances()`, `OpenKeys()`, `Prepare(index, arguments)` and `Close(index, onClosed)`; their command groups derive from `HilSingleInstanceGroup`, which implements the open and close commands below and calls the group back to construct and release its handle.
+
 Every factory follows the same two-step open, so that argument errors are reported before `ERR busy` and resources are only claimed once the instance is free:
 
 1. The group checks the shape against `OpenKeys()` and parses the instance number against `Instances()`.
@@ -120,7 +122,7 @@ Every factory follows the same two-step open, so that argument errors are report
 | `HilEthernetFactory`   | `Open(arguments, HilEthernetHandle&)` with the `hal::EthernetSmi*` and `hal::EthernetMac*`; the group attaches a `HilEthernetMonitor`                                                                     |
 
 `HilPwmAdapter<Driver>` turns any driver implementing one or more of `hal::SingleChannelPwm` ... `hal::FourChannelsPwm` (or their synchronous counterparts) into a `HilPwmHandle`; a single duty is replicated when the driver has no single-channel `Start`.
-A HAL that rebuilds its PWM driver in place implements `HilPwmHandle` itself instead.
+A HAL that chooses between drivers at open time keeps one adapter per driver type, for example in a `std::variant` next to the driver variant, and hands out the adapter it constructed.
 
 ### Capacities
 
@@ -139,6 +141,8 @@ Buffers are provided through `WithStorage` aliases so a small target only pays f
 - HAL-only commands are an extra `services::TerminalCommands` group built with `services::HilBind` and the shared `HilContext`; a group that needs the state of a generic group gets it from the factory it shares with that group (for example `pwm.fault` and `pwm.count` next to the HAL's `HilPwmFactory`).
 - HAL-specific open options are simply more keys in `OpenKeys()`, parsed in `Prepare` or `Open` (for example ADC digital comparators).
 - Extra groups claim pins with an owner from `HilOwners::extension` upwards.
+- A group with one asynchronous operation at a time uses `HilPendingOperation`: `Start(timeout)` marks it busy and answers `ERR timeout` when the timeout expires, `Complete(operation)` returns whether the completion still owes the answer, and `Cancel()` drops the completion of an operation on a closed instance.
+- `HilEdge`, `hilEdges` and `ToTrigger` parse `rising|falling|both|off` into an optional `hal::InterruptTrigger`; `HilEdgeCounter` counts edges from an interrupt.
 - A peripheral the running MCU lacks is registered as a `HilUnsupportedCommands` group with its command names.
 
 ### Factory notes

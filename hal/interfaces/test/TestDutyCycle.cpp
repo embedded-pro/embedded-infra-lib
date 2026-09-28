@@ -14,6 +14,26 @@ TEST(DutyCycleTest, from_percent_rounds_to_the_nearest_step)
     EXPECT_EQ(hal::DutyCycle::FromPercent(15).Value(), 9830u);
 }
 
+TEST(DutyCycleTest, from_ratio_scales_to_full_scale)
+{
+    EXPECT_EQ(hal::DutyCycle::FromRatio(1, 1).Value(), hal::DutyCycle::fullScale);
+    EXPECT_EQ(hal::DutyCycle::FromRatio(1, 4).Value(), hal::DutyCycle::fullScale / 4);
+    EXPECT_EQ(hal::DutyCycle::FromRatio(0, 7).Value(), 0u);
+}
+
+TEST(DutyCycleTest, from_ratio_rounds_to_the_nearest_step)
+{
+    EXPECT_EQ(hal::DutyCycle::FromRatio(1, 3).Value(), 21845u);
+    EXPECT_EQ(hal::DutyCycle::FromRatio(2, 3).Value(), 43691u);
+    EXPECT_EQ(hal::DutyCycle::FromRatio(123456, 1000000).Value(), 8091u);
+}
+
+TEST(DutyCycleTest, from_percent_matches_from_ratio)
+{
+    for (uint32_t percent = 0; percent <= 100; ++percent)
+        EXPECT_EQ(hal::DutyCycle::FromPercent(percent), hal::DutyCycle::FromRatio(percent, 100));
+}
+
 TEST(DutyCycleTest, to_counts_scales_the_period)
 {
     EXPECT_EQ(hal::DutyCycle::FromPercent(50).ToCounts(3000), 1500u);

@@ -13,6 +13,7 @@ namespace services
         , buffer(buffer)
         , context(context)
         , factory(factory)
+        , operation(context.response)
         , commands{ {
               HilBind<HilEepromCommands, &HilEepromCommands::Write>("eeprom.write", "<address> <hex>", *this, context.response),
               HilBind<HilEepromCommands, &HilEepromCommands::Read>("eeprom.read", "<address> <len>", *this, context.response),
@@ -46,7 +47,7 @@ namespace services
         if (size > eeprom.Size() - address)
             return HilStatus::range;
 
-        if (operating)
+        if (operation.Busy())
             return HilStatus::busy;
 
         readData = infra::ByteRange();
@@ -71,7 +72,7 @@ namespace services
         if (length > eeprom.Size() - address)
             return HilStatus::range;
 
-        if (operating)
+        if (operation.Busy())
             return HilStatus::busy;
 
         readData = infra::Head(buffer, length);
@@ -84,7 +85,7 @@ namespace services
         if (!arguments.Shape(0, 0, {}))
             return HilStatus::usage;
 
-        if (operating)
+        if (operation.Busy())
             return HilStatus::busy;
 
         readData = infra::ByteRange();
@@ -94,44 +95,23 @@ namespace services
 
     infra::Function<void()> HilEepromCommands::Start()
     {
-        operating = true;
-        awaiting = true;
-        timer.Start(operationTimeout, [this]()
-            {
-                Timeout();
-            });
+        const auto current = operation.Start(operationTimeout);
 
-        return [this]()
+        return [this, current]()
         {
-            infra::EventDispatcher::Instance().Schedule([this]()
+            infra::EventDispatcher::Instance().Schedule([this, current]()
                 {
-                    Done();
+                    if (operation.Complete(current))
+                        Report();
                 });
         };
     }
 
-    void HilEepromCommands::Done()
+    void HilEepromCommands::Report() const
     {
-        operating = false;
-
-        if (!awaiting)
-            return;
-
-        awaiting = false;
-        timer.Cancel();
-
         if (readData.empty())
             context.response.Ok();
         else
             (context.response.Ok() << " data=").Hex(readData);
-    }
-
-    void HilEepromCommands::Timeout()
-    {
-        if (!awaiting)
-            return;
-
-        awaiting = false;
-        context.response.Error(HilStatus::timeout);
     }
 }

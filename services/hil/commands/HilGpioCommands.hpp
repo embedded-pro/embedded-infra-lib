@@ -1,12 +1,12 @@
 #ifndef SERVICES_HIL_GPIO_COMMANDS_HPP
 #define SERVICES_HIL_GPIO_COMMANDS_HPP
 
-#include "infra/timer/Timer.hpp"
+#include "infra/timer/TimerLimitedRepeating.hpp"
 #include "infra/util/WithStorage.hpp"
 #include "services/hil/HilCommand.hpp"
+#include "services/hil/commands/HilEdge.hpp"
 #include "services/util/Terminal.hpp"
 #include <array>
-#include <atomic>
 #include <optional>
 
 namespace services
@@ -21,7 +21,7 @@ namespace services
             hal::GpioPin* pin = nullptr;
             bool output = false;
             bool interruptEnabled = false;
-            std::atomic<uint32_t> count{ 0 };
+            HilEdgeCounter count;
         };
 
         template<std::size_t MaxPins>
@@ -50,9 +50,8 @@ namespace services
     private:
         infra::MemoryRange<Entry> entries;
         HilContext& context;
-        infra::TimerRepeating pulseTimer;
+        infra::TimerLimitedRepeating pulseTimer;
         Entry* pulseEntry = nullptr;
-        uint32_t pulsesRemaining = 0;
         std::array<Command, 7> commands;
     };
 }

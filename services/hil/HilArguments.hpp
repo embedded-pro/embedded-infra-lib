@@ -59,8 +59,7 @@ namespace services
         template<class T, std::size_t N>
         static void Select(infra::BoundedConstString text, T& value, const std::array<HilChoice<T>, N>& choices, HilStatus& status);
 
-        template<class Keys>
-        bool KnownKeys(const Keys& keys) const;
+        bool KnownKeys(infra::MemoryRange<const char* const> keys) const;
         static void Number(infra::BoundedConstString text, uint32_t& value, uint32_t minimum, uint32_t maximum, HilStatus& status);
         static bool IsKeyValue(infra::BoundedConstString token);
 
@@ -105,27 +104,6 @@ namespace services
             value = *choice;
         else
             status = HilStatus::usage;
-    }
-
-    template<class Keys>
-    bool HilArguments::KnownKeys(const Keys& keys) const
-    {
-        for (std::size_t i = 0; i != tokens; ++i)
-        {
-            auto token = tokenizer.Token(i);
-            if (!IsKeyValue(token))
-                continue;
-
-            auto name = token.substr(0, token.find('='));
-            bool known = false;
-            for (auto key : keys)
-                known = known || name == key;
-
-            if (!known)
-                return false;
-        }
-
-        return true;
     }
 }
 

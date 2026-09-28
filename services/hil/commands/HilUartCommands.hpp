@@ -9,8 +9,8 @@
 #include "infra/util/WithStorage.hpp"
 #include "services/hil/HilCommand.hpp"
 #include "services/hil/HilDeadlineTimeKeeper.hpp"
-#include "services/hil/commands/HilSingleInstance.hpp"
-#include "services/util/Terminal.hpp"
+#include "services/hil/commands/HilPendingOperation.hpp"
+#include "services/hil/commands/HilSingleInstanceGroup.hpp"
 #include <array>
 #include <optional>
 
@@ -24,6 +24,7 @@ namespace services
     };
 
     class HilUartFactory
+        : public HilInstanceFactory
     {
     protected:
         HilUartFactory() = default;
@@ -32,15 +33,11 @@ namespace services
         ~HilUartFactory() = default;
 
     public:
-        virtual uint8_t Instances() const = 0;
-        virtual infra::MemoryRange<const char* const> OpenKeys() const = 0;
-        virtual HilStatus Prepare(uint8_t index, const HilArguments& arguments) = 0;
         virtual HilStatus Open(uint8_t index, const HilArguments& arguments, HilPinOwner& pins, hal::TimeKeeper& timeKeeper, HilUartHandle& handle) = 0;
-        virtual void Close(uint8_t index, const infra::Function<void()>& onClosed) = 0;
     };
 
     class HilUartCommands
-        : public services::TerminalCommands
+        : public HilSingleInstanceGroup
     {
     public:
         template<std::size_t ReceiveCapacity, std::size_t TransmitCapacity>
@@ -50,37 +47,29 @@ namespace services
 
         infra::MemoryRange<const Command> Commands() override;
 
+    protected:
+        HilStatus OpenInstance(uint8_t index, const HilArguments& arguments) override;
+        void CloseInstance() override;
+
     private:
-        HilStatus Open(const HilArguments& arguments);
         HilStatus Send(const HilArguments& arguments);
         HilStatus Receive(const HilArguments& arguments);
-        HilStatus Close(const HilArguments& arguments);
 
-        HilStatus OpenInstance(uint8_t index, const HilArguments& arguments);
         void SendAsynchronous(infra::ConstByteRange data);
         void StartReceive(std::optional<std::size_t> length, infra::Duration timeout);
         void Received(infra::ConstByteRange data);
         void DrainSynchronous(std::size_t wanted);
         void CheckReceive();
         void FinishReceive();
-        void SendDone(uint32_t generation);
-        void SendTimeout();
-        void Closed();
 
     private:
         infra::ByteRange transmitBuffer;
-        HilContext& context;
         HilUartFactory& factory;
-        HilSingleInstance instance;
-        HilPinOwner pins;
         HilUartHandle handle;
         HilDeadlineTimeKeeper timeKeeper;
         infra::QueueForOneReaderOneIrqWriter<uint8_t> received;
-        uint32_t sendGeneration = 0;
-        bool transmitting = false;
-        bool awaitingSend = false;
+        HilPendingOperation sending;
         std::optional<std::size_t> receiveWanted;
-        infra::TimerSingleShot sendTimer;
         infra::TimerSingleShot receiveTimer;
         std::array<Command, 4> commands;
     };

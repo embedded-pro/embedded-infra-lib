@@ -2,9 +2,9 @@
 #define SERVICES_HIL_EEPROM_COMMANDS_HPP
 
 #include "hal/interfaces/Eeprom.hpp"
-#include "infra/timer/Timer.hpp"
 #include "infra/util/WithStorage.hpp"
 #include "services/hil/HilCommand.hpp"
+#include "services/hil/commands/HilPendingOperation.hpp"
 #include "services/util/Terminal.hpp"
 #include <array>
 
@@ -39,17 +39,14 @@ namespace services
         HilStatus Erase(const HilArguments& arguments);
 
         infra::Function<void()> Start();
-        void Done();
-        void Timeout();
+        void Report() const;
 
     private:
         infra::ByteRange buffer;
         HilContext& context;
         HilEepromFactory& factory;
         infra::ByteRange readData;
-        bool operating = false;
-        bool awaiting = false;
-        infra::TimerSingleShot timer;
+        HilPendingOperation operation;
         std::array<Command, 3> commands;
     };
 }

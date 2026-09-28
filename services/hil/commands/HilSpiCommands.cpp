@@ -10,41 +10,21 @@ namespace services
     }
 
     HilSpiCommands::HilSpiCommands(infra::ByteRange buffers, HilContext& context, HilSpiFactory& factory)
-        : services::TerminalCommands(context.terminal)
+        : HilSingleInstanceGroup(context, factory, HilOwners::spi)
         , transmitBuffer(infra::Head(buffers, buffers.size() / 2))
         , receiveBuffer(infra::DiscardHead(buffers, buffers.size() / 2))
-        , context(context)
         , factory(factory)
-        , instance(factory.Instances())
-        , pins(context.pins, HilOwners::spi)
+        , transfer(context.response)
         , commands{ {
-              HilBind<HilSpiCommands, &HilSpiCommands::Open>("spi.open", "<index> [key=value]...", *this, context.response),
+              OpenCommand("spi.open", "<index> [key=value]..."),
               HilBind<HilSpiCommands, &HilSpiCommands::Transfer>("spi.xfer", "<index> <txHex|-> [rx=] [continue=]", *this, context.response),
-              HilBind<HilSpiCommands, &HilSpiCommands::Close>("spi.close", "<index>", *this, context.response),
+              CloseCommand("spi.close", "<index>"),
           } }
     {}
 
     infra::MemoryRange<const services::TerminalCommands::Command> HilSpiCommands::Commands()
     {
         return infra::MakeRange(commands);
-    }
-
-    HilStatus HilSpiCommands::Open(const HilArguments& arguments)
-    {
-        if (!arguments.Shape(1, 1, factory.OpenKeys()))
-            return HilStatus::usage;
-
-        uint8_t index = 0;
-        HilStatus status = instance.Parse(arguments, index);
-        if (status == HilStatus::done)
-            status = factory.Prepare(index, arguments);
-        if (status != HilStatus::done)
-            return status;
-
-        if (instance.Occupied())
-            return HilStatus::busy;
-
-        return OpenInstance(index, arguments);
     }
 
     HilStatus HilSpiCommands::Transfer(const HilArguments& arguments)
@@ -63,7 +43,7 @@ namespace services
         if (status != HilStatus::done)
             return status;
 
-        if (transferring)
+        if (transfer.Busy())
             return HilStatus::busy;
 
         const auto length = std::max<std::size_t>(transmitSize, receiveSize);
@@ -74,45 +54,23 @@ namespace services
         return HilStatus::done;
     }
 
-    HilStatus HilSpiCommands::Close(const HilArguments& arguments)
-    {
-        if (!arguments.Shape(1, 1, {}))
-            return HilStatus::usage;
-
-        HilStatus status = instance.Find(arguments);
-        if (status != HilStatus::done)
-            return status;
-
-        handle = HilSpiHandle{};
-        ++generation;
-        transferring = false;
-        awaiting = false;
-        timer.Cancel();
-        instance.StartClosing();
-        factory.Close(instance.Index(), [this]()
-            {
-                Closed();
-            });
-
-        return HilStatus::done;
-    }
-
     HilStatus HilSpiCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         HilSpiHandle opened;
         HilStatus status = factory.Open(index, arguments, pins, opened);
         if (status != HilStatus::done)
-        {
-            pins.Release();
             return status;
-        }
 
         really_assert(opened.spi != nullptr || opened.synchronous != nullptr);
 
         handle = opened;
-        instance.Open(index);
-        context.response.Ok();
         return HilStatus::done;
+    }
+
+    void HilSpiCommands::CloseInstance()
+    {
+        handle = HilSpiHandle{};
+        transfer.Cancel();
     }
 
     void HilSpiCommands::StartTransfer(std::size_t transmitSize, std::size_t receiveSize, std::size_t length, bool continueSession)
@@ -135,53 +93,17 @@ namespace services
 
     void HilSpiCommands::TransferAsynchronous(infra::ConstByteRange send, infra::ByteRange receive, hal::SpiAction nextAction)
     {
-        transferring = true;
-        awaiting = true;
-        const auto current = ++generation;
-        timer.Start(transferTimeout, [this]()
-            {
-                Timeout();
-            });
+        const auto operation = transfer.Start(transferTimeout);
 
-        handle.spi->SendAndReceive(send, receive, nextAction, [this, current]()
+        handle.spi->SendAndReceive(send, receive, nextAction, [this, operation]()
             {
-                Done(current);
+                if (transfer.Complete(operation))
+                    Report();
             });
     }
 
-    void HilSpiCommands::Done(uint32_t current)
-    {
-        if (current != generation)
-            return;
-
-        transferring = false;
-
-        if (awaiting)
-        {
-            awaiting = false;
-            timer.Cancel();
-            Report();
-        }
-    }
-
-    void HilSpiCommands::Timeout()
-    {
-        if (!awaiting)
-            return;
-
-        awaiting = false;
-        context.response.Error(HilStatus::timeout);
-    }
-
-    void HilSpiCommands::Report()
+    void HilSpiCommands::Report() const
     {
         (context.response.Ok() << " rx=").Hex(infra::Head(infra::ConstByteRange(receiveBuffer), reportSize));
-    }
-
-    void HilSpiCommands::Closed()
-    {
-        pins.Release();
-        instance.Closed();
-        context.response.Ok();
     }
 }

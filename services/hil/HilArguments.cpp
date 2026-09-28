@@ -93,7 +93,7 @@ namespace services
         if (scaled > 100 * fractionScale)
             return std::nullopt;
 
-        return hal::DutyCycle(static_cast<uint32_t>((scaled * hal::DutyCycle::fullScale + 50 * fractionScale) / (100 * fractionScale)));
+        return hal::DutyCycle::FromRatio(scaled, 100 * fractionScale);
     }
 
     std::optional<HilPinId> HilArguments::ParsePin(infra::BoundedConstString text, const HilPinNaming& naming)
@@ -135,8 +135,7 @@ namespace services
 
     bool HilArguments::Shape(std::size_t minimumPositional, std::size_t maximumPositional, std::initializer_list<const char*> keys) const
     {
-        auto positional = PositionalCount();
-        return positional >= minimumPositional && positional <= maximumPositional && KnownKeys(keys);
+        return Shape(minimumPositional, maximumPositional, infra::MakeRange(keys.begin(), keys.end()));
     }
 
     bool HilArguments::Shape(std::size_t minimumPositional, std::size_t maximumPositional, infra::MemoryRange<const char* const> keys) const
@@ -255,6 +254,26 @@ namespace services
             status = HilStatus::range;
         else
             value = *number;
+    }
+
+    bool HilArguments::KnownKeys(infra::MemoryRange<const char* const> keys) const
+    {
+        for (std::size_t i = 0; i != tokens; ++i)
+        {
+            auto token = tokenizer.Token(i);
+            if (!IsKeyValue(token))
+                continue;
+
+            auto name = token.substr(0, token.find('='));
+            bool known = false;
+            for (auto key : keys)
+                known = known || name == key;
+
+            if (!known)
+                return false;
+        }
+
+        return true;
     }
 
     bool HilArguments::IsKeyValue(infra::BoundedConstString token)

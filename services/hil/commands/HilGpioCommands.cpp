@@ -11,14 +11,6 @@ namespace services
             openDrain,
         };
 
-        enum class Edge : uint8_t
-        {
-            rising,
-            falling,
-            both,
-            off,
-        };
-
         constexpr std::array<HilChoice<Mode>, 3> modes{ {
             { "in", Mode::input },
             { "out", Mode::output },
@@ -29,13 +21,6 @@ namespace services
             { "none", HilPull::none },
             { "up", HilPull::up },
             { "down", HilPull::down },
-        } };
-
-        constexpr std::array<HilChoice<Edge>, 4> edges{ {
-            { "rising", Edge::rising },
-            { "falling", Edge::falling },
-            { "both", Edge::both },
-            { "off", Edge::off },
         } };
 
         constexpr std::array<HilChoice<hal::InterruptType>, 2> interruptTypes{ {
@@ -50,21 +35,6 @@ namespace services
 
         constexpr uint32_t maximumPulses = 1000000;
         constexpr uint32_t maximumPulsePeriodMs = 60000;
-
-        std::optional<hal::InterruptTrigger> ToTrigger(Edge edge)
-        {
-            switch (edge)
-            {
-                case Edge::rising:
-                    return hal::InterruptTrigger::risingEdge;
-                case Edge::falling:
-                    return hal::InterruptTrigger::fallingEdge;
-                case Edge::both:
-                    return hal::InterruptTrigger::bothEdges;
-                default:
-                    return std::nullopt;
-            }
-        }
     }
 
     HilGpioCommands::HilGpioCommands(infra::MemoryRange<Entry> entries, HilContext& context)
@@ -108,7 +78,7 @@ namespace services
 
         entry->id = id;
         entry->output = output;
-        entry->count = 0;
+        entry->count.Reset();
 
         if (output)
             entry->pin->Config(hal::PinConfigType::output, options.openDrain);
@@ -171,8 +141,7 @@ namespace services
             return HilStatus::busy;
 
         pulseEntry = entry;
-        pulsesRemaining = count;
-        pulseTimer.Start(std::chrono::milliseconds(period), [this]()
+        pulseTimer.Start(count, std::chrono::milliseconds(period), [this]()
             {
                 Toggle();
             });
@@ -186,10 +155,10 @@ namespace services
             return HilStatus::usage;
 
         Entry* entry = nullptr;
-        auto edge = Edge::off;
+        auto edge = HilEdge::off;
         auto type = hal::InterruptType::dispatched;
         HilStatus status = Find(arguments, entry);
-        arguments.SelectAt(1, edge, edges, status);
+        arguments.SelectAt(1, edge, hilEdges, status);
         arguments.Select("type", type, interruptTypes, status);
         if (status != HilStatus::done)
             return status;
@@ -214,8 +183,7 @@ namespace services
         if (status != HilStatus::done)
             return status;
 
-        uint32_t count = clear ? entry->count.exchange(0) : entry->count.load();
-        context.response.Ok() << " count=" << count;
+        context.response.Ok() << " count=" << entry->count.Read(clear);
         return HilStatus::done;
     }
 
@@ -322,7 +290,7 @@ namespace services
             auto counter = &entry.count;
             entry.pin->EnableInterrupt([counter]()
                 {
-                    counter->fetch_add(1);
+                    counter->Increment();
                 },
                 *trigger, type);
             entry.interruptEnabled = true;
@@ -345,9 +313,8 @@ namespace services
     {
         pulseEntry->pin->Set(!pulseEntry->pin->GetOutputLatch());
 
-        if (--pulsesRemaining == 0)
+        if (!pulseTimer.Armed())
         {
-            pulseTimer.Cancel();
             pulseEntry = nullptr;
             context.response.Ok();
         }

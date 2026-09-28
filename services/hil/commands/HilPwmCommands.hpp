@@ -6,8 +6,7 @@
 #include "infra/util/MemoryRange.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include "services/hil/HilCommand.hpp"
-#include "services/hil/commands/HilSingleInstance.hpp"
-#include "services/util/Terminal.hpp"
+#include "services/hil/commands/HilSingleInstanceGroup.hpp"
 #include <array>
 #include <cstddef>
 #include <utility>
@@ -51,6 +50,7 @@ namespace services
     };
 
     class HilPwmFactory
+        : public HilInstanceFactory
     {
     protected:
         HilPwmFactory() = default;
@@ -59,17 +59,13 @@ namespace services
         ~HilPwmFactory() = default;
 
     public:
-        virtual uint8_t Instances() const = 0;
-        virtual infra::MemoryRange<const char* const> OpenKeys() const = 0;
-        virtual HilStatus Prepare(uint8_t moduleIndex, const HilArguments& arguments) = 0;
         virtual HilStatus Open(uint8_t moduleIndex, const HilArguments& arguments, HilPinOwner& pins, HilPwmHandle*& handle) = 0;
         virtual void ReportOpened(uint8_t moduleIndex, HilResponse::Line& line) = 0;
         virtual HilStatus ChangeFrequency(uint8_t moduleIndex, uint32_t hertz) = 0;
-        virtual void Close(uint8_t moduleIndex, const infra::Function<void()>& onClosed) = 0;
     };
 
     class HilPwmCommands
-        : public services::TerminalCommands
+        : public HilSingleInstanceGroup
     {
     public:
         static constexpr std::size_t maximumChannels = 4;
@@ -78,21 +74,18 @@ namespace services
 
         infra::MemoryRange<const Command> Commands() override;
 
+    protected:
+        HilStatus OpenInstance(uint8_t moduleIndex, const HilArguments& arguments) override;
+        void Opened(HilResponse::Line& line) const override;
+        void CloseInstance() override;
+
     private:
-        HilStatus Open(const HilArguments& arguments);
         HilStatus Duty(const HilArguments& arguments);
         HilStatus Frequency(const HilArguments& arguments);
         HilStatus Stop(const HilArguments& arguments);
-        HilStatus Close(const HilArguments& arguments);
-
-        HilStatus OpenInstance(uint8_t moduleIndex, const HilArguments& arguments);
-        void Closed();
 
     private:
-        HilContext& context;
         HilPwmFactory& factory;
-        HilSingleInstance instance;
-        HilPinOwner pins;
         HilPwmHandle* handle = nullptr;
         std::array<Command, 5> commands;
     };

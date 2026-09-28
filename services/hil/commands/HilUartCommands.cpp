@@ -12,45 +12,25 @@ namespace services
     }
 
     HilUartCommands::HilUartCommands(infra::MemoryRange<uint8_t> receiveStorage, infra::ByteRange transmitBuffer, HilContext& context, HilUartFactory& factory)
-        : services::TerminalCommands(context.terminal)
+        : HilSingleInstanceGroup(context, factory, HilOwners::uart)
         , transmitBuffer(transmitBuffer)
-        , context(context)
         , factory(factory)
-        , instance(factory.Instances())
-        , pins(context.pins, HilOwners::uart)
         , received(receiveStorage, [this]()
               {
                   CheckReceive();
               })
+        , sending(context.response)
         , commands{ {
-              HilBind<HilUartCommands, &HilUartCommands::Open>("uart.open", "<index> [key=value]...", *this, context.response),
+              OpenCommand("uart.open", "<index> [key=value]..."),
               HilBind<HilUartCommands, &HilUartCommands::Send>("uart.send", "<index> <hex>", *this, context.response),
               HilBind<HilUartCommands, &HilUartCommands::Receive>("uart.recv", "<index> [timeout=] [len=]", *this, context.response),
-              HilBind<HilUartCommands, &HilUartCommands::Close>("uart.close", "<index>", *this, context.response),
+              CloseCommand("uart.close", "<index>"),
           } }
     {}
 
     infra::MemoryRange<const services::TerminalCommands::Command> HilUartCommands::Commands()
     {
         return infra::MakeRange(commands);
-    }
-
-    HilStatus HilUartCommands::Open(const HilArguments& arguments)
-    {
-        if (!arguments.Shape(1, 1, factory.OpenKeys()))
-            return HilStatus::usage;
-
-        uint8_t index = 0;
-        HilStatus status = instance.Parse(arguments, index);
-        if (status == HilStatus::done)
-            status = factory.Prepare(index, arguments);
-        if (status != HilStatus::done)
-            return status;
-
-        if (instance.Occupied())
-            return HilStatus::busy;
-
-        return OpenInstance(index, arguments);
     }
 
     HilStatus HilUartCommands::Send(const HilArguments& arguments)
@@ -62,7 +42,7 @@ namespace services
         if (status != HilStatus::done)
             return status;
 
-        if (transmitting)
+        if (sending.Busy())
             return HilStatus::busy;
 
         std::size_t size = 0;
@@ -106,48 +86,17 @@ namespace services
         return HilStatus::done;
     }
 
-    HilStatus HilUartCommands::Close(const HilArguments& arguments)
-    {
-        if (!arguments.Shape(1, 1, {}))
-            return HilStatus::usage;
-
-        HilStatus status = instance.Find(arguments);
-        if (status != HilStatus::done)
-            return status;
-
-        handle = HilUartHandle{};
-        ++sendGeneration;
-        transmitting = false;
-        awaitingSend = false;
-        receiveWanted = std::nullopt;
-        sendTimer.Cancel();
-        receiveTimer.Cancel();
-        instance.StartClosing();
-        factory.Close(instance.Index(), [this]()
-            {
-                Closed();
-            });
-
-        return HilStatus::done;
-    }
-
     HilStatus HilUartCommands::OpenInstance(uint8_t index, const HilArguments& arguments)
     {
         HilUartHandle opened;
         HilStatus status = factory.Open(index, arguments, pins, timeKeeper, opened);
         if (status != HilStatus::done)
-        {
-            pins.Release();
             return status;
-        }
 
         really_assert(opened.synchronous != nullptr || (opened.serial != nullptr && opened.baudRate != 0));
 
-        while (!received.Empty())
-            received.Get();
-
+        received.Consume(received.Size());
         handle = opened;
-        instance.Open(index);
 
         if (handle.serial != nullptr)
             handle.serial->ReceiveData([this](infra::ConstByteRange data)
@@ -155,24 +104,25 @@ namespace services
                     Received(data);
                 });
 
-        context.response.Ok();
         return HilStatus::done;
+    }
+
+    void HilUartCommands::CloseInstance()
+    {
+        handle = HilUartHandle{};
+        sending.Cancel();
+        receiveWanted = std::nullopt;
+        receiveTimer.Cancel();
     }
 
     void HilUartCommands::SendAsynchronous(infra::ConstByteRange data)
     {
-        transmitting = true;
-        awaitingSend = true;
-        const auto generation = ++sendGeneration;
-        const auto timeout = std::chrono::milliseconds(sendMarginMs + data.size() * bitsPerFrame * 1000 / handle.baudRate);
-        sendTimer.Start(timeout, [this]()
-            {
-                SendTimeout();
-            });
+        const auto operation = sending.Start(std::chrono::milliseconds(sendMarginMs + data.size() * bitsPerFrame * 1000 / handle.baudRate));
 
-        handle.serial->SendData(data, [this, generation]()
+        handle.serial->SendData(data, [this, operation]()
             {
-                SendDone(generation);
+                if (sending.Complete(operation))
+                    context.response.Ok();
             });
     }
 
@@ -236,39 +186,9 @@ namespace services
 
         while (!received.Empty())
         {
-            auto byte = received.Get();
-            line.Hex(infra::MakeByteRange(byte));
+            auto chunk = received.ContiguousRange();
+            line.Hex(chunk);
+            received.Consume(chunk.size());
         }
-    }
-
-    void HilUartCommands::SendDone(uint32_t generation)
-    {
-        if (generation != sendGeneration)
-            return;
-
-        transmitting = false;
-
-        if (awaitingSend)
-        {
-            awaitingSend = false;
-            sendTimer.Cancel();
-            context.response.Ok();
-        }
-    }
-
-    void HilUartCommands::SendTimeout()
-    {
-        if (!awaitingSend)
-            return;
-
-        awaitingSend = false;
-        context.response.Error(HilStatus::timeout);
-    }
-
-    void HilUartCommands::Closed()
-    {
-        pins.Release();
-        instance.Closed();
-        context.response.Ok();
     }
 }

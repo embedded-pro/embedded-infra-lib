@@ -192,6 +192,30 @@ TEST_F(HilUartCommandsTest, receive_returns_what_arrived)
     EXPECT_EQ("OK data=0102\r\nOK data=\r\n", Output());
 }
 
+TEST_F(HilUartCommandsTest, receive_reports_data_that_wraps_around_the_queue)
+{
+    Open();
+    Receive({ 0x01, 0x02, 0x03 });
+    Execute("uart.recv 1");
+    Receive({ 0x04, 0x05, 0x06 });
+    Execute("uart.recv 1");
+
+    EXPECT_EQ("OK data=010203\r\nOK data=040506\r\n", Output());
+}
+
+TEST_F(HilUartCommandsTest, reopen_discards_data_received_before_close)
+{
+    Open();
+    Receive({ 0x01, 0x02 });
+    Execute("uart.close 1");
+    EXPECT_EQ("OK\r\n", Output());
+
+    Open();
+    Execute("uart.recv 1");
+
+    EXPECT_EQ("OK data=\r\n", Output());
+}
+
 TEST_F(HilUartCommandsTest, receive_waits_for_length)
 {
     Open();

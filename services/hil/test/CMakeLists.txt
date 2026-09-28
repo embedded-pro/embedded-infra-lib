@@ -18,10 +18,12 @@ target_sources(services.hil_test PRIVATE
     TestHilAdcCommands.cpp
     TestHilArguments.cpp
     TestHilCanCommands.cpp
+    TestHilCommand.cpp
     TestHilComparatorCommands.cpp
     TestHilEepromCommands.cpp
     TestHilEthernetCommands.cpp
     TestHilGpioCommands.cpp
+    TestHilPendingOperation.cpp
     TestHilPinNaming.cpp
     TestHilPinPool.cpp
     TestHilPwmCommands.cpp
