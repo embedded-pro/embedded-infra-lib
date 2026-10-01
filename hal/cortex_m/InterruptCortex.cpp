@@ -49,6 +49,11 @@ namespace
         __asm volatile("dsb" ::: "memory");
     }
 
+    void Isb()
+    {
+        __asm volatile("isb" ::: "memory");
+    }
+
     uint32_t IrqIndex(int32_t irq)
     {
         return static_cast<uint32_t>(irq);
@@ -109,6 +114,7 @@ namespace
         {
             IrqBitBand(nvicIcer0, irq) = IrqBit(irq);
             Dsb();
+            Isb();
         }
         else if (irq == hal::cortex::sysTickIrq)
         {
