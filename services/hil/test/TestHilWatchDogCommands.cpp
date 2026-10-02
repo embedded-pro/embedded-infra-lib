@@ -83,9 +83,10 @@ TEST_F(HilWatchDogCommandsTest, early_warning_feeds_automatically_and_reports)
     Execute("wdt.start 0 timeout=100");
     Output();
 
+    EXPECT_CALL(factory.watchDog, Refresh()).Times(2);
     onEarlyWarning();
     onEarlyWarning();
-    EXPECT_CALL(factory.watchDog, Refresh());
+    testing::Mock::VerifyAndClearExpectations(&factory.watchDog);
     ExecuteAllActions();
 
     EXPECT_EQ("\r\nEVT wdt index=0 warning=2\r\n", Output());
