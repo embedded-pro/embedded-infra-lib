@@ -66,7 +66,7 @@ Behaviour shared by the groups:
 - `can.send` answers `OK` when the frame is sent, `ERR failed` when the driver reports failure and `ERR timeout` after 1 s; the same error repeated within 100 ms is reported once.
 - `eeprom.*` always answer from the driver's completion, with `ERR timeout` after 5 s.
 - `pwm.duty` takes one duty for all channels or one per channel, with up to 4 decimals (`12.5`).
-- `wdt.start` needs `timeout` (1-30000); with `feed=auto` the group refreshes the watchdog on every early warning.
+- `wdt.start` needs `timeout` (1-30000); with `feed=auto` the group refreshes the watchdog in the early-warning callback itself, so `Refresh()` must be callable from the context that callback runs in (often an interrupt).
 
 ## Integrating a HAL
 

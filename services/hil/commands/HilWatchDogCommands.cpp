@@ -99,6 +99,10 @@ namespace services
 
     void HilWatchDogCommands::EarlyWarning()
     {
+        // Feed here rather than from the scheduled report, so the event loop's latency does not stretch the warning period
+        if (autoFeed)
+            watchDog->Refresh();
+
         warnings.fetch_add(1);
         reportScheduler.Schedule([this]()
             {
@@ -108,9 +112,6 @@ namespace services
 
     void HilWatchDogCommands::Report()
     {
-        if (autoFeed)
-            watchDog->Refresh();
-
         context.response.Event("wdt") << " index=" << static_cast<uint32_t>(instance.Index()) << " warning=" << warnings.load();
     }
 }
