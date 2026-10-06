@@ -115,6 +115,16 @@ Audio has a hard deadline, but the event dispatcher guarantees no real-time beha
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
+A digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05, delivers 1-bit samples at its clock rate. A peripheral that captures them, such as I2S or SAI, can implement `hal::AudioInput` for these raw bits instead of PCM.
+
+In such a stream a channel is a microphone, and a frame has one 16-bit word per channel. A word holds the next 16 clock cycles of its microphone, the first in the most significant bit. The sample rate is the clock frequency divided by 16, so the peripheral also generates the clock of the microphone. Periods, overrun and `Stop()` are those of any `hal::AudioInput`.
+
+`drivers::Mp34dt05` is the `hal::AudioInput` that a consumer sees. It starts the raw stream and gives its words to a `drivers::PdmToPcm`, which turns them into PCM. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library.
+
+The decimation of the converter fixes the microphone clock, `clock = sampleRate * decimation`. The driver rejects a clock outside the range of the microphone, or one that is not a multiple of 16.
+
+The microphone needs some time after its clock starts before its output is valid, so the driver discards the first samples of every stream. It counts them instead of using a timer.
+
 ## Writing to a display
 
 `hal::Display` accepts a rectangle of pixels from a buffer that the caller owns. It describes only the pixel path. Resetting the controller, powering the panel and driving a backlight are separate concerns of the driver or the application.
