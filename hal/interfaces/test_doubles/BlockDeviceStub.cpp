@@ -5,11 +5,6 @@
 
 namespace hal
 {
-    BlockDeviceStub::BlockDeviceStub(infra::ByteRange storage, uint32_t blockSize)
-        : storage(storage)
-        , blockSize(blockSize)
-    {}
-
     uint32_t BlockDeviceStub::BlockSize() const
     {
         return blockSize;

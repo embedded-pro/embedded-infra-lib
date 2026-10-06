@@ -14,7 +14,10 @@ namespace hal
         : public BlockDevice
     {
     public:
-        BlockDeviceStub(infra::ByteRange storage, uint32_t blockSize);
+        BlockDeviceStub(infra::ByteRange storage, uint32_t blockSize)
+            : storage(storage)
+            , blockSize(blockSize)
+        {}
 
         uint32_t BlockSize() const override;
         uint32_t NumberOfBlocks() const override;
