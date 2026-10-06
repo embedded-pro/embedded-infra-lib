@@ -26,12 +26,6 @@ namespace hal
         virtual void ReadBlocks(infra::ByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone) = 0;
         virtual void WriteBlocks(infra::ConstByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone) = 0;
         virtual void EraseBlocks(uint32_t beginBlock, uint32_t endBlock, const infra::Function<void(Result)>& onDone) = 0;
-
-    protected:
-        BlockDevice() = default;
-        BlockDevice(const BlockDevice& other) = delete;
-        BlockDevice& operator=(const BlockDevice& other) = delete;
-        ~BlockDevice() = default;
     };
 }
 

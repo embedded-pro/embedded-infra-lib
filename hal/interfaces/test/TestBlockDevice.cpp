@@ -164,7 +164,8 @@ TEST_F(BlockDeviceTest, EraseBlocks_CompletesWithSuccess_AffectsOnlyRequestedRan
     device.ReadBlocks(infra::MakeRange(afterRead), 2, [](hal::BlockDevice::Result) {});
     ExecuteAllActions();
 
-    EXPECT_EQ(std::array<uint8_t, blockSize>{}, erasedRead);
+    std::array<uint8_t, blockSize> allZeros{};
+    EXPECT_EQ(allZeros, erasedRead);
     EXPECT_EQ(beforeErase, beforeRead);
     EXPECT_EQ(afterErase, afterRead);
 }
