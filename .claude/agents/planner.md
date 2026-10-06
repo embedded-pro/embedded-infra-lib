@@ -111,11 +111,11 @@ Before finalizing, verify the plan against these EmIL constraints:
 - [ ] Code formatted per `.clang-format`
 
 ### Interface Classes
-- [ ] Pure virtual interfaces have no protected members (no ctor, no copy/move functions)
+- [ ] Interface classes follow the `hal/interfaces/Watchdog.hpp` pattern: `protected` default constructor, deleted copy constructor and copy assignment, `protected` non-virtual destructor
 - [ ] No `virtual ~ClassName() = 0` on interface classes — adds significant vtable/memory overhead
 
 ### Error Handling
-- [ ] Use `infra::Optional` for functions that may not return a value
+- [ ] Use `std::optional<T>` for functions that may not return a value
 - [ ] Return error codes or status enums, NOT exceptions (no exceptions in this codebase)
 - [ ] Assert preconditions with `really_assert()` in debug builds
 

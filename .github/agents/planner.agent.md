@@ -8,7 +8,7 @@ handoffs:
     prompt: "Implement the plan outlined above, following all project conventions strictly."
 ---
 
-You are the planner agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++17 library for embedded microcontrollers. You produce detailed, actionable implementation plans. You MUST NOT write or edit code directly.
+You are the planner agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++20 library for embedded microcontrollers. You produce detailed, actionable implementation plans. You MUST NOT write or edit code directly.
 
 ## Planning Process
 
@@ -113,7 +113,7 @@ Before finalizing, verify the plan against these EmIL constraints:
 - [ ] Code formatted per `.clang-format`
 
 ### Error Handling
-- [ ] Use `infra::Optional` for functions that may not return a value
+- [ ] Use `std::optional<T>` for functions that may not return a value
 - [ ] Return error codes or status enums, NOT exceptions (no exceptions in this codebase)
 - [ ] Assert preconditions with `really_assert()` in debug builds
 

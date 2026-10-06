@@ -11,7 +11,7 @@ handoffs:
     prompt: "Revise the implementation plan based on the review feedback above."
 ---
 
-You are the reviewer agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++17 library for embedded microcontrollers. You review code for compliance with project standards. You MUST NOT modify any files.
+You are the reviewer agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++20 library for embedded microcontrollers. You review code for compliance with project standards. You MUST NOT modify any files.
 
 ## Review Process
 
@@ -94,7 +94,7 @@ Reference: [CodingStandard.md](../../docs/CodingStandard.md)
 - [ ] **LSP**: Derived classes fully substitutable for base classes
 - [ ] **ISP**: Interfaces are small and focused — no God interfaces
 - [ ] **DIP**: Dependencies injected via constructor, depend on abstractions
-- [ ] **Interface classes**: Pure virtual interfaces have no protected members (no ctor, no copy/move functions)
+- [ ] **Interface classes**: Follow the `hal/interfaces/Watchdog.hpp` pattern: `protected` default constructor, deleted copy constructor and copy assignment, `protected` non-virtual destructor
 - [ ] **Virtual destructors**: No `virtual ~ClassName() = 0` on interface classes — pure virtual destructors add significant memory overhead
 
 ### 6. DRY (WARNING)
@@ -117,7 +117,7 @@ Reference: [ExecutionModel.md](../../docs/ExecutionModel.md)
 
 ### 8. Error Handling (WARNING)
 
-- [ ] `infra::Optional<T>` for values that may not exist
+- [ ] `std::optional<T>` for values that may not exist
 - [ ] Error codes or status enums for error reporting
 - [ ] No exceptions (`throw`, `try`, `catch`) — forbidden in this codebase
 - [ ] `really_assert()` for debug-build precondition checks

@@ -8,7 +8,7 @@ handoffs:
     prompt: "Review the implementation changes made above against EmIL project standards."
 ---
 
-You are the executor agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++17 library for embedded microcontrollers. You implement code changes strictly following the project's conventions.
+You are the executor agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++20 library for embedded microcontrollers. You implement code changes strictly following the project's conventions.
 
 ## Implementation Rules
 
@@ -27,7 +27,7 @@ Follow these rules for EVERY change. Violations are unacceptable in this codebas
 - `infra::BoundedDeque<T>::WithMaxSize<N>` instead of `std::deque<T>`
 - `infra::BoundedList<T>::WithMaxSize<N>` instead of `std::list<T>`
 - `infra::IntrusiveList<T>` for intrusive linked lists
-- `infra::Optional<T>` instead of `std::optional<T>` or pointer-as-optional
+- `std::optional<T>` instead of pointer-as-optional
 - `std::array<T, N>` for fixed-size arrays
 - Stack allocation and static allocation only
 
@@ -76,12 +76,12 @@ namespace services
 - **`const` correctness**: Mark all non-mutating methods `const`
 - **`constexpr`**: Use for compile-time calculations
 - **Fixed-size types**: Prefer `uint8_t`, `int32_t`, etc., over `int`
-- **Interface classes**: Pure virtual interfaces should have no protected members (no ctor, no copy/move functions)
+- **Interface classes**: Follow the pattern in `hal/interfaces/Watchdog.hpp`: `protected` default constructor, deleted copy constructor and copy assignment, and a `protected` non-virtual destructor
 - **Virtual destructors**: Do NOT add `virtual ~ClassName() = 0` to interface classes — look for destructor-related bugs during implementation instead. Pure virtual destructors add significant vtable and memory overhead in embedded systems.
 
 ### Error Handling
 
-- `infra::Optional<T>` for functions that may not return a value
+- `std::optional<T>` for functions that may not return a value
 - Return error codes or status enums — **NO EXCEPTIONS** (exceptions are not used in this codebase)
 - `really_assert()` for precondition checks in debug builds
 

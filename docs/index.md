@@ -18,7 +18,7 @@ embedded-infra-lib is a set of C++ libraries and headers that provide heap-less,
 |   echo_core, echo, network/{http,mqtt,dns,...}, ...     |
 +---------------------------------------------------------+
 | drivers                                                 |
-|   external_flash                                        |
+|   imu, motor_controller                                 |
 +---------------------------------------------------------+
 | hal                                                     |
 |   interfaces, synchronous_interfaces, ...               |

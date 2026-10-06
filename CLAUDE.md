@@ -27,7 +27,8 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `unix/`, `windows/` — Platform-specific HAL
   - `synchronous_interfaces/` — Blocking HAL interfaces
 - **drivers/** — Device drivers for specific hardware chips
-  - `external_flash/` — SPI flash chip drivers (MicronN25q, CypressFll)
+  - `imu/` — IMU drivers (l3gd20, lsm303dlhc, mpu9250)
+  - `motor_controller/` — Stepper motor controller drivers (DRV8711)
 - **services/** — Higher-level services and protocols
   - `echo_core/` — ECHO RPC runtime
   - `network/` — Networking (connection, http, mqtt, dns, websocket, tls, sntp, etc.)
@@ -134,11 +135,11 @@ namespace services
 Prefer `{}` initialization over `()` for all variable and object initialization.
 
 ### Interface Classes
-- Pure virtual interfaces: no protected members, no constructor, no copy/move functions
+- Interface classes follow the pattern in `hal/interfaces/Watchdog.hpp`: `protected` default constructor, deleted copy constructor and copy assignment, and a `protected` non-virtual destructor
 - **Do NOT add `virtual ~ClassName() = 0`** — pure virtual destructors add significant vtable overhead in embedded systems
 
 ### Error Handling
-- `infra::Optional<T>` for values that may not exist
+- `std::optional<T>` for values that may not exist
 - Return error codes or status enums — **NO EXCEPTIONS**
 - `really_assert()` for debug-build precondition checks
 
