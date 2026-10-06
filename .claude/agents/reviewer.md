@@ -92,7 +92,7 @@ Reference: `docs/CodingStandard.md`
 ### 6. DRY (WARNING)
 
 - [ ] No duplicated code blocks (>3 similar lines = extract helper)
-- [ ] Reuses existing infra components (`BoundedVector`, `Observer`, `Optional`)
+- [ ] Reuses existing infra components (`BoundedVector`, `Observer`, `std::optional`)
 - [ ] Templates used for type-generic code instead of per-type duplication
 
 ### 7. Execution Model (CRITICAL)

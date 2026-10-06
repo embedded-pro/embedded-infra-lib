@@ -257,7 +257,7 @@ std::array<uint8_t, 256> buffer;
 ## Additional Guidelines
 
 - **RAII**: Use Resource Acquisition Is Initialization for resource management
-- **INTERFACES**: Define interfaces (pure virtual classes) for testability and flexibility — do NOT add `virtual ~ClassName() = 0`; pure virtual destructors add significant memory overhead in embedded systems
+- **INTERFACES**: Define interfaces (pure virtual classes) for testability and flexibility — follow the `hal/interfaces/Watchdog.hpp` pattern: `protected` default constructor, deleted copy constructor and copy assignment, and a `protected` non-virtual destructor; do NOT add `virtual ~ClassName() = 0`; pure virtual destructors add significant memory overhead in embedded systems
 - **NAMESPACES**: Use the appropriate namespace for the module:
   - `infra` — Core utilities, containers, streams, timers
   - `hal` — Hardware abstraction layer
