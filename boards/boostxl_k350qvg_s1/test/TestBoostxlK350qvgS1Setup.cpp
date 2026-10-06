@@ -107,14 +107,10 @@ TEST(BoostxlK350qvgS1PanelTest, the_bring_up_waits_30_ms_after_leaving_sleep_mod
     const auto& after = boards::boostxlK350qvgS1Panel.afterEntryMode;
 
     for (const auto& step : before)
-    {
         EXPECT_EQ(&step == &before.back() ? 30 : 0, step.delayAfterInMilliseconds);
-    }
 
     for (const auto& step : after)
-    {
         EXPECT_EQ(0, step.delayAfterInMilliseconds);
-    }
 }
 
 TEST_F(BoostxlK350qvgS1SetupTest, bring_up_writes_the_panel_registers_over_spi_with_the_data_command_line_following_the_phase)

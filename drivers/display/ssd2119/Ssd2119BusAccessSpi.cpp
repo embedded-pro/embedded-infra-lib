@@ -37,15 +37,11 @@ namespace drivers
     void Ssd2119BusAccessSpi::SendWriteData()
     {
         if (writeData.empty())
-        {
             onDone();
-        }
         else
-        {
             spi.SendData(writeData, hal::SpiAction::stop, [this]()
                 {
                     onDone();
                 });
-        }
     }
 }

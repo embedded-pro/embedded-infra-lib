@@ -64,24 +64,18 @@ namespace drivers
         writeRow = 0;
 
         if (area.width == 0 || area.height == 0)
-        {
             timer.Start(infra::Duration::zero(), [this]()
                 {
                     FinishWrite();
                 });
-        }
         else
-        {
             NextWriteStep();
-        }
     }
 
     Ssd2119::AxisRange Ssd2119::MapAxis(bool mirrored, uint16_t extent, uint16_t position, uint16_t length)
     {
         if (mirrored)
-        {
             return { static_cast<uint16_t>(extent - position - length), static_cast<uint16_t>(extent - 1 - position), static_cast<uint16_t>(extent - 1 - position) };
-        }
 
         return { position, static_cast<uint16_t>(position + length - 1), position };
     }
@@ -129,9 +123,7 @@ namespace drivers
     bool Ssd2119::RunStep(infra::MemoryRange<const Step> steps)
     {
         if (stepIndex == steps.size())
-        {
             return false;
-        }
 
         WriteInitializationRegister(steps[stepIndex++]);
         return true;
@@ -149,16 +141,12 @@ namespace drivers
     void Ssd2119::InitializationRegisterWritten()
     {
         if (stepDelayInMilliseconds == 0)
-        {
             NextInitializationStep();
-        }
         else
-        {
             timer.Start(std::chrono::milliseconds(stepDelayInMilliseconds), [this]()
                 {
                     NextInitializationStep();
                 });
-        }
     }
 
     uint16_t Ssd2119::EntryMode() const
@@ -167,14 +155,10 @@ namespace drivers
         entryMode |= denMode;
 
         if (!panel.mirrorY)
-        {
             entryMode |= verticalIncrement;
-        }
 
         if (!panel.mirrorX)
-        {
             entryMode |= horizontalIncrement;
-        }
 
         return entryMode;
     }
@@ -182,29 +166,19 @@ namespace drivers
     void Ssd2119::NextWriteStep()
     {
         if (writeStep < windowRegisterCount)
-        {
             WriteWindowRegister(writeStep++);
-        }
         else
-        {
             NextPixelStep();
-        }
     }
 
     void Ssd2119::NextPixelStep()
     {
         if (writeRow == writeArea.height)
-        {
             FinishWrite();
-        }
         else if (IsPacked())
-        {
             WritePixelRows(writeArea.height);
-        }
         else
-        {
             WriteStridedRow();
-        }
     }
 
     void Ssd2119::WriteWindowRegister(std::size_t step)
