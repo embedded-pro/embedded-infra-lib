@@ -101,3 +101,16 @@ services::LowPowerEventDispatcherWithWeakPtrAndWatchdog::WithSize<50> eventDispa
 ```
 
 No timer is involved, so an idle dispatcher can enter deep sleep while it is supervised. Code that has to keep interrupts disabled for longer than the early-warning period, such as a flash erase, calls `Refresh()` on the watchdog directly.
+
+## Streaming audio
+
+`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. They describe only the data path; a codec chip that has its own control interface is configured separately, over I2C or SPI.
+
+Audio has a hard deadline, but the event dispatcher guarantees no real-time behaviour. The interfaces bridge this by letting the implementation own a buffer that is cycled by DMA or an interrupt:
+
+- Once per period the implementation schedules a callback on the event dispatcher. `AudioOutput` offers an empty range to fill, `AudioInput` offers a range of captured samples. The range is valid only during the callback, and `AudioOutput` must be filled before the callback returns.
+- The number of periods the implementation buffers, multiplied by the period duration, is the longest the event dispatcher may be busy before audio is lost. This is chosen by the implementation, not by the interface; a longer buffer trades latency for tolerance.
+- When the event dispatcher was too slow, the implementation calls `onUnderrun` (output ran out of samples) or `onOverrun` (input overwrote samples that were not yet delivered). The stream keeps running.
+- `Stop()` may be called from within the callbacks. No callback is made after `Stop()` returns.
+
+Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
