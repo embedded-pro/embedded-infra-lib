@@ -26,6 +26,8 @@ target_sources(hal.interfaces PRIVATE
     Can.hpp
     CommunicationConfigurator.hpp
     DigitalToAnalogPin.hpp
+    Display.cpp
+    Display.hpp
     DutyCycle.hpp
     Eeprom.hpp
     Ethernet.hpp
