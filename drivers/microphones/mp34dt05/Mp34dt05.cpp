@@ -7,11 +7,11 @@ namespace drivers
     namespace
     {
         constexpr std::size_t millisecondsPerSecond{ 1000 };
-        constexpr std::size_t bitsPerByte{ 8 };
+        constexpr uint32_t bitsPerWord{ 16 };
     }
 
-    Mp34dt05::Mp34dt05(hal::PdmInput& input, PdmToPcm& converter, infra::MemoryRange<int16_t> periodStorage)
-        : input{ input }
+    Mp34dt05::Mp34dt05(hal::AudioInput& bitStream, PdmToPcm& converter, infra::MemoryRange<int16_t> periodStorage)
+        : bitStream{ bitStream }
         , converter{ converter }
         , periodStorage{ periodStorage }
     {}
@@ -35,10 +35,10 @@ namespace drivers
         running = true;
 
         converter.Reset(format.channels, format.sampleRate);
-        input.Start(
-            { clockFrequency, format.channels }, [this](hal::PdmInput::Bits bits)
+        bitStream.Start(
+            { clockFrequency / bitsPerWord, format.channels }, [this](Samples words)
             {
-                BitsCaptured(bits);
+                WordsCaptured(words);
             },
             [this]()
             {
@@ -51,7 +51,7 @@ namespace drivers
         if (running)
         {
             running = false;
-            input.Stop();
+            bitStream.Stop();
             onSamples = nullptr;
             onOverrun = nullptr;
         }
@@ -61,15 +61,16 @@ namespace drivers
     {
         const uint64_t clockFrequency = static_cast<uint64_t>(format.sampleRate) * converter.Decimation();
         really_assert(clockFrequency >= minClockFrequency && clockFrequency <= maxClockFrequency);
+        really_assert(clockFrequency % bitsPerWord == 0);
 
         return static_cast<uint32_t>(clockFrequency);
     }
 
-    void Mp34dt05::BitsCaptured(hal::PdmInput::Bits bits)
+    void Mp34dt05::WordsCaptured(Samples words)
     {
-        really_assert(converter.MaxSamples(bits.size() * bitsPerByte) <= periodStorage.size());
+        really_assert(converter.MaxSamples(words.size()) <= periodStorage.size());
 
-        const auto samples = DiscardStartup(infra::Head(periodStorage, converter.Convert(bits, periodStorage)));
+        const auto samples = DiscardStartup(infra::Head(periodStorage, converter.Convert(words, periodStorage)));
 
         if (!samples.empty())
         {

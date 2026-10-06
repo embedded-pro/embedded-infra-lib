@@ -1,6 +1,6 @@
 #include "drivers/microphones/mp34dt05/Mp34dt05.hpp"
 #include "drivers/microphones/pdm/test_doubles/PdmToPcmMock.hpp"
-#include "hal/interfaces/test_doubles/PdmInputStub.hpp"
+#include "hal/interfaces/test_doubles/AudioInputStub.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -16,12 +16,12 @@ namespace
     {
         hal::AudioFormat format;
         uint16_t decimation;
-        hal::PdmFormat pdmFormat;
+        hal::AudioFormat sourceFormat;
         std::size_t startupSamples;
     };
 
-    constexpr Scenario mono16k{ { 16000, 1 }, 128, { 2048000, 1 }, 320 };
-    constexpr Scenario stereo48k{ { 48000, 2 }, 64, { 3072000, 2 }, 1920 };
+    constexpr Scenario mono16k{ { 16000, 1 }, 128, { 128000, 1 }, 320 };
+    constexpr Scenario stereo48k{ { 48000, 2 }, 64, { 192000, 2 }, 1920 };
 
     class Mp34dt05Test
         : public testing::Test
@@ -34,9 +34,9 @@ namespace
                 {
                     return producing;
                 });
-            EXPECT_CALL(converter, Convert(testing::_, testing::_)).WillRepeatedly([this](infra::ConstByteRange bits, infra::MemoryRange<int16_t> samples)
+            EXPECT_CALL(converter, Convert(testing::_, testing::_)).WillRepeatedly([this](infra::MemoryRange<const int16_t> words, infra::MemoryRange<int16_t> samples)
                 {
-                    convertedBits = bits;
+                    convertedWords = words;
                     convertedInto = samples;
                     std::generate_n(samples.begin(), producing, [this]()
                         {
@@ -60,7 +60,7 @@ namespace
 
             testing::InSequence sequence;
             EXPECT_CALL(converter, Reset(scenario.format.channels, scenario.format.sampleRate));
-            EXPECT_CALL(input, Start(scenario.pdmFormat, testing::_, testing::_));
+            EXPECT_CALL(input, Start(scenario.sourceFormat, testing::_, testing::_));
         }
 
         void Start(const Scenario& scenario = mono16k)
@@ -93,16 +93,16 @@ namespace
             input.PeriodCaptured(infra::MakeConstRange(captured));
         }
 
-        testing::StrictMock<hal::PdmInputStub> input;
+        testing::StrictMock<hal::AudioInputStub> input;
         testing::StrictMock<drivers::PdmToPcmMock> converter;
         std::array<int16_t, 4096> storage{};
-        std::array<uint8_t, 16> captured{};
+        std::array<int16_t, 16> captured{};
         std::optional<drivers::Mp34dt05> driver;
 
         uint16_t decimation{ 0 };
         std::size_t producing{ 0 };
         int16_t nextValue{ 1 };
-        infra::ConstByteRange convertedBits;
+        infra::MemoryRange<const int16_t> convertedWords;
         infra::MemoryRange<int16_t> convertedInto;
 
         std::array<int16_t, 4096> received{};
@@ -119,7 +119,7 @@ TEST_F(Mp34dt05Test, Start_derives_the_clock_from_the_sample_rate_and_the_decima
     Start(stereo48k);
 }
 
-TEST_F(Mp34dt05Test, Start_requests_one_channel_for_a_single_microphone)
+TEST_F(Mp34dt05Test, Start_asks_the_bit_stream_for_one_16_bit_word_per_16_clock_cycles_of_each_microphone)
 {
     Start(mono16k);
 }
@@ -133,7 +133,7 @@ TEST_F(Mp34dt05Test, Start_accepts_the_lowest_supported_clock)
 {
     decimation = 64;
     EXPECT_CALL(converter, Reset(1, 20000));
-    EXPECT_CALL(input, Start(hal::PdmFormat{ drivers::Mp34dt05::minClockFrequency, 1 }, testing::_, testing::_));
+    EXPECT_CALL(input, Start(hal::AudioFormat{ drivers::Mp34dt05::minClockFrequency / 16, 1 }, testing::_, testing::_));
 
     driver->Start({ 20000, 1 }, [](hal::AudioInput::Samples) {}, []() {});
 }
@@ -142,7 +142,7 @@ TEST_F(Mp34dt05Test, Start_accepts_the_highest_supported_clock)
 {
     decimation = 64;
     EXPECT_CALL(converter, Reset(1, 50781));
-    EXPECT_CALL(input, Start(hal::PdmFormat{ 3249984, 1 }, testing::_, testing::_));
+    EXPECT_CALL(input, Start(hal::AudioFormat{ 203124, 1 }, testing::_, testing::_));
 
     driver->Start({ 50781, 1 }, [](hal::AudioInput::Samples) {}, []() {});
 }
@@ -168,6 +168,13 @@ TEST_F(Mp34dt05Test, Start_rejects_a_clock_that_overflows_32_bits)
     EXPECT_DEATH(driver->Start({ 4294967295, 1 }, [](hal::AudioInput::Samples) {}, []() {}), "");
 }
 
+TEST_F(Mp34dt05Test, Start_rejects_a_clock_that_is_not_a_multiple_of_the_word_size)
+{
+    decimation = 63;
+
+    EXPECT_DEATH(driver->Start({ 30001, 1 }, [](hal::AudioInput::Samples) {}, []() {}), "");
+}
+
 TEST_F(Mp34dt05Test, Start_rejects_zero_channels)
 {
     decimation = 64;
@@ -189,29 +196,29 @@ TEST_F(Mp34dt05Test, Start_while_running_is_rejected)
     EXPECT_DEATH(driver->Start(mono16k.format, [](hal::AudioInput::Samples) {}, []() {}), "");
 }
 
-TEST_F(Mp34dt05Test, no_samples_are_received_before_bits_are_captured)
+TEST_F(Mp34dt05Test, no_samples_are_received_before_a_period_is_captured)
 {
     Start();
 
     EXPECT_EQ(0, periodsReceived);
 }
 
-TEST_F(Mp34dt05Test, converter_receives_the_captured_bits_and_the_buffer_of_the_driver)
+TEST_F(Mp34dt05Test, converter_receives_the_captured_words_and_the_buffer_of_the_driver)
 {
     StartAndPassStartup();
 
     Capture(4);
 
-    EXPECT_EQ(captured.data(), convertedBits.begin());
-    EXPECT_EQ(captured.size(), convertedBits.size());
+    EXPECT_EQ(captured.data(), convertedWords.begin());
+    EXPECT_EQ(captured.size(), convertedWords.size());
     EXPECT_EQ(storage.data(), convertedInto.begin());
     EXPECT_EQ(storage.size(), convertedInto.size());
 }
 
-TEST_F(Mp34dt05Test, the_bit_count_asked_of_the_converter_is_the_number_of_captured_bits)
+TEST_F(Mp34dt05Test, the_word_count_asked_of_the_converter_is_the_number_of_captured_words)
 {
     Start();
-    EXPECT_CALL(converter, MaxSamples(captured.size() * 8)).WillOnce(testing::Return(0));
+    EXPECT_CALL(converter, MaxSamples(captured.size())).WillOnce(testing::Return(0));
     EXPECT_CALL(converter, Convert(testing::_, testing::_)).WillOnce(testing::Return(0));
 
     input.PeriodCaptured(infra::MakeConstRange(captured));

@@ -1,14 +1,15 @@
 #ifndef DRIVERS_MICROPHONES_PDM_PDM_TO_PCM_HPP
 #define DRIVERS_MICROPHONES_PDM_PDM_TO_PCM_HPP
 
-#include "infra/util/ByteRange.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include <cstddef>
 #include <cstdint>
 
 namespace drivers
 {
-    // Turns the 1-bit stream of a PDM microphone into interleaved 16-bit PCM. The bits have the layout described by hal::PdmFormat
+    // Turns the 1-bit stream of PDM microphones into interleaved 16-bit PCM.
+    // The input is a hal::AudioInput stream of raw bits: a channel is a microphone and a frame has one 16-bit word per channel.
+    // Each word holds the next 16 clock cycles of its microphone, the first in the most significant bit
     class PdmToPcm
     {
     public:
@@ -18,11 +19,11 @@ namespace drivers
         // Forgets the history of the previous stream and prepares for a stream with the given number of channels
         virtual void Reset(uint8_t channels, uint32_t sampleRate) = 0;
 
-        // The most samples that Convert can produce from the next bitCount bits, including the samples of every channel
-        virtual std::size_t MaxSamples(std::size_t bitCount) const = 0;
+        // The most samples that Convert can produce from the next wordCount words, including the samples of every channel
+        virtual std::size_t MaxSamples(std::size_t wordCount) const = 0;
 
         // Returns the number of samples written. Bits that do not complete a frame are kept for the next call
-        virtual std::size_t Convert(infra::ConstByteRange bits, infra::MemoryRange<int16_t> samples) = 0;
+        virtual std::size_t Convert(infra::MemoryRange<const int16_t> words, infra::MemoryRange<int16_t> samples) = 0;
 
     protected:
         PdmToPcm() = default;

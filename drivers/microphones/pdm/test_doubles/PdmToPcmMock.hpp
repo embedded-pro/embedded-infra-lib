@@ -12,8 +12,8 @@ namespace drivers
     public:
         MOCK_METHOD(uint16_t, Decimation, (), (const, override));
         MOCK_METHOD(void, Reset, (uint8_t channels, uint32_t sampleRate), (override));
-        MOCK_METHOD(std::size_t, MaxSamples, (std::size_t bitCount), (const, override));
-        MOCK_METHOD(std::size_t, Convert, (infra::ConstByteRange bits, infra::MemoryRange<int16_t> samples), (override));
+        MOCK_METHOD(std::size_t, MaxSamples, (std::size_t wordCount), (const, override));
+        MOCK_METHOD(std::size_t, Convert, (infra::MemoryRange<const int16_t> words, infra::MemoryRange<int16_t> samples), (override));
     };
 }
 
