@@ -16,6 +16,8 @@ namespace hal
         : public DsiHost
     {
     public:
+        DsiHostMock();
+
         std::size_t MaxParametersSize() const override;
         void WriteDcs(uint8_t command, infra::ConstByteRange parameters, const infra::Function<void()>& onDone) override;
         void WriteGeneric(infra::ConstByteRange data, const infra::Function<void()>& onDone) override;
@@ -45,6 +47,8 @@ namespace hal
         : public DsiVideoStream
     {
     public:
+        DsiVideoStreamMock();
+
         void Start(const infra::Function<void()>& onDone) override;
         void Stop(const infra::Function<void()>& onDone) override;
 

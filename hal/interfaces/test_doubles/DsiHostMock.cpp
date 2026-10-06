@@ -5,6 +5,8 @@
 
 namespace hal
 {
+    DsiHostMock::DsiHostMock() = default;
+
     std::size_t DsiHostMock::MaxParametersSize() const
     {
         return maxParametersSize;
@@ -73,6 +75,8 @@ namespace hal
                         CompletePending();
                 });
     }
+
+    DsiVideoStreamMock::DsiVideoStreamMock() = default;
 
     void DsiVideoStreamMock::Start(const infra::Function<void()>& onDone)
     {
