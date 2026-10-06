@@ -2,6 +2,7 @@
 #define HAL_I2C_REGISTER_ACCESS_HPP
 
 #include "hal/interfaces/I2c.hpp"
+#include "infra/util/Endian.hpp"
 #include "infra/util/WithStorage.hpp"
 
 namespace hal
@@ -12,6 +13,8 @@ namespace hal
     using I2cMasterRegisterAccessByte = I2cMasterRegisterAccess<uint8_t>;
     using I2cMasterRegisterAccessHalfWord = I2cMasterRegisterAccess<uint16_t>;
     using I2cMasterRegisterAccessWord = I2cMasterRegisterAccess<uint32_t>;
+    using I2cMasterRegisterAccessHalfWordBigEndian = I2cMasterRegisterAccess<infra::BigEndian<uint16_t>>;
+    using I2cMasterRegisterAccessHalfWordLittleEndian = I2cMasterRegisterAccess<infra::LittleEndian<uint16_t>>;
 
     template<class T>
     class I2cMasterRegisterAccess
@@ -26,7 +29,7 @@ namespace hal
         I2cMaster& i2cMaster;
         I2cAddress address;
 
-        T dataRegister = 0;
+        T dataRegister{};
         infra::ByteRange readData;
         infra::ConstByteRange writeData;
         infra::Function<void()> onDone;
