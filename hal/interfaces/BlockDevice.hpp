@@ -9,6 +9,12 @@ namespace hal
 {
     class BlockDevice
     {
+    protected:
+        BlockDevice() = default;
+        BlockDevice(const BlockDevice& other) = delete;
+        BlockDevice& operator=(const BlockDevice& other) = delete;
+        ~BlockDevice() = default;
+
     public:
         enum class Result : uint8_t
         {
