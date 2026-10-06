@@ -10,9 +10,7 @@
 
 namespace drivers
 {
-    // The microphone has no control interface: the driver clocks it through a hal::AudioInput that captures the raw 1-bit stream
-    // and hands the captured words to a PdmToPcm, see there for the layout of the words.
-    // The format of the raw stream has one channel per microphone and a sample rate of the clock frequency divided by 16
+    // The raw stream has one channel per microphone and a sample rate of the clock frequency divided by 16
     class Mp34dt05
         : public hal::AudioInput
     {
@@ -21,7 +19,6 @@ namespace drivers
         static constexpr uint32_t maxClockFrequency{ 3250000 };
         static constexpr uint32_t startupTimeInMilliseconds{ 20 };
 
-        // periodStorage must hold the samples that converter produces from one period of the bit stream
         Mp34dt05(hal::AudioInput& bitStream, PdmToPcm& converter, infra::MemoryRange<int16_t> periodStorage);
         ~Mp34dt05();
 

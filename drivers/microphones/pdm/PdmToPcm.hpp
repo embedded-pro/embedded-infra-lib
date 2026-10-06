@@ -7,22 +7,17 @@
 
 namespace drivers
 {
-    // Turns the 1-bit stream of PDM microphones into interleaved 16-bit PCM.
-    // The input is a hal::AudioInput stream of raw bits: a channel is a microphone and a frame has one 16-bit word per channel.
-    // Each word holds the next 16 clock cycles of its microphone, the first in the most significant bit
+    // The input is the raw stream of a hal::AudioInput: a channel is a microphone, and each 16-bit word holds the next 16 clock cycles of that microphone, the first in the most significant bit
     class PdmToPcm
     {
     public:
-        // The number of clock cycles of the microphone for each PCM frame
         virtual uint16_t Decimation() const = 0;
-
-        // Forgets the history of the previous stream and prepares for a stream with the given number of channels
         virtual void Reset(uint8_t channels, uint32_t sampleRate) = 0;
 
-        // The most samples that Convert can produce from the next wordCount words, including the samples of every channel
+        // Counts the samples of every channel
         virtual std::size_t MaxSamples(std::size_t wordCount) const = 0;
 
-        // Returns the number of samples written. Bits that do not complete a frame are kept for the next call
+        // Bits that do not complete a frame are kept for the next call
         virtual std::size_t Convert(infra::MemoryRange<const int16_t> words, infra::MemoryRange<int16_t> samples) = 0;
 
     protected:
