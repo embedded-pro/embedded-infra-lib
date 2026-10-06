@@ -28,6 +28,7 @@ target_sources(hal.interfaces PRIVATE
     DigitalToAnalogPin.hpp
     Display.cpp
     Display.hpp
+    DsiHost.hpp
     DutyCycle.hpp
     Eeprom.hpp
     Ethernet.hpp

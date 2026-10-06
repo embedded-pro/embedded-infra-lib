@@ -30,6 +30,10 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     DisplayMock.hpp
     DisplayStub.cpp
     DisplayStub.hpp
+    DsiHostMock.cpp
+    DsiHostMock.hpp
+    DsiHostStub.cpp
+    DsiHostStub.hpp
     FileSystemStub.cpp
     FileSystemStub.hpp
     EepromMock.cpp
