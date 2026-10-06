@@ -6,8 +6,8 @@ namespace drivers
 {
     namespace
     {
-        constexpr std::size_t millisecondsPerSecond = 1000;
-        constexpr std::size_t bitsPerByte = 8;
+        constexpr std::size_t millisecondsPerSecond{ 1000 };
+        constexpr std::size_t bitsPerByte{ 8 };
     }
 
     Mp34dt05::Mp34dt05(hal::PdmInput& input, PdmToPcm& converter, infra::MemoryRange<int16_t> periodStorage)

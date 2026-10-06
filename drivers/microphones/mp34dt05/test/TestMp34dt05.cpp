@@ -109,6 +109,8 @@ namespace
         std::size_t receivedSize{ 0 };
         int periodsReceived{ 0 };
         int overruns{ 0 };
+        int restartedPeriods{ 0 };
+        int restartedOverruns{ 0 };
     };
 }
 
@@ -395,6 +397,56 @@ TEST_F(Mp34dt05Test, consumer_may_stop_the_stream_from_within_an_overrun)
     EXPECT_EQ(1, reported);
 }
 
+TEST_F(Mp34dt05Test, consumer_may_restart_the_stream_from_within_a_period)
+{
+    ExpectStart(mono16k);
+    driver->Start(
+        mono16k.format, [&counter = periodsReceived, this](hal::AudioInput::Samples)
+        {
+            EXPECT_CALL(input, Stop());
+            driver->Stop();
+            ExpectStart(mono16k);
+            driver->Start(
+                mono16k.format, [&counter = restartedPeriods](hal::AudioInput::Samples)
+                {
+                    ++counter;
+                },
+                []() {});
+            ++counter;
+        },
+        []() {});
+    Capture(mono16k.startupSamples + 1);
+
+    Capture(mono16k.startupSamples + 1);
+
+    EXPECT_EQ(1, periodsReceived);
+    EXPECT_EQ(1, restartedPeriods);
+}
+
+TEST_F(Mp34dt05Test, consumer_may_restart_the_stream_from_within_an_overrun)
+{
+    ExpectStart(mono16k);
+    driver->Start(
+        mono16k.format, [](hal::AudioInput::Samples) {}, [&counter = overruns, this]()
+        {
+            EXPECT_CALL(input, Stop());
+            driver->Stop();
+            ExpectStart(mono16k);
+            driver->Start(
+                mono16k.format, [](hal::AudioInput::Samples) {}, [&counter = restartedOverruns]()
+                {
+                    ++counter;
+                });
+            ++counter;
+        });
+    input.Overrun();
+
+    input.Overrun();
+
+    EXPECT_EQ(1, overruns);
+    EXPECT_EQ(1, restartedOverruns);
+}
+
 TEST_F(Mp34dt05Test, restarting_discards_the_startup_again)
 {
     StartAndPassStartup();
@@ -413,10 +465,9 @@ TEST_F(Mp34dt05Test, restarting_registers_the_new_callbacks)
     EXPECT_CALL(input, Stop());
     driver->Stop();
 
-    int restartedPeriods{ 0 };
     ExpectStart(mono16k);
     driver->Start(
-        mono16k.format, [&restartedPeriods](hal::AudioInput::Samples)
+        mono16k.format, [this](hal::AudioInput::Samples)
         {
             ++restartedPeriods;
         },
