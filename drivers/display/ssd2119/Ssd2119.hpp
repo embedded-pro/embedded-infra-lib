@@ -13,10 +13,7 @@
 
 namespace drivers
 {
-    // Drives a Solomon Systech SSD2119 (320 x 240) through a bus that writes a register index followed by
-    // data bytes, high byte first. The pixel bytes are handed to the bus unchanged, so the pixel format
-    // describes what that bus puts on the wire: rgb565 and rgb565Swapped select the 65k colour mode and
-    // rgb888 the 262k colour mode, of which the controller uses the upper six bits of every byte.
+    // The pixel format is what the bus puts on the wire: rgb888 selects the 262k colour mode, the others the 65k colour mode
     class Ssd2119
         : public hal::Display
     {
@@ -28,8 +25,7 @@ namespace drivers
             uint16_t delayAfterInMilliseconds;
         };
 
-        // The panel specific part of the bring-up. mirrorX and mirrorY tell that the first logical pixel is
-        // the last GDDRAM position of that axis. The entry mode register is written between the two sequences.
+        // mirrorX and mirrorY: the first logical pixel is the last GDDRAM position of that axis
         struct Panel
         {
             hal::DisplaySize size;

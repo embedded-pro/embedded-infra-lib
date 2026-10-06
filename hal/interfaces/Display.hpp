@@ -26,13 +26,11 @@ namespace hal
         bool operator==(const DisplayArea& other) const = default;
     };
 
-    // Describes the layout of the pixel bytes a display expects. rgb565 is a native-endian 16-bit word,
-    // rgb565Swapped holds the same value with the high byte first. rgb888 is three bytes per pixel.
     enum class PixelFormat : uint8_t
     {
         grey8,
-        rgb565,
-        rgb565Swapped,
+        rgb565,        // native-endian 16-bit word
+        rgb565Swapped, // high byte first
         rgb888
     };
 
@@ -66,8 +64,7 @@ namespace hal
         virtual DisplaySize Size() const = 0;
         virtual PixelFormat Format() const = 0;
 
-        // At most one write is in flight. The pixels stay valid until onDone, which is never called from within
-        // the call that started the write. strideInBytes is the distance between the starts of two rows in pixels.
+        // At most one write is in flight; the pixels stay valid until onDone, which is never called from within this call
         virtual void WriteWithStride(const DisplayArea& area, infra::ConstByteRange pixels, std::size_t strideInBytes, const infra::Function<void()>& onDone) = 0;
 
         void Write(const DisplayArea& area, infra::ConstByteRange pixels, const infra::Function<void()>& onDone);

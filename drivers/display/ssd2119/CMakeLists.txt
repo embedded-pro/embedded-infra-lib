@@ -10,8 +10,6 @@ target_link_libraries(drivers.display.ssd2119 PUBLIC
 target_sources(drivers.display.ssd2119 PRIVATE
     Ssd2119.cpp
     Ssd2119.hpp
-    Ssd2119BoostxlK350qvgS1.cpp
-    Ssd2119BoostxlK350qvgS1.hpp
     Ssd2119BusAccessSpi.cpp
     Ssd2119BusAccessSpi.hpp
 )

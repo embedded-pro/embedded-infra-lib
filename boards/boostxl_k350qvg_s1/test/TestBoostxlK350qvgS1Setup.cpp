@@ -1,4 +1,4 @@
-#include "drivers/display/ssd2119/Ssd2119BoostxlK350qvgS1.hpp"
+#include "boards/boostxl_k350qvg_s1/BoostxlK350qvgS1Setup.hpp"
 #include "hal/interfaces/test_doubles/GpioStub.hpp"
 #include "hal/interfaces/test_doubles/SpiMock.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
@@ -19,7 +19,7 @@ namespace
         uint16_t value;
     };
 
-    class Ssd2119BoostxlK350qvgS1Test
+    class BoostxlK350qvgS1SetupTest
         : public testing::Test
         , public infra::ClockFixture
     {
@@ -86,25 +86,25 @@ namespace
         hal::GpioPinStub dataCommand;
         hal::GpioPinStub reset;
         testing::StrictMock<infra::MockCallback<void()>> initialized;
-        std::optional<drivers::BoostxlK350qvgS1> board;
+        std::optional<boards::BoostxlK350qvgS1Setup> board;
     };
 }
 
-TEST(Ssd2119BoostxlK350qvgS1PanelTest, the_panel_is_320_by_240)
+TEST(BoostxlK350qvgS1PanelTest, the_panel_is_320_by_240)
 {
-    EXPECT_EQ((hal::DisplaySize{ 320, 240 }), drivers::boostxlK350qvgS1Panel.size);
+    EXPECT_EQ((hal::DisplaySize{ 320, 240 }), boards::boostxlK350qvgS1Panel.size);
 }
 
-TEST(Ssd2119BoostxlK350qvgS1PanelTest, the_default_landscape_orientation_starts_in_the_last_gddram_corner)
+TEST(BoostxlK350qvgS1PanelTest, the_default_landscape_orientation_starts_in_the_last_gddram_corner)
 {
-    EXPECT_TRUE(drivers::boostxlK350qvgS1Panel.mirrorX);
-    EXPECT_TRUE(drivers::boostxlK350qvgS1Panel.mirrorY);
+    EXPECT_TRUE(boards::boostxlK350qvgS1Panel.mirrorX);
+    EXPECT_TRUE(boards::boostxlK350qvgS1Panel.mirrorY);
 }
 
-TEST(Ssd2119BoostxlK350qvgS1PanelTest, the_bring_up_waits_30_ms_after_leaving_sleep_mode_and_nowhere_else)
+TEST(BoostxlK350qvgS1PanelTest, the_bring_up_waits_30_ms_after_leaving_sleep_mode_and_nowhere_else)
 {
-    const auto& before = drivers::boostxlK350qvgS1Panel.beforeEntryMode;
-    const auto& after = drivers::boostxlK350qvgS1Panel.afterEntryMode;
+    const auto& before = boards::boostxlK350qvgS1Panel.beforeEntryMode;
+    const auto& after = boards::boostxlK350qvgS1Panel.afterEntryMode;
 
     for (const auto& step : before)
     {
@@ -117,12 +117,12 @@ TEST(Ssd2119BoostxlK350qvgS1PanelTest, the_bring_up_waits_30_ms_after_leaving_sl
     }
 }
 
-TEST_F(Ssd2119BoostxlK350qvgS1Test, bring_up_writes_the_panel_registers_over_spi_with_the_data_command_line_following_the_phase)
+TEST_F(BoostxlK350qvgS1SetupTest, bring_up_writes_the_panel_registers_over_spi_with_the_data_command_line_following_the_phase)
 {
     CreateAndInitialize();
 }
 
-TEST_F(Ssd2119BoostxlK350qvgS1Test, the_panel_is_reported_as_a_320_by_240_display_with_wire_ordered_rgb565)
+TEST_F(BoostxlK350qvgS1SetupTest, the_panel_is_reported_as_a_320_by_240_display_with_wire_ordered_rgb565)
 {
     CreateAndInitialize();
 
@@ -130,7 +130,7 @@ TEST_F(Ssd2119BoostxlK350qvgS1Test, the_panel_is_reported_as_a_320_by_240_displa
     EXPECT_EQ(hal::PixelFormat::rgb565Swapped, board->Display().Format());
 }
 
-TEST_F(Ssd2119BoostxlK350qvgS1Test, the_first_pixel_goes_to_the_last_gddram_position)
+TEST_F(BoostxlK350qvgS1SetupTest, the_first_pixel_goes_to_the_last_gddram_position)
 {
     CreateAndInitialize();
     {
@@ -150,7 +150,7 @@ TEST_F(Ssd2119BoostxlK350qvgS1Test, the_first_pixel_goes_to_the_last_gddram_posi
     ExecuteAllActions();
 }
 
-TEST_F(Ssd2119BoostxlK350qvgS1Test, the_reset_line_is_pulsed_low_before_the_bring_up)
+TEST_F(BoostxlK350qvgS1SetupTest, the_reset_line_is_pulsed_low_before_the_bring_up)
 {
     EXPECT_CALL(initialized, callback()).Times(testing::AtLeast(0));
     EXPECT_CALL(spi, SendDataMock(testing::_, testing::_)).Times(testing::AtLeast(0));

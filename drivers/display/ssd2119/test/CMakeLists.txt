@@ -13,6 +13,5 @@ target_link_libraries(drivers.display.ssd2119_test PUBLIC
 
 target_sources(drivers.display.ssd2119_test PRIVATE
     TestSsd2119.cpp
-    TestSsd2119BoostxlK350qvgS1.cpp
     TestSsd2119BusAccessSpi.cpp
 )
