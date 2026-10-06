@@ -8,6 +8,8 @@ target_link_libraries(drivers.audio.wm8994 PUBLIC
 )
 
 target_sources(drivers.audio.wm8994 PRIVATE
+    Wm8994.cpp
+    Wm8994.hpp
     Wm8994BusAccessI2c.cpp
     Wm8994BusAccessI2c.hpp
 )

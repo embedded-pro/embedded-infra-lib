@@ -6,9 +6,12 @@ target_link_libraries(drivers.audio.wm8994_test PUBLIC
     gmock_main
     drivers.audio.wm8994
     hal.interfaces_test_doubles
+    services.util_test_doubles
+    infra.timer_test_helper
     infra.event_test_helper
 )
 
 target_sources(drivers.audio.wm8994_test PRIVATE
+    TestWm8994.cpp
     TestWm8994BusAccessI2c.cpp
 )
