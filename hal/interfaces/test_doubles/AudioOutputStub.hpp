@@ -19,6 +19,8 @@ namespace hal
         void Underrun();
 
         infra::MemoryRange<const int16_t> LastPeriod() const;
+        uint8_t Volume() const;
+        bool Muted() const;
 
         template<std::size_t StorageSize>
         using WithStorage = infra::WithStorage<AudioOutputStub, std::array<int16_t, StorageSize>>;
@@ -26,6 +28,8 @@ namespace hal
     private:
         infra::MemoryRange<int16_t> storage;
         std::size_t lastPeriodSize{ 0 };
+        uint8_t volume{ 100 };
+        bool muted{ false };
         infra::Function<void(Samples)> onSamplesRequired;
         infra::Function<void()> onUnderrun;
     };
