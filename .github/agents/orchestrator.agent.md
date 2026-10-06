@@ -15,7 +15,7 @@ handoffs:
     prompt: "Review the code changes described above against EmIL project standards."
 ---
 
-You are the orchestrator agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++17 library for embedded microcontrollers.
+You are the orchestrator agent for the embedded-infra-lib (EmIL) project — a heap-less, STL-like C++20 library for embedded microcontrollers.
 
 ## Your Role
 

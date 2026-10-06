@@ -18,7 +18,8 @@ embedded-infra-lib (EmIL) is a header-based C++20 library providing heap-less, S
   - `unix/`, `windows/`: Platform-specific HAL
   - `synchronous_interfaces/`: Blocking HAL interfaces
 - **drivers/**: Device drivers for specific hardware chips
-  - `external_flash/`: SPI flash chip drivers (MicronN25q, CypressFll)
+  - `imu/`: IMU drivers (l3gd20, lsm303dlhc, mpu9250)
+  - `motor_controller/`: Stepper motor controller drivers (DRV8711)
 - **services/**: Higher-level services and protocols
   - `echo_core/`: ECHO RPC runtime (serialization, message send/receive)
   - `echo_attributes/`: ECHO protobuf attribute definitions
@@ -116,7 +117,7 @@ These are the most important architectural directives in this codebase. Every ne
 
 - **NEVER duplicate logic**. If two functions share more than a few lines of identical code, extract a common helper, template, or base class.
 - Use templates to eliminate per-type or per-size code duplication.
-- Reuse existing infrastructure components (`infra::BoundedVector`, `infra::Observer`, `infra::Optional`) rather than reimplementing equivalents.
+- Reuse existing infrastructure components (`infra::BoundedVector`, `infra::Observer`) rather than reimplementing equivalents.
 - Share configuration structs across layers instead of re-declaring equivalent types.
 
 ### Small Functions
@@ -188,7 +189,7 @@ namespace infra
 
 ### Error Handling
 
-- Use `infra::Optional` for functions that may not return a value
+- Use `std::optional<T>` for functions that may not return a value
 - Return error codes or status enums, not exceptions (no exceptions in this codebase)
 - Assert preconditions in debug builds with `really_assert()`
 
@@ -214,12 +215,13 @@ public:
 - Test edge cases and boundary conditions
 - Test pattern:
   ```cpp
-  #include "infra/util/Optional.hpp"
   #include "gtest/gtest.h"
+
+  #include <optional>
 
   TEST(OptionalTest, ConstructedEmpty)
   {
-      infra::Optional<bool> o;
+      std::optional<bool> o;
       EXPECT_FALSE(o);
   }
   ```
@@ -255,7 +257,7 @@ std::array<uint8_t, 256> buffer;
 ## Additional Guidelines
 
 - **RAII**: Use Resource Acquisition Is Initialization for resource management
-- **INTERFACES**: Define interfaces (pure virtual classes) for testability and flexibility — do NOT add `virtual ~ClassName() = 0`; pure virtual destructors add significant memory overhead in embedded systems
+- **INTERFACES**: Define interfaces (pure virtual classes) for testability and flexibility — follow the `hal/interfaces/Watchdog.hpp` pattern: `protected` default constructor, deleted copy constructor and copy assignment, and a `protected` non-virtual destructor; do NOT add `virtual ~ClassName() = 0`; pure virtual destructors add significant memory overhead in embedded systems
 - **NAMESPACES**: Use the appropriate namespace for the module:
   - `infra` — Core utilities, containers, streams, timers
   - `hal` — Hardware abstraction layer

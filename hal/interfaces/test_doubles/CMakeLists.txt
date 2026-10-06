@@ -15,6 +15,9 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     AdcMultiChannelStub.hpp
     AnalogComparatorMock.hpp
     AnalogToDigitalPinImplMock.hpp
+    BlockDeviceMock.hpp
+    BlockDeviceStub.cpp
+    BlockDeviceStub.hpp
     CanMock.hpp
     CommunicationConfiguratorMock.hpp
     DigitalToAnalogPinImplMock.hpp
