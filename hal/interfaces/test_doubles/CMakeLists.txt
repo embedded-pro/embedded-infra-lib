@@ -27,6 +27,9 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     CanMock.hpp
     CommunicationConfiguratorMock.hpp
     DigitalToAnalogPinImplMock.hpp
+    DisplayMock.hpp
+    DisplayStub.cpp
+    DisplayStub.hpp
     FileSystemStub.cpp
     FileSystemStub.hpp
     EepromMock.cpp

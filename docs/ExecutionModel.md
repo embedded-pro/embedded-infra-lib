@@ -114,3 +114,15 @@ Audio has a hard deadline, but the event dispatcher guarantees no real-time beha
 - `Stop()` may be called from within the callbacks. No callback is made after `Stop()` returns.
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
+
+## Writing to a display
+
+`hal::Display` accepts a rectangle of pixels from a buffer that the caller owns. It describes only the pixel path. Resetting the controller, powering the panel and driving a backlight are separate concerns of the driver or the application.
+
+- At most one write is in flight per display. Starting a second write before `onDone` was called is a programming error.
+- The pixels must stay valid until `onDone` is called. The implementation does not copy them, so a buffer that is handed to DMA is not touched in between.
+- `onDone` is scheduled on the event dispatcher. It is never called from within the call that started the write, so a completion that starts the next write cannot recurse.
+- `Format()` states the layout of the pixel bytes that the display expects. `hal::Display` does not convert pixels, so a graphics library is configured with a matching format, for example little-endian RGB565 or byte-swapped RGB565.
+- `Write()` takes a packed buffer. `WriteWithStride()` takes a buffer in which a row starts `strideInBytes` after the previous row, which is what a library that renders into a full-screen buffer needs to flush part of that buffer.
+
+Completion is delivered by the dispatcher, so a caller must not wait for it by polling on the dispatcher thread. A graphics library that renders into one buffer and then busy-waits for the flush to finish blocks the dispatcher that has to deliver the completion. Such a library has to render into a second buffer while the first one is in flight, or return to the dispatcher between flushes.

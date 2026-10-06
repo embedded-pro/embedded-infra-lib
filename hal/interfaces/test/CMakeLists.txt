@@ -15,6 +15,7 @@ target_sources(hal.interfaces_test PRIVATE
     TestAudioOutput.cpp
     TestBlockDevice.cpp
     TestCan.cpp
+    TestDisplay.cpp
     TestDutyCycle.cpp
     TestEeprom.cpp
     TestFlash.cpp
