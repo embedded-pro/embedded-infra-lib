@@ -14,9 +14,6 @@
 
 namespace drivers
 {
-    // The codec is an I2S slave. Its MCLK is 256 times the sample rate and has to come from the stream, so the stream is
-    // started before the codec is configured and keeps running until the codec has been powered down.
-    // The owner has to outlive the bus transactions of this driver: no transaction may be in flight when it is destroyed.
     class Wm8994
         : public hal::AudioOutput
     {
