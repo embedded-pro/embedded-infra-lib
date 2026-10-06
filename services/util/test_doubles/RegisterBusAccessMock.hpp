@@ -10,11 +10,12 @@
 
 namespace services
 {
-    class RegisterBusAccessMock
-        : public RegisterBusAccess
+    template<class Address>
+    class GenericRegisterBusAccessMock
+        : public GenericRegisterBusAccess<Address>
     {
     public:
-        void ReadRegister(uint8_t address, infra::ByteRange data, const infra::Function<void()>& onDone) override
+        void ReadRegister(Address address, infra::ByteRange data, const infra::Function<void()>& onDone) override
         {
             std::vector<uint8_t> received = ReadRegisterMock(address, data.size());
             EXPECT_EQ(received.size(), data.size());
@@ -23,7 +24,7 @@ namespace services
             Finish(onDone);
         }
 
-        void WriteRegister(uint8_t address, infra::ConstByteRange data, const infra::Function<void()>& onDone) override
+        void WriteRegister(Address address, infra::ConstByteRange data, const infra::Function<void()>& onDone) override
         {
             WriteRegisterMock(address, std::vector<uint8_t>(data.begin(), data.end()));
 
@@ -46,8 +47,8 @@ namespace services
             completion();
         }
 
-        MOCK_METHOD(std::vector<uint8_t>, ReadRegisterMock, (uint8_t address, std::size_t size));
-        MOCK_METHOD(void, WriteRegisterMock, (uint8_t address, std::vector<uint8_t> data));
+        MOCK_METHOD(std::vector<uint8_t>, ReadRegisterMock, (Address address, std::size_t size));
+        MOCK_METHOD(void, WriteRegisterMock, (Address address, std::vector<uint8_t> data));
 
     private:
         void Finish(const infra::Function<void()>& onDone)
@@ -60,6 +61,9 @@ namespace services
 
         infra::Function<void()> pending;
     };
+
+    using RegisterBusAccessMock = GenericRegisterBusAccessMock<uint8_t>;
+    using RegisterBusAccessHalfWordMock = GenericRegisterBusAccessMock<uint16_t>;
 }
 
 #endif
