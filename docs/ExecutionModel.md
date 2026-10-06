@@ -117,6 +117,8 @@ Because the implementation owns the buffer, placement in DMA-capable memory and 
 
 `hal::PdmInput` is the same stream for a digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05. It generates the microphone clock and delivers the raw 1-bit samples instead of PCM, so the callbacks, the buffering, and the overrun and `Stop()` rules are those of `hal::AudioInput`. The bit rate is the clock frequency times the number of channels. Bits are in time order, most significant bit first. Two microphones may share one data line; their bits then come in pairs, where channel 0 is sampled on the rising clock edge and channel 1 on the falling clock edge. Turning the bits into PCM is the job of a driver, see `drivers::PdmToPcm`.
 
+`drivers::Mp34dt05` puts a `hal::PdmInput` and a `drivers::PdmToPcm` together into a `hal::AudioInput`. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library. The decimation of the converter fixes the microphone clock, `clock = sampleRate * decimation`, and the driver rejects a clock outside the range of the microphone. The microphone needs some time after its clock starts before its output is valid, so the driver discards the first samples of every stream. It counts them instead of using a timer.
+
 ## Writing to a display
 
 `hal::Display` accepts a rectangle of pixels from a buffer that the caller owns. It describes only the pixel path. Resetting the controller, powering the panel and driving a backlight are separate concerns of the driver or the application.
