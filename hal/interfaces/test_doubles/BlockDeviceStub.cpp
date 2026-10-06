@@ -20,11 +20,11 @@ namespace hal
         return static_cast<uint32_t>(storage.size() / blockSize);
     }
 
-    void BlockDeviceStub::ReadBlocks(infra::ByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDoneCallback)
+    void BlockDeviceStub::ReadBlocks(infra::ByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone)
     {
         really_assert(buffer.size() % blockSize == 0);
         uint32_t blockCount = static_cast<uint32_t>(buffer.size() / blockSize);
-        onDone = onDoneCallback;
+        this->onDone = onDone;
 
         if (!IsRangeValid(firstBlock, blockCount))
         {
@@ -45,11 +45,11 @@ namespace hal
         ScheduleCompletion(Result::success);
     }
 
-    void BlockDeviceStub::WriteBlocks(infra::ConstByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDoneCallback)
+    void BlockDeviceStub::WriteBlocks(infra::ConstByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone)
     {
         really_assert(buffer.size() % blockSize == 0);
         uint32_t blockCount = static_cast<uint32_t>(buffer.size() / blockSize);
-        onDone = onDoneCallback;
+        this->onDone = onDone;
 
         if (!IsRangeValid(firstBlock, blockCount))
         {
@@ -69,9 +69,9 @@ namespace hal
         ScheduleCompletion(Result::success);
     }
 
-    void BlockDeviceStub::EraseBlocks(uint32_t beginBlock, uint32_t endBlock, const infra::Function<void(Result)>& onDoneCallback)
+    void BlockDeviceStub::EraseBlocks(uint32_t beginBlock, uint32_t endBlock, const infra::Function<void(Result)>& onDone)
     {
-        onDone = onDoneCallback;
+        this->onDone = onDone;
 
         if (beginBlock > endBlock || !IsRangeValid(beginBlock, endBlock - beginBlock))
         {
