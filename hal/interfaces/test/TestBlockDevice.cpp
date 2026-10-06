@@ -156,11 +156,15 @@ TEST_F(BlockDeviceTest, EraseBlocks_CompletesWithSuccess_AffectsOnlyRequestedRan
 
     EXPECT_EQ(hal::BlockDevice::Result::success, eraseResult);
 
+    std::array<uint8_t, blockSize> erasedRead{};
+    device.ReadBlocks(infra::MakeRange(erasedRead), 1, [](hal::BlockDevice::Result) {});
+    ExecuteAllActions();
     device.ReadBlocks(infra::MakeRange(beforeRead), 0, [](hal::BlockDevice::Result) {});
     ExecuteAllActions();
     device.ReadBlocks(infra::MakeRange(afterRead), 2, [](hal::BlockDevice::Result) {});
     ExecuteAllActions();
 
+    EXPECT_EQ(std::array<uint8_t, blockSize>{}, erasedRead);
     EXPECT_EQ(beforeErase, beforeRead);
     EXPECT_EQ(afterErase, afterRead);
 }
@@ -246,8 +250,16 @@ TEST_F(BlockDeviceTest, WriteBlocks_OutOfRange_CompletesWithOutOfRangeAndStorage
 
 TEST_F(BlockDeviceTest, WriteBlocks_RangeCrossesEnd_CompletesWithOutOfRangeAndStorageUnchanged)
 {
+    std::array<uint8_t, blockSize> initial{};
     std::array<uint8_t, blockSize * 2> writeData{};
+    std::array<uint8_t, blockSize> readBack{};
     hal::BlockDevice::Result receivedResult = hal::BlockDevice::Result::success;
+
+    for (uint8_t i = 0; i < blockSize; ++i)
+        initial[i] = i;
+
+    device.WriteBlocks(infra::MakeConstRange(initial), numberOfBlocks - 1, [](hal::BlockDevice::Result) {});
+    ExecuteAllActions();
 
     device.WriteBlocks(infra::MakeConstRange(writeData), numberOfBlocks - 1, [&receivedResult](hal::BlockDevice::Result result)
         {
@@ -256,6 +268,11 @@ TEST_F(BlockDeviceTest, WriteBlocks_RangeCrossesEnd_CompletesWithOutOfRangeAndSt
     ExecuteAllActions();
 
     EXPECT_EQ(hal::BlockDevice::Result::outOfRange, receivedResult);
+
+    device.ReadBlocks(infra::MakeRange(readBack), numberOfBlocks - 1, [](hal::BlockDevice::Result) {});
+    ExecuteAllActions();
+
+    EXPECT_EQ(initial, readBack);
 }
 
 TEST_F(BlockDeviceTest, EraseBlocks_BeginGreaterThanEnd_CompletesWithOutOfRange)
