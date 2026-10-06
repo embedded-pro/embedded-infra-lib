@@ -18,6 +18,9 @@ target_sources(hal.interfaces PRIVATE
     AnalogToDigitalPin.hpp
     AsyncGpio.cpp
     AsyncGpio.hpp
+    AudioFormat.hpp
+    AudioInput.hpp
+    AudioOutput.hpp
     BackupRam.hpp
     BlockDevice.hpp
     Can.hpp

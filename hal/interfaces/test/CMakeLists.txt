@@ -11,6 +11,8 @@ target_link_libraries(hal.interfaces_test PUBLIC
 
 target_sources(hal.interfaces_test PRIVATE
     TestAccelerometer.cpp
+    TestAudioInput.cpp
+    TestAudioOutput.cpp
     TestBlockDevice.cpp
     TestCan.cpp
     TestDutyCycle.cpp
