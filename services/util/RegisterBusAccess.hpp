@@ -7,20 +7,24 @@
 
 namespace services
 {
-    class RegisterBusAccess
+    template<class Address>
+    class GenericRegisterBusAccess
     {
     public:
-        RegisterBusAccess() = default;
-        RegisterBusAccess(const RegisterBusAccess& other) = delete;
-        RegisterBusAccess& operator=(const RegisterBusAccess& other) = delete;
+        GenericRegisterBusAccess() = default;
+        GenericRegisterBusAccess(const GenericRegisterBusAccess& other) = delete;
+        GenericRegisterBusAccess& operator=(const GenericRegisterBusAccess& other) = delete;
 
     protected:
-        ~RegisterBusAccess() = default;
+        ~GenericRegisterBusAccess() = default;
 
     public:
-        virtual void ReadRegister(uint8_t address, infra::ByteRange data, const infra::Function<void()>& onDone) = 0;
-        virtual void WriteRegister(uint8_t address, infra::ConstByteRange data, const infra::Function<void()>& onDone) = 0;
+        virtual void ReadRegister(Address address, infra::ByteRange data, const infra::Function<void()>& onDone) = 0;
+        virtual void WriteRegister(Address address, infra::ConstByteRange data, const infra::Function<void()>& onDone) = 0;
     };
+
+    using RegisterBusAccess = GenericRegisterBusAccess<uint8_t>;
+    using RegisterBusAccessHalfWord = GenericRegisterBusAccess<uint16_t>;
 }
 
 #endif

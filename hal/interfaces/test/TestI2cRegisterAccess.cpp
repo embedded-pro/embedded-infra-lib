@@ -56,3 +56,87 @@ TEST_F(I2cRegisterAccessTest, TestWriteRegister)
 
     ExecuteAllActions();
 }
+
+class I2cRegisterAccessHalfWordTest
+    : public testing::Test
+    , public infra::EventDispatcherFixture
+{
+public:
+    static const hal::I2cAddress slaveAddress;
+
+    void ExpectRead(std::vector<uint8_t> registerBytes)
+    {
+        testing::InSequence sequence;
+        EXPECT_CALL(master, SendDataMock(slaveAddress, hal::Action::repeatedStart, registerBytes));
+        EXPECT_CALL(master, ReceiveDataMock(slaveAddress, hal::Action::stop)).WillOnce(testing::Return(std::vector<uint8_t>{ 5, 6 }));
+    }
+
+    void ExpectWrite(std::vector<uint8_t> registerBytes)
+    {
+        testing::InSequence sequence;
+        EXPECT_CALL(master, SendDataMock(slaveAddress, hal::Action::continueSession, registerBytes));
+        EXPECT_CALL(master, SendDataMock(slaveAddress, hal::Action::stop, std::vector<uint8_t>{ 5, 6, 7 }));
+    }
+
+    testing::StrictMock<hal::I2cMasterMock> master;
+    hal::I2cMasterRegisterAccessHalfWordBigEndian bigEndian{ master, slaveAddress };
+    hal::I2cMasterRegisterAccessHalfWordLittleEndian littleEndian{ master, slaveAddress };
+    testing::StrictMock<infra::MockCallback<void()>> callback;
+    std::array<uint8_t, 2> readData{};
+};
+
+const hal::I2cAddress I2cRegisterAccessHalfWordTest::slaveAddress(0x1a);
+
+TEST_F(I2cRegisterAccessHalfWordTest, big_endian_read_sends_the_most_significant_byte_of_the_register_first)
+{
+    ExpectRead({ 0x01, 0x02 });
+    EXPECT_CALL(callback, callback());
+
+    bigEndian.ReadRegister(0x0102, infra::MakeByteRange(readData), [this]()
+        {
+            callback.callback();
+        });
+    ExecuteAllActions();
+
+    EXPECT_EQ((std::array<uint8_t, 2>{ 5, 6 }), readData);
+}
+
+TEST_F(I2cRegisterAccessHalfWordTest, big_endian_write_sends_the_most_significant_byte_of_the_register_first)
+{
+    ExpectWrite({ 0x01, 0x02 });
+    EXPECT_CALL(callback, callback());
+    std::array<uint8_t, 3> data{ 5, 6, 7 };
+
+    bigEndian.WriteRegister(0x0102, infra::MakeByteRange(data), [this]()
+        {
+            callback.callback();
+        });
+    ExecuteAllActions();
+}
+
+TEST_F(I2cRegisterAccessHalfWordTest, little_endian_read_sends_the_least_significant_byte_of_the_register_first)
+{
+    ExpectRead({ 0x02, 0x01 });
+    EXPECT_CALL(callback, callback());
+
+    littleEndian.ReadRegister(0x0102, infra::MakeByteRange(readData), [this]()
+        {
+            callback.callback();
+        });
+    ExecuteAllActions();
+
+    EXPECT_EQ((std::array<uint8_t, 2>{ 5, 6 }), readData);
+}
+
+TEST_F(I2cRegisterAccessHalfWordTest, little_endian_write_sends_the_least_significant_byte_of_the_register_first)
+{
+    ExpectWrite({ 0x02, 0x01 });
+    EXPECT_CALL(callback, callback());
+    std::array<uint8_t, 3> data{ 5, 6, 7 };
+
+    littleEndian.WriteRegister(0x0102, infra::MakeByteRange(data), [this]()
+        {
+            callback.callback();
+        });
+    ExecuteAllActions();
+}
