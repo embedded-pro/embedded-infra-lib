@@ -51,6 +51,9 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     I2cRegisterAccessMock.hpp
     LowPowerModeMock.hpp
     MagnetometerMock.hpp
+    PdmInputMock.hpp
+    PdmInputStub.cpp
+    PdmInputStub.hpp
     PwmMock.hpp
     QuadSpiStub.cpp
     QuadSpiStub.hpp

@@ -26,6 +26,7 @@ target_sources(hal.interfaces_test PRIVATE
     TestI2cRegisterAccess.cpp
     TestMacAddress.cpp
     TestMagnetometer.cpp
+    TestPdmInput.cpp
     TestQuadSpi.cpp
     TestSerialCommunication.cpp
 )

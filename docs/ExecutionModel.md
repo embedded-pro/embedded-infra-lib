@@ -115,6 +115,8 @@ Audio has a hard deadline, but the event dispatcher guarantees no real-time beha
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
+`hal::PdmInput` is the same stream for a digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05. It generates the microphone clock and delivers the raw 1-bit samples instead of PCM, so the callbacks, the buffering, and the overrun and `Stop()` rules are those of `hal::AudioInput`. The bit rate is the clock frequency times the number of channels. Bits are in time order, most significant bit first. Two microphones may share one data line; their bits then come in pairs, where channel 0 is sampled on the rising clock edge and channel 1 on the falling clock edge. Turning the bits into PCM is the job of a driver, see `drivers::PdmToPcm`.
+
 ## Writing to a display
 
 `hal::Display` accepts a rectangle of pixels from a buffer that the caller owns. It describes only the pixel path. Resetting the controller, powering the panel and driving a backlight are separate concerns of the driver or the application.

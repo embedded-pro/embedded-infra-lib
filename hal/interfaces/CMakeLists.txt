@@ -49,6 +49,7 @@ target_sources(hal.interfaces PRIVATE
     MacAddress.cpp
     MacAddress.hpp
     Magnetometer.hpp
+    PdmInput.hpp
     Pwm.hpp
     QuadSpi.cpp
     QuadSpi.hpp
