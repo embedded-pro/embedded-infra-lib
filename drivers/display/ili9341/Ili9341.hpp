@@ -11,8 +11,6 @@
 
 namespace drivers
 {
-    // Brings the controller up from a command table. The pixels do not pass through this driver:
-    // they reach the controller on its RGB interface, so there is no hal::Display
     class Ili9341
     {
     public:

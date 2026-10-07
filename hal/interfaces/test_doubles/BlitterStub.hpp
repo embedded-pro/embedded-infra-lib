@@ -6,7 +6,6 @@
 
 namespace hal
 {
-    // Checks the contract of a blitter and completes an operation when the test says so. It does not touch pixels
     class BlitterStub
         : public BlitterMock
     {

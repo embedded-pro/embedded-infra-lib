@@ -9,7 +9,6 @@
 
 namespace hal
 {
-    // Applies staged layers when the test completes a commit, the way a controller applies them at a vertical blank
     class DisplayControllerStub
         : public DisplayControllerMock
     {

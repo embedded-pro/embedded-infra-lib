@@ -11,9 +11,6 @@
 
 namespace boards
 {
-    // Controller set-up of the 240 x 320 ILI9341 on the STM32F429I-DISCO as written by the board support package of STMicroelectronics.
-    // It takes its pixels from the RGB interface of the LTDC, so only this command interface is set up here
-    // The commands and parameters are derived from ili9341.c of the STM32F429I-DISCO board support package of STMicroelectronics, Copyright 2014 STMicroelectronics, BSD 3-Clause
     inline constexpr std::array<uint8_t, 0> stm32f429iDiscoLcdNoParameters{};
     inline constexpr std::array<uint8_t, 3> stm32f429iDiscoLcdUndocumentedCa{ 0xc3, 0x08, 0x50 };
     inline constexpr std::array<uint8_t, 3> stm32f429iDiscoLcdPowerControlB{ 0x00, 0xc1, 0x30 };
@@ -71,7 +68,6 @@ namespace boards
 
     inline constexpr drivers::Ili9341::Panel stm32f429iDiscoLcdPanel{ stm32f429iDiscoLcdCommands };
 
-    // The chip select of the controller is a plain pin and not the slave select of the SPI peripheral
     class Stm32f429iDiscoLcdSetup
     {
     public:

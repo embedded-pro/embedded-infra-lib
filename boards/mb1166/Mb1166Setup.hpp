@@ -12,9 +12,6 @@
 
 namespace boards
 {
-    // The KoD KM-040TMP-02-0621 4" WVGA panel with an OTM8009A on the MB1166 daughter board of the STM32H747I-EVAL and STM32H757I-EVAL.
-    // The commands and parameters are derived from otm8009a.c of the STM32H747I-EVAL board support package of STMicroelectronics,
-    // Copyright 2015 STMicroelectronics, BSD 3-Clause. The panel is 480 x 800 by itself and is used in landscape
     namespace mb1166
     {
         using Command = drivers::MipiDsiPanelCore::Command;

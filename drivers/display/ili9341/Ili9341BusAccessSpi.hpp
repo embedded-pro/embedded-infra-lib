@@ -9,9 +9,6 @@
 
 namespace drivers
 {
-    // The 4-line serial interface: the data/command line is low for the command byte and high for its parameters.
-    // Wrap the master in a services::SpiMasterWithChipSelect when the chip select is a plain pin;
-    // this adapter drives no chip select of its own. Registers cannot be read.
     class Ili9341BusAccessSpi
         : public services::RegisterBusAccess
     {

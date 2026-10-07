@@ -9,11 +9,8 @@
 
 namespace hal
 {
-    // 0xAARRGGBB with straight, not premultiplied, alpha
     using Argb8888 = uint32_t;
 
-    // The layout of pixels in memory, as a scan-out engine or a 2D accelerator reads and writes them.
-    // hal::PixelFormat describes the bytes a display bus expects instead.
     enum class SurfaceFormat : uint8_t
     {
         argb8888,
@@ -33,10 +30,8 @@ namespace hal
     bool IsIndexed(SurfaceFormat format);
     std::size_t BytesPerRow(uint16_t width, SurfaceFormat format);
 
-    // Converts to the pixel value of a format that holds colour directly. Alpha-only and indexed formats have no such value
     uint32_t ToPixel(Argb8888 color, SurfaceFormat format);
 
-    // A non-owning view of a pixel buffer. Rows are strideInBytes apart, which may exceed the bytes a row needs
     template<class Range>
     struct BasicSurface
     {
@@ -68,10 +63,8 @@ namespace hal
         std::size_t length;
     };
 
-    // Where a window of a surface lies in its memory. The window must be inside the surface and start on a byte boundary
     SurfaceWindow WindowOf(DisplaySize size, SurfaceFormat format, uint32_t strideInBytes, const DisplayArea& area);
 
-    // The window keeps the stride and the format of the surface
     template<class Range>
     BasicSurface<Range> SubSurface(const BasicSurface<Range>& surface, const DisplayArea& area)
     {

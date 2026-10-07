@@ -6,7 +6,6 @@
 
 namespace hal
 {
-    // Pixel clocks of the active area, the porches and the sync pulses, in pixel clock periods and lines
     struct DisplayTiming
     {
         uint32_t pixelClockHz;
