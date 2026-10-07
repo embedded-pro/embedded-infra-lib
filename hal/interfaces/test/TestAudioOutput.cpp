@@ -197,6 +197,85 @@ TEST_F(AudioOutputTest, restarting_registers_new_callbacks)
     EXPECT_EQ(0, periodsRequested);
 }
 
+TEST_F(AudioOutputTest, volume_is_handed_to_the_implementation)
+{
+    EXPECT_CALL(stub, SetVolume(40));
+
+    output.SetVolume(40);
+
+    EXPECT_EQ(40, stub.Volume());
+}
+
+TEST_F(AudioOutputTest, muting_is_handed_to_the_implementation)
+{
+    EXPECT_CALL(stub, SetMuted(true));
+
+    output.SetMuted(true);
+
+    EXPECT_TRUE(stub.Muted());
+}
+
+TEST_F(AudioOutputTest, unmuting_restores_the_volume)
+{
+    EXPECT_CALL(stub, SetVolume(30));
+    EXPECT_CALL(stub, SetMuted(true));
+    EXPECT_CALL(stub, SetMuted(false));
+    output.SetVolume(30);
+    output.SetMuted(true);
+
+    output.SetMuted(false);
+
+    EXPECT_EQ(30, stub.Volume());
+    EXPECT_FALSE(stub.Muted());
+}
+
+TEST_F(AudioOutputTest, volume_and_mute_can_be_set_before_Start)
+{
+    EXPECT_CALL(stub, SetVolume(70));
+    EXPECT_CALL(stub, SetMuted(true));
+    output.SetVolume(70);
+    output.SetMuted(true);
+
+    Start();
+
+    EXPECT_EQ(70, stub.Volume());
+    EXPECT_TRUE(stub.Muted());
+}
+
+TEST_F(AudioOutputTest, volume_and_mute_persist_across_Stop_and_Start)
+{
+    EXPECT_CALL(stub, SetVolume(20));
+    EXPECT_CALL(stub, SetMuted(true));
+    output.SetVolume(20);
+    output.SetMuted(true);
+    Start();
+    EXPECT_CALL(stub, Stop());
+    output.Stop();
+
+    Start(mono16k);
+
+    EXPECT_EQ(20, stub.Volume());
+    EXPECT_TRUE(stub.Muted());
+}
+
+TEST_F(AudioOutputTest, volume_and_mute_are_not_touched_by_the_stream)
+{
+    Start();
+
+    stub.PeriodElapsed(samplesPerPeriod);
+    stub.Underrun();
+
+    EXPECT_EQ(100, stub.Volume());
+    EXPECT_FALSE(stub.Muted());
+}
+
+TEST_F(AudioOutputTest, a_volume_above_100_percent_is_a_programming_error)
+{
+    EXPECT_CALL(stub, SetVolume(101)).Times(testing::AtMost(1));
+
+    EXPECT_DEATH(output.SetVolume(101), "");
+}
+
 TEST(AudioFormatTest, formats_with_equal_rate_and_channels_are_equal)
 {
     EXPECT_EQ((hal::AudioFormat{ 44100, 2 }), (hal::AudioFormat{ 44100, 2 }));

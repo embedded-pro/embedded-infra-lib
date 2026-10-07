@@ -18,6 +18,17 @@ namespace hal
                 onSamplesRequired = nullptr;
                 onUnderrun = nullptr;
             });
+
+        ON_CALL(*this, SetVolume).WillByDefault([this](uint8_t percent)
+            {
+                really_assert(percent <= 100);
+                volume = percent;
+            });
+
+        ON_CALL(*this, SetMuted).WillByDefault([this](bool value)
+            {
+                muted = value;
+            });
     }
 
     void AudioOutputStub::PeriodElapsed(std::size_t numberOfSamples)
@@ -47,5 +58,15 @@ namespace hal
     infra::MemoryRange<const int16_t> AudioOutputStub::LastPeriod() const
     {
         return infra::Head(infra::MemoryRange<const int16_t>{ storage }, lastPeriodSize);
+    }
+
+    uint8_t AudioOutputStub::Volume() const
+    {
+        return volume;
+    }
+
+    bool AudioOutputStub::Muted() const
+    {
+        return muted;
     }
 }

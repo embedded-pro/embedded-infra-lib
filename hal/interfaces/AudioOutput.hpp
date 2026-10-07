@@ -15,6 +15,8 @@ namespace hal
 
         virtual void Start(AudioFormat format, const infra::Function<void(Samples toFill)>& onSamplesRequired, const infra::Function<void()>& onUnderrun) = 0;
         virtual void Stop() = 0;
+        virtual void SetVolume(uint8_t percent) = 0;
+        virtual void SetMuted(bool muted) = 0;
 
     protected:
         AudioOutput() = default;
