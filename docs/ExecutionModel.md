@@ -169,3 +169,32 @@ Initialization runs in this order: reset, identification, the commands before sl
 When the display is given a tearing effect pin, a write sets the window, waits for the next rising edge of that pin, and only then sends the pixels. The interrupt is enabled only while a write waits. A write that sees no edge within `Timings::tearingEffectTimeout` continues without synchronization, because `hal::Display` has no way to report the failure.
 
 Initialization, `Sleep()`, `Wake()`, `SetBrightness()` and a write each own the host until they complete. Starting one while another is in progress is a programming error, so a caller serializes them with the completions. `Wake()` does not redraw the panel, so a panel that loses its frame memory in sleep has to be redrawn by the application.
+
+## Capturing camera frames
+
+`hal::Camera` describes how frames move from a capture peripheral into a caller-supplied buffer. It covers only the frame-transport path. Sensor configuration — XCLK generation, reset and power sequencing, crop windows, polarity, bus width, exposure and white balance — is the concern of the driver or the application.
+
+A sensor driver implements `hal::Camera` on top of the capture peripheral's `hal::Camera` instance, the same way a codec driver sits on top of `hal::AudioOutput`. When sensor drivers for specific chips exist they live in `drivers/camera` and follow this pattern.
+
+- `CameraFormat` names the pixel layout and the frame dimensions. `BytesPerPixel()` gives the fixed byte count per pixel for uncompressed formats. JPEG has no fixed frame size, so `BytesPerPixel()` returns 0, `IsCompressed()` returns true, and `FrameSizeInBytes()` returns 0. For uncompressed formats `FrameSizeInBytes()` gives `width × height × BytesPerPixel`.
+- The caller allocates a buffer and passes it to `Start()`. For uncompressed formats the buffer must hold at least `FrameSizeInBytes()` bytes; `IsValidFrameBuffer()` checks this with 64-bit arithmetic so large dimensions do not overflow. For JPEG any non-empty buffer is valid; the real compressed size is reported as the frame length in the callback.
+- Placement in DMA-capable memory and any cache maintenance required before and after a DMA transfer are the concern of the vendor implementation.
+
+**Snapshot vs continuous**
+
+- `Mode::snapshot` captures one frame. When the frame arrives the camera stops automatically and `Start()` is valid again immediately, including from within the `onFrame` callback.
+- `Mode::continuous` overwrites the same buffer every frame. A frame is valid only until the next one begins arriving, so a consumer that needs it longer copies it, or uses snapshot mode. A multi-buffer ring is not part of the interface.
+
+**Callbacks and Stop**
+
+Callbacks are scheduled on the event dispatcher, never called from within `Start()`. `Stop()` is idempotent and safe to call from within `onFrame` or `onError`. No callback fires after `Stop()` returns. A `Start()` immediately after `Stop()` is always accepted.
+
+**Errors**
+
+- `Error::overrun` covers buffer-too-small situations as well as DMA overflows. In snapshot mode the capture ends after an overrun; in continuous mode the implementation resumes at the next frame.
+- `Error::synchronization` signals a lost sync signal. The same per-mode rule applies.
+- A lost frame produces no callback and no error. Repeated absence of any callback indicates a dead or stalled sensor; the caller is expected to arm a timer and call `Stop()` to handle the timeout.
+
+**What this interface does not cover**
+
+XCLK generation, reset and power sequencing, crop and polarity settings, bus width, exposure, white balance and frame-rate control are all outside `hal::Camera`. A vendor peripheral driver exposes only the frame-capture path; a sensor driver stacks on top of that to configure the sensor chip.

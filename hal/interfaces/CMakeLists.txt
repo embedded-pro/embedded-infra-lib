@@ -23,6 +23,8 @@ target_sources(hal.interfaces PRIVATE
     AudioOutput.hpp
     BackupRam.hpp
     BlockDevice.hpp
+    Camera.hpp
+    CameraFormat.hpp
     Can.hpp
     CommunicationConfigurator.hpp
     DigitalToAnalogPin.hpp
