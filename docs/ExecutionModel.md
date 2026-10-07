@@ -186,14 +186,14 @@ Pixels in memory are described by `hal::Surface`, a view of a buffer with a size
 
 A graphics library maps onto the interfaces as follows:
 
-| Graphics library | Interface |
-| --- | --- |
-| Display size: LVGL `lv_display_create`, TouchGFX HAL width and height, Embedded Wizard `EwBspDisplayInit` | `DisplayController::Size()` |
-| Frame buffers and their stride: LVGL `lv_display_set_buffers`, TouchGFX `setFrameBufferStartAddresses` | `DisplayLayer::framebuffer` |
+| Graphics library                                                                                                                                                                                    | Interface                                                                     |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| Display size: LVGL `lv_display_create`, TouchGFX HAL width and height, Embedded Wizard `EwBspDisplayInit`                                                                                           | `DisplayController::Size()`                                                   |
+| Frame buffers and their stride: LVGL `lv_display_set_buffers`, TouchGFX `setFrameBufferStartAddresses`                                                                                              | `DisplayLayer::framebuffer`                                                   |
 | Showing a finished frame and learning when the old buffer is free: LVGL flush and `lv_display_flush_ready` in direct mode, TouchGFX `setTFTFrameBuffer`, Embedded Wizard `EwBspDisplayCommitBuffer` | `SetFramebuffer()` and `Commit()`, with `flush_ready` called from `onApplied` |
-| Vertical sync: TouchGFX `vSync` and `frontPorchEntered` | `Start()` with `onVerticalBlank` |
-| Colour table: Embedded Wizard `EwBspDisplaySetClut`, TouchGFX L8 | `SetPalette()` |
-| Flushing a rendered area: LVGL flush in partial mode | `Blitter::Copy()` into `SubSurface()` of the frame buffer |
-| Accelerated fill, copy and blend, and the capabilities query: LVGL draw units, TouchGFX `getBlitCaps`, Embedded Wizard bitmap operations | `Blitter::Fill()`, `Copy()`, `Blend()` and `Supports()` |
+| Vertical sync: TouchGFX `vSync` and `frontPorchEntered`                                                                                                                                             | `Start()` with `onVerticalBlank`                                              |
+| Colour table: Embedded Wizard `EwBspDisplaySetClut`, TouchGFX L8                                                                                                                                    | `SetPalette()`                                                                |
+| Flushing a rendered area: LVGL flush in partial mode                                                                                                                                                | `Blitter::Copy()` into `SubSurface()` of the frame buffer                     |
+| Accelerated fill, copy and blend, and the capabilities query: LVGL draw units, TouchGFX `getBlitCaps`, Embedded Wizard bitmap operations                                                            | `Blitter::Fill()`, `Copy()`, `Blend()` and `Supports()`                       |
 
 A library that expects to be called in interrupt context, or one that needs the current line of the panel, is not served by this interface.
