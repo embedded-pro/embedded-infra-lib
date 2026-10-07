@@ -174,7 +174,15 @@ Initialization, `Sleep()`, `Wake()`, `SetBrightness()` and a write each own the 
 
 `hal::Camera` describes how frames move from a capture peripheral into a caller-supplied buffer. It covers only the frame-transport path. Sensor configuration — XCLK generation, reset and power sequencing, crop windows, polarity, bus width, exposure and white balance — is the concern of the driver or the application.
 
-A sensor driver implements `hal::Camera` on top of the capture peripheral's `hal::Camera` instance, the same way a codec driver sits on top of `hal::AudioOutput`. When sensor drivers for specific chips exist they live in `drivers/camera` and follow this pattern.
+A sensor driver implements `hal::Camera` on top of the capture peripheral's `hal::Camera` instance, the same way a codec driver sits on top of `hal::AudioOutput`.
+
+`drivers/camera/omnivision` holds the parts that sensors from OmniVision share. They are configured over SCCB, a bus that is almost I2C:
+
+- `drivers::SccbBusAccessI2c` is a register bus on an I2C master. It puts a stop between the register address and the data of a read, as SCCB requires, where `hal::I2cMasterRegisterAccess` uses a repeated start. Registers are one byte wide and there is no auto-increment.
+- `drivers::RegisterTableRunner` walks a `constexpr` table of write, read-modify-write and delay steps in place. The table is not copied and has no size limit, which `services::RegisterStepRunner` does not offer.
+- `drivers::OmniVisionSensor` is the `hal::Camera` of a sensor. It powers up and resets the sensor, checks the product identification, runs the tables of its `Descriptor` in the order base, format, resolution, options and tuning, and only then reports `InitializationResult::success`. A sensor with another identification stops the initialization with `unexpectedId` and writes nothing more. After that it forwards `Start()` and `Stop()` to the capture peripheral.
+
+A sensor for a specific chip derives from `drivers::OmniVisionSensor` and supplies a `Descriptor` with the identification registers and the register tables for the chip. The library ships no register tables for specific chips; they come from the documentation of the sensor vendor.
 
 - `CameraFormat` names the pixel layout and the frame dimensions. `BytesPerPixel()` gives the fixed byte count per pixel for uncompressed formats. JPEG has no fixed frame size, so `BytesPerPixel()` returns 0, `IsCompressed()` returns true, and `FrameSizeInBytes()` returns 0. For uncompressed formats `FrameSizeInBytes()` gives `width × height × BytesPerPixel`.
 - The caller allocates a buffer and passes it to `Start()`. For uncompressed formats the buffer must hold at least `FrameSizeInBytes()` bytes; `IsValidFrameBuffer()` checks this with 64-bit arithmetic so large dimensions do not overflow. For JPEG any non-empty buffer is valid; the real compressed size is reported as the frame length in the callback.
