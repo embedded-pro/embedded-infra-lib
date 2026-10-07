@@ -14,9 +14,8 @@
 
 namespace drivers
 {
-    // Pixels travel as DCS memory writes, so the pixel format is what ends up on the wire: rgb565Swapped selects 16 bits
-    // per pixel and rgb888 24 bits per pixel. When tearingEffect is not hal::dummyPin, a write starts streaming pixels
-    // on the next rising edge of that pin, or after the tearing effect timeout when no edge arrives
+    // The pixel format is what ends up on the wire: rgb565Swapped is 16 bits per pixel and rgb888 is 24.
+    // With a tearingEffect pin, a write waits for its next rising edge, or for the tearing effect timeout
     class MipiDsiDisplay
         : public MipiDsiPanelCore
         , public hal::Display

@@ -7,9 +7,8 @@
 
 namespace drivers
 {
-    // The host streams the frame buffer itself, so there is no pixel path. The stream is started after the panel left
-    // sleep and before the display is turned on, and stopped after the display was turned off. The pixel format
-    // only selects the bits per pixel the panel expects, rgb565 and rgb565Swapped both mean 16 bits
+    // The stream starts after sleep out and before display on, and stops after display off.
+    // rgb565 and rgb565Swapped both mean 16 bits per pixel
     class MipiDsiVideoPanel
         : public MipiDsiPanelCore
     {

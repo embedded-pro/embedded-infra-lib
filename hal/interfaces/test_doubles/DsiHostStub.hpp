@@ -11,8 +11,6 @@
 
 namespace hal
 {
-    // Emulates the frame memory of a panel: column and page address, write memory start and write memory continue
-    // are decoded into the storage, every other command is ignored
     class DsiHostStub
         : public DsiHostMock
     {

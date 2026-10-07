@@ -8,9 +8,6 @@
 
 namespace hal
 {
-    // Sends and receives packets on a MIPI DSI link. The host chooses the packet type from the number of bytes: DCS short
-    // write for up to one parameter and long write for more, generic short write for up to two bytes and long write for more.
-    // Virtual channel, low-power or high-speed transmission and bus turn-around are the concern of the host.
     class DsiHost
     {
     protected:

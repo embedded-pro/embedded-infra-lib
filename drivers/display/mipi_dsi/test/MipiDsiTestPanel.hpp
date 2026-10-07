@@ -56,7 +56,6 @@ namespace dsitest
         EXPECT_CALL(host, WriteGenericMock(data));
     }
 
-    // The commands of the test panel from after the reset up to, but not including, display on; call within an InSequence
     inline void ExpectInitializationBeforeDisplayOn(hal::DsiHostMock& host, InitializationOptions options = InitializationOptions())
     {
         ExpectDcs(host, 0xb9, { 0xff, 0x83 });

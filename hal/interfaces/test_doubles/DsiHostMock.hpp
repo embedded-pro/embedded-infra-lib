@@ -10,8 +10,6 @@
 
 namespace hal
 {
-    // With completeAutomatically false an operation stays outstanding until CompletePending(),
-    // which is how a slow host is modelled
     class DsiHostMock
         : public DsiHost
     {

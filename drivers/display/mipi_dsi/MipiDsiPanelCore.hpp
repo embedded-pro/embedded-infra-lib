@@ -14,8 +14,6 @@
 
 namespace drivers
 {
-    // Sequences a DSI panel through reset, initialization, sleep and wake. The panel owns the host from construction
-    // until it is initialized; afterwards at most one of Sleep, Wake, SetBrightness and a derived class's own operation is in flight
     class MipiDsiPanelCore
     {
     public:
@@ -34,7 +32,6 @@ namespace drivers
             uint16_t delayAfterInMilliseconds;
         };
 
-        // The panel is not initialized when the identification read back with command differs from expected, unless expected is empty
         struct Identification
         {
             uint8_t command;
