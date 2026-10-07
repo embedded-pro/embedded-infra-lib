@@ -172,7 +172,8 @@ Initialization, `Sleep()`, `Wake()`, `SetBrightness()` and a write each own the 
 
 ## Scanning out a frame buffer
 
-`hal::DisplayController` scans layers out of frame buffers to a panel, and `hal::Blitter` fills, copies and blends rectangles of memory. Both are for controllers that read the pixels from memory themselves, such as an LCD-TFT controller with a 2D accelerator, and a `hal::DsiVideoStream` host takes its pixels from the same layers. `hal::Display` stays the interface for controllers that are written to.
+`hal::DisplayController` scans layers out of frame buffers to a panel, and `hal::Blitter` fills, copies and blends rectangles of memory.
+Both are for controllers that read the pixels from memory themselves, such as an LCD-TFT controller with a 2D accelerator, and a `hal::DsiVideoStream` host takes its pixels from the same layers. `hal::Display` stays the interface for controllers that are written to.
 
 Pixels in memory are described by `hal::Surface`, a view of a buffer with a size, a format and the distance between rows. `hal::SurfaceFormat` names the layout in memory and is not `hal::PixelFormat`, which names the bytes that a display bus expects. `SubSurface()` cuts a window out of a surface, so an operation takes no rectangle of its own.
 
