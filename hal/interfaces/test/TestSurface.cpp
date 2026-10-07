@@ -9,6 +9,27 @@ namespace
     constexpr hal::DisplaySize qvga{ 240, 320 };
     constexpr uint32_t rgb565Stride = 480;
 
+    struct FormatProperties
+    {
+        hal::SurfaceFormat format;
+        uint8_t bitsPerPixel;
+        bool hasAlpha;
+        bool isIndexed;
+    };
+
+    const std::array<FormatProperties, 10> formatProperties{ {
+        { hal::SurfaceFormat::argb8888, 32, true, false },
+        { hal::SurfaceFormat::rgb888, 24, false, false },
+        { hal::SurfaceFormat::rgb565, 16, false, false },
+        { hal::SurfaceFormat::argb1555, 16, true, false },
+        { hal::SurfaceFormat::argb4444, 16, true, false },
+        { hal::SurfaceFormat::l8, 8, false, true },
+        { hal::SurfaceFormat::al44, 8, true, true },
+        { hal::SurfaceFormat::al88, 16, true, true },
+        { hal::SurfaceFormat::a8, 8, true, false },
+        { hal::SurfaceFormat::a4, 4, true, false },
+    } };
+
     class SurfaceTest
         : public testing::Test
     {
@@ -24,40 +45,20 @@ namespace
 
 TEST(SurfaceFormatTest, bits_per_pixel_matches_each_format)
 {
-    EXPECT_EQ(32, hal::BitsPerPixel(hal::SurfaceFormat::argb8888));
-    EXPECT_EQ(24, hal::BitsPerPixel(hal::SurfaceFormat::rgb888));
-    EXPECT_EQ(16, hal::BitsPerPixel(hal::SurfaceFormat::rgb565));
-    EXPECT_EQ(16, hal::BitsPerPixel(hal::SurfaceFormat::argb1555));
-    EXPECT_EQ(16, hal::BitsPerPixel(hal::SurfaceFormat::argb4444));
-    EXPECT_EQ(8, hal::BitsPerPixel(hal::SurfaceFormat::l8));
-    EXPECT_EQ(8, hal::BitsPerPixel(hal::SurfaceFormat::al44));
-    EXPECT_EQ(16, hal::BitsPerPixel(hal::SurfaceFormat::al88));
-    EXPECT_EQ(8, hal::BitsPerPixel(hal::SurfaceFormat::a8));
-    EXPECT_EQ(4, hal::BitsPerPixel(hal::SurfaceFormat::a4));
+    for (const FormatProperties& properties : formatProperties)
+        EXPECT_EQ(properties.bitsPerPixel, hal::BitsPerPixel(properties.format)) << static_cast<int>(properties.format);
 }
 
 TEST(SurfaceFormatTest, formats_with_alpha)
 {
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::argb8888));
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::argb1555));
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::argb4444));
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::al44));
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::al88));
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::a8));
-    EXPECT_TRUE(hal::HasAlpha(hal::SurfaceFormat::a4));
-    EXPECT_FALSE(hal::HasAlpha(hal::SurfaceFormat::rgb888));
-    EXPECT_FALSE(hal::HasAlpha(hal::SurfaceFormat::rgb565));
-    EXPECT_FALSE(hal::HasAlpha(hal::SurfaceFormat::l8));
+    for (const FormatProperties& properties : formatProperties)
+        EXPECT_EQ(properties.hasAlpha, hal::HasAlpha(properties.format)) << static_cast<int>(properties.format);
 }
 
 TEST(SurfaceFormatTest, indexed_formats)
 {
-    EXPECT_TRUE(hal::IsIndexed(hal::SurfaceFormat::l8));
-    EXPECT_TRUE(hal::IsIndexed(hal::SurfaceFormat::al44));
-    EXPECT_TRUE(hal::IsIndexed(hal::SurfaceFormat::al88));
-    EXPECT_FALSE(hal::IsIndexed(hal::SurfaceFormat::rgb565));
-    EXPECT_FALSE(hal::IsIndexed(hal::SurfaceFormat::a8));
-    EXPECT_FALSE(hal::IsIndexed(hal::SurfaceFormat::argb8888));
+    for (const FormatProperties& properties : formatProperties)
+        EXPECT_EQ(properties.isIndexed, hal::IsIndexed(properties.format)) << static_cast<int>(properties.format);
 }
 
 TEST(SurfaceFormatTest, bytes_per_row_rounds_up_to_whole_bytes)
@@ -105,6 +106,16 @@ TEST(SurfaceColorTest, indexed_and_alpha_only_formats_have_no_pixel_value)
 TEST_F(SurfaceTest, a_surface_that_holds_all_its_rows_is_valid)
 {
     EXPECT_TRUE(hal::IsValidSurface(Rgb565()));
+}
+
+TEST_F(SurfaceTest, a_const_surface_is_validated_like_a_surface)
+{
+    hal::ConstSurface surface = hal::AsConst(Rgb565());
+
+    EXPECT_TRUE(hal::IsValidSurface(surface));
+
+    surface.strideInBytes = 478;
+    EXPECT_FALSE(hal::IsValidSurface(surface));
 }
 
 TEST_F(SurfaceTest, a_stride_shorter_than_a_row_is_invalid)
