@@ -1,4 +1,6 @@
 #include "hal/interfaces/CameraFormat.hpp"
+#include "infra/util/ReallyAssert.hpp"
+#include <array>
 
 namespace hal
 {
@@ -9,20 +11,14 @@ namespace hal
 
     std::size_t BytesPerPixel(CameraPixelFormat format)
     {
-        switch (format)
-        {
-            case CameraPixelFormat::grey8:
-                return 1;
-            case CameraPixelFormat::rgb565:
-            case CameraPixelFormat::rgb565Swapped:
-            case CameraPixelFormat::yuv422Yuyv:
-            case CameraPixelFormat::yuv422Uyvy:
-                return 2;
-            case CameraPixelFormat::jpeg:
-                return 0;
-        }
+        static constexpr std::array<std::size_t, 6> bytesPerPixel{ 1, 2, 2, 2, 2, 0 };
+        static_assert(static_cast<std::size_t>(CameraPixelFormat::grey8) == 0);
+        static_assert(static_cast<std::size_t>(CameraPixelFormat::jpeg) == bytesPerPixel.size() - 1);
 
-        return 0;
+        const auto index = static_cast<std::size_t>(format);
+        really_assert(index < bytesPerPixel.size());
+
+        return bytesPerPixel[index];
     }
 
     uint64_t FrameSizeInBytes(const CameraFormat& format)
@@ -32,11 +28,11 @@ namespace hal
 
     bool IsValidFrameBuffer(const CameraFormat& format, std::size_t bufferSize)
     {
-        if (format.width == 0 || format.height == 0)
-            return false;
+        const bool hasArea = static_cast<uint64_t>(format.width) * format.height != 0;
+        const uint64_t minimumSize = FrameSizeInBytes(format) + static_cast<uint64_t>(IsCompressed(format.pixelFormat));
 
-        const auto frameSize = FrameSizeInBytes(format);
+        const bool bufferFits = bufferSize >= minimumSize;
 
-        return IsCompressed(format.pixelFormat) ? bufferSize != 0 : bufferSize >= frameSize;
+        return hasArea & bufferFits;
     }
 }
