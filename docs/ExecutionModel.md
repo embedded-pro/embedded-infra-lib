@@ -181,6 +181,7 @@ Pixels in memory are described by `hal::Surface`, a view of a buffer with a size
 - `ConfigureLayer()`, `SetFramebuffer()` and `DisableLayer()` stage a change. `Commit()` applies all staged changes at the next vertical blank and then calls `onApplied`, so swapping the buffers of several layers cannot tear. At most one commit is in flight. `SetPalette()` is the exception and takes effect at once.
 - The memory of a layer must stay valid while the layer shows it. After `onApplied` the previous frame buffer is no longer read and can be rendered into.
 - At most one blit is in flight per blitter, and a caller that needs several chains them from `onDone`. `Supports()` tells whether an operation handles a pair of formats, so a caller falls back to rendering the rest in software.
+- For a blend, `Supports()` is asked about the format of the foreground and the format of the destination. The background must hold colour directly, which `hal::IsDirectColour()` tells, and any such background is accepted whenever the foreground and the destination are supported.
 - Callbacks are scheduled on the event dispatcher and never called from within the call that caused them.
 - A frame buffer and the surfaces of a blit must be in memory that the scan-out engine and the accelerator reach. Neither interface cleans or invalidates a data cache, so a buffer is either in uncached memory or the caller maintains the cache around a commit and a blit.
 

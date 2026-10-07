@@ -124,3 +124,17 @@ TEST_F(BlitterTest, surfaces_of_different_sizes_assert)
 
     EXPECT_DEATH(blitter.Copy(smaller, Destination(), Done()), "");
 }
+
+TEST_F(BlitterTest, a_blend_with_a_background_that_does_not_hold_colour_directly_asserts)
+{
+    EXPECT_CALL(stub, Blend(testing::_, testing::_, testing::_, testing::_)).Times(testing::AtLeast(0));
+
+    EXPECT_DEATH(blitter.Blend({ Source(), 128, 0 }, Source(hal::SurfaceFormat::l8), Destination(), Done()), "");
+}
+
+TEST_F(BlitterTest, a_blend_over_an_alpha_only_background_asserts)
+{
+    EXPECT_CALL(stub, Blend(testing::_, testing::_, testing::_, testing::_)).Times(testing::AtLeast(0));
+
+    EXPECT_DEATH(blitter.Blend({ Source(), 128, 0 }, Source(hal::SurfaceFormat::a8), Destination(), Done()), "");
+}

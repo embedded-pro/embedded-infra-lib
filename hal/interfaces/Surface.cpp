@@ -52,6 +52,16 @@ namespace hal
         return format == SurfaceFormat::l8 || format == SurfaceFormat::al44 || format == SurfaceFormat::al88;
     }
 
+    bool IsAlphaOnly(SurfaceFormat format)
+    {
+        return format == SurfaceFormat::a8 || format == SurfaceFormat::a4;
+    }
+
+    bool IsDirectColour(SurfaceFormat format)
+    {
+        return format == SurfaceFormat::argb8888 || format == SurfaceFormat::rgb888 || format == SurfaceFormat::rgb565 || format == SurfaceFormat::argb1555 || format == SurfaceFormat::argb4444;
+    }
+
     std::size_t BytesPerRow(uint16_t width, SurfaceFormat format)
     {
         return (std::size_t{ width } * BitsPerPixel(format) + 7) / 8;
@@ -93,8 +103,10 @@ namespace hal
         if (size.width == 0 || size.height == 0)
             return true;
 
-        std::size_t rowBytes = BytesPerRow(size.width, format);
-        return strideInBytes >= rowBytes && memorySize >= (size.height - 1) * std::size_t{ strideInBytes } + rowBytes;
+        std::uint64_t rowBytes = BytesPerRow(size.width, format);
+        std::uint64_t requiredBytes = (std::uint64_t{ size.height } - 1) * strideInBytes + rowBytes;
+
+        return strideInBytes >= rowBytes && memorySize >= requiredBytes;
     }
 
     SurfaceWindow WindowOf(DisplaySize size, SurfaceFormat format, uint32_t strideInBytes, const DisplayArea& area)

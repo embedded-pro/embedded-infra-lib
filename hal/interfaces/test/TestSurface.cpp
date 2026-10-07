@@ -15,19 +15,21 @@ namespace
         uint8_t bitsPerPixel;
         bool hasAlpha;
         bool isIndexed;
+        bool isAlphaOnly;
+        bool isDirectColour;
     };
 
     const std::array<FormatProperties, 10> formatProperties{ {
-        { hal::SurfaceFormat::argb8888, 32, true, false },
-        { hal::SurfaceFormat::rgb888, 24, false, false },
-        { hal::SurfaceFormat::rgb565, 16, false, false },
-        { hal::SurfaceFormat::argb1555, 16, true, false },
-        { hal::SurfaceFormat::argb4444, 16, true, false },
-        { hal::SurfaceFormat::l8, 8, false, true },
-        { hal::SurfaceFormat::al44, 8, true, true },
-        { hal::SurfaceFormat::al88, 16, true, true },
-        { hal::SurfaceFormat::a8, 8, true, false },
-        { hal::SurfaceFormat::a4, 4, true, false },
+        { hal::SurfaceFormat::argb8888, 32, true, false, false, true },
+        { hal::SurfaceFormat::rgb888, 24, false, false, false, true },
+        { hal::SurfaceFormat::rgb565, 16, false, false, false, true },
+        { hal::SurfaceFormat::argb1555, 16, true, false, false, true },
+        { hal::SurfaceFormat::argb4444, 16, true, false, false, true },
+        { hal::SurfaceFormat::l8, 8, false, true, false, false },
+        { hal::SurfaceFormat::al44, 8, true, true, false, false },
+        { hal::SurfaceFormat::al88, 16, true, true, false, false },
+        { hal::SurfaceFormat::a8, 8, true, false, true, false },
+        { hal::SurfaceFormat::a4, 4, true, false, true, false },
     } };
 
     class SurfaceTest
@@ -59,6 +61,18 @@ TEST(SurfaceFormatTest, indexed_formats)
 {
     for (const FormatProperties& properties : formatProperties)
         EXPECT_EQ(properties.isIndexed, hal::IsIndexed(properties.format)) << static_cast<int>(properties.format);
+}
+
+TEST(SurfaceFormatTest, alpha_only_formats)
+{
+    for (const FormatProperties& properties : formatProperties)
+        EXPECT_EQ(properties.isAlphaOnly, hal::IsAlphaOnly(properties.format)) << static_cast<int>(properties.format);
+}
+
+TEST(SurfaceFormatTest, direct_colour_formats)
+{
+    for (const FormatProperties& properties : formatProperties)
+        EXPECT_EQ(properties.isDirectColour, hal::IsDirectColour(properties.format)) << static_cast<int>(properties.format);
 }
 
 TEST(SurfaceFormatTest, bytes_per_row_rounds_up_to_whole_bytes)
@@ -124,6 +138,11 @@ TEST_F(SurfaceTest, a_stride_shorter_than_a_row_is_invalid)
     surface.strideInBytes = 478;
 
     EXPECT_FALSE(hal::IsValidSurface(surface));
+}
+
+TEST(SurfaceValidityTest, a_required_size_beyond_the_address_space_of_a_32_bit_target_is_invalid)
+{
+    EXPECT_FALSE(hal::IsValidSurface({ 1, 3 }, hal::SurfaceFormat::rgb565, 0x80000000, 2));
 }
 
 TEST_F(SurfaceTest, memory_shorter_than_the_last_row_is_invalid)

@@ -24,6 +24,7 @@ namespace hal
             {
                 really_assert(IsValidSurface(foreground.surface) && IsValidSurface(background) && IsValidSurface(destination));
                 really_assert(foreground.surface.size == destination.size && background.size == destination.size);
+                really_assert(IsDirectColour(background.format));
                 Begin(onDone);
             });
     }

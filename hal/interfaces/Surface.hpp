@@ -28,6 +28,8 @@ namespace hal
     uint8_t BitsPerPixel(SurfaceFormat format);
     bool HasAlpha(SurfaceFormat format);
     bool IsIndexed(SurfaceFormat format);
+    bool IsAlphaOnly(SurfaceFormat format);
+    bool IsDirectColour(SurfaceFormat format);
     std::size_t BytesPerRow(uint16_t width, SurfaceFormat format);
 
     uint32_t ToPixel(Argb8888 color, SurfaceFormat format);
