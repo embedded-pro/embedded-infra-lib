@@ -3,10 +3,12 @@
 
 #include "hal/interfaces/AudioOutput.hpp"
 #include "infra/timer/Timer.hpp"
+#include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/Function.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "services/util/RegisterBusAccess.hpp"
+#include "services/util/Stoppable.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -16,6 +18,7 @@ namespace drivers
 {
     class Wm8994
         : public hal::AudioOutput
+        , public services::Stoppable
     {
     public:
         enum class Output : uint8_t
@@ -47,6 +50,7 @@ namespace drivers
 
         void Start(hal::AudioFormat format, const infra::Function<void(Samples toFill)>& onSamplesRequired, const infra::Function<void()>& onUnderrun) override;
         void Stop() override;
+        void Stop(const infra::Function<void()>& onStopped) override;
         void SetVolume(uint8_t percent) override;
         void SetMuted(bool muted) override;
 
@@ -74,6 +78,8 @@ namespace drivers
         void StepWritten();
         void SequenceDone();
 
+        void ReportStoppedWhenIdle();
+
         void Reconcile();
         void ReconcileStartingUp();
         void ReconcilePlaying();
@@ -97,6 +103,7 @@ namespace drivers
         std::optional<hal::AudioFormat> activeFormat;
         infra::Function<void(Samples)> samplesCallback;
         infra::Function<void()> underrunCallback;
+        infra::AutoResetFunction<void()> stopped;
 
         infra::BoundedVector<Step>::WithMaxSize<maxSteps> sequence;
         std::size_t stepIndex{ 0 };

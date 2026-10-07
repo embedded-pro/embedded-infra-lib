@@ -1,8 +1,9 @@
 #include "drivers/audio/wm8994/Wm8994.hpp"
+#include "drivers/audio/wm8994/test/Wm8994BusMock.hpp"
 #include "hal/interfaces/test_doubles/AudioOutputMock.hpp"
 #include "infra/timer/test_helper/ClockFixture.hpp"
 #include "infra/util/MemoryRange.hpp"
-#include "services/util/test_doubles/RegisterBusAccessMock.hpp"
+#include "infra/util/test_helper/MockCallback.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <algorithm>
@@ -10,7 +11,6 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 namespace
 {
@@ -26,11 +26,6 @@ namespace
     constexpr uint16_t muted = 0x0200;
     constexpr uint16_t unmuted = 0x0010;
     constexpr int16_t dirty = 0x5555;
-
-    std::vector<uint8_t> Word(uint16_t value)
-    {
-        return { static_cast<uint8_t>(value >> 8), static_cast<uint8_t>(value) };
-    }
 
     std::chrono::milliseconds Milliseconds(int count)
     {
@@ -56,7 +51,7 @@ namespace
         {
             testing::InSequence sequence;
             EXPECT_CALL(stream, Start(format, _, _)).WillOnce(testing::DoAll(testing::SaveArg<1>(&transportSamples), testing::SaveArg<2>(&transportUnderrun)));
-            EXPECT_CALL(bus, ReadRegisterMock(0x0000, 2)).WillOnce(testing::Return(Word(0x8994)));
+            EXPECT_CALL(bus, ReadRegisterMock(0x0000)).WillOnce(testing::Return(0x8994));
         }
 
         void Start(hal::AudioFormat format = stereo48k)
@@ -90,7 +85,7 @@ namespace
 
         void ExpectWrite(uint16_t address, uint16_t value)
         {
-            EXPECT_CALL(bus, WriteRegisterMock(address, Word(value)));
+            EXPECT_CALL(bus, WriteRegisterMock(address, value));
         }
 
         void ExpectBringUp()
@@ -194,7 +189,7 @@ namespace
                 });
         }
 
-        testing::StrictMock<services::RegisterBusAccessHalfWordMock> bus;
+        testing::StrictMock<drivers::Wm8994BusMock> bus;
         testing::StrictMock<hal::AudioOutputMock> stream;
         std::optional<drivers::Wm8994> codec;
         infra::Function<void(hal::AudioOutput::Samples)> transportSamples;
@@ -284,7 +279,7 @@ TEST_F(Wm8994Test, a_wrong_chip_id_is_a_programming_error)
     EXPECT_DEATH(
         {
             EXPECT_CALL(stream, Start(_, _, _));
-            EXPECT_CALL(bus, ReadRegisterMock(0x0000, 2)).WillOnce(testing::Return(Word(0x1234)));
+            EXPECT_CALL(bus, ReadRegisterMock(0x0000)).WillOnce(testing::Return(0x1234));
             StartWithoutExpectations(stereo48k);
             ExecuteAllActions();
         },
@@ -530,7 +525,7 @@ TEST_F(Wm8994Test, starting_again_during_shutdown_uses_the_new_format)
 
     testing::InSequence sequence;
     EXPECT_CALL(stream, Start(stereo44k, _, _)).WillOnce(testing::DoAll(testing::SaveArg<1>(&transportSamples), testing::SaveArg<2>(&transportUnderrun)));
-    EXPECT_CALL(bus, ReadRegisterMock(0x0000, 2)).WillOnce(testing::Return(Word(0x8994)));
+    EXPECT_CALL(bus, ReadRegisterMock(0x0000)).WillOnce(testing::Return(0x8994));
     ExpectStartUp(Output::headphone, rate44k, fullScaleCode, false);
     ForwardTime(std::chrono::seconds(2));
 
@@ -717,4 +712,119 @@ TEST_F(Wm8994Test, destroying_while_waiting_for_a_delay_stops_the_stream_and_can
     codec.reset();
 
     ForwardTime(std::chrono::seconds(1));
+}
+
+TEST_F(Wm8994Test, stopping_with_a_completion_reports_done_once_the_codec_is_powered_down_and_the_stream_stopped)
+{
+    StartAndWaitUntilPlaying();
+    testing::StrictMock<infra::MockCallback<void()>> stopped;
+    testing::InSequence sequence;
+    ExpectShutdownAndStreamStop();
+    EXPECT_CALL(stopped, callback());
+
+    codec->Stop([&stopped]()
+        {
+            stopped.callback();
+        });
+    ForwardTime(std::chrono::seconds(1));
+}
+
+TEST_F(Wm8994Test, the_completion_is_not_reported_while_the_codec_is_still_shutting_down)
+{
+    StartAndWaitUntilPlaying();
+    testing::StrictMock<infra::MockCallback<void()>> stopped;
+    ExpectShutdownMute();
+    codec->Stop([&stopped]()
+        {
+            stopped.callback();
+        });
+    ExecuteAllActions();
+
+    ForwardTime(Milliseconds(99));
+
+    testing::InSequence sequence;
+    ExpectShutdownRest();
+    EXPECT_CALL(stream, Stop()).RetiresOnSaturation();
+    EXPECT_CALL(stopped, callback());
+    ForwardTime(Milliseconds(1));
+}
+
+TEST_F(Wm8994Test, the_completion_is_delivered_from_the_event_dispatcher_even_when_the_codec_is_idle)
+{
+    Create();
+    bool reported = false;
+
+    codec->Stop([&reported]()
+        {
+            reported = true;
+        });
+    EXPECT_FALSE(reported);
+
+    ExecuteAllActions();
+    EXPECT_TRUE(reported);
+}
+
+TEST_F(Wm8994Test, the_codec_may_be_destroyed_from_the_completion)
+{
+    StartAndWaitUntilPlaying();
+    ExpectShutdownAndStreamStop();
+
+    codec->Stop([this]()
+        {
+            codec.reset();
+        });
+    ForwardTime(std::chrono::seconds(1));
+
+    EXPECT_FALSE(codec.has_value());
+}
+
+TEST_F(Wm8994Test, stopping_with_a_completion_during_start_up_reports_done_after_the_shutdown)
+{
+    Create();
+    Start();
+    ExpectBringUp();
+    ExecuteAllActions();
+    testing::StrictMock<infra::MockCallback<void()>> stopped;
+    codec->Stop([&stopped]()
+        {
+            stopped.callback();
+        });
+
+    testing::InSequence sequence;
+    ExpectPath();
+    ExpectClocking(rate48k);
+    ExpectOutput(Output::headphone);
+    ExpectShutdownAndStreamStop();
+    EXPECT_CALL(stopped, callback());
+    ForwardTime(std::chrono::seconds(1));
+}
+
+TEST_F(Wm8994Test, starting_before_the_completion_was_reported_is_a_programming_error)
+{
+    Create();
+    codec->Stop([]() {});
+
+    EXPECT_DEATH(StartWithoutExpectations(stereo48k), "");
+
+    ExecuteAllActions();
+}
+
+TEST_F(Wm8994Test, stopping_with_a_completion_while_one_is_pending_is_a_programming_error)
+{
+    Create();
+    codec->Stop([]() {});
+
+    EXPECT_DEATH(codec->Stop([]() {}), "");
+
+    ExecuteAllActions();
+}
+
+TEST_F(Wm8994Test, destroying_before_the_completion_was_reported_is_a_programming_error)
+{
+    Create();
+    codec->Stop([]() {});
+
+    EXPECT_DEATH(codec.reset(), "");
+
+    ExecuteAllActions();
 }

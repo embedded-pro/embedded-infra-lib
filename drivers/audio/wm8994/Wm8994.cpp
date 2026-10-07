@@ -1,4 +1,5 @@
 #include "drivers/audio/wm8994/Wm8994.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 #include <chrono>
@@ -162,6 +163,7 @@ namespace drivers
     Wm8994::~Wm8994()
     {
         really_assert(!busy || timer.Armed());
+        really_assert(!stopped);
 
         if (phase != Phase::idle)
             stream.Stop();
@@ -186,6 +188,7 @@ namespace drivers
     {
         really_assert(IsSupported(format));
         really_assert(!requested);
+        really_assert(!stopped);
 
         requested = format;
         samplesCallback = onSamplesRequired;
@@ -205,6 +208,16 @@ namespace drivers
         underrunCallback = nullptr;
 
         ReconcileIfPossible();
+    }
+
+    void Wm8994::Stop(const infra::Function<void()>& onStopped)
+    {
+        really_assert(!stopped);
+
+        stopped = onStopped;
+
+        Stop();
+        ReportStoppedWhenIdle();
     }
 
     void Wm8994::SetVolume(uint8_t percent)
@@ -301,6 +314,17 @@ namespace drivers
 
         if (requested)
             BeginStartUp();
+
+        ReportStoppedWhenIdle();
+    }
+
+    void Wm8994::ReportStoppedWhenIdle()
+    {
+        if (phase == Phase::idle && stopped)
+            infra::EventDispatcher::Instance().Schedule([this]()
+                {
+                    stopped();
+                });
     }
 
     void Wm8994::RunSequence()
