@@ -16,6 +16,7 @@ target_sources(hal.interfaces_test PRIVATE
     TestBlockDevice.cpp
     TestCan.cpp
     TestDisplay.cpp
+    TestDsiHost.cpp
     TestDutyCycle.cpp
     TestEeprom.cpp
     TestFlash.cpp

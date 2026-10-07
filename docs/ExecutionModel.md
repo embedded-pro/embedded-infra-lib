@@ -136,3 +136,28 @@ The microphone needs some time after its clock starts before its output is valid
 - `Write()` takes a packed buffer. `WriteWithStride()` takes a buffer in which a row starts `strideInBytes` after the previous row, which is what a library that renders into a full-screen buffer needs to flush part of that buffer.
 
 Completion is delivered by the dispatcher, so a caller must not wait for it by polling on the dispatcher thread. A graphics library that renders into one buffer and then busy-waits for the flush to finish blocks the dispatcher that has to deliver the completion. Such a library has to render into a second buffer while the first one is in flight, or return to the dispatcher between flushes.
+
+## Driving a MIPI DSI panel
+
+`hal::DsiHost` sends DCS and generic DSI packets to a panel and reads DCS responses back. A vendor implements it for its DSI peripheral, and `drivers/display/mipi_dsi` builds on it to drive any panel that is described by a table of commands.
+
+- One operation (`WriteDcs`, `WriteGeneric` or `ReadDcs`) is in flight per host. The buffers stay valid until `onDone`, which is never called from within the call that started the operation, so a completion can start the next one.
+- `MaxParametersSize()` bounds the parameters of one `WriteDcs` and the data of one `WriteGeneric`. It is at least 4, the size of a column or page address.
+- The host chooses the packet type from the number of bytes: a DCS write of up to one parameter is a short packet and longer ones are long packets, and a generic write of up to two bytes is a short packet. Virtual channel, low-power or high-speed transmission, bus turn-around and the maximum return packet size of a read are the concern of the host.
+- Writes complete without a result, like `hal::Display` and `hal::SpiMaster`. Only `ReadDcs` reports `Result::timeout` or `Result::failed`.
+- `hal::DsiVideoStream` is a separate interface for hosts that stream a frame buffer themselves. `Start` is only valid while the stream is stopped and `Stop` only while it runs.
+
+Two classes drive a panel, both derived from `drivers::MipiDsiPanelCore`, which owns reset, initialization, sleep, wake and brightness:
+
+- `drivers::MipiDsiDisplay` is a `hal::Display` for command-mode panels. A write sets the column and page address and then sends the pixels as write memory start and write memory continue packets, each no larger than the host accepts and always a whole number of pixels.
+  Rows of a strided buffer are sent back to back, because the panel wraps to the next row of the window by itself. The pixel formats are `rgb565Swapped`, which is 16 bits per pixel with the high byte first, and `rgb888`. Native `rgb565` would put the wrong byte first on a little-endian target, and `hal::Display` does not convert pixels.
+- `drivers::MipiDsiVideoPanel` initializes a panel that the host streams a frame buffer to. It has no pixel path. It starts the stream after the panel left sleep and before the display is turned on, and stops it after the display was turned off.
+
+A panel is described by a `constexpr` `Panel`: its size, the address mode, the commands to send before and after sleep out, an optional identification to verify, and the timings. A command is either a DCS command or a generic write. A generic command carries its complete payload, register included.
+Initialization runs in this order: reset, identification, the commands before sleep out, sleep out and its delay, pixel format, address mode, the commands after sleep out, display on. Without a reset pin, a soft reset is sent instead.
+`onInitialized` reports `InitializationResult::noResponse` or `unexpectedId` when the identification cannot be read or differs, and then sends nothing more.
+`Sleep()` turns the display off and enters sleep mode, `Wake()` exits sleep mode and turns the display on, and both wait for the delays in `Timings`, which default to the 120 ms that the DCS specification asks for around sleep in and sleep out. `SetBrightness()` writes the display brightness.
+
+When the display is given a tearing effect pin, a write sets the window, waits for the next rising edge of that pin, and only then sends the pixels. The interrupt is enabled only while a write waits. A write that sees no edge within `Timings::tearingEffectTimeout` continues without synchronization, because `hal::Display` has no way to report the failure.
+
+Initialization, `Sleep()`, `Wake()`, `SetBrightness()` and a write each own the host until they complete. Starting one while another is in progress is a programming error, so a caller serializes them with the completions. `Wake()` does not redraw the panel, so a panel that loses its frame memory in sleep has to be redrawn by the application.
