@@ -24,6 +24,7 @@ target_sources(hal.interfaces PRIVATE
     BackupRam.hpp
     BlockDevice.hpp
     Camera.hpp
+    CameraFormat.cpp
     CameraFormat.hpp
     Can.hpp
     CommunicationConfigurator.hpp

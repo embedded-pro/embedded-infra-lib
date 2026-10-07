@@ -1,7 +1,9 @@
 #include "hal/interfaces/CameraFormat.hpp"
 #include "gtest/gtest.h"
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 TEST(CameraFormatTest, bytes_per_pixel_matches_each_format)
 {
@@ -21,19 +23,19 @@ TEST(CameraFormatTest, jpeg_is_compressed_and_has_no_bytes_per_pixel)
 TEST(CameraFormatTest, frame_size_of_qvga_rgb565_is_153600)
 {
     constexpr hal::CameraFormat qvga{ 320, 240, hal::CameraPixelFormat::rgb565 };
-    EXPECT_EQ(std::size_t(153600), hal::FrameSizeInBytes(qvga));
+    EXPECT_EQ(uint64_t(153600), hal::FrameSizeInBytes(qvga));
 }
 
 TEST(CameraFormatTest, frame_size_of_vga_yuyv_is_614400)
 {
     constexpr hal::CameraFormat vga{ 640, 480, hal::CameraPixelFormat::yuv422Yuyv };
-    EXPECT_EQ(std::size_t(614400), hal::FrameSizeInBytes(vga));
+    EXPECT_EQ(uint64_t(614400), hal::FrameSizeInBytes(vga));
 }
 
 TEST(CameraFormatTest, frame_size_of_a_compressed_format_is_zero)
 {
     constexpr hal::CameraFormat jpeg{ 320, 240, hal::CameraPixelFormat::jpeg };
-    EXPECT_EQ(std::size_t(0), hal::FrameSizeInBytes(jpeg));
+    EXPECT_EQ(uint64_t(0), hal::FrameSizeInBytes(jpeg));
 }
 
 TEST(CameraFormatTest, buffer_of_exactly_the_frame_size_is_valid)
@@ -73,6 +75,26 @@ TEST(CameraFormatTest, compressed_frame_rejects_an_empty_buffer)
     EXPECT_FALSE(hal::IsValidFrameBuffer(jpeg, 0));
 }
 
+TEST(CameraFormatTest, every_pixel_format_is_validated_against_its_own_frame_size)
+{
+    const std::array<std::pair<hal::CameraPixelFormat, std::size_t>, 5> rawFormats{ {
+        { hal::CameraPixelFormat::grey8, 12 },
+        { hal::CameraPixelFormat::rgb565, 24 },
+        { hal::CameraPixelFormat::rgb565Swapped, 24 },
+        { hal::CameraPixelFormat::yuv422Yuyv, 24 },
+        { hal::CameraPixelFormat::yuv422Uyvy, 24 },
+    } };
+
+    for (const auto& [pixelFormat, frameSize] : rawFormats)
+    {
+        EXPECT_TRUE(hal::IsValidFrameBuffer({ 4, 3, pixelFormat }, frameSize));
+        EXPECT_FALSE(hal::IsValidFrameBuffer({ 4, 3, pixelFormat }, frameSize - 1));
+    }
+
+    EXPECT_TRUE(hal::IsValidFrameBuffer({ 4, 3, hal::CameraPixelFormat::jpeg }, 1));
+    EXPECT_FALSE(hal::IsValidFrameBuffer({ 4, 3, hal::CameraPixelFormat::jpeg }, 0));
+}
+
 TEST(CameraFormatTest, formats_compare_by_every_field)
 {
     constexpr hal::CameraFormat a{ 320, 240, hal::CameraPixelFormat::rgb565 };
@@ -91,6 +113,7 @@ TEST(CameraFormatTest, largest_dimensions_do_not_overflow_the_validation)
 {
     constexpr hal::CameraFormat maxSize{ 65535, 65535, hal::CameraPixelFormat::rgb565 };
     constexpr auto expected = static_cast<uint64_t>(65535) * 65535 * 2;
+    EXPECT_EQ(expected, hal::FrameSizeInBytes(maxSize));
     EXPECT_FALSE(hal::IsValidFrameBuffer(maxSize, static_cast<std::size_t>(expected - 1)));
     EXPECT_TRUE(hal::IsValidFrameBuffer(maxSize, static_cast<std::size_t>(expected)));
 }
