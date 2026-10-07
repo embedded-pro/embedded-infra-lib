@@ -22,7 +22,7 @@ namespace hal
         uint16_t height;
         CameraPixelFormat pixelFormat;
 
-        bool operator==(const CameraFormat& other) const = default;
+        bool operator==(const CameraFormat& other) const;
     };
 
     bool IsCompressed(CameraPixelFormat format);

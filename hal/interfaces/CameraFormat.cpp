@@ -4,6 +4,11 @@
 
 namespace hal
 {
+    bool CameraFormat::operator==(const CameraFormat& other) const
+    {
+        return width == other.width && height == other.height && pixelFormat == other.pixelFormat;
+    }
+
     bool IsCompressed(CameraPixelFormat format)
     {
         return format == CameraPixelFormat::jpeg;
