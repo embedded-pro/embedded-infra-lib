@@ -169,3 +169,32 @@ Initialization runs in this order: reset, identification, the commands before sl
 When the display is given a tearing effect pin, a write sets the window, waits for the next rising edge of that pin, and only then sends the pixels. The interrupt is enabled only while a write waits. A write that sees no edge within `Timings::tearingEffectTimeout` continues without synchronization, because `hal::Display` has no way to report the failure.
 
 Initialization, `Sleep()`, `Wake()`, `SetBrightness()` and a write each own the host until they complete. Starting one while another is in progress is a programming error, so a caller serializes them with the completions. `Wake()` does not redraw the panel, so a panel that loses its frame memory in sleep has to be redrawn by the application.
+
+## Scanning out a frame buffer
+
+`hal::DisplayController` scans layers out of frame buffers to a panel, and `hal::Blitter` fills, copies and blends rectangles of memory.
+Both are for controllers that read the pixels from memory themselves, such as an LCD-TFT controller with a 2D accelerator, and a `hal::DsiVideoStream` host takes its pixels from the same layers. `hal::Display` stays the interface for controllers that are written to.
+
+Pixels in memory are described by `hal::Surface`, a view of a buffer with a size, a format and the distance between rows. `hal::SurfaceFormat` names the layout in memory and is not `hal::PixelFormat`, which names the bytes that a display bus expects. `SubSurface()` cuts a window out of a surface, so an operation takes no rectangle of its own.
+
+- Scan-out runs from construction. `Start()` and `Stop()` only decide whether `onVerticalBlank` and `onUnderrun` are called. `onVerticalBlank` is called once per frame.
+- `ConfigureLayer()`, `SetFramebuffer()` and `DisableLayer()` stage a change. `Commit()` applies all staged changes at the next vertical blank and then calls `onApplied`, so swapping the buffers of several layers cannot tear. At most one commit is in flight. `SetPalette()` is the exception and takes effect at once.
+- The memory of a layer must stay valid while the layer shows it. After `onApplied` the previous frame buffer is no longer read and can be rendered into.
+- At most one blit is in flight per blitter, and a caller that needs several chains them from `onDone`. `Supports()` tells whether an operation handles a pair of formats, so a caller falls back to rendering the rest in software.
+- For a blend, `Supports()` is asked about the format of the foreground and the format of the destination. The background must hold colour directly, which `hal::IsDirectColour()` tells, and any such background is accepted whenever the foreground and the destination are supported.
+- Callbacks are scheduled on the event dispatcher and never called from within the call that caused them.
+- A frame buffer and the surfaces of a blit must be in memory that the scan-out engine and the accelerator reach. Neither interface cleans or invalidates a data cache, so a buffer is either in uncached memory or the caller maintains the cache around a commit and a blit.
+
+A graphics library maps onto the interfaces as follows:
+
+| Graphics library                                                                                                                                                                                    | Interface                                                                     |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| Display size: LVGL `lv_display_create`, TouchGFX HAL width and height, Embedded Wizard `EwBspDisplayInit`                                                                                           | `DisplayController::Size()`                                                   |
+| Frame buffers and their stride: LVGL `lv_display_set_buffers`, TouchGFX `setFrameBufferStartAddresses`                                                                                              | `DisplayLayer::framebuffer`                                                   |
+| Showing a finished frame and learning when the old buffer is free: LVGL flush and `lv_display_flush_ready` in direct mode, TouchGFX `setTFTFrameBuffer`, Embedded Wizard `EwBspDisplayCommitBuffer` | `SetFramebuffer()` and `Commit()`, with `flush_ready` called from `onApplied` |
+| Vertical sync: TouchGFX `vSync` and `frontPorchEntered`                                                                                                                                             | `Start()` with `onVerticalBlank`                                              |
+| Colour table: Embedded Wizard `EwBspDisplaySetClut`, TouchGFX L8                                                                                                                                    | `SetPalette()`                                                                |
+| Flushing a rendered area: LVGL flush in partial mode                                                                                                                                                | `Blitter::Copy()` into `SubSurface()` of the frame buffer                     |
+| Accelerated fill, copy and blend, and the capabilities query: LVGL draw units, TouchGFX `getBlitCaps`, Embedded Wizard bitmap operations                                                            | `Blitter::Fill()`, `Copy()`, `Blend()` and `Supports()`                       |
+
+A library that expects to be called in interrupt context, or one that needs the current line of the panel, is not served by this interface.

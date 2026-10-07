@@ -23,11 +23,14 @@ target_sources(hal.interfaces PRIVATE
     AudioOutput.hpp
     BackupRam.hpp
     BlockDevice.hpp
+    Blitter.hpp
     Can.hpp
     CommunicationConfigurator.hpp
     DigitalToAnalogPin.hpp
     Display.cpp
     Display.hpp
+    DisplayController.hpp
+    DisplayTiming.hpp
     DsiHost.hpp
     DutyCycle.hpp
     Eeprom.hpp
@@ -59,6 +62,8 @@ target_sources(hal.interfaces PRIVATE
     SerialCommunication.hpp
     Spi.cpp
     Spi.hpp
+    Surface.cpp
+    Surface.hpp
     UsbCustomHid.hpp
     UsbLinkLayer.hpp
     Watchdog.hpp
