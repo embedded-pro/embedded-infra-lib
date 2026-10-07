@@ -37,7 +37,7 @@ namespace drivers
 
     private:
         services::RegisterBusAccess& bus;
-        const Panel& panel;
+        Panel panel;
         infra::TimerSingleShot timer;
         infra::AutoResetFunction<void()> initialized;
         std::size_t commandIndex{ 0 };

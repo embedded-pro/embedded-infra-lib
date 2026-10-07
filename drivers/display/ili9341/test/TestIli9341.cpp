@@ -117,6 +117,26 @@ TEST_F(Ili9341Test, initialization_is_reported_only_once)
     ForwardTime(std::chrono::seconds(10));
 }
 
+TEST_F(Ili9341Test, the_panel_description_may_change_after_construction)
+{
+    {
+        testing::InSequence sequence;
+        EXPECT_CALL(bus, WriteRegisterMock(0xcf, (std::vector<uint8_t>{ 0x12, 0x34 })));
+        EXPECT_CALL(bus, WriteRegisterMock(0x3a, (std::vector<uint8_t>{ 0x55 })));
+        EXPECT_CALL(bus, WriteRegisterMock(0x11, std::vector<uint8_t>{}));
+        EXPECT_CALL(bus, WriteRegisterMock(0x29, std::vector<uint8_t>{}));
+        EXPECT_CALL(initialized, callback());
+    }
+    drivers::Ili9341::Panel local{ commands };
+    display.emplace(bus, local, [this]()
+        {
+            initialized.callback();
+        });
+
+    local = drivers::Ili9341::Panel{};
+    ForwardTime(std::chrono::milliseconds(120));
+}
+
 TEST_F(Ili9341Test, a_panel_without_commands_asserts)
 {
     const drivers::Ili9341::Panel empty{};
