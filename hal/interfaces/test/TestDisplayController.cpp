@@ -250,3 +250,23 @@ TEST_F(DisplayControllerTest, a_frame_buffer_smaller_than_its_surface_asserts)
 
     EXPECT_DEATH(controller.ConfigureLayer(0, Layer(infra::Head(infra::ByteRange(first), 8))), "");
 }
+
+TEST_F(DisplayControllerTest, a_replacement_frame_buffer_smaller_than_the_surface_asserts)
+{
+    Configure(0, first);
+    EXPECT_CALL(stub, SetFramebuffer(0, testing::_)).Times(testing::AtLeast(0));
+
+    EXPECT_DEATH(controller.SetFramebuffer(0, infra::Head(infra::ByteRange(first), 8)), "");
+}
+
+TEST_F(DisplayControllerTest, a_replacement_frame_buffer_needs_only_the_rows_the_surface_reads)
+{
+    std::array<uint8_t, layerStride * 8 + 64> larger{};
+    Configure(0, larger);
+    EXPECT_CALL(stub, SetFramebuffer(0, testing::_));
+
+    controller.SetFramebuffer(0, first);
+
+    ASSERT_TRUE(stub.StagedLayer(0));
+    EXPECT_EQ(first.data(), stub.StagedLayer(0)->framebuffer.memory.begin());
+}

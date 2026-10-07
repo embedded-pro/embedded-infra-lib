@@ -45,6 +45,7 @@ namespace hal
                 CheckLayer(layer);
                 really_assert(staged[layer]);
                 staged[layer]->framebuffer.memory = framebuffer;
+                really_assert(IsValidSurface(staged[layer]->framebuffer));
             });
 
         ON_CALL(*this, DisableLayer).WillByDefault([this](std::size_t layer)
