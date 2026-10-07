@@ -1,4 +1,5 @@
 add_subdirectory(audio)
+add_subdirectory(camera)
 add_subdirectory(display)
 add_subdirectory(imu)
 add_subdirectory(microphones)
