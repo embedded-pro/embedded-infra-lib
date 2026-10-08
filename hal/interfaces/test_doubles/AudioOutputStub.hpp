@@ -9,7 +9,6 @@
 
 namespace hal
 {
-    // Stop, SetVolume and SetMuted complete immediately
     class AudioOutputStub
         : public AudioOutputMock
     {

@@ -11,10 +11,6 @@
 
 namespace drivers
 {
-    // The reset pin is low while the codec is not in use. Analog passthrough routes one analog input
-    // to the selected outputs while the output is started, next to the audio of the stream.
-    // Destroy only from the completion of Stop(): an outstanding bus transaction holds a reference,
-    // and destroying while referenced trips the assertion in ~AccessedBySharedPtr.
     class Cs43l22
         : public CodecAudioOutput
     {

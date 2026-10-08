@@ -8,9 +8,6 @@
 
 namespace drivers
 {
-    // Start is only allowed while the codec is idle, which it is again once the completion of Stop has been
-    // delivered. SetVolume and SetMuted allow one outstanding call each. All completions are delivered from
-    // the event dispatcher. Destroy only after the completion of Stop.
     class CodecAudioOutput
         : public hal::AudioOutput
     {

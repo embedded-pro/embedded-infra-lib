@@ -8,8 +8,6 @@
 
 namespace drivers
 {
-    // The AD0 pin selects between the two addresses. The device only increments the register address
-    // when the INCR bit is set, so a burst that forgets it accesses the same register over and over.
     class Cs43l22BusAccessI2c
         : public services::RegisterBusAccess
     {
