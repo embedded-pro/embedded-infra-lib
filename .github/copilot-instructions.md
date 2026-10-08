@@ -18,7 +18,7 @@ embedded-infra-lib (EmIL) is a header-based C++20 library providing heap-less, S
   - `unix/`, `windows/`: Platform-specific HAL
   - `synchronous_interfaces/`: Blocking HAL interfaces
 - **drivers/**: Device drivers for specific hardware chips
-  - `imu/`: IMU drivers (l3gd20, lsm303dlhc, mpu9250)
+  - `imu/`: IMU drivers (iis2dlpc, l3gd20, lis302dl, lis3dsh, lsm303dlhc, mpu9250) and the shared `common` sensor plumbing used by the accelerometer drivers
   - `motor_controller/`: Stepper motor controller drivers (DRV8711)
 - **services/**: Higher-level services and protocols
   - `echo_core/`: ECHO RPC runtime (serialization, message send/receive)
