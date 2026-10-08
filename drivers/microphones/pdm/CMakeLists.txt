@@ -2,6 +2,7 @@ add_library(drivers.microphones.pdm ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
 target_link_libraries(drivers.microphones.pdm PUBLIC
     hal.interfaces
+    infra.event
     infra.util
 )
 

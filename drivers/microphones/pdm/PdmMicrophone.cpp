@@ -1,4 +1,5 @@
 #include "drivers/microphones/pdm/PdmMicrophone.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 
@@ -19,7 +20,8 @@ namespace drivers
 
     PdmMicrophone::~PdmMicrophone()
     {
-        Stop();
+        if (running)
+            bitStream.Stop(infra::emptyFunction);
     }
 
     void PdmMicrophone::Start(hal::AudioFormat format, const infra::Function<void(Samples)>& onSamples, const infra::Function<void()>& onOverrun)
@@ -47,15 +49,17 @@ namespace drivers
             });
     }
 
-    void PdmMicrophone::Stop()
+    void PdmMicrophone::Stop(const infra::Function<void()>& onStopped)
     {
         if (running)
         {
             running = false;
-            bitStream.Stop();
             onSamples = nullptr;
             onOverrun = nullptr;
+            bitStream.Stop(onStopped);
         }
+        else
+            infra::EventDispatcher::Instance().Schedule(onStopped);
     }
 
     uint32_t PdmMicrophone::ClockFrequency(hal::AudioFormat format) const

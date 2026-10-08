@@ -7,6 +7,7 @@ target_link_libraries(drivers.microphones.pdm_test PUBLIC
     drivers.microphones.pdm
     drivers.microphones.pdm_test_doubles
     hal.interfaces_test_doubles
+    infra.event_test_helper
 )
 
 target_sources(drivers.microphones.pdm_test PRIVATE

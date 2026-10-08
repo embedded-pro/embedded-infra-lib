@@ -3,6 +3,7 @@
 
 #include "drivers/microphones/pdm/test_doubles/PdmToPcmMock.hpp"
 #include "hal/interfaces/test_doubles/AudioInputStub.hpp"
+#include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -16,6 +17,7 @@ namespace drivers
     template<class Microphone>
     class PdmMicrophoneChipTest
         : public testing::Test
+        , public infra::EventDispatcherFixture
     {
     public:
         PdmMicrophoneChipTest()
@@ -29,7 +31,7 @@ namespace drivers
 
         ~PdmMicrophoneChipTest() override
         {
-            EXPECT_CALL(input, Stop()).Times(testing::AnyNumber());
+            EXPECT_CALL(input, Stop(testing::_)).Times(testing::AnyNumber());
             driver.reset();
         }
 

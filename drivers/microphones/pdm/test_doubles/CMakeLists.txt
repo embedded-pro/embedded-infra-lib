@@ -5,6 +5,7 @@ target_link_libraries(drivers.microphones.pdm_test_doubles INTERFACE
     drivers.microphones.pdm
     gmock
     hal.interfaces_test_doubles
+    infra.event_test_helper
 )
 
 target_sources(drivers.microphones.pdm_test_doubles PRIVATE

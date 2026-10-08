@@ -104,28 +104,35 @@ No timer is involved, so an idle dispatcher can enter deep sleep while it is sup
 
 ## Streaming audio
 
-`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. The streams describe the data path. A codec chip that has its own control interface is configured over I2C or SPI by a driver, which implements `hal::AudioOutput` itself on top of the peripheral's implementation. `hal::AudioOutput` also carries the output level, described below.
+`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. The streams describe the data path. A codec chip that has its own control interface is configured over I2C or SPI by a driver, which implements `hal::AudioOutput` itself on top of the peripheral's implementation.
+`drivers::CodecAudioOutput` holds the lifecycle that such drivers share: it starts the stream before the codec is brought up, stops it only after the codec has powered down, keeps the application's callbacks silent until the codec is audible, and applies a volume or mute change once no register sequence is running.
+A codec driver derives from it and only provides the register sequences. `hal::AudioOutput` also carries the output level, described below.
 
 Audio has a hard deadline, but the event dispatcher guarantees no real-time behaviour. The interfaces bridge this by letting the implementation own a buffer that is cycled by DMA or an interrupt:
 
 - Once per period the implementation schedules a callback on the event dispatcher. `AudioOutput` offers an empty range to fill, `AudioInput` offers a range of captured samples. The range is valid only during the callback, and `AudioOutput` must be filled before the callback returns.
 - The number of periods the implementation buffers, multiplied by the period duration, is the longest the event dispatcher may be busy before audio is lost. This is chosen by the implementation, not by the interface; a longer buffer trades latency for tolerance.
 - When the event dispatcher was too slow, the implementation calls `onUnderrun` (output ran out of samples) or `onOverrun` (input overwrote samples that were not yet delivered). The stream keeps running.
-- `Stop()` may be called from within the callbacks. No callback is made after `Stop()` returns.
+- `Stop(onStopped)` may be called from within the callbacks. No callback of the stream is made after `Stop()` returns. `onStopped` is called from the event dispatcher once the stream, and the codec behind it, has stopped. Start the stream again, call `Stop()` again and destroy the implementation only after that.
 - An implementation that has to bring up a codec may withhold `onSamplesRequired` until the output is audible. The stream keeps running meanwhile and the samples that would have been played are silence.
 
 `AudioOutput` also controls the level of the output:
 
-- `SetVolume(percent)` takes 0 to 100, where 0 is silence and 100 is full scale. `SetMuted(muted)` silences the output without changing the volume, so unmuting restores it.
+- `SetVolume(percent, onDone)` takes 0 to 100, where 0 is silence and 100 is full scale. `SetMuted(muted, onDone)` silences the output without changing the volume, so unmuting restores it.
 - Both may be called before `Start()`, while running and after `Stop()`, and the values persist across `Start()` and `Stop()`.
-- They take effect asynchronously and have no completion callback. The latest call wins.
-- An implementation without a level control, such as a bare I2S or SAI peripheral, ignores them or scales the samples in software.
+- `onDone` is called from the event dispatcher once the codec has applied the value. While the output is not running the value is only stored, and `onDone` is called without waiting for the codec.
+- Each of them allows one outstanding call: call it again only after its `onDone`. A caller that changes the level continuously, such as a slider, therefore sends the most recent value after each completion.
+- An implementation without a level control, such as a bare I2S or SAI peripheral, ignores them or scales the samples in software, and still calls `onDone`.
+
+`drivers::Cs43l22` is a codec driver on top of `drivers::CodecAudioOutput`. The CS43L22 has no analog-to-digital converter, so it implements only `hal::AudioOutput`.
+Its configuration can route one of its analog inputs to the outputs next to the stream, which is called analog passthrough. That input is mixed inside the codec while the output is started and its samples are never delivered to software, so it is not a `hal::AudioInput`.
+The driver controls the reset pin of the codec. It holds the codec in reset while it is not in use, and the stream has to supply the master clock. `SetVolume` sets the master volume and `SetMuted` switches the output channels off.
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
 A digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05 or the MP45DT02, delivers 1-bit samples at its clock rate. A peripheral that captures them, such as I2S or SAI, can implement `hal::AudioInput` for these raw bits instead of PCM.
 
-In such a stream a channel is a microphone, and a frame has one 16-bit word per channel. A word holds the next 16 clock cycles of its microphone, the first in the most significant bit. The sample rate is the clock frequency divided by 16, so the peripheral also generates the clock of the microphone. Periods, overrun and `Stop()` are those of any `hal::AudioInput`.
+In such a stream a channel is a microphone, and a frame has one 16-bit word per channel. A word holds the next 16 clock cycles of its microphone, the first in the most significant bit. The sample rate is the clock frequency divided by 16, so the peripheral also generates the clock of the microphone. Periods, overrun and `Stop(onStopped)` are those of any `hal::AudioInput`.
 
 `drivers::PdmMicrophone` is the `hal::AudioInput` that a consumer sees. It starts the raw stream and gives its words to a `drivers::PdmToPcm`, which turns them into PCM. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library. `drivers::Mp34dt05` and `drivers::Mp45dt02` are `PdmMicrophone`s that supply the clock range and the start-up time of their chip.
 

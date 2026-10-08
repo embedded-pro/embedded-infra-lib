@@ -13,21 +13,24 @@ namespace hal
                 this->onUnderrun = onUnderrun;
             });
 
-        ON_CALL(*this, Stop).WillByDefault([this]()
+        ON_CALL(*this, Stop).WillByDefault([this](const infra::Function<void()>& onStopped)
             {
                 onSamplesRequired = nullptr;
                 onUnderrun = nullptr;
+                onStopped();
             });
 
-        ON_CALL(*this, SetVolume).WillByDefault([this](uint8_t percent)
+        ON_CALL(*this, SetVolume).WillByDefault([this](uint8_t percent, const infra::Function<void()>& onDone)
             {
                 really_assert(percent <= 100);
                 volume = percent;
+                onDone();
             });
 
-        ON_CALL(*this, SetMuted).WillByDefault([this](bool value)
+        ON_CALL(*this, SetMuted).WillByDefault([this](bool value, const infra::Function<void()>& onDone)
             {
                 muted = value;
+                onDone();
             });
     }
 

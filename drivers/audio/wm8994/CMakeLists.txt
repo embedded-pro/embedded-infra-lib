@@ -1,6 +1,7 @@
 add_library(drivers.audio.wm8994 ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 
 target_link_libraries(drivers.audio.wm8994 PUBLIC
+    drivers.audio.codec
     hal.interfaces
     infra.timer
     infra.util

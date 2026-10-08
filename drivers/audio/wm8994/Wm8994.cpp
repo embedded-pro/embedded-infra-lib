@@ -1,8 +1,8 @@
 #include "drivers/audio/wm8994/Wm8994.hpp"
-#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 #include <chrono>
+#include <optional>
 
 namespace drivers
 {
@@ -90,7 +90,6 @@ namespace drivers
         constexpr uint16_t muteRampInMilliseconds = 100;
 
         constexpr int fullScaleVolumeCode = 0xc0;
-        constexpr uint8_t maxVolumePercent = 100;
         constexpr uint16_t mclkRatio256 = 0x0003;
         constexpr uint16_t sampleRateShift = 4;
         constexpr uint8_t supportedChannels = 2;
@@ -152,21 +151,14 @@ namespace drivers
     }
 
     Wm8994::Wm8994(services::RegisterBusAccessHalfWord& bus, hal::AudioOutput& stream, const Config& config)
-        : bus(bus)
-        , stream(stream)
+        : CodecAudioOutput(stream, config.initialVolume)
+        , bus(bus)
         , config(config)
-        , volumePercent(config.initialVolume)
-    {
-        really_assert(config.initialVolume <= maxVolumePercent);
-    }
+    {}
 
     Wm8994::~Wm8994()
     {
-        really_assert(!busy || timer.Armed());
-        really_assert(!stopped);
-
-        if (phase != Phase::idle)
-            stream.Stop();
+        really_assert(!Busy() || timer.Armed());
     }
 
     bool Wm8994::IsSupported(hal::AudioFormat format)
@@ -184,76 +176,14 @@ namespace drivers
         return static_cast<uint8_t>(std::max(1, (percent * fullScaleVolumeCode + maxVolumePercent / 2) / maxVolumePercent));
     }
 
-    void Wm8994::Start(hal::AudioFormat format, const infra::Function<void(Samples toFill)>& onSamplesRequired, const infra::Function<void()>& onUnderrun)
+    bool Wm8994::Supports(hal::AudioFormat format) const
     {
-        really_assert(IsSupported(format));
-        really_assert(!requested);
-        really_assert(!stopped);
-
-        requested = format;
-        samplesCallback = onSamplesRequired;
-        underrunCallback = onUnderrun;
-
-        if (phase == Phase::idle)
-            BeginStartUp();
+        return IsSupported(format);
     }
 
-    void Wm8994::Stop()
+    void Wm8994::BeginBringUp(hal::AudioFormat format)
     {
-        if (!requested)
-            return;
-
-        requested.reset();
-        samplesCallback = nullptr;
-        underrunCallback = nullptr;
-
-        ReconcileIfPossible();
-    }
-
-    void Wm8994::Stop(const infra::Function<void()>& onStopped)
-    {
-        really_assert(!stopped);
-
-        stopped = onStopped;
-
-        Stop();
-        ReportStoppedWhenIdle();
-    }
-
-    void Wm8994::SetVolume(uint8_t percent)
-    {
-        really_assert(percent <= maxVolumePercent);
-
-        volumePercent = percent;
-        stateDirty = true;
-
-        ReconcileIfPossible();
-    }
-
-    void Wm8994::SetMuted(bool muted)
-    {
-        outputMuted = muted;
-        stateDirty = true;
-
-        ReconcileIfPossible();
-    }
-
-    void Wm8994::BeginStartUp()
-    {
-        phase = Phase::startingUp;
-        busy = true;
-        activeFormat = requested;
-        stateDirty = true;
-
-        stream.Start(
-            *activeFormat, [this](Samples toFill)
-            {
-                SamplesRequired(toFill);
-            },
-            [this]()
-            {
-                Underrun();
-            });
+        rateRegisterValue = *Aif1RateValue(format.sampleRate);
 
         chipIdBytes = {};
         bus.ReadRegister(chipIdRegister, infra::MakeByteRange(chipIdBytes), [this]()
@@ -275,7 +205,7 @@ namespace drivers
         sequence.clear();
         Append(infra::MakeRange(bringUpSteps));
         Append(infra::MakeRange(pathSteps));
-        sequence.push_back({ aif1RateRegister, *Aif1RateValue(activeFormat->sampleRate), 0 });
+        sequence.push_back({ aif1RateRegister, rateRegisterValue, 0 });
         Append(infra::MakeRange(clockingSteps));
         Append(config.output == Output::headphone ? infra::MakeRange(headphoneSteps) : infra::MakeRange(speakerSteps));
     }
@@ -286,50 +216,26 @@ namespace drivers
             sequence.push_back(step);
     }
 
-    void Wm8994::ApplyState()
+    void Wm8994::BeginApplyLevel(uint8_t volumePercent, bool muted)
     {
         const uint16_t volumeCode = static_cast<uint16_t>(volumeUpdate | VolumeRegisterValue(volumePercent));
 
-        stateDirty = false;
         sequence.clear();
         sequence.push_back({ dac1LeftVolumeRegister, volumeCode, 0 });
         sequence.push_back({ dac1RightVolumeRegister, volumeCode, 0 });
-        sequence.push_back({ aif1Dac1Filters1Register, outputMuted ? softMute : unmuteWithRamp, 0 });
+        sequence.push_back({ aif1Dac1Filters1Register, muted ? softMute : unmuteWithRamp, 0 });
         RunSequence();
     }
 
-    void Wm8994::BeginShutDown()
+    void Wm8994::BeginPowerDown()
     {
-        phase = Phase::shuttingDown;
         sequence.clear();
         Append(infra::MakeRange(shutDownSteps));
         RunSequence();
     }
 
-    void Wm8994::FinishShutDown()
-    {
-        phase = Phase::idle;
-        activeFormat.reset();
-        stream.Stop();
-
-        if (requested)
-            BeginStartUp();
-
-        ReportStoppedWhenIdle();
-    }
-
-    void Wm8994::ReportStoppedWhenIdle()
-    {
-        if (phase == Phase::idle && stopped)
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    stopped();
-                });
-    }
-
     void Wm8994::RunSequence()
     {
-        busy = true;
         stepIndex = 0;
         NextStep();
     }
@@ -359,65 +265,5 @@ namespace drivers
                 {
                     NextStep();
                 });
-    }
-
-    void Wm8994::SequenceDone()
-    {
-        busy = false;
-        Reconcile();
-    }
-
-    void Wm8994::Reconcile()
-    {
-        if (phase == Phase::startingUp)
-            ReconcileStartingUp();
-        else if (phase == Phase::playing)
-            ReconcilePlaying();
-        else if (phase == Phase::shuttingDown)
-            FinishShutDown();
-    }
-
-    void Wm8994::ReconcileStartingUp()
-    {
-        if (requested != activeFormat)
-            BeginShutDown();
-        else if (stateDirty)
-            ApplyState();
-        else
-            phase = Phase::playing;
-    }
-
-    void Wm8994::ReconcilePlaying()
-    {
-        if (requested != activeFormat)
-            BeginShutDown();
-        else if (stateDirty)
-            ApplyState();
-    }
-
-    void Wm8994::ReconcileIfPossible()
-    {
-        if (phase == Phase::playing && !busy)
-            Reconcile();
-    }
-
-    void Wm8994::SamplesRequired(Samples toFill)
-    {
-        if (phase == Phase::playing && samplesCallback)
-        {
-            auto callback = samplesCallback;
-            callback(toFill);
-        }
-        else
-            std::fill(toFill.begin(), toFill.end(), int16_t{ 0 });
-    }
-
-    void Wm8994::Underrun()
-    {
-        if (phase == Phase::playing && underrunCallback)
-        {
-            auto callback = underrunCallback;
-            callback();
-        }
     }
 }
