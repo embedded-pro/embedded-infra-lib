@@ -126,7 +126,10 @@ Audio has a hard deadline, but the event dispatcher guarantees no real-time beha
 
 `drivers::Cs43l22` is a codec driver on top of `drivers::CodecAudioOutput`. The CS43L22 has no analog-to-digital converter, so it implements only `hal::AudioOutput`.
 Its configuration can route one of its analog inputs to the outputs next to the stream, which is called analog passthrough. That input is mixed inside the codec while the output is started and its samples are never delivered to software, so it is not a `hal::AudioInput`.
-The driver controls the reset pin of the codec. It holds the codec in reset while it is not in use, and the stream has to supply the master clock. `SetVolume` sets the master volume and `SetMuted` switches the output channels off.
+The driver controls the reset pin of the codec. It holds the codec in reset while it is not in use and pulses it at every start.
+The stream has to supply the master clock, and `masterClockRatio` in the configuration is the ratio of that clock to the sample rate. The driver derives the master clock divider of the codec from it and rejects a ratio that the datasheet does not allow for the sample rate, and a sample rate outside 4 to 96 kHz. The speaker amplifiers do not support a master clock of 16.9344 or 18.432 MHz.
+`SetVolume` sets the master volume, and the volume of the analog passthrough when it is configured. `SetMuted` mutes both, with the soft ramp of the codec, without powering the amplifiers down.
+Stopping follows the power-down sequence of the datasheet: mute, wait for the ramp, disable the ramps, power down, wait, pull the reset pin low and only then stop the stream.
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 

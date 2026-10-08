@@ -35,13 +35,15 @@ namespace drivers
         {
             Output output;
             uint8_t initialVolume;
+            uint16_t masterClockRatio;
             std::optional<AnalogInput> passthrough;
         };
 
         Cs43l22(services::RegisterBusAccess& bus, hal::AudioOutput& stream, hal::GpioPin& resetPin, const Config& config);
 
-        static bool IsSupported(hal::AudioFormat format);
+        static bool IsSupported(hal::AudioFormat format, uint16_t masterClockRatio, Output output);
         static uint8_t VolumeRegisterValue(uint8_t percent);
+        static uint8_t PassthroughVolumeRegisterValue(uint8_t percent);
 
     private:
         bool Supports(hal::AudioFormat format) const override;
@@ -51,12 +53,14 @@ namespace drivers
 
         void PushReset();
         void PushIdentification();
+        void PushConfiguration(hal::AudioFormat format);
+        void PushPassthroughRouting(AnalogInput input);
         void PushRequiredInitialization();
-        void PushConfiguration();
-        void PushPassthrough(AnalogInput input);
         void PushPowerUp();
+        void PushMute();
+        void PushPassthroughLevel(uint8_t volumePercent, bool muted);
         void VerifyChipId() const;
-        void ConfigureAndPowerUp();
+        void InitializeAndPowerUp();
         void StartSequence();
         uint8_t OutputsPowerValue() const;
 
