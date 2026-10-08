@@ -33,6 +33,7 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `imu/` — IMU drivers (l3gd20, lsm303dlhc, mpu9250)
   - `microphones/` — Microphone drivers (mp34dt05, mp45dt02) on the shared `PdmMicrophone`, and the PDM-to-PCM interface
   - `motor_controller/` — Stepper motor controller drivers (DRV8711)
+  - `touch_screen/` — Touch screen controller drivers (stmpe811)
 - **services/** — Higher-level services and protocols
   - `echo_core/` — ECHO RPC runtime
   - `network/` — Networking (connection, http, mqtt, dns, websocket, tls, sntp, etc.)
