@@ -121,6 +121,53 @@ namespace
         ExecuteAllActions();
     }
 
+    TEST_F(SensorWithPollingTest, a_status_read_completing_after_stop_delivers_nothing)
+    {
+        device.Initialize();
+        StartStreaming();
+
+        bus.completeAutomatically = false;
+
+        EXPECT_CALL(bus, ReadRegisterMock(drivers::ImuTestSensor::registerStatus, 1))
+            .WillOnce(testing::Return(std::vector<uint8_t>{ drivers::ImuTestSensor::dataAvailable }));
+        ForwardTime(std::chrono::milliseconds(5));
+
+        EXPECT_TRUE(bus.CompletionPending());
+
+        bool stopped = false;
+        device.Stop([&stopped]()
+            {
+                stopped = true;
+            });
+
+        bus.CompletePending();
+        ExecuteAllActions();
+
+        EXPECT_TRUE(stopped);
+        EXPECT_TRUE(received.empty());
+    }
+
+    TEST_F(SensorWithPollingTest, a_tick_is_skipped_while_a_register_sequence_is_running)
+    {
+        device.Initialize();
+        StartStreaming();
+
+        bus.completeAutomatically = false;
+
+        EXPECT_CALL(bus, WriteRegisterMock(drivers::ImuTestSensor::registerControl, std::vector<uint8_t>{ 0x55 }));
+        device.TestRunWriteSequence(drivers::ImuTestSensor::registerControl, 0x55, infra::emptyFunction);
+
+        EXPECT_TRUE(bus.CompletionPending());
+
+        // The step runner talks to the bus directly; a status read now would be a second
+        // concurrent transaction
+        ForwardTime(std::chrono::milliseconds(5));
+
+        bus.CompletePending();
+        bus.completeAutomatically = true;
+        ExecuteAllActions();
+    }
+
     TEST_F(SensorWithPollingTest, stop_sampling_cancels_the_poll_timer)
     {
         device.Initialize();

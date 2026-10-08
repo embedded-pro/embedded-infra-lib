@@ -43,6 +43,13 @@ namespace drivers
             ModifyRegister(address, clearMask, setMask, onDone);
         }
 
+        void TestRunWriteSequence(uint8_t address, uint8_t value, const infra::Function<void()>& onDone)
+        {
+            runner.Clear();
+            runner.Push(services::RegisterStepRunner::WriteRegister{ address, value });
+            runner.Start(onDone);
+        }
+
         bool TestSampling() const
         {
             return Sampling();
