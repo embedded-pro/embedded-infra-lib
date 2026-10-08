@@ -34,4 +34,5 @@ target_sources(hal.interfaces_test PRIVATE
     TestQuadSpi.cpp
     TestSerialCommunication.cpp
     TestSurface.cpp
+    TestTouchScreen.cpp
 )

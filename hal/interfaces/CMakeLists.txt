@@ -67,6 +67,8 @@ target_sources(hal.interfaces PRIVATE
     Spi.hpp
     Surface.cpp
     Surface.hpp
+    TouchScreen.cpp
+    TouchScreen.hpp
     UsbCustomHid.hpp
     UsbLinkLayer.hpp
     Watchdog.hpp

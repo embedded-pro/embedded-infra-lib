@@ -75,6 +75,9 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     SerialCommunicationStub.hpp
     SpiMock.cpp
     SpiMock.hpp
+    TouchScreenMock.hpp
+    TouchScreenStub.cpp
+    TouchScreenStub.hpp
     WatchdogMock.hpp
 )
 
