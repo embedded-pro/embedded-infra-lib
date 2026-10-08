@@ -128,6 +128,11 @@ namespace drivers
         {
             return output != Cs43l22::Output::headphone;
         }
+
+        bool IsSupportedStream(hal::AudioFormat format)
+        {
+            return format.channels == supportedChannels && format.sampleRate >= minSampleRate && format.sampleRate <= maxSampleRate;
+        }
     }
 
     Cs43l22::Cs43l22(services::RegisterBusAccess& bus, hal::AudioOutput& stream, hal::GpioPin& resetPin, const Config& config)
@@ -139,7 +144,10 @@ namespace drivers
 
     bool Cs43l22::IsSupported(hal::AudioFormat format, uint16_t masterClockRatio, Output output)
     {
-        return format.channels == supportedChannels && format.sampleRate >= minSampleRate && format.sampleRate <= maxSampleRate && DivideBy2(format.sampleRate, masterClockRatio).has_value() && !(MayDriveSpeaker(output) && IsPwmForbiddenMasterClock(format.sampleRate, masterClockRatio));
+        if (!IsSupportedStream(format) || !DivideBy2(format.sampleRate, masterClockRatio).has_value())
+            return false;
+
+        return !(MayDriveSpeaker(output) && IsPwmForbiddenMasterClock(format.sampleRate, masterClockRatio));
     }
 
     uint8_t Cs43l22::VolumeRegisterValue(uint8_t percent)
