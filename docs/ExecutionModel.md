@@ -104,7 +104,9 @@ No timer is involved, so an idle dispatcher can enter deep sleep while it is sup
 
 ## Streaming audio
 
-`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. The streams describe the data path. A codec chip that has its own control interface is configured over I2C or SPI by a driver, which implements `hal::AudioOutput` itself on top of the peripheral's implementation. `drivers::CodecAudioOutput` holds the lifecycle that such drivers share: it starts the stream before the codec is brought up, stops it only after the codec has powered down, keeps the application's callbacks silent until the codec is audible, and applies a volume or mute change once no register sequence is running. A codec driver derives from it and only provides the register sequences. `hal::AudioOutput` also carries the output level, described below.
+`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. The streams describe the data path. A codec chip that has its own control interface is configured over I2C or SPI by a driver, which implements `hal::AudioOutput` itself on top of the peripheral's implementation.
+`drivers::CodecAudioOutput` holds the lifecycle that such drivers share: it starts the stream before the codec is brought up, stops it only after the codec has powered down, keeps the application's callbacks silent until the codec is audible, and applies a volume or mute change once no register sequence is running.
+A codec driver derives from it and only provides the register sequences. `hal::AudioOutput` also carries the output level, described below.
 
 Audio has a hard deadline, but the event dispatcher guarantees no real-time behaviour. The interfaces bridge this by letting the implementation own a buffer that is cycled by DMA or an interrupt:
 
@@ -122,7 +124,9 @@ Audio has a hard deadline, but the event dispatcher guarantees no real-time beha
 - Each of them allows one outstanding call: call it again only after its `onDone`. A caller that changes the level continuously, such as a slider, therefore sends the most recent value after each completion.
 - An implementation without a level control, such as a bare I2S or SAI peripheral, ignores them or scales the samples in software, and still calls `onDone`.
 
-`drivers::Cs43l22` is a codec driver on top of `drivers::CodecAudioOutput`. The CS43L22 has no analog-to-digital converter, so it implements only `hal::AudioOutput`. Its configuration can route one of its analog inputs to the outputs next to the stream, which is called analog passthrough. That input is mixed inside the codec while the output is started and its samples are never delivered to software, so it is not a `hal::AudioInput`. The driver controls the reset pin of the codec. It holds the codec in reset while it is not in use, and the stream has to supply the master clock. `SetVolume` sets the master volume and `SetMuted` switches the output channels off.
+`drivers::Cs43l22` is a codec driver on top of `drivers::CodecAudioOutput`. The CS43L22 has no analog-to-digital converter, so it implements only `hal::AudioOutput`.
+Its configuration can route one of its analog inputs to the outputs next to the stream, which is called analog passthrough. That input is mixed inside the codec while the output is started and its samples are never delivered to software, so it is not a `hal::AudioInput`.
+The driver controls the reset pin of the codec. It holds the codec in reset while it is not in use, and the stream has to supply the master clock. `SetVolume` sets the master volume and `SetMuted` switches the output channels off.
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
