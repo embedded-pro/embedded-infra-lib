@@ -24,6 +24,9 @@ target_sources(hal.interfaces PRIVATE
     BackupRam.hpp
     BlockDevice.hpp
     Blitter.hpp
+    Camera.hpp
+    CameraFormat.cpp
+    CameraFormat.hpp
     Can.hpp
     CommunicationConfigurator.hpp
     DigitalToAnalogPin.hpp

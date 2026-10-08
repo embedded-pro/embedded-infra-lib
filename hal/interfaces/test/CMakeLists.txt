@@ -15,6 +15,8 @@ target_sources(hal.interfaces_test PRIVATE
     TestAudioOutput.cpp
     TestBlitter.cpp
     TestBlockDevice.cpp
+    TestCamera.cpp
+    TestCameraFormat.cpp
     TestCan.cpp
     TestDisplay.cpp
     TestDisplayController.cpp

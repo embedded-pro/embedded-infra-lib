@@ -27,6 +27,9 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     BlitterMock.hpp
     BlitterStub.cpp
     BlitterStub.hpp
+    CameraMock.hpp
+    CameraStub.cpp
+    CameraStub.hpp
     CanMock.hpp
     CommunicationConfiguratorMock.hpp
     DigitalToAnalogPinImplMock.hpp

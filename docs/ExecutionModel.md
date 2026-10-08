@@ -198,3 +198,40 @@ A graphics library maps onto the interfaces as follows:
 | Accelerated fill, copy and blend, and the capabilities query: LVGL draw units, TouchGFX `getBlitCaps`, Embedded Wizard bitmap operations                                                            | `Blitter::Fill()`, `Copy()`, `Blend()` and `Supports()`                       |
 
 A library that expects to be called in interrupt context, or one that needs the current line of the panel, is not served by this interface.
+
+## Capturing camera frames
+
+`hal::Camera` describes how frames move from a capture peripheral into a caller-supplied buffer. It covers only the frame-transport path. Sensor configuration — XCLK generation, reset and power sequencing, crop windows, polarity, bus width, exposure and white balance — is the concern of the driver or the application.
+
+A sensor driver implements `hal::Camera` on top of the capture peripheral's `hal::Camera` instance, the same way a codec driver sits on top of `hal::AudioOutput`.
+
+`drivers/camera/omnivision` holds the parts that sensors from OmniVision share. They are configured over SCCB, a bus that is almost I2C:
+
+- `drivers::SccbBusAccessI2c` is a register bus on an I2C master. It puts a stop between the register address and the data of a read, as SCCB requires, where `hal::I2cMasterRegisterAccess` uses a repeated start. Registers are one byte wide and there is no auto-increment.
+- `drivers::RegisterTableRunner` walks a `constexpr` table of write, read-modify-write and delay steps in place. The table is not copied and has no size limit, which `services::RegisterStepRunner` does not offer.
+- `drivers::OmniVisionSensor` is the `hal::Camera` of a sensor. It powers up and resets the sensor, checks the product identification, runs the tables of its `Descriptor` in the order base, format, resolution, options and tuning, and only then reports `InitializationResult::success`. A sensor with another identification stops the initialization with `unexpectedId` and writes nothing more. After that it forwards `Start()` and `Stop()` to the capture peripheral.
+
+A sensor for a specific chip derives from `drivers::OmniVisionSensor` and supplies a `Descriptor` with the identification registers and the register tables for the chip. The library ships no register tables for specific chips; they come from the documentation of the sensor vendor.
+
+- `CameraFormat` names the pixel layout and the frame dimensions. `BytesPerPixel()` gives the fixed byte count per pixel for uncompressed formats. JPEG has no fixed frame size, so `BytesPerPixel()` returns 0, `IsCompressed()` returns true, and `FrameSizeInBytes()` returns 0. For uncompressed formats `FrameSizeInBytes()` gives `width × height × BytesPerPixel`.
+- The caller allocates a buffer and passes it to `Start()`. For uncompressed formats the buffer must hold at least `FrameSizeInBytes()` bytes; `IsValidFrameBuffer()` checks this with 64-bit arithmetic so large dimensions do not overflow. For JPEG any non-empty buffer is valid; the real compressed size is reported as the frame length in the callback.
+- Placement in DMA-capable memory and any cache maintenance required before and after a DMA transfer are the concern of the vendor implementation.
+
+**Snapshot vs continuous**
+
+- `Mode::snapshot` captures one frame. When the frame arrives the camera stops automatically and `Start()` is valid again immediately, including from within the `onFrame` callback.
+- `Mode::continuous` overwrites the same buffer every frame. A frame is valid only until the next one begins arriving, so a consumer that needs it longer copies it, or uses snapshot mode. A multi-buffer ring is not part of the interface.
+
+**Callbacks and Stop**
+
+Callbacks are scheduled on the event dispatcher, never called from within `Start()`. `Stop()` is idempotent and safe to call from within `onFrame` or `onError`. No callback fires after `Stop()` returns. A `Start()` immediately after `Stop()` is always accepted.
+
+**Errors**
+
+- `Error::overrun` covers buffer-too-small situations as well as DMA overflows. In snapshot mode the capture ends after an overrun; in continuous mode the implementation resumes at the next frame.
+- `Error::synchronization` signals a lost sync signal. The same per-mode rule applies.
+- A lost frame produces no callback and no error. Repeated absence of any callback indicates a dead or stalled sensor; the caller is expected to arm a timer and call `Stop()` to handle the timeout.
+
+**What this interface does not cover**
+
+XCLK generation, reset and power sequencing, crop and polarity settings, bus width, exposure, white balance and frame-rate control are all outside `hal::Camera`. A vendor peripheral driver exposes only the frame-capture path; a sensor driver stacks on top of that to configure the sensor chip.
