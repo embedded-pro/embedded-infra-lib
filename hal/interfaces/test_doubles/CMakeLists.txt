@@ -24,12 +24,18 @@ target_sources(hal.interfaces_test_doubles PRIVATE
     BlockDeviceMock.hpp
     BlockDeviceStub.cpp
     BlockDeviceStub.hpp
+    BlitterMock.hpp
+    BlitterStub.cpp
+    BlitterStub.hpp
     CameraMock.hpp
     CameraStub.cpp
     CameraStub.hpp
     CanMock.hpp
     CommunicationConfiguratorMock.hpp
     DigitalToAnalogPinImplMock.hpp
+    DisplayControllerMock.hpp
+    DisplayControllerStub.cpp
+    DisplayControllerStub.hpp
     DisplayMock.hpp
     DisplayStub.cpp
     DisplayStub.hpp

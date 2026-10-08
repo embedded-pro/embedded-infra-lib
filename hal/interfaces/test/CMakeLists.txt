@@ -13,11 +13,13 @@ target_sources(hal.interfaces_test PRIVATE
     TestAccelerometer.cpp
     TestAudioInput.cpp
     TestAudioOutput.cpp
+    TestBlitter.cpp
     TestBlockDevice.cpp
     TestCamera.cpp
     TestCameraFormat.cpp
     TestCan.cpp
     TestDisplay.cpp
+    TestDisplayController.cpp
     TestDsiHost.cpp
     TestDutyCycle.cpp
     TestEeprom.cpp
@@ -31,4 +33,5 @@ target_sources(hal.interfaces_test PRIVATE
     TestMagnetometer.cpp
     TestQuadSpi.cpp
     TestSerialCommunication.cpp
+    TestSurface.cpp
 )
