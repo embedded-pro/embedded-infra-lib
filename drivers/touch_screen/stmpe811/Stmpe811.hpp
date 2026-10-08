@@ -39,7 +39,7 @@ namespace drivers
 
         hal::TouchScreenSize Size() const override;
         void Start(const infra::Function<void(Event event)>& onTouch) override;
-        void Stop() override;
+        void Stop(const infra::Function<void()>& onStopped) override;
 
     private:
         enum class Contact : uint8_t
@@ -64,6 +64,8 @@ namespace drivers
         void PushFifoFlush();
         void CycleDone();
         void Report(Phase phase, hal::TouchPoint point);
+        void Deactivate();
+        void ReportStoppedWhenIdle();
 
     private:
         infra::AccessedBySharedPtr sharedAccess{ infra::emptyFunction };
@@ -72,6 +74,7 @@ namespace drivers
         bool interruptConnected;
         Config config;
         infra::AutoResetFunction<void(InitializationResult)> onInitialized;
+        infra::AutoResetFunction<void()> stopped;
         infra::TimerSingleShot pollTimer;
         infra::Function<void(Event)> onTouch;
 

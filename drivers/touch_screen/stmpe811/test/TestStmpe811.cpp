@@ -145,6 +145,14 @@ namespace
                 });
         }
 
+        void Stop()
+        {
+            touchScreen->Stop([this]()
+                {
+                    ++stopped;
+                });
+        }
+
         void StartWithoutTouch()
         {
             ExpectPollWithInterrupt(notTouching, 0);
@@ -196,6 +204,7 @@ namespace
         std::optional<drivers::Stmpe811> touchScreen;
         std::optional<InitializationResult> initializationResult;
         std::vector<Event> events;
+        int stopped{ 0 };
     };
 
     class Stmpe811PollingTest
@@ -616,29 +625,44 @@ TEST_F(Stmpe811Test, Stop_discards_a_touch_in_progress_without_a_released)
     CreateAndInitialize();
     StartAndPressAt(100, 200);
 
-    touchScreen->Stop();
+    Stop();
     ForwardTime(std::chrono::seconds(1));
 
     EXPECT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ(1, stopped);
+}
+
+TEST_F(Stmpe811Test, Stop_is_reported_from_the_event_dispatcher_and_not_from_within_Stop)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+
+    Stop();
+    EXPECT_EQ(0, stopped);
+
+    ExecuteAllActions();
+    EXPECT_EQ(1, stopped);
 }
 
 TEST_F(Stmpe811Test, Stop_ignores_the_interrupt_pin)
 {
     CreateAndInitialize();
     StartWithoutTouch();
-    touchScreen->Stop();
+    Stop();
 
     Interrupt();
     ExecuteAllActions();
 
     EXPECT_TRUE(events.empty());
+    EXPECT_EQ(1, stopped);
 }
 
-TEST_F(Stmpe811Test, Start_after_Stop_reports_a_touch_that_is_still_in_progress_as_pressed_again)
+TEST_F(Stmpe811Test, Start_after_the_stop_is_reported_reports_a_touch_that_is_still_in_progress_as_pressed_again)
 {
     CreateAndInitialize();
     StartAndPressAt(100, 200);
-    touchScreen->Stop();
+    Stop();
+    ExecuteAllActions();
 
     ExpectPollWithInterrupt(touching, 1);
     ExpectFetch(100, 200);
@@ -649,11 +673,12 @@ TEST_F(Stmpe811Test, Start_after_Stop_reports_a_touch_that_is_still_in_progress_
     EXPECT_EQ((Event{ Phase::pressed, { 100, 200 } }), events[1]);
 }
 
-TEST_F(Stmpe811Test, Start_after_Stop_uses_the_new_callback_only)
+TEST_F(Stmpe811Test, Start_after_the_stop_is_reported_uses_the_new_callback_only)
 {
     CreateAndInitialize();
     StartWithoutTouch();
-    touchScreen->Stop();
+    Stop();
+    ExecuteAllActions();
 
     int restartedEvents{ 0 };
     ExpectPollWithInterrupt(touching, 1);
@@ -668,13 +693,16 @@ TEST_F(Stmpe811Test, Start_after_Stop_uses_the_new_callback_only)
     EXPECT_TRUE(events.empty());
 }
 
-TEST_F(Stmpe811Test, Stop_before_Start_does_nothing)
+TEST_F(Stmpe811Test, Stop_before_Start_is_reported_and_leaves_the_device_alone)
 {
     CreateAndInitialize();
 
-    touchScreen->Stop();
+    Stop();
+    ExecuteAllActions();
     Interrupt();
     ForwardTime(std::chrono::seconds(1));
+
+    EXPECT_EQ(1, stopped);
 }
 
 TEST_F(Stmpe811Test, Start_twice_is_not_allowed)
@@ -683,6 +711,40 @@ TEST_F(Stmpe811Test, Start_twice_is_not_allowed)
     StartWithoutTouch();
 
     EXPECT_DEATH(Start(), "");
+}
+
+TEST_F(Stmpe811Test, Start_before_the_stop_is_reported_is_not_allowed)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+    Stop();
+
+    EXPECT_DEATH(Start(), "");
+
+    ExecuteAllActions();
+}
+
+TEST_F(Stmpe811Test, a_second_Stop_before_the_first_is_reported_is_not_allowed)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+    Stop();
+
+    EXPECT_DEATH(Stop(), "");
+
+    ExecuteAllActions();
+}
+
+TEST_F(Stmpe811Test, the_driver_cannot_be_destroyed_before_the_stop_is_reported)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+    Stop();
+
+    EXPECT_DEATH(touchScreen.reset(), "");
+
+    ExecuteAllActions();
+    touchScreen.reset();
 }
 
 TEST_F(Stmpe811Test, Stop_during_the_status_read_discards_what_was_read)
@@ -694,7 +756,7 @@ TEST_F(Stmpe811Test, Stop_during_the_status_read_discards_what_was_read)
     EXPECT_CALL(bus, ReadRegisterMock(touchControlRegister, 1)).WillOnce(testing::Return(Bytes{ touching }));
     EXPECT_CALL(bus, ReadRegisterMock(fifoSizeRegister, 1)).WillOnce(testing::Invoke([this](uint8_t, std::size_t)
         {
-            touchScreen->Stop();
+            Stop();
             return Bytes{ 1 };
         }));
     Interrupt();
@@ -702,6 +764,7 @@ TEST_F(Stmpe811Test, Stop_during_the_status_read_discards_what_was_read)
     ForwardTime(std::chrono::seconds(1));
 
     EXPECT_TRUE(events.empty());
+    EXPECT_EQ(1, stopped);
 }
 
 TEST_F(Stmpe811Test, Stop_during_the_position_read_discards_the_position_and_still_flushes_the_fifo)
@@ -712,7 +775,7 @@ TEST_F(Stmpe811Test, Stop_during_the_position_read_discards_the_position_and_sti
     ExpectPollWithInterrupt(touching, 1);
     EXPECT_CALL(bus, ReadRegisterMock(touchDataRegister, 4)).WillOnce(testing::Invoke([this](uint8_t, std::size_t)
         {
-            touchScreen->Stop();
+            Stop();
             return Sample(1, 2);
         }));
     ExpectFifoFlush();
@@ -721,58 +784,49 @@ TEST_F(Stmpe811Test, Stop_during_the_position_read_discards_the_position_and_sti
     ForwardTime(std::chrono::seconds(1));
 
     EXPECT_TRUE(events.empty());
+    EXPECT_EQ(1, stopped);
 }
 
-TEST_F(Stmpe811Test, Stop_and_Start_during_the_position_read_report_the_touch_once_as_pressed_to_the_new_consumer)
+TEST_F(Stmpe811Test, Stop_while_the_position_read_is_in_flight_is_reported_when_the_bus_transaction_has_completed)
 {
     CreateAndInitialize();
     StartWithoutTouch();
 
     testing::InSequence sequence;
     StartPositionReadInFlight(30, 40);
-    touchScreen->Stop();
-    std::vector<Event> restartedEvents;
-    touchScreen->Start([&](Event event)
-        {
-            restartedEvents.push_back(event);
-        });
+    Stop();
+    ExecuteAllActions();
+    EXPECT_EQ(0, stopped);
 
     ExpectFifoFlush();
-    ExpectPollWithInterrupt(touching, 1);
-    ExpectFetch(30, 40);
     bus.completeAutomatically = true;
     bus.CompletePending();
     ExecuteAllActions();
 
+    EXPECT_EQ(1, stopped);
     EXPECT_TRUE(events.empty());
-    ASSERT_EQ(std::size_t(1), restartedEvents.size());
-    EXPECT_EQ((Event{ Phase::pressed, { 30, 40 } }), restartedEvents[0]);
+    touchScreen.reset();
 }
 
-TEST_F(Stmpe811Test, Stop_and_Start_during_the_position_read_followed_by_a_lifted_pen_reports_pressed_and_released)
+TEST_F(Stmpe811Test, Stop_during_the_initialization_is_reported_when_the_initialization_has_finished)
 {
-    CreateAndInitialize();
-    StartWithoutTouch();
+    {
+        testing::InSequence sequence;
+        ExpectReset();
+        ExpectIdentification();
+        ExpectConfiguration();
+        Create();
+        Stop();
 
-    testing::InSequence sequence;
-    StartPositionReadInFlight(30, 40);
-    touchScreen->Stop();
-    std::vector<Event> restartedEvents;
-    touchScreen->Start([&](Event event)
-        {
-            restartedEvents.push_back(event);
-        });
+        ForwardTime(Milliseconds(15));
+        EXPECT_EQ(0, stopped);
 
-    ExpectFifoFlush();
-    ExpectPollWithInterrupt(notTouching, 0);
-    bus.completeAutomatically = true;
-    bus.CompletePending();
-    ExecuteAllActions();
+        ForwardTime(Milliseconds(1));
+    }
 
-    EXPECT_TRUE(events.empty());
-    ASSERT_EQ(std::size_t(2), restartedEvents.size());
-    EXPECT_EQ((Event{ Phase::pressed, { 30, 40 } }), restartedEvents[0]);
-    EXPECT_EQ((Event{ Phase::released, { 30, 40 } }), restartedEvents[1]);
+    EXPECT_EQ(1, stopped);
+    ASSERT_TRUE(initializationResult);
+    EXPECT_EQ(InitializationResult::success, *initializationResult);
 }
 
 TEST_F(Stmpe811Test, the_consumer_may_stop_from_within_an_event)
@@ -784,15 +838,16 @@ TEST_F(Stmpe811Test, the_consumer_may_stop_from_within_an_event)
     touchScreen->Start([this](Event event)
         {
             events.push_back(event);
-            touchScreen->Stop();
+            Stop();
         });
     ExecuteAllActions();
     ForwardTime(std::chrono::seconds(1));
 
     EXPECT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ(1, stopped);
 }
 
-TEST_F(Stmpe811Test, the_consumer_may_restart_from_within_an_event)
+TEST_F(Stmpe811Test, the_consumer_may_start_again_from_within_the_stopped_callback)
 {
     CreateAndInitialize();
 
@@ -803,10 +858,12 @@ TEST_F(Stmpe811Test, the_consumer_may_restart_from_within_an_event)
     touchScreen->Start([&](Event event)
         {
             events.push_back(event);
-            touchScreen->Stop();
-            touchScreen->Start([&](Event)
+            touchScreen->Stop([&]()
                 {
-                    ++restartedEvents;
+                    touchScreen->Start([&](Event)
+                        {
+                            ++restartedEvents;
+                        });
                 });
         });
 
@@ -905,17 +962,20 @@ TEST_F(Stmpe811PollingTest, Stop_ends_the_polling)
     Start();
     ExecuteAllActions();
 
-    touchScreen->Stop();
+    Stop();
     ForwardTime(std::chrono::seconds(1));
+
+    EXPECT_EQ(1, stopped);
 }
 
-TEST_F(Stmpe811PollingTest, Start_after_Stop_polls_again)
+TEST_F(Stmpe811PollingTest, Start_after_the_stop_is_reported_polls_again)
 {
     CreateAndInitializePolling();
     ExpectPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
-    touchScreen->Stop();
+    Stop();
+    ExecuteAllActions();
 
     ExpectPoll(notTouching, 0);
     Start();

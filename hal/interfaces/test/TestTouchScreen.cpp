@@ -20,9 +20,20 @@ namespace
                 });
         }
 
+        void Stop()
+        {
+            EXPECT_CALL(stub, Stop(testing::_));
+
+            touchScreen.Stop([this]()
+                {
+                    ++stopped;
+                });
+        }
+
         testing::StrictMock<hal::TouchScreenStub> stub{ screenSize };
         hal::TouchScreen& touchScreen{ stub };
         std::vector<hal::TouchScreen::Event> events;
+        int stopped{ 0 };
     };
 }
 
@@ -118,11 +129,10 @@ TEST_F(TouchScreenTest, a_second_touch_follows_the_first)
     EXPECT_EQ((hal::TouchPoint{ 2, 2 }), events[2].point);
 }
 
-TEST_F(TouchScreenTest, no_event_is_received_after_Stop)
+TEST_F(TouchScreenTest, no_event_is_received_after_Stop_even_before_it_completes)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    touchScreen.Stop();
+    Stop();
 
     stub.Press({ 1, 1 });
 
@@ -130,12 +140,25 @@ TEST_F(TouchScreenTest, no_event_is_received_after_Stop)
     EXPECT_FALSE(stub.Running());
 }
 
+TEST_F(TouchScreenTest, Stop_completes_later_and_not_from_within_Stop)
+{
+    Start();
+    Stop();
+
+    EXPECT_EQ(0, stopped);
+    EXPECT_TRUE(stub.StopPending());
+
+    stub.CompleteStop();
+
+    EXPECT_EQ(1, stopped);
+    EXPECT_FALSE(stub.StopPending());
+}
+
 TEST_F(TouchScreenTest, Stop_during_a_touch_ends_it_without_a_released)
 {
     Start();
     stub.Press({ 1, 1 });
-    EXPECT_CALL(stub, Stop());
-    touchScreen.Stop();
+    Stop();
 
     stub.Release();
 
@@ -146,25 +169,30 @@ TEST_F(TouchScreenTest, Stop_during_a_touch_ends_it_without_a_released)
 TEST_F(TouchScreenTest, consumer_may_stop_from_within_an_event)
 {
     EXPECT_CALL(stub, Start(testing::_));
-    EXPECT_CALL(stub, Stop());
+    EXPECT_CALL(stub, Stop(testing::_));
 
     touchScreen.Start([this](hal::TouchScreen::Event event)
         {
             events.push_back(event);
-            touchScreen.Stop();
+            touchScreen.Stop([this]()
+                {
+                    ++stopped;
+                });
         });
 
     stub.Press({ 1, 1 });
     stub.Press({ 2, 2 });
+    stub.CompleteStop();
 
     EXPECT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ(1, stopped);
 }
 
-TEST_F(TouchScreenTest, restarting_registers_a_new_callback)
+TEST_F(TouchScreenTest, restarting_after_the_stop_completed_registers_a_new_callback)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    touchScreen.Stop();
+    Stop();
+    stub.CompleteStop();
 
     int restartedEvents{ 0 };
     EXPECT_CALL(stub, Start(testing::_));
@@ -177,4 +205,40 @@ TEST_F(TouchScreenTest, restarting_registers_a_new_callback)
 
     EXPECT_EQ(1, restartedEvents);
     EXPECT_TRUE(events.empty());
+}
+
+TEST_F(TouchScreenTest, the_stop_can_be_followed_by_a_start_from_within_its_completion)
+{
+    Start();
+    EXPECT_CALL(stub, Stop(testing::_));
+    EXPECT_CALL(stub, Start(testing::_));
+    int restartedEvents{ 0 };
+
+    touchScreen.Stop([&]()
+        {
+            touchScreen.Start([&](hal::TouchScreen::Event)
+                {
+                    ++restartedEvents;
+                });
+        });
+    stub.CompleteStop();
+    stub.Press({ 1, 1 });
+
+    EXPECT_EQ(1, restartedEvents);
+}
+
+TEST_F(TouchScreenTest, a_start_before_the_stop_completed_is_not_allowed)
+{
+    Start();
+    Stop();
+
+    EXPECT_DEATH(Start(), "");
+}
+
+TEST_F(TouchScreenTest, a_second_stop_before_the_first_completed_is_not_allowed)
+{
+    Start();
+    Stop();
+
+    EXPECT_DEATH(Stop(), "");
 }

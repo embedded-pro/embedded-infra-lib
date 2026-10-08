@@ -42,7 +42,7 @@ namespace hal
 
         virtual TouchScreenSize Size() const = 0;
         virtual void Start(const infra::Function<void(Event event)>& onTouch) = 0;
-        virtual void Stop() = 0;
+        virtual void Stop(const infra::Function<void()>& onStopped) = 0;
 
     protected:
         TouchScreen() = default;

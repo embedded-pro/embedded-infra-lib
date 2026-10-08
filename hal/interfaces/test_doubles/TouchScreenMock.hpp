@@ -12,7 +12,7 @@ namespace hal
     public:
         MOCK_METHOD(TouchScreenSize, Size, (), (const, override));
         MOCK_METHOD(void, Start, (const infra::Function<void(Event event)>& onTouch), (override));
-        MOCK_METHOD(void, Stop, (), (override));
+        MOCK_METHOD(void, Stop, (const infra::Function<void()>& onStopped), (override));
     };
 }
 

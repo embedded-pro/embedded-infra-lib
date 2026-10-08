@@ -1,4 +1,5 @@
 #include "drivers/touch_screen/stmpe811/Stmpe811.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 namespace drivers
@@ -103,9 +104,10 @@ namespace drivers
 
     Stmpe811::~Stmpe811()
     {
+        really_assert(!stopped);
         really_assert(!runner.Busy());
 
-        Stop();
+        Deactivate();
     }
 
     hal::TouchScreenSize Stmpe811::Size() const
@@ -117,6 +119,7 @@ namespace drivers
     {
         really_assert(initialized);
         really_assert(!started);
+        really_assert(!stopped);
 
         started = true;
         this->onTouch = onTouch;
@@ -131,16 +134,14 @@ namespace drivers
         RequestSample();
     }
 
-    void Stmpe811::Stop()
+    void Stmpe811::Stop(const infra::Function<void()>& onStopped)
     {
-        started = false;
-        resample = false;
-        contact = Contact::none;
-        onTouch = nullptr;
-        pollTimer.Cancel();
+        really_assert(onStopped != nullptr);
+        really_assert(!stopped);
 
-        if (interruptConnected)
-            interruptPin.DisableInterrupt();
+        stopped = onStopped;
+        Deactivate();
+        ReportStoppedWhenIdle();
     }
 
     void Stmpe811::Identify()
@@ -186,6 +187,7 @@ namespace drivers
     void Stmpe811::ReportInitialized(InitializationResult result)
     {
         initialized = result == InitializationResult::success;
+        ReportStoppedWhenIdle();
         onInitialized(result);
     }
 
@@ -298,7 +300,7 @@ namespace drivers
         sampling = false;
 
         if (!started)
-            return;
+            return ReportStoppedWhenIdle();
 
         if (resample)
         {
@@ -316,5 +318,26 @@ namespace drivers
     {
         auto callback = onTouch;
         callback(Event{ phase, point });
+    }
+
+    void Stmpe811::Deactivate()
+    {
+        started = false;
+        resample = false;
+        contact = Contact::none;
+        onTouch = nullptr;
+        pollTimer.Cancel();
+
+        if (interruptConnected)
+            interruptPin.DisableInterrupt();
+    }
+
+    void Stmpe811::ReportStoppedWhenIdle()
+    {
+        if (stopped && !sampling && !runner.Busy())
+            infra::EventDispatcher::Instance().Schedule([this]()
+                {
+                    stopped();
+                });
     }
 }

@@ -2,6 +2,7 @@
 #define HAL_TOUCH_SCREEN_STUB_HPP
 
 #include "hal/interfaces/test_doubles/TouchScreenMock.hpp"
+#include "infra/util/AutoResetFunction.hpp"
 
 namespace hal
 {
@@ -16,9 +17,11 @@ namespace hal
         void Press(TouchPoint point);
         void Move(TouchPoint point);
         void Release();
+        void CompleteStop();
 
         bool Running() const;
         bool Touching() const;
+        bool StopPending() const;
 
     private:
         void Deliver(Phase phase, TouchPoint point);
@@ -29,6 +32,7 @@ namespace hal
         bool touching{ false };
         TouchPoint lastPoint{};
         infra::Function<void(Event)> onTouch;
+        infra::AutoResetFunction<void()> stopped;
     };
 }
 
