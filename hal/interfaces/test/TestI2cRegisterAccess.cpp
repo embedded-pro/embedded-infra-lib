@@ -1,6 +1,7 @@
 #include "hal/interfaces/I2cRegisterAccess.hpp"
 #include "hal/interfaces/test_doubles/I2cMock.hpp"
 #include "infra/event/test_helper/EventDispatcherFixture.hpp"
+#include "infra/util/SharedPtr.hpp"
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "gmock/gmock.h"
 #include <vector>
@@ -55,6 +56,36 @@ TEST_F(I2cRegisterAccessTest, TestWriteRegister)
         });
 
     ExecuteAllActions();
+}
+
+TEST_F(I2cRegisterAccessTest, the_completion_of_a_read_is_released_once_it_has_been_called)
+{
+    EXPECT_CALL(master, SendDataMock(slaveAddress, hal::Action::repeatedStart, std::vector<uint8_t>{ 3 }));
+    EXPECT_CALL(master, ReceiveDataMock(slaveAddress, hal::Action::stop)).WillOnce(testing::Return(std::vector<uint8_t>{ 5 }));
+    infra::AccessedBySharedPtr access{ infra::emptyFunction };
+
+    int object{ 0 };
+    std::array<uint8_t, 1> data;
+
+    registerAccess.ReadRegister(3, infra::MakeByteRange(data), [reference = access.MakeShared(object)]() {});
+    ExecuteAllActions();
+
+    EXPECT_FALSE(access.Referenced());
+}
+
+TEST_F(I2cRegisterAccessTest, the_completion_of_a_write_is_released_once_it_has_been_called)
+{
+    EXPECT_CALL(master, SendDataMock(slaveAddress, hal::Action::continueSession, std::vector<uint8_t>{ 3 }));
+    EXPECT_CALL(master, SendDataMock(slaveAddress, hal::Action::stop, std::vector<uint8_t>{ 5 }));
+    infra::AccessedBySharedPtr access{ infra::emptyFunction };
+
+    int object{ 0 };
+    std::array<uint8_t, 1> data{ 5 };
+
+    registerAccess.WriteRegister(3, infra::MakeByteRange(data), [reference = access.MakeShared(object)]() {});
+    ExecuteAllActions();
+
+    EXPECT_FALSE(access.Referenced());
 }
 
 class I2cRegisterAccessHalfWordTest
