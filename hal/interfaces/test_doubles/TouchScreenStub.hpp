@@ -32,4 +32,4 @@ namespace hal
     };
 }
 
-#endif // HAL_TOUCH_SCREEN_STUB_HPP
+#endif

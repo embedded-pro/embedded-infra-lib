@@ -16,4 +16,4 @@ namespace hal
     };
 }
 
-#endif // HAL_TOUCH_SCREEN_MOCK_HPP
+#endif

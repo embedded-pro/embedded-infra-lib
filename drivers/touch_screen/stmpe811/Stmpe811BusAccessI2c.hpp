@@ -6,7 +6,6 @@
 
 namespace drivers
 {
-    // The ADDR0 pin selects between the two addresses
     class Stmpe811BusAccessI2c
         : public services::RegisterBusAccess
     {

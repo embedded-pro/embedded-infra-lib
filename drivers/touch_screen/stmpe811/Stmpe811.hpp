@@ -15,12 +15,6 @@
 
 namespace drivers
 {
-    // Reports the 12-bit position of a resistive touch screen as the converter delivers it, so a
-    // consumer scales and orients it to its display.
-    // The interrupt pin only wakes the driver for a new touch; a touch that is in progress is polled,
-    // because the device raises no interrupt when the pen is lifted. With hal::dummyPin as interrupt
-    // pin the device is polled all the time.
-    // Destroy only when no bus transaction is outstanding.
     class Stmpe811
         : public hal::TouchScreen
     {
@@ -43,7 +37,6 @@ namespace drivers
         Stmpe811& operator=(const Stmpe811& other) = delete;
         ~Stmpe811();
 
-        // Implementation of hal::TouchScreen
         hal::TouchScreenSize Size() const override;
         void Start(const infra::Function<void(Event event)>& onTouch) override;
         void Stop() override;
