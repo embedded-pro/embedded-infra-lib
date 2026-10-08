@@ -179,6 +179,18 @@ namespace
             PressAt(x, y);
         }
 
+        void StartPositionReadInFlight(uint16_t x, uint16_t y)
+        {
+            bus.completeAutomatically = false;
+            ExpectPollWithInterrupt(touching, 1);
+            EXPECT_CALL(bus, ReadRegisterMock(touchDataRegister, 4)).WillOnce(testing::Return(Sample(x, y)));
+            Interrupt();
+            bus.CompletePending();
+            bus.CompletePending();
+            bus.CompletePending();
+            ExecuteAllActions();
+        }
+
         testing::StrictMock<services::RegisterBusAccessMock> bus;
         hal::GpioPinStub interruptPin;
         std::optional<drivers::Stmpe811> touchScreen;
@@ -709,6 +721,58 @@ TEST_F(Stmpe811Test, Stop_during_the_position_read_discards_the_position_and_sti
     ForwardTime(std::chrono::seconds(1));
 
     EXPECT_TRUE(events.empty());
+}
+
+TEST_F(Stmpe811Test, Stop_and_Start_during_the_position_read_report_the_touch_once_as_pressed_to_the_new_consumer)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+
+    testing::InSequence sequence;
+    StartPositionReadInFlight(30, 40);
+    touchScreen->Stop();
+    std::vector<Event> restartedEvents;
+    touchScreen->Start([&](Event event)
+        {
+            restartedEvents.push_back(event);
+        });
+
+    ExpectFifoFlush();
+    ExpectPollWithInterrupt(touching, 1);
+    ExpectFetch(30, 40);
+    bus.completeAutomatically = true;
+    bus.CompletePending();
+    ExecuteAllActions();
+
+    EXPECT_TRUE(events.empty());
+    ASSERT_EQ(std::size_t(1), restartedEvents.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 30, 40 } }), restartedEvents[0]);
+}
+
+TEST_F(Stmpe811Test, Stop_and_Start_during_the_position_read_followed_by_a_lifted_pen_reports_pressed_and_released)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+
+    testing::InSequence sequence;
+    StartPositionReadInFlight(30, 40);
+    touchScreen->Stop();
+    std::vector<Event> restartedEvents;
+    touchScreen->Start([&](Event event)
+        {
+            restartedEvents.push_back(event);
+        });
+
+    ExpectFifoFlush();
+    ExpectPollWithInterrupt(notTouching, 0);
+    bus.completeAutomatically = true;
+    bus.CompletePending();
+    ExecuteAllActions();
+
+    EXPECT_TRUE(events.empty());
+    ASSERT_EQ(std::size_t(2), restartedEvents.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 30, 40 } }), restartedEvents[0]);
+    EXPECT_EQ((Event{ Phase::released, { 30, 40 } }), restartedEvents[1]);
 }
 
 TEST_F(Stmpe811Test, the_consumer_may_stop_from_within_an_event)
