@@ -102,6 +102,13 @@ namespace
             ExpectWrite(fifoStatusRegister, 0x00);
         }
 
+        void ExpectFirstPollWithInterrupt(uint8_t touchControl, uint8_t fifoSize)
+        {
+            ExpectInterruptStatusCleared();
+            ExpectFifoFlush();
+            ExpectStatus(touchControl, fifoSize);
+        }
+
         void ExpectFetch(uint16_t x, uint16_t y)
         {
             EXPECT_CALL(bus, ReadRegisterMock(touchDataRegister, 4)).WillOnce(testing::Return(Sample(x, y)));
@@ -155,7 +162,7 @@ namespace
 
         void StartWithoutTouch()
         {
-            ExpectPollWithInterrupt(notTouching, 0);
+            ExpectFirstPollWithInterrupt(notTouching, 0);
             Start();
             ExecuteAllActions();
         }
@@ -213,6 +220,12 @@ namespace
     public:
         void ExpectPoll(uint8_t touchControl, uint8_t fifoSize)
         {
+            ExpectStatus(touchControl, fifoSize);
+        }
+
+        void ExpectFirstPoll(uint8_t touchControl, uint8_t fifoSize)
+        {
+            ExpectFifoFlush();
             ExpectStatus(touchControl, fifoSize);
         }
 
@@ -327,17 +340,53 @@ TEST_F(Stmpe811Test, the_interrupt_pin_is_made_an_input)
     EXPECT_TRUE(interruptPin.IsInput());
 }
 
-TEST_F(Stmpe811Test, Start_samples_at_once_to_find_a_touch_that_is_already_in_progress)
+TEST_F(Stmpe811Test, Start_finds_a_touch_that_is_already_in_progress_and_reports_it_from_a_fresh_sample)
 {
     CreateAndInitialize();
 
-    ExpectPollWithInterrupt(touching, 1);
-    ExpectFetch(0x123, 0x456);
+    ExpectFirstPollWithInterrupt(touching, 0);
     Start();
     ExecuteAllActions();
+    EXPECT_TRUE(events.empty());
+
+    PollWithTouch(0x123, 0x456);
 
     ASSERT_EQ(std::size_t(1), events.size());
     EXPECT_EQ((Event{ Phase::pressed, { 0x123, 0x456 } }), events[0]);
+}
+
+TEST_F(Stmpe811Test, Start_flushes_the_fifo_before_it_reads_the_first_status_because_the_device_kept_sampling_meanwhile)
+{
+    CreateAndInitialize();
+
+    testing::InSequence sequence;
+    ExpectFirstPollWithInterrupt(notTouching, 0);
+    Start();
+    ExecuteAllActions();
+}
+
+TEST_F(Stmpe811Test, only_the_first_poll_after_Start_flushes_the_fifo_without_having_read_a_sample)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+
+    PressAt(10, 20);
+    PollWithTouch(11, 21);
+
+    EXPECT_EQ(std::size_t(2), events.size());
+}
+
+TEST_F(Stmpe811Test, a_Start_after_a_Stop_flushes_the_fifo_again)
+{
+    CreateAndInitialize();
+    StartWithoutTouch();
+    Stop();
+    ExecuteAllActions();
+
+    testing::InSequence sequence;
+    ExpectFirstPollWithInterrupt(notTouching, 0);
+    Start();
+    ExecuteAllActions();
 }
 
 TEST_F(Stmpe811Test, without_a_touch_nothing_is_reported_and_the_bus_stays_quiet)
@@ -664,10 +713,10 @@ TEST_F(Stmpe811Test, Start_after_the_stop_is_reported_reports_a_touch_that_is_st
     Stop();
     ExecuteAllActions();
 
-    ExpectPollWithInterrupt(touching, 1);
-    ExpectFetch(100, 200);
+    ExpectFirstPollWithInterrupt(touching, 0);
     Start();
     ExecuteAllActions();
+    PollWithTouch(100, 200);
 
     ASSERT_EQ(std::size_t(2), events.size());
     EXPECT_EQ((Event{ Phase::pressed, { 100, 200 } }), events[1]);
@@ -681,13 +730,13 @@ TEST_F(Stmpe811Test, Start_after_the_stop_is_reported_uses_the_new_callback_only
     ExecuteAllActions();
 
     int restartedEvents{ 0 };
-    ExpectPollWithInterrupt(touching, 1);
-    ExpectFetch(5, 6);
+    ExpectFirstPollWithInterrupt(touching, 0);
     touchScreen->Start([&](Event)
         {
             ++restartedEvents;
         });
     ExecuteAllActions();
+    PollWithTouch(5, 6);
 
     EXPECT_EQ(1, restartedEvents);
     EXPECT_TRUE(events.empty());
@@ -829,18 +878,33 @@ TEST_F(Stmpe811Test, Stop_during_the_initialization_is_reported_when_the_initial
     EXPECT_EQ(InitializationResult::success, *initializationResult);
 }
 
+TEST_F(Stmpe811Test, Stop_during_a_failed_initialization_is_reported_when_the_initialization_has_finished)
+{
+    testing::InSequence sequence;
+    ExpectReset();
+    ExpectIdentification({ 0x00, 0x00 });
+    Create();
+    Stop();
+
+    ForwardTime(Milliseconds(100));
+
+    EXPECT_EQ(1, stopped);
+    ASSERT_TRUE(initializationResult);
+    EXPECT_EQ(InitializationResult::deviceNotFound, *initializationResult);
+}
+
 TEST_F(Stmpe811Test, the_consumer_may_stop_from_within_an_event)
 {
     CreateAndInitialize();
 
-    ExpectPollWithInterrupt(touching, 1);
-    ExpectFetch(1, 2);
+    ExpectFirstPollWithInterrupt(touching, 0);
     touchScreen->Start([this](Event event)
         {
             events.push_back(event);
             Stop();
         });
     ExecuteAllActions();
+    PollWithTouch(1, 2);
     ForwardTime(std::chrono::seconds(1));
 
     EXPECT_EQ(std::size_t(1), events.size());
@@ -853,8 +917,7 @@ TEST_F(Stmpe811Test, the_consumer_may_start_again_from_within_the_stopped_callba
 
     testing::InSequence sequence;
     int restartedEvents{ 0 };
-    ExpectPollWithInterrupt(touching, 1);
-    ExpectFetch(1, 2);
+    ExpectFirstPollWithInterrupt(touching, 0);
     touchScreen->Start([&](Event event)
         {
             events.push_back(event);
@@ -866,10 +929,16 @@ TEST_F(Stmpe811Test, the_consumer_may_start_again_from_within_the_stopped_callba
                         });
                 });
         });
+    ExecuteAllActions();
+
+    ExpectPollWithInterrupt(touching, 1);
+    ExpectFetch(1, 2);
+    ExpectFirstPollWithInterrupt(touching, 0);
+    ForwardTime(Milliseconds(10));
 
     ExpectPollWithInterrupt(touching, 1);
     ExpectFetch(3, 4);
-    ExecuteAllActions();
+    ForwardTime(Milliseconds(10));
 
     EXPECT_EQ(std::size_t(1), events.size());
     EXPECT_EQ(1, restartedEvents);
@@ -907,7 +976,7 @@ TEST_F(Stmpe811PollingTest, without_an_interrupt_pin_the_device_is_polled_all_th
 {
     CreateAndInitializePolling();
 
-    ExpectPoll(notTouching, 0);
+    ExpectFirstPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
 
@@ -919,10 +988,20 @@ TEST_F(Stmpe811PollingTest, without_an_interrupt_pin_the_device_is_polled_all_th
     EXPECT_TRUE(events.empty());
 }
 
+TEST_F(Stmpe811PollingTest, Start_flushes_the_fifo_before_it_reads_the_first_status)
+{
+    CreateAndInitializePolling();
+
+    testing::InSequence sequence;
+    ExpectFirstPoll(notTouching, 0);
+    Start();
+    ExecuteAllActions();
+}
+
 TEST_F(Stmpe811PollingTest, a_touch_is_pressed_moved_and_released_by_polling)
 {
     CreateAndInitializePolling();
-    ExpectPoll(notTouching, 0);
+    ExpectFirstPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
 
@@ -944,7 +1023,7 @@ TEST_F(Stmpe811PollingTest, a_touch_is_pressed_moved_and_released_by_polling)
 TEST_F(Stmpe811PollingTest, polling_continues_after_the_release)
 {
     CreateAndInitializePolling(drivers::Stmpe811::Config{ Milliseconds(20) });
-    ExpectPoll(notTouching, 0);
+    ExpectFirstPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
 
@@ -958,7 +1037,7 @@ TEST_F(Stmpe811PollingTest, polling_continues_after_the_release)
 TEST_F(Stmpe811PollingTest, Stop_ends_the_polling)
 {
     CreateAndInitializePolling();
-    ExpectPoll(notTouching, 0);
+    ExpectFirstPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
 
@@ -971,13 +1050,13 @@ TEST_F(Stmpe811PollingTest, Stop_ends_the_polling)
 TEST_F(Stmpe811PollingTest, Start_after_the_stop_is_reported_polls_again)
 {
     CreateAndInitializePolling();
-    ExpectPoll(notTouching, 0);
+    ExpectFirstPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
     Stop();
     ExecuteAllActions();
 
-    ExpectPoll(notTouching, 0);
+    ExpectFirstPoll(notTouching, 0);
     Start();
     ExecuteAllActions();
     ExpectPoll(notTouching, 0);

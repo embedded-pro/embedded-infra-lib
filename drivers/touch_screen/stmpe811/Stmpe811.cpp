@@ -122,6 +122,7 @@ namespace drivers
         really_assert(!stopped);
 
         started = true;
+        discardBufferedSamples = true;
         this->onTouch = onTouch;
 
         if (interruptConnected)
@@ -210,6 +211,12 @@ namespace drivers
 
         if (interruptConnected)
             runner.Push(services::RegisterStepRunner::WriteRegister{ interruptStatusRegister, allInterrupts });
+
+        if (discardBufferedSamples)
+        {
+            PushFifoFlush();
+            discardBufferedSamples = false;
+        }
 
         runner.Push(services::RegisterStepRunner::ReadBurst{ touchControlRegister, infra::MakeByteRange(touchStatus) });
         runner.Push(services::RegisterStepRunner::ReadBurst{ fifoSizeRegister, infra::MakeByteRange(fifoSize) });
