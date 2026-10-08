@@ -11,7 +11,7 @@ namespace hal
     {
     public:
         MOCK_METHOD(void, Start, (AudioFormat format, const infra::Function<void(Samples)>& onSamples, const infra::Function<void()>& onOverrun), (override));
-        MOCK_METHOD(void, Stop, (), (override));
+        MOCK_METHOD(void, Stop, (const infra::Function<void()>& onStopped), (override));
     };
 }
 

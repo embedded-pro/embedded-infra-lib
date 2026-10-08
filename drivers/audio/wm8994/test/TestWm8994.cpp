@@ -39,7 +39,7 @@ namespace
     public:
         Wm8994Test()
         {
-            EXPECT_CALL(stream, Stop()).Times(testing::AtMost(1));
+            EXPECT_CALL(stream, Stop(_)).Times(testing::AtMost(1));
         }
 
         void Create(Output output = Output::headphone, uint8_t initialVolume = 100)
@@ -58,6 +58,35 @@ namespace
         {
             ExpectStreamStartAndChipId(format);
             StartWithoutExpectations(format);
+        }
+
+        void Stop()
+        {
+            codec->Stop([this]()
+                {
+                    ++stopped;
+                });
+        }
+
+        void SetVolume(uint8_t percent)
+        {
+            codec->SetVolume(percent, [this]()
+                {
+                    ++volumeApplied;
+                });
+        }
+
+        void SetMuted(bool isMuted)
+        {
+            codec->SetMuted(isMuted, [this]()
+                {
+                    ++muteApplied;
+                });
+        }
+
+        void ExpectStreamStop()
+        {
+            EXPECT_CALL(stream, Stop(_)).WillOnce(testing::InvokeArgument<0>()).RetiresOnSaturation();
         }
 
         void StartWithoutExpectations(hal::AudioFormat format)
@@ -172,7 +201,7 @@ namespace
             testing::InSequence sequence;
             ExpectShutdownMute();
             ExpectShutdownRest();
-            EXPECT_CALL(stream, Stop()).RetiresOnSaturation();
+            ExpectStreamStop();
         }
 
         void OfferPeriod(std::size_t numberOfSamples = 8)
@@ -199,6 +228,9 @@ namespace
         int16_t fillValue{ 7 };
         int periods{ 0 };
         int underruns{ 0 };
+        int stopped{ 0 };
+        int volumeApplied{ 0 };
+        int muteApplied{ 0 };
     };
 
     struct RateCase
@@ -380,7 +412,7 @@ TEST_F(Wm8994Test, stopping_drops_the_application_callbacks_immediately)
     StartAndWaitUntilPlaying();
     ExpectWrite(0x0420, muted);
 
-    codec->Stop();
+    Stop();
     OfferPeriod();
     transportUnderrun();
     ExecuteAllActions();
@@ -388,15 +420,18 @@ TEST_F(Wm8994Test, stopping_drops_the_application_callbacks_immediately)
     EXPECT_EQ(0, periods);
     EXPECT_EQ(0, underruns);
     EXPECT_TRUE(BufferIsSilent());
+    ExpectShutdownRest();
+    ExpectStreamStop();
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(Wm8994Test, stopping_while_a_write_is_in_flight_drops_the_application_callbacks_even_though_the_codec_is_still_playing)
 {
     StartAndWaitUntilPlaying();
     ExpectApply(drivers::Wm8994::VolumeRegisterValue(10), false);
-    codec->SetVolume(10);
+    SetVolume(10);
 
-    codec->Stop();
+    Stop();
     OfferPeriod();
     transportUnderrun();
 
@@ -412,7 +447,7 @@ TEST_F(Wm8994Test, stopping_mutes_first_and_stops_the_stream_last)
     StartAndWaitUntilPlaying();
     ExpectShutdownAndStreamStop();
 
-    codec->Stop();
+    Stop();
     ForwardTime(std::chrono::seconds(1));
 }
 
@@ -420,23 +455,25 @@ TEST_F(Wm8994Test, the_stream_keeps_running_while_the_codec_mutes)
 {
     StartAndWaitUntilPlaying();
     ExpectShutdownMute();
-    codec->Stop();
+    Stop();
     ExecuteAllActions();
 
     ForwardTime(Milliseconds(99));
 
     testing::InSequence sequence;
     ExpectShutdownRest();
-    EXPECT_CALL(stream, Stop()).RetiresOnSaturation();
+    ExpectStreamStop();
     ForwardTime(Milliseconds(1));
 }
 
-TEST_F(Wm8994Test, stopping_without_starting_does_nothing)
+TEST_F(Wm8994Test, stopping_without_starting_only_reports_done)
 {
     Create();
 
-    codec->Stop();
+    Stop();
     ExecuteAllActions();
+
+    EXPECT_EQ(1, stopped);
 }
 
 TEST_F(Wm8994Test, the_application_may_stop_from_within_the_samples_callback)
@@ -447,7 +484,7 @@ TEST_F(Wm8994Test, the_application_may_stop_from_within_the_samples_callback)
         stereo48k, [this](hal::AudioOutput::Samples)
         {
             ++periods;
-            codec->Stop();
+            Stop();
         },
         []() {});
     ExpectStartUp(Output::headphone, rate48k, fullScaleCode, false);
@@ -459,6 +496,9 @@ TEST_F(Wm8994Test, the_application_may_stop_from_within_the_samples_callback)
     ExecuteAllActions();
 
     EXPECT_EQ(1, periods);
+    ExpectShutdownRest();
+    ExpectStreamStop();
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(Wm8994Test, the_application_may_stop_from_within_the_underrun_callback)
@@ -469,7 +509,7 @@ TEST_F(Wm8994Test, the_application_may_stop_from_within_the_underrun_callback)
         stereo48k, [](hal::AudioOutput::Samples) {}, [this]()
         {
             ++underruns;
-            codec->Stop();
+            Stop();
         });
     ExpectStartUp(Output::headphone, rate48k, fullScaleCode, false);
     ForwardTime(std::chrono::seconds(1));
@@ -480,6 +520,9 @@ TEST_F(Wm8994Test, the_application_may_stop_from_within_the_underrun_callback)
     ExecuteAllActions();
 
     EXPECT_EQ(1, underruns);
+    ExpectShutdownRest();
+    ExpectStreamStop();
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(Wm8994Test, stopping_during_start_up_shuts_down_once_start_up_has_finished)
@@ -488,7 +531,7 @@ TEST_F(Wm8994Test, stopping_during_start_up_shuts_down_once_start_up_has_finishe
     Start();
     ExpectBringUp();
     ExecuteAllActions();
-    codec->Stop();
+    Stop();
 
     testing::InSequence sequence;
     ExpectPath();
@@ -503,7 +546,7 @@ TEST_F(Wm8994Test, stopping_while_a_bus_transaction_is_in_flight_waits_for_it)
     Create(Output::speaker);
     bus.completeAutomatically = false;
     Start();
-    codec->Stop();
+    Stop();
     bus.completeAutomatically = true;
 
     testing::InSequence sequence;
@@ -516,62 +559,33 @@ TEST_F(Wm8994Test, stopping_while_a_bus_transaction_is_in_flight_waits_for_it)
     ForwardTime(std::chrono::seconds(1));
 }
 
-TEST_F(Wm8994Test, starting_again_during_shutdown_uses_the_new_format)
+TEST_F(Wm8994Test, starting_again_after_the_completion_uses_the_new_format)
 {
     StartAndWaitUntilPlaying();
     ExpectShutdownAndStreamStop();
-    codec->Stop();
-    StartWithoutExpectations(stereo44k);
+    Stop();
+    ForwardTime(std::chrono::seconds(1));
+    EXPECT_EQ(1, stopped);
 
-    testing::InSequence sequence;
-    EXPECT_CALL(stream, Start(stereo44k, _, _)).WillOnce(testing::DoAll(testing::SaveArg<1>(&transportSamples), testing::SaveArg<2>(&transportUnderrun)));
-    EXPECT_CALL(bus, ReadRegisterMock(0x0000)).WillOnce(testing::Return(0x8994));
+    Start(stereo44k);
     ExpectStartUp(Output::headphone, rate44k, fullScaleCode, false);
-    ForwardTime(std::chrono::seconds(2));
-
-    OfferPeriod();
-    EXPECT_EQ(1, periods);
-}
-
-TEST_F(Wm8994Test, stopping_and_starting_with_the_same_format_during_start_up_keeps_the_stream_running)
-{
-    Create();
-    Start();
-    ExpectBringUp();
-    ExecuteAllActions();
-    codec->Stop();
-    StartWithoutExpectations(stereo48k);
-
-    testing::InSequence sequence;
-    ExpectPath();
-    ExpectClocking(rate48k);
-    ExpectOutput(Output::headphone);
-    ExpectApply(fullScaleCode, false);
     ForwardTime(std::chrono::seconds(1));
 
     OfferPeriod();
     EXPECT_EQ(1, periods);
 }
 
-TEST_F(Wm8994Test, stopping_starting_and_stopping_during_start_up_ends_in_shutdown)
+TEST_F(Wm8994Test, starting_while_shutting_down_is_a_programming_error)
 {
-    Create();
-    Start();
-    ExpectBringUp();
-    ExecuteAllActions();
-    codec->Stop();
-    StartWithoutExpectations(stereo48k);
-    codec->Stop();
+    StartAndWaitUntilPlaying();
+    ExpectShutdownMute();
+    Stop();
 
-    testing::InSequence sequence;
-    ExpectPath();
-    ExpectClocking(rate48k);
-    ExpectOutput(Output::headphone);
-    ExpectShutdownAndStreamStop();
+    EXPECT_DEATH(StartWithoutExpectations(stereo44k), "");
+
+    ExpectShutdownRest();
+    ExpectStreamStop();
     ForwardTime(std::chrono::seconds(1));
-
-    OfferPeriod();
-    EXPECT_EQ(0, periods);
 }
 
 TEST_F(Wm8994Test, the_initial_volume_is_applied_at_the_end_of_start_up)
@@ -586,8 +600,8 @@ TEST_F(Wm8994Test, the_initial_volume_is_applied_at_the_end_of_start_up)
 TEST_F(Wm8994Test, volume_and_mute_set_before_starting_are_applied_at_start_up)
 {
     Create();
-    codec->SetVolume(25);
-    codec->SetMuted(true);
+    SetVolume(25);
+    SetMuted(true);
     ExecuteAllActions();
     Start();
 
@@ -600,7 +614,7 @@ TEST_F(Wm8994Test, volume_is_written_to_both_channels_with_the_update_bit_while_
     StartAndWaitUntilPlaying();
     ExpectApply(drivers::Wm8994::VolumeRegisterValue(25), false);
 
-    codec->SetVolume(25);
+    SetVolume(25);
     ExecuteAllActions();
 }
 
@@ -608,39 +622,53 @@ TEST_F(Wm8994Test, muting_while_playing_soft_mutes_and_unmuting_restores_the_vol
 {
     StartAndWaitUntilPlaying();
     ExpectApply(fullScaleCode, true);
-    codec->SetMuted(true);
+    SetMuted(true);
     ExecuteAllActions();
 
     ExpectApply(fullScaleCode, false);
-    codec->SetMuted(false);
+    SetMuted(false);
     ExecuteAllActions();
 }
 
-TEST_F(Wm8994Test, changes_made_while_a_write_is_in_flight_are_coalesced_to_the_latest)
+TEST_F(Wm8994Test, a_change_made_while_a_write_is_in_flight_is_written_afterwards)
 {
     StartAndWaitUntilPlaying();
     testing::InSequence sequence;
     ExpectApply(drivers::Wm8994::VolumeRegisterValue(10), false);
-    ExpectApply(drivers::Wm8994::VolumeRegisterValue(30), false);
+    ExpectApply(drivers::Wm8994::VolumeRegisterValue(10), true);
 
-    codec->SetVolume(10);
-    codec->SetVolume(20);
-    codec->SetVolume(30);
+    SetVolume(10);
+    SetMuted(true);
     ExecuteAllActions();
+
+    EXPECT_EQ(1, volumeApplied);
+    EXPECT_EQ(1, muteApplied);
+}
+
+TEST_F(Wm8994Test, the_volume_is_reported_once_the_registers_have_been_written)
+{
+    StartAndWaitUntilPlaying();
+    ExpectApply(drivers::Wm8994::VolumeRegisterValue(25), false);
+
+    SetVolume(25);
+    EXPECT_EQ(0, volumeApplied);
+
+    ExecuteAllActions();
+    EXPECT_EQ(1, volumeApplied);
 }
 
 TEST_F(Wm8994Test, a_volume_of_zero_followed_by_unmuting_writes_the_lowest_code_and_the_unmute)
 {
     StartAndWaitUntilPlaying();
     ExpectApply(fullScaleCode, true);
-    codec->SetMuted(true);
+    SetMuted(true);
     ExecuteAllActions();
     ExpectApply(0, true);
-    codec->SetVolume(0);
+    SetVolume(0);
     ExecuteAllActions();
 
     ExpectApply(0, false);
-    codec->SetMuted(false);
+    SetMuted(false);
     ExecuteAllActions();
 }
 
@@ -648,9 +676,9 @@ TEST_F(Wm8994Test, changes_made_during_shutdown_are_applied_at_the_next_start)
 {
     StartAndWaitUntilPlaying();
     ExpectShutdownAndStreamStop();
-    codec->Stop();
-    codec->SetVolume(40);
-    codec->SetMuted(true);
+    Stop();
+    SetVolume(40);
+    SetMuted(true);
     ForwardTime(std::chrono::seconds(1));
 
     Start();
@@ -662,7 +690,7 @@ TEST_F(Wm8994Test, a_volume_above_100_percent_is_a_programming_error)
 {
     Create();
 
-    EXPECT_DEATH(codec->SetVolume(101), "");
+    EXPECT_DEATH(SetVolume(101), "");
 }
 
 TEST(Wm8994VolumeTest, zero_percent_is_the_codec_mute_code)
@@ -690,7 +718,7 @@ TEST_F(Wm8994Test, destroying_while_playing_stops_the_stream)
 {
     StartAndWaitUntilPlaying();
 
-    EXPECT_CALL(stream, Stop());
+    EXPECT_CALL(stream, Stop(_));
     codec.reset();
 }
 
@@ -708,7 +736,7 @@ TEST_F(Wm8994Test, destroying_while_waiting_for_a_delay_stops_the_stream_and_can
     ExpectBringUp();
     ExecuteAllActions();
 
-    EXPECT_CALL(stream, Stop());
+    EXPECT_CALL(stream, Stop(_));
     codec.reset();
 
     ForwardTime(std::chrono::seconds(1));
@@ -744,7 +772,7 @@ TEST_F(Wm8994Test, the_completion_is_not_reported_while_the_codec_is_still_shutt
 
     testing::InSequence sequence;
     ExpectShutdownRest();
-    EXPECT_CALL(stream, Stop()).RetiresOnSaturation();
+    ExpectStreamStop();
     EXPECT_CALL(stopped, callback());
     ForwardTime(Milliseconds(1));
 }

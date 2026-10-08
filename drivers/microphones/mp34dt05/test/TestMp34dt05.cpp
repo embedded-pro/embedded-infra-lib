@@ -1,6 +1,7 @@
 #include "drivers/microphones/mp34dt05/Mp34dt05.hpp"
 #include "drivers/microphones/pdm/test_doubles/PdmToPcmMock.hpp"
 #include "hal/interfaces/test_doubles/AudioInputStub.hpp"
+#include "infra/event/test_helper/EventDispatcherFixture.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -25,6 +26,7 @@ namespace
 
     class Mp34dt05Test
         : public testing::Test
+        , public infra::EventDispatcherFixture
     {
     public:
         Mp34dt05Test()
@@ -50,7 +52,7 @@ namespace
 
         ~Mp34dt05Test() override
         {
-            EXPECT_CALL(input, Stop()).Times(testing::AnyNumber());
+            EXPECT_CALL(input, Stop(testing::_)).Times(testing::AnyNumber());
             driver.reset();
         }
 
@@ -334,21 +336,44 @@ TEST_F(Mp34dt05Test, stream_keeps_running_after_an_overrun)
 TEST_F(Mp34dt05Test, Stop_stops_the_input)
 {
     Start();
-    EXPECT_CALL(input, Stop());
+    EXPECT_CALL(input, Stop(testing::_));
 
-    driver->Stop();
+    driver->Stop(infra::emptyFunction);
 }
 
-TEST_F(Mp34dt05Test, Stop_without_a_running_stream_does_nothing)
+TEST_F(Mp34dt05Test, Stop_reports_when_the_input_has_stopped)
 {
-    driver->Stop();
+    Start();
+    EXPECT_CALL(input, Stop(testing::_));
+    bool stopped = false;
+
+    driver->Stop([&stopped]()
+        {
+            stopped = true;
+        });
+
+    EXPECT_TRUE(stopped);
+}
+
+TEST_F(Mp34dt05Test, Stop_without_a_running_stream_reports_done_from_the_event_dispatcher)
+{
+    bool stopped = false;
+
+    driver->Stop([&stopped]()
+        {
+            stopped = true;
+        });
+    EXPECT_FALSE(stopped);
+
+    ExecuteAllActions();
+    EXPECT_TRUE(stopped);
 }
 
 TEST_F(Mp34dt05Test, no_samples_are_received_after_Stop)
 {
     StartAndPassStartup();
-    EXPECT_CALL(input, Stop());
-    driver->Stop();
+    EXPECT_CALL(input, Stop(testing::_));
+    driver->Stop(infra::emptyFunction);
 
     Capture(2);
 
@@ -358,8 +383,8 @@ TEST_F(Mp34dt05Test, no_samples_are_received_after_Stop)
 TEST_F(Mp34dt05Test, no_overrun_is_reported_after_Stop)
 {
     Start();
-    EXPECT_CALL(input, Stop());
-    driver->Stop();
+    EXPECT_CALL(input, Stop(testing::_));
+    driver->Stop(infra::emptyFunction);
 
     input.Overrun();
 
@@ -374,12 +399,12 @@ TEST_F(Mp34dt05Test, consumer_may_stop_the_stream_from_within_a_period)
         mono16k.format, [this, &periods](hal::AudioInput::Samples)
         {
             ++periods;
-            driver->Stop();
+            driver->Stop(infra::emptyFunction);
         },
         []() {});
     Capture(mono16k.startupSamples);
 
-    EXPECT_CALL(input, Stop());
+    EXPECT_CALL(input, Stop(testing::_));
     Capture(2);
     Capture(2);
 
@@ -394,10 +419,10 @@ TEST_F(Mp34dt05Test, consumer_may_stop_the_stream_from_within_an_overrun)
         mono16k.format, [](hal::AudioInput::Samples) {}, [this, &reported]()
         {
             ++reported;
-            driver->Stop();
+            driver->Stop(infra::emptyFunction);
         });
 
-    EXPECT_CALL(input, Stop());
+    EXPECT_CALL(input, Stop(testing::_));
     input.Overrun();
     input.Overrun();
 
@@ -410,8 +435,8 @@ TEST_F(Mp34dt05Test, consumer_may_restart_the_stream_from_within_a_period)
     driver->Start(
         mono16k.format, [&counter = periodsReceived, this](hal::AudioInput::Samples)
         {
-            EXPECT_CALL(input, Stop());
-            driver->Stop();
+            EXPECT_CALL(input, Stop(testing::_));
+            driver->Stop(infra::emptyFunction);
             ExpectStart(mono16k);
             driver->Start(
                 mono16k.format, [&counter = restartedPeriods](hal::AudioInput::Samples)
@@ -436,8 +461,8 @@ TEST_F(Mp34dt05Test, consumer_may_restart_the_stream_from_within_an_overrun)
     driver->Start(
         mono16k.format, [](hal::AudioInput::Samples) {}, [&counter = overruns, this]()
         {
-            EXPECT_CALL(input, Stop());
-            driver->Stop();
+            EXPECT_CALL(input, Stop(testing::_));
+            driver->Stop(infra::emptyFunction);
             ExpectStart(mono16k);
             driver->Start(
                 mono16k.format, [](hal::AudioInput::Samples) {}, [&counter = restartedOverruns]()
@@ -457,8 +482,8 @@ TEST_F(Mp34dt05Test, consumer_may_restart_the_stream_from_within_an_overrun)
 TEST_F(Mp34dt05Test, restarting_discards_the_startup_again)
 {
     StartAndPassStartup();
-    EXPECT_CALL(input, Stop());
-    driver->Stop();
+    EXPECT_CALL(input, Stop(testing::_));
+    driver->Stop(infra::emptyFunction);
 
     Start();
     Capture(mono16k.startupSamples - 1);
@@ -469,8 +494,8 @@ TEST_F(Mp34dt05Test, restarting_discards_the_startup_again)
 TEST_F(Mp34dt05Test, restarting_registers_the_new_callbacks)
 {
     StartAndPassStartup();
-    EXPECT_CALL(input, Stop());
-    driver->Stop();
+    EXPECT_CALL(input, Stop(testing::_));
+    driver->Stop(infra::emptyFunction);
 
     ExpectStart(mono16k);
     driver->Start(
@@ -488,7 +513,7 @@ TEST_F(Mp34dt05Test, restarting_registers_the_new_callbacks)
 TEST_F(Mp34dt05Test, destroying_a_running_driver_stops_the_input)
 {
     Start();
-    EXPECT_CALL(input, Stop());
+    EXPECT_CALL(input, Stop(testing::_));
 
     driver.reset();
 }
@@ -501,8 +526,8 @@ TEST_F(Mp34dt05Test, destroying_an_idle_driver_leaves_the_input_alone)
 TEST_F(Mp34dt05Test, destroying_a_stopped_driver_does_not_stop_the_input_again)
 {
     Start();
-    EXPECT_CALL(input, Stop());
-    driver->Stop();
+    EXPECT_CALL(input, Stop(testing::_));
+    driver->Stop(infra::emptyFunction);
 
     driver.reset();
 }
