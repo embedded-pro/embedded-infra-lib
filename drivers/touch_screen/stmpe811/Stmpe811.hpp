@@ -82,6 +82,7 @@ namespace drivers
         bool started{ false };
         bool sampling{ false };
         bool resample{ false };
+        bool discardBufferedSamples{ false };
         Contact contact{ Contact::none };
         hal::TouchPoint lastPoint{};
 
