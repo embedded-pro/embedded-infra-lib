@@ -11,5 +11,7 @@ target_link_libraries(drivers.audio.cs43l22_test PUBLIC
 )
 
 target_sources(drivers.audio.cs43l22_test PRIVATE
+    Cs43l22BusMock.hpp
+    TestCs43l22.cpp
     TestCs43l22BusAccessI2c.cpp
 )

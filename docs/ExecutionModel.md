@@ -121,6 +121,8 @@ Audio has a hard deadline, but the event dispatcher guarantees no real-time beha
 - They take effect asynchronously and have no completion callback. The latest call wins.
 - An implementation without a level control, such as a bare I2S or SAI peripheral, ignores them or scales the samples in software.
 
+`drivers::Cs43l22` is a codec driver on top of `drivers::CodecAudioOutput`. The CS43L22 has no analog-to-digital converter, so it implements only `hal::AudioOutput`. Its configuration can route one of its analog inputs to the outputs next to the stream, which is called analog passthrough. That input is mixed inside the codec while the output is started and its samples are never delivered to software, so it is not a `hal::AudioInput`. The driver controls the reset pin of the codec. It holds the codec in reset while it is not in use, and the stream has to supply the master clock. `SetVolume` sets the master volume and `SetMuted` switches the output channels off.
+
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
 A digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05, delivers 1-bit samples at its clock rate. A peripheral that captures them, such as I2S or SAI, can implement `hal::AudioInput` for these raw bits instead of PCM.
