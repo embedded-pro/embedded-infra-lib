@@ -104,7 +104,7 @@ No timer is involved, so an idle dispatcher can enter deep sleep while it is sup
 
 ## Streaming audio
 
-`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. The streams describe the data path. A codec chip that has its own control interface is configured over I2C or SPI by a driver, which implements `hal::AudioOutput` itself on top of the peripheral's implementation. `hal::AudioOutput` also carries the output level, described below.
+`hal::AudioOutput` and `hal::AudioInput` stream interleaved 16-bit samples to and from a digital audio peripheral such as I2S or SAI. The streams describe the data path. A codec chip that has its own control interface is configured over I2C or SPI by a driver, which implements `hal::AudioOutput` itself on top of the peripheral's implementation. `drivers::CodecAudioOutput` holds the lifecycle that such drivers share: it starts the stream before the codec is brought up, stops it only after the codec has powered down, keeps the application's callbacks silent until the codec is audible, and applies the latest volume and mute once no register sequence is running. A codec driver derives from it and only provides the register sequences. `hal::AudioOutput` also carries the output level, described below.
 
 Audio has a hard deadline, but the event dispatcher guarantees no real-time behaviour. The interfaces bridge this by letting the implementation own a buffer that is cycled by DMA or an interrupt:
 
