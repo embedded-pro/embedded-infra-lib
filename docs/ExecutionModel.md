@@ -235,3 +235,21 @@ Callbacks are scheduled on the event dispatcher, never called from within `Start
 **What this interface does not cover**
 
 XCLK generation, reset and power sequencing, crop and polarity settings, bus width, exposure, white balance and frame-rate control are all outside `hal::Camera`. A vendor peripheral driver exposes only the frame-capture path; a sensor driver stacks on top of that to configure the sensor chip.
+
+## Reading a touch screen
+
+`hal::TouchScreen` reports the touches on a single-touch panel as events. It covers only the position path. Powering the panel, the display behind it and gestures are separate concerns of the driver or the application.
+
+- `Size()` states the range of the reported coordinates: x lies in `[0, width)` and y in `[0, height)`. The unit is that of the touch sensor, which is not necessarily the pixel of the display behind it. A consumer scales and orients the points to its display.
+- `Start()` registers the callback and `Stop()` removes it. Events are delivered from the event dispatcher, never from within `Start()` or `Stop()`.
+- A touch is one `pressed`, any number of `moved` and one `released`. `moved` is only reported when the position changed. `released` repeats the last position, so a consumer can recognise a tap without remembering the point itself.
+- `Stop()` ends a touch that is in progress without a `released`. A `Start()` while the panel is still touched reports that touch as a new `pressed`.
+- `Stop()` is safe to call from within the callback, and a `Start()` immediately after it is accepted.
+
+`drivers::Stmpe811` is the `hal::TouchScreen` of the STMPE811 touch screen controller, which converts the four wires of a resistive panel. It is reached through a `services::RegisterBusAccess`; `drivers::Stmpe811BusAccessI2c` provides one on an I2C master, at the address that the `ADDR0` pin selects.
+
+- The constructor resets the device, checks its chip identification and configures the converter and the touch screen controller. It reports `InitializationResult::success` when the device is ready, or `deviceNotFound` and writes nothing more when the identification differs. `Start()` is only valid after a success.
+- The points are the 12-bit position as the converter delivers it, so `Size()` is 4096 by 4096. The pressure is not reported. Calibration against a display, such as the offset and the axis orientation of the panel, is up to the consumer.
+- The interrupt pin, which is active low, wakes the driver for a new touch. A touch that is in progress is polled every `Config::pollInterval`, because the device raises no interrupt when the pen is lifted. With `hal::dummyPin` as interrupt pin the device is polled all the time.
+- A sample is read together with a flush of the FIFO of the device, so the next sample is always a fresh one and a stale sample of an earlier touch never becomes the `pressed` of the next.
+- The driver cannot be destroyed while a bus transaction is outstanding.
