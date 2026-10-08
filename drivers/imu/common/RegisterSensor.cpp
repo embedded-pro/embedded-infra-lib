@@ -145,6 +145,6 @@ namespace drivers
 
     bool RegisterSensor::TransactionOutstanding() const
     {
-        return static_cast<bool>(onRegisterAccessed) || static_cast<bool>(onModified);
+        return static_cast<bool>(onRegisterAccessed) || static_cast<bool>(onModified) || runner.Busy();
     }
 }
