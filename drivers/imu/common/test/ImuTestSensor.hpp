@@ -43,6 +43,11 @@ namespace drivers
             ModifyRegister(address, clearMask, setMask, onDone);
         }
 
+        bool TestSampling() const
+        {
+            return Sampling();
+        }
+
         static Acceleration TestToAcceleration(int32_t counts, int64_t microGPerCount)
         {
             return ToAcceleration(counts, microGPerCount);

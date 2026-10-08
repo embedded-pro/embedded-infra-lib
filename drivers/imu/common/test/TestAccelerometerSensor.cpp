@@ -66,6 +66,38 @@ namespace
         ExecuteAllActions();
     }
 
+    TEST_F(AccelerometerSensorTest, sampling_is_reported_between_start_and_stop)
+    {
+        device.Initialize();
+        EXPECT_FALSE(device.TestSampling());
+
+        StartStreaming();
+        EXPECT_TRUE(device.TestSampling());
+
+        ExpectModifyRegister(Device::registerControl, Device::dataReadyBit, 0x00);
+        device.AsAccelerometer().Stop();
+        ExecuteAllActions();
+
+        EXPECT_FALSE(device.TestSampling());
+    }
+
+    TEST_F(AccelerometerSensorTest, starting_again_while_streaming_does_not_touch_the_device)
+    {
+        device.Initialize();
+        StartStreaming();
+
+        device.AsAccelerometer().Start([](Device::Accelerometer::Samples) {});
+        ExecuteAllActions();
+    }
+
+    TEST_F(AccelerometerSensorTest, stopping_while_not_streaming_does_not_touch_the_device)
+    {
+        device.Initialize();
+
+        device.AsAccelerometer().Stop();
+        ExecuteAllActions();
+    }
+
     TEST_F(AccelerometerSensorTest, data_ready_delivers_three_samples_x_y_z)
     {
         device.Initialize();
