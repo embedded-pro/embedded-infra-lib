@@ -1,4 +1,3 @@
 add_subdirectory(boostxl_k350qvg_s1)
 add_subdirectory(mb1166)
 add_subdirectory(stm32f429i_disco_lcd)
-add_subdirectory(stm32f4_disco_audio)

@@ -131,20 +131,6 @@ The stream has to supply the master clock, and `masterClockRatio` in the configu
 `SetVolume` sets the master volume, and the volume of the analog passthrough when it is configured. `SetMuted` mutes both, with the soft ramp of the codec, without powering the amplifiers down.
 Stopping follows the power-down sequence of the datasheet: mute, wait for the ramp, disable the ramps, power down, wait, pull the reset pin low and only then stop the stream.
 
-`boards::Stm32f4DiscoAudioSetup` wires a `drivers::Cs43l22` the way the STM32F4DISCOVERY has it: the headphone output, no analog inputs and the AD0 pin low.
-The application provides the I2C master of the codec, the GPIO pin of its reset line and an I2S transmitter as the `hal::AudioOutput` of the stream, with its master clock output enabled at 256 times the sample rate. That supports the sample rates from 32 kHz upwards.
-
-```cpp
-boards::Stm32f4DiscoAudioSetup audio(i2c1, codecReset, i2s3Output);
-
-audio.Output().Start({ 48000, 2 }, [](hal::AudioOutput::Samples toFill)
-    {
-        std::fill(toFill.begin(), toFill.end(), int16_t{ 0 });
-    },
-    []() {});
-audio.Output().SetVolume(60, infra::emptyFunction);
-```
-
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
 A digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05, delivers 1-bit samples at its clock rate. A peripheral that captures them, such as I2S or SAI, can implement `hal::AudioInput` for these raw bits instead of PCM.
