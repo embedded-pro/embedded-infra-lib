@@ -10,10 +10,11 @@ namespace hal
                 this->onOverrun = onOverrun;
             });
 
-        ON_CALL(*this, Stop).WillByDefault([this]()
+        ON_CALL(*this, Stop).WillByDefault([this](const infra::Function<void()>& onStopped)
             {
                 onSamples = nullptr;
                 onOverrun = nullptr;
+                onStopped();
             });
     }
 

@@ -27,7 +27,11 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `unix/`, `windows/` — Platform-specific HAL
   - `synchronous_interfaces/` — Blocking HAL interfaces
 - **drivers/** — Device drivers for specific hardware chips
+  - `audio/` — Audio codec drivers (wm8994, cs43l22) and the shared `CodecAudioOutput` lifecycle
+  - `camera/` — Camera sensor drivers (omnivision)
+  - `display/` — Display controller drivers (ili9341, ssd2119, mipi_dsi)
   - `imu/` — IMU drivers (iis2dlpc, l3gd20, lis302dl, lis3dsh, lsm303dlhc, mpu9250) and the shared `common` sensor plumbing used by the accelerometer drivers
+  - `microphones/` — Microphone drivers (mp34dt05, mp45dt02) on the shared `PdmMicrophone`, and the PDM-to-PCM interface
   - `motor_controller/` — Stepper motor controller drivers (DRV8711)
 - **services/** — Higher-level services and protocols
   - `echo_core/` — ECHO RPC runtime
