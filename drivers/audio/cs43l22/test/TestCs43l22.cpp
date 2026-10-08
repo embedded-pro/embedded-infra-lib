@@ -55,7 +55,7 @@ namespace
     public:
         Cs43l22Test()
         {
-            EXPECT_CALL(stream, Stop()).Times(testing::AtMost(1));
+            EXPECT_CALL(stream, Stop(_)).Times(testing::AtMost(1));
             EXPECT_CALL(reset, ResetConfig()).Times(testing::AtMost(1));
         }
 
@@ -71,6 +71,35 @@ namespace
             EXPECT_CALL(stream, Start(format, _, _)).WillOnce(testing::DoAll(testing::SaveArg<1>(&transportSamples), testing::SaveArg<2>(&transportUnderrun)));
             EXPECT_CALL(reset, Set(false));
             StartWithoutExpectations(format);
+        }
+
+        void Stop()
+        {
+            codec->Stop([this]()
+                {
+                    ++stopped;
+                });
+        }
+
+        void SetVolume(uint8_t percent)
+        {
+            codec->SetVolume(percent, [this]()
+                {
+                    ++volumeApplied;
+                });
+        }
+
+        void SetMuted(bool isMuted)
+        {
+            codec->SetMuted(isMuted, [this]()
+                {
+                    ++muteApplied;
+                });
+        }
+
+        void ExpectStreamStop()
+        {
+            EXPECT_CALL(stream, Stop(_)).WillOnce(testing::InvokeArgument<0>()).RetiresOnSaturation();
         }
 
         void StartWithoutExpectations(hal::AudioFormat format)
@@ -186,7 +215,7 @@ namespace
         {
             testing::InSequence sequence;
             EXPECT_CALL(reset, Set(false));
-            EXPECT_CALL(stream, Stop()).RetiresOnSaturation();
+            ExpectStreamStop();
         }
 
         void ExpectShutdownAndStreamStop()
@@ -221,6 +250,9 @@ namespace
         int16_t fillValue{ 7 };
         int periods{ 0 };
         int underruns{ 0 };
+        int stopped{ 0 };
+        int volumeApplied{ 0 };
+        int muteApplied{ 0 };
     };
 
     const std::array<Output, 4> outputs{ Output::headphone, Output::speaker, Output::both, Output::automatic };
@@ -378,7 +410,7 @@ TEST_F(Cs43l22Test, the_initial_volume_is_applied_at_the_end_of_start_up)
 TEST_F(Cs43l22Test, mute_set_before_starting_keeps_the_outputs_off_at_the_end_of_start_up)
 {
     Create(Output::speaker);
-    codec->SetMuted(true);
+    SetMuted(true);
     ExecuteAllActions();
     Start();
 
@@ -419,7 +451,7 @@ TEST_F(Cs43l22Test, volume_is_written_to_both_master_volume_registers_while_play
     StartAndWaitUntilPlaying();
     ExpectLevel(drivers::Cs43l22::VolumeRegisterValue(25), OutputsValue(Output::headphone));
 
-    codec->SetVolume(25);
+    SetVolume(25);
     ExecuteAllActions();
 }
 
@@ -428,32 +460,46 @@ TEST_F(Cs43l22Test, muting_turns_the_outputs_off_and_unmuting_turns_them_back_on
     StartAndWaitUntilPlaying(Output::both, 40);
     const uint8_t code = drivers::Cs43l22::VolumeRegisterValue(40);
     ExpectLevel(code, outputsOff);
-    codec->SetMuted(true);
+    SetMuted(true);
     ExecuteAllActions();
 
     ExpectLevel(code, OutputsValue(Output::both));
-    codec->SetMuted(false);
+    SetMuted(false);
     ExecuteAllActions();
 }
 
-TEST_F(Cs43l22Test, changes_made_while_a_write_is_in_flight_are_coalesced_to_the_latest)
+TEST_F(Cs43l22Test, a_change_made_while_a_write_is_in_flight_is_written_afterwards)
 {
     StartAndWaitUntilPlaying();
     testing::InSequence sequence;
     ExpectLevel(drivers::Cs43l22::VolumeRegisterValue(10), OutputsValue(Output::headphone));
-    ExpectLevel(drivers::Cs43l22::VolumeRegisterValue(30), OutputsValue(Output::headphone));
+    ExpectLevel(drivers::Cs43l22::VolumeRegisterValue(10), outputsOff);
 
-    codec->SetVolume(10);
-    codec->SetVolume(20);
-    codec->SetVolume(30);
+    SetVolume(10);
+    SetMuted(true);
     ExecuteAllActions();
+
+    EXPECT_EQ(1, volumeApplied);
+    EXPECT_EQ(1, muteApplied);
+}
+
+TEST_F(Cs43l22Test, the_volume_is_reported_once_the_registers_have_been_written)
+{
+    StartAndWaitUntilPlaying();
+    ExpectLevel(drivers::Cs43l22::VolumeRegisterValue(25), OutputsValue(Output::headphone));
+
+    SetVolume(25);
+    EXPECT_EQ(0, volumeApplied);
+
+    ExecuteAllActions();
+    EXPECT_EQ(1, volumeApplied);
 }
 
 TEST_F(Cs43l22Test, stopping_mutes_and_powers_down_first_and_then_pulls_the_reset_pin_low_and_stops_the_stream_after_100_ms)
 {
     StartAndWaitUntilPlaying();
     ExpectPowerDownWrites();
-    codec->Stop();
+    Stop();
     ExecuteAllActions();
 
     ForwardTime(Milliseconds(99));
@@ -467,7 +513,7 @@ TEST_F(Cs43l22Test, stopping_drops_the_application_callbacks_immediately)
     StartAndWaitUntilPlaying();
     ExpectPowerDownWrites();
 
-    codec->Stop();
+    Stop();
     OfferPeriod();
     transportUnderrun();
 
@@ -482,7 +528,7 @@ TEST_F(Cs43l22Test, stopping_during_start_up_powers_down_once_start_up_has_finis
 {
     Create();
     Start();
-    codec->Stop();
+    Stop();
 
     testing::InSequence sequence;
     ExpectBringUp();
@@ -494,7 +540,7 @@ TEST_F(Cs43l22Test, starting_again_after_stopping_resets_the_codec_again_with_th
 {
     StartAndWaitUntilPlaying();
     ExpectShutdownAndStreamStop();
-    codec->Stop();
+    Stop();
     ForwardTime(std::chrono::seconds(1));
 
     Start(stereo44k);
@@ -505,26 +551,23 @@ TEST_F(Cs43l22Test, starting_again_after_stopping_resets_the_codec_again_with_th
     EXPECT_EQ(1, periods);
 }
 
-TEST_F(Cs43l22Test, starting_during_shutdown_pulses_the_reset_pin_again)
+TEST_F(Cs43l22Test, starting_while_shutting_down_is_a_programming_error)
 {
     StartAndWaitUntilPlaying();
     ExpectPowerDownWrites();
-    codec->Stop();
-    StartWithoutExpectations(stereo44k);
+    Stop();
 
-    testing::InSequence sequence;
+    EXPECT_DEATH(StartWithoutExpectations(stereo44k), "");
+
     ExpectResetAssertedAndStreamStopped();
-    EXPECT_CALL(stream, Start(stereo44k, _, _)).WillOnce(testing::DoAll(testing::SaveArg<1>(&transportSamples), testing::SaveArg<2>(&transportUnderrun)));
-    EXPECT_CALL(reset, Set(false));
-    ExpectStartUp(Output::headphone, fullScaleCode, false);
-    ForwardTime(std::chrono::seconds(2));
+    ForwardTime(std::chrono::seconds(1));
 }
 
 TEST_F(Cs43l22Test, a_volume_above_100_percent_is_a_programming_error)
 {
     Create();
 
-    EXPECT_DEATH(codec->SetVolume(101), "");
+    EXPECT_DEATH(SetVolume(101), "");
 }
 
 TEST(Cs43l22VolumeTest, zero_percent_is_the_lowest_volume_of_minus_102_dB)
@@ -563,7 +606,7 @@ TEST_F(Cs43l22Test, destroying_while_playing_stops_the_stream_and_releases_the_r
 {
     StartAndWaitUntilPlaying();
 
-    EXPECT_CALL(stream, Stop());
+    EXPECT_CALL(stream, Stop(_));
     EXPECT_CALL(reset, ResetConfig());
     codec.reset();
 }
@@ -580,7 +623,7 @@ TEST_F(Cs43l22Test, destroying_while_waiting_for_a_delay_stops_the_stream_and_ca
     Create();
     Start();
 
-    EXPECT_CALL(stream, Stop());
+    EXPECT_CALL(stream, Stop(_));
     codec.reset();
 
     ForwardTime(std::chrono::seconds(1));

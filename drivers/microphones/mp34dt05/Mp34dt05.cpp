@@ -1,4 +1,5 @@
 #include "drivers/microphones/mp34dt05/Mp34dt05.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 
@@ -18,7 +19,8 @@ namespace drivers
 
     Mp34dt05::~Mp34dt05()
     {
-        Stop();
+        if (running)
+            bitStream.Stop(infra::emptyFunction);
     }
 
     void Mp34dt05::Start(hal::AudioFormat format, const infra::Function<void(Samples)>& onSamples, const infra::Function<void()>& onOverrun)
@@ -46,15 +48,17 @@ namespace drivers
             });
     }
 
-    void Mp34dt05::Stop()
+    void Mp34dt05::Stop(const infra::Function<void()>& onStopped)
     {
         if (running)
         {
             running = false;
-            bitStream.Stop();
             onSamples = nullptr;
             onOverrun = nullptr;
+            bitStream.Stop(onStopped);
         }
+        else
+            infra::EventDispatcher::Instance().Schedule(onStopped);
     }
 
     uint32_t Mp34dt05::ClockFrequency(hal::AudioFormat format) const

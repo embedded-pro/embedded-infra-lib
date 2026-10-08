@@ -15,68 +15,59 @@ namespace drivers
     CodecAudioOutput::~CodecAudioOutput()
     {
         really_assert(!stopped);
+        really_assert(volume.state == RequestState::none);
+        really_assert(mute.state == RequestState::none);
 
         if (phase != Phase::idle)
-            stream.Stop();
+            stream.Stop(infra::emptyFunction);
     }
 
     void CodecAudioOutput::Start(hal::AudioFormat format, const infra::Function<void(Samples toFill)>& onSamplesRequired, const infra::Function<void()>& onUnderrun)
     {
         really_assert(Supports(format));
-        really_assert(!requested);
+        really_assert(phase == Phase::idle);
         really_assert(!stopped);
 
-        requested = format;
         samplesCallback = onSamplesRequired;
         underrunCallback = onUnderrun;
 
-        if (phase == Phase::idle)
-            BeginStartUp();
-    }
-
-    void CodecAudioOutput::Stop()
-    {
-        if (!requested)
-            return;
-
-        requested.reset();
-        samplesCallback = nullptr;
-        underrunCallback = nullptr;
-
-        ReconcileIfPossible();
+        BeginStartUp(format);
     }
 
     void CodecAudioOutput::Stop(const infra::Function<void()>& onStopped)
     {
+        really_assert(onStopped != nullptr);
         really_assert(!stopped);
 
         stopped = onStopped;
+        samplesCallback = nullptr;
+        underrunCallback = nullptr;
+        ReportRequests(RequestState::pending);
 
-        Stop();
-        ReportStoppedWhenIdle();
+        if (phase == Phase::idle)
+            ReportStopped();
+        else
+            ReconcileIfPossible();
     }
 
-    void CodecAudioOutput::SetVolume(uint8_t percent)
+    void CodecAudioOutput::SetVolume(uint8_t percent, const infra::Function<void()>& onDone)
     {
         really_assert(percent <= maxVolumePercent);
 
         volumePercent = percent;
-        stateDirty = true;
-
-        ReconcileIfPossible();
+        Submit(volume, onDone);
     }
 
-    void CodecAudioOutput::SetMuted(bool muted)
+    void CodecAudioOutput::SetMuted(bool muted, const infra::Function<void()>& onDone)
     {
         outputMuted = muted;
-        stateDirty = true;
-
-        ReconcileIfPossible();
+        Submit(mute, onDone);
     }
 
     void CodecAudioOutput::SequenceDone()
     {
         busy = false;
+        ReportRequests(RequestState::applying);
         Reconcile();
     }
 
@@ -85,15 +76,14 @@ namespace drivers
         return busy;
     }
 
-    void CodecAudioOutput::BeginStartUp()
+    void CodecAudioOutput::BeginStartUp(hal::AudioFormat format)
     {
         phase = Phase::startingUp;
         busy = true;
-        activeFormat = requested;
         stateDirty = true;
 
         stream.Start(
-            *activeFormat, [this](Samples toFill)
+            format, [this](Samples toFill)
             {
                 SamplesRequired(toFill);
             },
@@ -102,13 +92,15 @@ namespace drivers
                 Underrun();
             });
 
-        BeginBringUp(*activeFormat);
+        BeginBringUp(format);
     }
 
     void CodecAudioOutput::ApplyState()
     {
         stateDirty = false;
         busy = true;
+        StartApplying(volume);
+        StartApplying(mute);
         BeginApplyLevel(volumePercent, outputMuted);
     }
 
@@ -121,23 +113,71 @@ namespace drivers
 
     void CodecAudioOutput::FinishShutDown()
     {
-        phase = Phase::idle;
-        activeFormat.reset();
-        stream.Stop();
-
-        if (requested)
-            BeginStartUp();
-
-        ReportStoppedWhenIdle();
+        stream.Stop([this]()
+            {
+                StreamStopped();
+            });
     }
 
-    void CodecAudioOutput::ReportStoppedWhenIdle()
+    void CodecAudioOutput::StreamStopped()
     {
-        if (phase == Phase::idle && stopped)
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    stopped();
-                });
+        phase = Phase::idle;
+        ReportStopped();
+    }
+
+    void CodecAudioOutput::ReportStopped()
+    {
+        infra::EventDispatcher::Instance().Schedule([this]()
+            {
+                stopped();
+            });
+    }
+
+    void CodecAudioOutput::Submit(LevelRequest& request, const infra::Function<void()>& onDone)
+    {
+        really_assert(onDone != nullptr);
+        really_assert(request.state == RequestState::none);
+
+        request.done = onDone;
+        request.state = RequestState::pending;
+
+        if (LevelCanBeApplied())
+        {
+            stateDirty = true;
+            ReconcileIfPossible();
+        }
+        else
+            ReportRequests(RequestState::pending);
+    }
+
+    bool CodecAudioOutput::LevelCanBeApplied() const
+    {
+        return (phase == Phase::startingUp || phase == Phase::playing) && !stopped;
+    }
+
+    void CodecAudioOutput::ReportRequests(RequestState state)
+    {
+        Report(volume, state);
+        Report(mute, state);
+    }
+
+    void CodecAudioOutput::StartApplying(LevelRequest& request)
+    {
+        if (request.state == RequestState::pending)
+            request.state = RequestState::applying;
+    }
+
+    void CodecAudioOutput::Report(LevelRequest& request, RequestState state)
+    {
+        if (request.state != state)
+            return;
+
+        request.state = RequestState::reporting;
+        infra::EventDispatcher::Instance().Schedule([&request]()
+            {
+                request.state = RequestState::none;
+                request.done();
+            });
     }
 
     void CodecAudioOutput::Reconcile()
@@ -152,7 +192,7 @@ namespace drivers
 
     void CodecAudioOutput::ReconcileStartingUp()
     {
-        if (requested != activeFormat)
+        if (stopped)
             BeginShutDown();
         else if (stateDirty)
             ApplyState();
@@ -162,7 +202,7 @@ namespace drivers
 
     void CodecAudioOutput::ReconcilePlaying()
     {
-        if (requested != activeFormat)
+        if (stopped)
             BeginShutDown();
         else if (stateDirty)
             ApplyState();

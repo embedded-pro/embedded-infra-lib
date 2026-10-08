@@ -53,9 +53,22 @@ TEST_F(AudioOutputTest, Start_hands_the_requested_format_to_the_implementation)
 
 TEST_F(AudioOutputTest, Stop_halts_the_stream)
 {
-    EXPECT_CALL(stub, Stop());
+    EXPECT_CALL(stub, Stop(testing::_));
 
-    output.Stop();
+    output.Stop(infra::emptyFunction);
+}
+
+TEST_F(AudioOutputTest, Stop_reports_when_the_stream_has_stopped)
+{
+    EXPECT_CALL(stub, Stop(testing::_));
+    bool stopped = false;
+
+    output.Stop([&stopped]()
+        {
+            stopped = true;
+        });
+
+    EXPECT_TRUE(stopped);
 }
 
 TEST_F(AudioOutputTest, no_samples_are_requested_before_a_period_elapses)
@@ -140,8 +153,8 @@ TEST_F(AudioOutputTest, stream_keeps_running_after_an_underrun)
 TEST_F(AudioOutputTest, no_samples_are_requested_after_Stop)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    output.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    output.Stop(infra::emptyFunction);
 
     stub.PeriodElapsed(samplesPerPeriod);
 
@@ -151,8 +164,8 @@ TEST_F(AudioOutputTest, no_samples_are_requested_after_Stop)
 TEST_F(AudioOutputTest, no_underrun_is_reported_after_Stop)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    output.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    output.Stop(infra::emptyFunction);
 
     stub.Underrun();
 
@@ -166,11 +179,11 @@ TEST_F(AudioOutputTest, consumer_may_stop_the_stream_from_within_a_request)
         stereo48k, [this](hal::AudioOutput::Samples)
         {
             ++periodsRequested;
-            output.Stop();
+            output.Stop(infra::emptyFunction);
         },
         []() {});
 
-    EXPECT_CALL(stub, Stop());
+    EXPECT_CALL(stub, Stop(testing::_));
     stub.PeriodElapsed(samplesPerPeriod);
     stub.PeriodElapsed(samplesPerPeriod);
 
@@ -180,8 +193,8 @@ TEST_F(AudioOutputTest, consumer_may_stop_the_stream_from_within_a_request)
 TEST_F(AudioOutputTest, restarting_registers_new_callbacks)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    output.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    output.Stop(infra::emptyFunction);
 
     int restartedPeriods = 0;
     EXPECT_CALL(stub, Start(mono16k, testing::_, testing::_));
@@ -199,31 +212,57 @@ TEST_F(AudioOutputTest, restarting_registers_new_callbacks)
 
 TEST_F(AudioOutputTest, volume_is_handed_to_the_implementation)
 {
-    EXPECT_CALL(stub, SetVolume(40));
+    EXPECT_CALL(stub, SetVolume(40, testing::_));
 
-    output.SetVolume(40);
+    output.SetVolume(40, infra::emptyFunction);
 
     EXPECT_EQ(40, stub.Volume());
 }
 
+TEST_F(AudioOutputTest, setting_the_volume_reports_when_it_has_been_applied)
+{
+    EXPECT_CALL(stub, SetVolume(40, testing::_));
+    bool applied = false;
+
+    output.SetVolume(40, [&applied]()
+        {
+            applied = true;
+        });
+
+    EXPECT_TRUE(applied);
+}
+
 TEST_F(AudioOutputTest, muting_is_handed_to_the_implementation)
 {
-    EXPECT_CALL(stub, SetMuted(true));
+    EXPECT_CALL(stub, SetMuted(true, testing::_));
 
-    output.SetMuted(true);
+    output.SetMuted(true, infra::emptyFunction);
 
     EXPECT_TRUE(stub.Muted());
 }
 
+TEST_F(AudioOutputTest, muting_reports_when_it_has_been_applied)
+{
+    EXPECT_CALL(stub, SetMuted(true, testing::_));
+    bool applied = false;
+
+    output.SetMuted(true, [&applied]()
+        {
+            applied = true;
+        });
+
+    EXPECT_TRUE(applied);
+}
+
 TEST_F(AudioOutputTest, unmuting_restores_the_volume)
 {
-    EXPECT_CALL(stub, SetVolume(30));
-    EXPECT_CALL(stub, SetMuted(true));
-    EXPECT_CALL(stub, SetMuted(false));
-    output.SetVolume(30);
-    output.SetMuted(true);
+    EXPECT_CALL(stub, SetVolume(30, testing::_));
+    EXPECT_CALL(stub, SetMuted(true, testing::_));
+    EXPECT_CALL(stub, SetMuted(false, testing::_));
+    output.SetVolume(30, infra::emptyFunction);
+    output.SetMuted(true, infra::emptyFunction);
 
-    output.SetMuted(false);
+    output.SetMuted(false, infra::emptyFunction);
 
     EXPECT_EQ(30, stub.Volume());
     EXPECT_FALSE(stub.Muted());
@@ -231,10 +270,10 @@ TEST_F(AudioOutputTest, unmuting_restores_the_volume)
 
 TEST_F(AudioOutputTest, volume_and_mute_can_be_set_before_Start)
 {
-    EXPECT_CALL(stub, SetVolume(70));
-    EXPECT_CALL(stub, SetMuted(true));
-    output.SetVolume(70);
-    output.SetMuted(true);
+    EXPECT_CALL(stub, SetVolume(70, testing::_));
+    EXPECT_CALL(stub, SetMuted(true, testing::_));
+    output.SetVolume(70, infra::emptyFunction);
+    output.SetMuted(true, infra::emptyFunction);
 
     Start();
 
@@ -244,13 +283,13 @@ TEST_F(AudioOutputTest, volume_and_mute_can_be_set_before_Start)
 
 TEST_F(AudioOutputTest, volume_and_mute_persist_across_Stop_and_Start)
 {
-    EXPECT_CALL(stub, SetVolume(20));
-    EXPECT_CALL(stub, SetMuted(true));
-    output.SetVolume(20);
-    output.SetMuted(true);
+    EXPECT_CALL(stub, SetVolume(20, testing::_));
+    EXPECT_CALL(stub, SetMuted(true, testing::_));
+    output.SetVolume(20, infra::emptyFunction);
+    output.SetMuted(true, infra::emptyFunction);
     Start();
-    EXPECT_CALL(stub, Stop());
-    output.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    output.Stop(infra::emptyFunction);
 
     Start(mono16k);
 
@@ -271,9 +310,9 @@ TEST_F(AudioOutputTest, volume_and_mute_are_not_touched_by_the_stream)
 
 TEST_F(AudioOutputTest, a_volume_above_100_percent_is_a_programming_error)
 {
-    EXPECT_CALL(stub, SetVolume(101)).Times(testing::AtMost(1));
+    EXPECT_CALL(stub, SetVolume(101, testing::_)).Times(testing::AtMost(1));
 
-    EXPECT_DEATH(output.SetVolume(101), "");
+    EXPECT_DEATH(output.SetVolume(101, infra::emptyFunction), "");
 }
 
 TEST(AudioFormatTest, formats_with_equal_rate_and_channels_are_equal)

@@ -48,9 +48,22 @@ TEST_F(AudioInputTest, Start_hands_the_requested_format_to_the_implementation)
 
 TEST_F(AudioInputTest, Stop_halts_the_stream)
 {
-    EXPECT_CALL(stub, Stop());
+    EXPECT_CALL(stub, Stop(testing::_));
 
-    input.Stop();
+    input.Stop(infra::emptyFunction);
+}
+
+TEST_F(AudioInputTest, Stop_reports_when_the_stream_has_stopped)
+{
+    EXPECT_CALL(stub, Stop(testing::_));
+    bool stopped = false;
+
+    input.Stop([&stopped]()
+        {
+            stopped = true;
+        });
+
+    EXPECT_TRUE(stopped);
 }
 
 TEST_F(AudioInputTest, no_samples_are_received_before_a_period_is_captured)
@@ -112,8 +125,8 @@ TEST_F(AudioInputTest, stream_keeps_running_after_an_overrun)
 TEST_F(AudioInputTest, no_samples_are_received_after_Stop)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    input.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    input.Stop(infra::emptyFunction);
 
     std::array<int16_t, 2> captured{ 1, 2 };
     stub.PeriodCaptured(infra::MakeConstRange(captured));
@@ -124,8 +137,8 @@ TEST_F(AudioInputTest, no_samples_are_received_after_Stop)
 TEST_F(AudioInputTest, no_overrun_is_reported_after_Stop)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    input.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    input.Stop(infra::emptyFunction);
 
     stub.Overrun();
 
@@ -139,11 +152,11 @@ TEST_F(AudioInputTest, consumer_may_stop_the_stream_from_within_a_period)
         stereo48k, [this](hal::AudioInput::Samples)
         {
             ++periodsReceived;
-            input.Stop();
+            input.Stop(infra::emptyFunction);
         },
         []() {});
 
-    EXPECT_CALL(stub, Stop());
+    EXPECT_CALL(stub, Stop(testing::_));
     std::array<int16_t, 2> captured{ 1, 2 };
     stub.PeriodCaptured(infra::MakeConstRange(captured));
     stub.PeriodCaptured(infra::MakeConstRange(captured));
@@ -154,8 +167,8 @@ TEST_F(AudioInputTest, consumer_may_stop_the_stream_from_within_a_period)
 TEST_F(AudioInputTest, restarting_registers_new_callbacks)
 {
     Start();
-    EXPECT_CALL(stub, Stop());
-    input.Stop();
+    EXPECT_CALL(stub, Stop(testing::_));
+    input.Stop(infra::emptyFunction);
 
     int restartedPeriods = 0;
     EXPECT_CALL(stub, Start(mono16k, testing::_, testing::_));

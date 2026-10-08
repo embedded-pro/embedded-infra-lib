@@ -5,6 +5,7 @@
 
 namespace hal
 {
+    // Stop completes immediately
     class AudioInputStub
         : public AudioInputMock
     {

@@ -23,7 +23,7 @@ namespace drivers
         ~Mp34dt05();
 
         void Start(hal::AudioFormat format, const infra::Function<void(Samples)>& onSamples, const infra::Function<void()>& onOverrun) override;
-        void Stop() override;
+        void Stop(const infra::Function<void()>& onStopped) override;
 
     private:
         uint32_t ClockFrequency(hal::AudioFormat format) const;

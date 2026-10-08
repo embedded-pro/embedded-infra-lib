@@ -4,15 +4,15 @@
 #include "hal/interfaces/AudioOutput.hpp"
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/Function.hpp"
-#include "services/util/Stoppable.hpp"
 #include <cstdint>
-#include <optional>
 
 namespace drivers
 {
+    // Start is only allowed while the codec is idle, which it is again once the completion of Stop has been
+    // delivered. SetVolume and SetMuted allow one outstanding call each. All completions are delivered from
+    // the event dispatcher. Destroy only after the completion of Stop.
     class CodecAudioOutput
         : public hal::AudioOutput
-        , public services::Stoppable
     {
     public:
         static constexpr uint8_t maxVolumePercent = 100;
@@ -21,10 +21,9 @@ namespace drivers
         CodecAudioOutput& operator=(const CodecAudioOutput& other) = delete;
 
         void Start(hal::AudioFormat format, const infra::Function<void(Samples toFill)>& onSamplesRequired, const infra::Function<void()>& onUnderrun) override;
-        void Stop() override;
         void Stop(const infra::Function<void()>& onStopped) override;
-        void SetVolume(uint8_t percent) override;
-        void SetMuted(bool muted) override;
+        void SetVolume(uint8_t percent, const infra::Function<void()>& onDone) override;
+        void SetMuted(bool muted, const infra::Function<void()>& onDone) override;
 
     protected:
         CodecAudioOutput(hal::AudioOutput& stream, uint8_t initialVolume);
@@ -47,11 +46,32 @@ namespace drivers
             shuttingDown
         };
 
-        void BeginStartUp();
+        enum class RequestState : uint8_t
+        {
+            none,
+            pending,
+            applying,
+            reporting
+        };
+
+        struct LevelRequest
+        {
+            RequestState state{ RequestState::none };
+            infra::AutoResetFunction<void()> done;
+        };
+
+        void BeginStartUp(hal::AudioFormat format);
         void ApplyState();
         void BeginShutDown();
         void FinishShutDown();
-        void ReportStoppedWhenIdle();
+        void StreamStopped();
+        void ReportStopped();
+
+        void Submit(LevelRequest& request, const infra::Function<void()>& onDone);
+        bool LevelCanBeApplied() const;
+        void ReportRequests(RequestState state);
+        static void StartApplying(LevelRequest& request);
+        static void Report(LevelRequest& request, RequestState state);
 
         void Reconcile();
         void ReconcileStartingUp();
@@ -69,11 +89,11 @@ namespace drivers
         Phase phase{ Phase::idle };
         bool busy{ false };
         bool stateDirty{ false };
-        std::optional<hal::AudioFormat> requested;
-        std::optional<hal::AudioFormat> activeFormat;
         infra::Function<void(Samples)> samplesCallback;
         infra::Function<void()> underrunCallback;
         infra::AutoResetFunction<void()> stopped;
+        LevelRequest volume;
+        LevelRequest mute;
     };
 }
 
