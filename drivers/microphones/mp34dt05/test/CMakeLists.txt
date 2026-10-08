@@ -7,6 +7,7 @@ target_link_libraries(drivers.microphones.mp34dt05_test PUBLIC
     drivers.microphones.mp34dt05
     drivers.microphones.pdm_test_doubles
     hal.interfaces_test_doubles
+    infra.event_test_helper
 )
 
 target_sources(drivers.microphones.mp34dt05_test PRIVATE
