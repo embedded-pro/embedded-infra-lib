@@ -130,15 +130,18 @@ The driver controls the reset pin of the codec. It holds the codec in reset whil
 
 Because the implementation owns the buffer, placement in DMA-capable memory and cache maintenance remain a concern of the vendor implementation.
 
-A digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05, delivers 1-bit samples at its clock rate. A peripheral that captures them, such as I2S or SAI, can implement `hal::AudioInput` for these raw bits instead of PCM.
+A digital microphone with a pulse-density modulated (PDM) output, such as the MP34DT05 or the MP45DT02, delivers 1-bit samples at its clock rate. A peripheral that captures them, such as I2S or SAI, can implement `hal::AudioInput` for these raw bits instead of PCM.
 
 In such a stream a channel is a microphone, and a frame has one 16-bit word per channel. A word holds the next 16 clock cycles of its microphone, the first in the most significant bit. The sample rate is the clock frequency divided by 16, so the peripheral also generates the clock of the microphone. Periods, overrun and `Stop(onStopped)` are those of any `hal::AudioInput`.
 
-`drivers::Mp34dt05` is the `hal::AudioInput` that a consumer sees. It starts the raw stream and gives its words to a `drivers::PdmToPcm`, which turns them into PCM. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library.
+`drivers::PdmMicrophone` is the `hal::AudioInput` that a consumer sees. It starts the raw stream and gives its words to a `drivers::PdmToPcm`, which turns them into PCM. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library.
+`drivers::Mp34dt05` and `drivers::Mp45dt02` are `PdmMicrophone`s that supply the clock range and the start-up time of their chip.
 
 The decimation of the converter fixes the microphone clock, `clock = sampleRate * decimation`. The driver rejects a clock outside the range of the microphone, or one that is not a multiple of 16.
 
 The microphone needs some time after its clock starts before its output is valid, so the driver discards the first samples of every stream. It counts them instead of using a timer.
+
+A microphone such as the MP45DT02 has an `L/R` pin that is wired to ground or to the supply. It selects whether the microphone drives its data while the clock is low or while it is high, so two microphones with opposite settings can share one data line as two channels. The driver does not see this pin; the peripheral that implements the raw `hal::AudioInput` samples the matching clock phase.
 
 ## Writing to a display
 

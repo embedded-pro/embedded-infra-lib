@@ -31,7 +31,7 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `camera/` — Camera sensor drivers (omnivision)
   - `display/` — Display controller drivers (ili9341, ssd2119, mipi_dsi)
   - `imu/` — IMU drivers (l3gd20, lsm303dlhc, mpu9250)
-  - `microphones/` — Microphone drivers (mp34dt05) and the PDM-to-PCM interface
+  - `microphones/` — Microphone drivers (mp34dt05, mp45dt02) on the shared `PdmMicrophone`, and the PDM-to-PCM interface
   - `motor_controller/` — Stepper motor controller drivers (DRV8711)
 - **services/** — Higher-level services and protocols
   - `echo_core/` — ECHO RPC runtime
