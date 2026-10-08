@@ -134,7 +134,8 @@ A digital microphone with a pulse-density modulated (PDM) output, such as the MP
 
 In such a stream a channel is a microphone, and a frame has one 16-bit word per channel. A word holds the next 16 clock cycles of its microphone, the first in the most significant bit. The sample rate is the clock frequency divided by 16, so the peripheral also generates the clock of the microphone. Periods, overrun and `Stop(onStopped)` are those of any `hal::AudioInput`.
 
-`drivers::PdmMicrophone` is the `hal::AudioInput` that a consumer sees. It starts the raw stream and gives its words to a `drivers::PdmToPcm`, which turns them into PCM. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library. `drivers::Mp34dt05` and `drivers::Mp45dt02` are `PdmMicrophone`s that supply the clock range and the start-up time of their chip.
+`drivers::PdmMicrophone` is the `hal::AudioInput` that a consumer sees. It starts the raw stream and gives its words to a `drivers::PdmToPcm`, which turns them into PCM. `drivers::PdmToPcm` is only an interface; the decimation filter that implements it is not part of this library.
+`drivers::Mp34dt05` and `drivers::Mp45dt02` are `PdmMicrophone`s that supply the clock range and the start-up time of their chip.
 
 The decimation of the converter fixes the microphone clock, `clock = sampleRate * decimation`. The driver rejects a clock outside the range of the microphone, or one that is not a multiple of 16.
 
