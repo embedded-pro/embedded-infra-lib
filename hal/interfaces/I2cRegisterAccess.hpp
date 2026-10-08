@@ -2,6 +2,7 @@
 #define HAL_I2C_REGISTER_ACCESS_HPP
 
 #include "hal/interfaces/I2c.hpp"
+#include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/Endian.hpp"
 #include "infra/util/WithStorage.hpp"
 
@@ -32,7 +33,7 @@ namespace hal
         T dataRegister{};
         infra::ByteRange readData;
         infra::ConstByteRange writeData;
-        infra::Function<void()> onDone;
+        infra::AutoResetFunction<void()> onDone;
     };
 }
 
