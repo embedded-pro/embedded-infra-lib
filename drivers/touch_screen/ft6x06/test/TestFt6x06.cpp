@@ -268,6 +268,101 @@ TEST_F(Ft6x06Test, the_size_is_480_by_800_unless_configured_otherwise)
     EXPECT_EQ((hal::TouchScreenSize{ 240, 320 }), touchScreen->Size());
 }
 
+TEST_F(Ft6x06Test, the_points_are_in_the_orientation_of_the_panel_unless_configured_otherwise)
+{
+    CreateAndInitialize();
+    StartAndPressAt(100, 200);
+
+    EXPECT_EQ((hal::TouchScreenSize{ 480, 800 }), touchScreen->Size());
+    ASSERT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 100, 200 } }), events[0]);
+}
+
+TEST_F(Ft6x06Test, swapping_the_axes_exchanges_x_and_y_and_the_width_and_the_height)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation.swapAxes = true;
+    CreateAndInitialize(config);
+    StartAndPressAt(100, 200);
+
+    EXPECT_EQ((hal::TouchScreenSize{ 800, 480 }), touchScreen->Size());
+    ASSERT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 200, 100 } }), events[0]);
+}
+
+TEST_F(Ft6x06Test, mirroring_x_runs_x_from_the_last_column_to_the_first)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation.mirrorX = true;
+    CreateAndInitialize(config);
+    StartAndPressAt(100, 200);
+
+    ASSERT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 379, 200 } }), events[0]);
+}
+
+TEST_F(Ft6x06Test, mirroring_y_runs_y_from_the_last_row_to_the_first)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation.mirrorY = true;
+    CreateAndInitialize(config);
+    StartAndPressAt(100, 200);
+
+    ASSERT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 100, 599 } }), events[0]);
+}
+
+TEST_F(Ft6x06Test, the_axes_are_swapped_before_they_are_mirrored)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation = drivers::Ft6x06::Orientation{ true, true, false };
+    CreateAndInitialize(config);
+    StartAndPressAt(100, 200);
+
+    ASSERT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 599, 100 } }), events[0]);
+}
+
+TEST_F(Ft6x06Test, a_portrait_panel_driven_in_landscape_swaps_the_axes_and_mirrors_y)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation = drivers::Ft6x06::Orientation{ true, false, true };
+    CreateAndInitialize(config);
+
+    ExpectSample(OneTouch(0, 0));
+    Start();
+    ExecuteAllActions();
+    Poll(OneTouch(479, 799));
+
+    ASSERT_EQ(std::size_t(2), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 0, 479 } }), events[0]);
+    EXPECT_EQ((Event{ Phase::moved, { 799, 0 } }), events[1]);
+}
+
+TEST_F(Ft6x06Test, a_position_beyond_the_size_is_limited_before_it_is_oriented)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation = drivers::Ft6x06::Orientation{ true, false, true };
+    CreateAndInitialize(config);
+    StartAndPressAt(0xfff, 0xfff);
+
+    ASSERT_EQ(std::size_t(1), events.size());
+    EXPECT_EQ((Event{ Phase::pressed, { 799, 0 } }), events[0]);
+}
+
+TEST_F(Ft6x06Test, a_release_repeats_the_oriented_last_position)
+{
+    drivers::Ft6x06::Config config;
+    config.orientation = drivers::Ft6x06::Orientation{ true, false, true };
+    CreateAndInitialize(config);
+    StartAndPressAt(100, 200);
+
+    Poll(NoTouch());
+
+    ASSERT_EQ(std::size_t(2), events.size());
+    EXPECT_EQ((Event{ Phase::released, { 200, 379 } }), events[1]);
+}
+
 TEST_F(Ft6x06Test, Start_reads_the_touch_status_and_a_status_without_a_touch_reports_nothing)
 {
     CreateAndInitialize();

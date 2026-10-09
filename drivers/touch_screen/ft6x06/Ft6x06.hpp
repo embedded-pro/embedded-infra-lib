@@ -24,12 +24,20 @@ namespace drivers
             deviceNotFound
         };
 
+        struct Orientation
+        {
+            bool swapAxes{ false };
+            bool mirrorX{ false };
+            bool mirrorY{ false };
+        };
+
         struct Config
         {
             infra::Duration pollInterval{ std::chrono::milliseconds(20) };
             infra::Duration identificationRetryInterval{ std::chrono::milliseconds(100) };
             uint8_t identificationAttempts{ 30 };
             hal::TouchScreenSize size{ 480, 800 };
+            Orientation orientation;
         };
 
         Ft6x06(services::RegisterBusAccess& bus, const Config& config, const infra::Function<void(InitializationResult)>& onInitialized);

@@ -2,6 +2,7 @@
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
+#include <utility>
 
 namespace drivers
 {
@@ -54,6 +55,9 @@ namespace drivers
 
     hal::TouchScreenSize Ft6x06::Size() const
     {
+        if (config.orientation.swapAxes)
+            return hal::TouchScreenSize{ config.size.height, config.size.width };
+
         return config.size;
     }
 
@@ -177,7 +181,21 @@ namespace drivers
 
     hal::TouchPoint Ft6x06::DecodePoint() const
     {
-        return hal::TouchPoint{ Coordinate(sample[xHighIndex], sample[xLowIndex], config.size.width), Coordinate(sample[yHighIndex], sample[yLowIndex], config.size.height) };
+        uint16_t x = Coordinate(sample[xHighIndex], sample[xLowIndex], config.size.width);
+        uint16_t y = Coordinate(sample[yHighIndex], sample[yLowIndex], config.size.height);
+
+        if (config.orientation.swapAxes)
+            std::swap(x, y);
+
+        const hal::TouchScreenSize size = Size();
+
+        if (config.orientation.mirrorX)
+            x = static_cast<uint16_t>(size.width - 1 - x);
+
+        if (config.orientation.mirrorY)
+            y = static_cast<uint16_t>(size.height - 1 - y);
+
+        return hal::TouchPoint{ x, y };
     }
 
     void Ft6x06::Report(Phase phase, hal::TouchPoint point)
