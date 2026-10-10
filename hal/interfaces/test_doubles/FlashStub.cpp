@@ -62,33 +62,35 @@ namespace hal
                 return;
         }
 
+        auto [index, offset] = Locate(address);
         while (!buffer.empty())
         {
-            auto& sector = sectors[static_cast<std::size_t>(SectorOfAddress(address))];
-            auto offset = static_cast<std::size_t>(this->AddressOffsetInSector(address));
+            auto& sector = sectors[index];
             std::size_t size = std::min<std::size_t>(buffer.size(), sector.size() - offset);
 
             for (std::size_t i = 0; i != size; ++i)
                 sector[offset + i] &= buffer[i];
 
             buffer.pop_front(size);
-            address = this->StartOfNextSector(address);
+            ++index;
+            offset = 0;
         }
     }
 
     template<class T>
     void FlashStubBase<T>::ReadBuffer(infra::ByteRange buffer, T address, infra::Function<void()> onDone)
     {
+        auto [index, offset] = Locate(address);
         while (!buffer.empty())
         {
-            const auto& sector = sectors[static_cast<std::size_t>(SectorOfAddress(address))];
-            auto offset = static_cast<std::size_t>(this->AddressOffsetInSector(address));
+            const auto& sector = sectors[index];
             std::size_t size = std::min<std::size_t>(buffer.size(), sector.size() - offset);
 
             std::copy(sector.begin() + offset, sector.begin() + offset + size, buffer.begin());
 
             buffer.pop_front(size);
-            address = this->StartOfNextSectorCyclical(address);
+            index = (index + 1) % sectors.size();
+            offset = 0;
         }
 
         infra::EventDispatcher::Instance().Schedule(onDone);
@@ -103,6 +105,19 @@ namespace hal
         onEraseDone = onDone;
         if (!delaySignalEraseDone)
             infra::EventDispatcher::Instance().Schedule(onDone);
+    }
+
+    template<class T>
+    std::pair<std::size_t, std::size_t> FlashStubBase<T>::Locate(T address) const
+    {
+        std::size_t index = 0;
+        while (index != sectors.size() && address >= sectors[index].size())
+        {
+            address -= sectors[index].size();
+            ++index;
+        }
+
+        return { index, static_cast<std::size_t>(address) };
     }
 
     template class FlashStubBase<uint32_t>;
