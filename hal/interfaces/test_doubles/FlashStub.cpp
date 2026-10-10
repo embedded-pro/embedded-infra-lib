@@ -1,5 +1,6 @@
 #include "hal/interfaces/test_doubles/FlashStub.hpp"
 #include "infra/event/EventDispatcher.hpp"
+#include <algorithm>
 
 namespace hal
 {
@@ -63,10 +64,12 @@ namespace hal
 
         while (!buffer.empty())
         {
-            std::size_t size = std::min<uint32_t>(buffer.size(), SizeOfSector(SectorOfAddress(address)) - static_cast<std::size_t>(this->AddressOffsetInSector(address)));
+            auto& sector = sectors[static_cast<std::size_t>(SectorOfAddress(address))];
+            auto offset = static_cast<std::size_t>(this->AddressOffsetInSector(address));
+            std::size_t size = std::min<std::size_t>(buffer.size(), sector.size() - offset);
 
             for (std::size_t i = 0; i != size; ++i)
-                sectors[static_cast<std::size_t>(SectorOfAddress(address))][static_cast<std::size_t>(this->AddressOffsetInSector(address) + i)] &= buffer[i];
+                sector[offset + i] &= buffer[i];
 
             buffer.pop_front(size);
             address = this->StartOfNextSector(address);
@@ -78,8 +81,11 @@ namespace hal
     {
         while (!buffer.empty())
         {
-            std::size_t size = std::min<uint32_t>(buffer.size(), SizeOfSector(SectorOfAddress(address)) - static_cast<std::size_t>(this->AddressOffsetInSector(address)));
-            std::copy(sectors[static_cast<std::size_t>(SectorOfAddress(address))].begin() + static_cast<std::size_t>(this->AddressOffsetInSector(address)), sectors[static_cast<std::size_t>(SectorOfAddress(address))].begin() + static_cast<std::size_t>(this->AddressOffsetInSector(address)) + size, buffer.begin());
+            const auto& sector = sectors[static_cast<std::size_t>(SectorOfAddress(address))];
+            auto offset = static_cast<std::size_t>(this->AddressOffsetInSector(address));
+            std::size_t size = std::min<std::size_t>(buffer.size(), sector.size() - offset);
+
+            std::copy(sector.begin() + offset, sector.begin() + offset + size, buffer.begin());
 
             buffer.pop_front(size);
             address = this->StartOfNextSectorCyclical(address);

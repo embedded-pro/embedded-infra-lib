@@ -365,6 +365,71 @@ TEST_F(BlockDeviceTest, ReadBlocks_InCompletionCallback_StartsNewOperation_Works
     EXPECT_EQ(writeData, secondReadBuffer);
 }
 
+TEST_F(BlockDeviceTest, Flush_CompletionNotInvokedBeforeExecuteAllActions)
+{
+    bool done = false;
+
+    device.Flush([&done](hal::BlockDevice::Result)
+        {
+            done = true;
+        });
+
+    EXPECT_FALSE(done);
+}
+
+TEST_F(BlockDeviceTest, Flush_CompletesWithSuccess)
+{
+    hal::BlockDevice::Result receivedResult = hal::BlockDevice::Result::failed;
+
+    device.Flush([&receivedResult](hal::BlockDevice::Result result)
+        {
+            receivedResult = result;
+        });
+    ExecuteAllActions();
+
+    EXPECT_EQ(hal::BlockDevice::Result::success, receivedResult);
+}
+
+TEST_F(BlockDeviceTest, Flush_AfterFailNextOperationWith_DeliversChosenResultOnce)
+{
+    hal::BlockDevice::Result firstResult = hal::BlockDevice::Result::success;
+    hal::BlockDevice::Result secondResult = hal::BlockDevice::Result::failed;
+
+    device.FailNextOperationWith(hal::BlockDevice::Result::timeout);
+
+    device.Flush([&firstResult](hal::BlockDevice::Result result)
+        {
+            firstResult = result;
+        });
+    ExecuteAllActions();
+    device.Flush([&secondResult](hal::BlockDevice::Result result)
+        {
+            secondResult = result;
+        });
+    ExecuteAllActions();
+
+    EXPECT_EQ(hal::BlockDevice::Result::timeout, firstResult);
+    EXPECT_EQ(hal::BlockDevice::Result::success, secondResult);
+}
+
+TEST_F(BlockDeviceTest, Flush_DoesNotChangeStorage)
+{
+    std::array<uint8_t, blockSize> writeData{};
+    std::array<uint8_t, blockSize> readData{};
+
+    for (uint8_t i = 0; i < blockSize; ++i)
+        writeData[i] = i;
+
+    device.WriteBlocks(infra::MakeConstRange(writeData), 1, [](hal::BlockDevice::Result) {});
+    ExecuteAllActions();
+    device.Flush([](hal::BlockDevice::Result) {});
+    ExecuteAllActions();
+    device.ReadBlocks(infra::MakeRange(readData), 1, [](hal::BlockDevice::Result) {});
+    ExecuteAllActions();
+
+    EXPECT_EQ(writeData, readData);
+}
+
 TEST(BlockDeviceMockTest, Mock_OnDoneCallback_CanBeInvokedWithEachResult)
 {
     using Result = hal::BlockDevice::Result;
@@ -387,4 +452,25 @@ TEST(BlockDeviceMockTest, Mock_OnDoneCallback_CanBeInvokedWithEachResult)
     {
         capturedCallback(result);
     }
+}
+
+TEST(BlockDeviceMockTest, Mock_Flush_CanBeExpected)
+{
+    using Result = hal::BlockDevice::Result;
+
+    testing::StrictMock<hal::BlockDeviceMock> mock;
+    Result receivedResult = Result::failed;
+
+    EXPECT_CALL(mock, Flush(testing::_))
+        .WillOnce([](const infra::Function<void(Result)>& onDone)
+            {
+                onDone(Result::success);
+            });
+
+    mock.Flush([&receivedResult](Result result)
+        {
+            receivedResult = result;
+        });
+
+    EXPECT_EQ(Result::success, receivedResult);
 }

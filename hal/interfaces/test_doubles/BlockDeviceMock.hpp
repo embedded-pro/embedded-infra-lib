@@ -15,6 +15,7 @@ namespace hal
         MOCK_METHOD(void, ReadBlocks, (infra::ByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(void, WriteBlocks, (infra::ConstByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone), (override));
         MOCK_METHOD(void, EraseBlocks, (uint32_t beginBlock, uint32_t endBlock, const infra::Function<void(Result)>& onDone), (override));
+        MOCK_METHOD(void, Flush, (const infra::Function<void(Result)>& onDone), (override));
     };
 }
 
