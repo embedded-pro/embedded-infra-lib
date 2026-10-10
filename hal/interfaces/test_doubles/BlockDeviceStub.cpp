@@ -87,6 +87,12 @@ namespace hal
         ScheduleCompletion(Result::success);
     }
 
+    void BlockDeviceStub::Flush(const infra::Function<void(Result)>& onDone)
+    {
+        this->onDone = onDone;
+        ScheduleCompletion(ConsumeInjectedFailure().value_or(Result::success));
+    }
+
     void BlockDeviceStub::FailNextOperationWith(Result result)
     {
         injectedFailure = result;

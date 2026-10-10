@@ -31,7 +31,10 @@ namespace hal
         virtual uint32_t NumberOfBlocks() const = 0;
         virtual void ReadBlocks(infra::ByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone) = 0;
         virtual void WriteBlocks(infra::ConstByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone) = 0;
+        // The contents of the blocks are undefined afterwards: implementations may erase, trim or discard them
         virtual void EraseBlocks(uint32_t beginBlock, uint32_t endBlock, const infra::Function<void(Result)>& onDone) = 0;
+        // Completes once every write that has completed is durable on the medium, including data held in a cache of the device
+        virtual void Flush(const infra::Function<void(Result)>& onDone) = 0;
     };
 }
 

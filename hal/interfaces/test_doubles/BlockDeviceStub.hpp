@@ -24,6 +24,7 @@ namespace hal
         void ReadBlocks(infra::ByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone) override;
         void WriteBlocks(infra::ConstByteRange buffer, uint32_t firstBlock, const infra::Function<void(Result)>& onDone) override;
         void EraseBlocks(uint32_t beginBlock, uint32_t endBlock, const infra::Function<void(Result)>& onDone) override;
+        void Flush(const infra::Function<void(Result)>& onDone) override;
 
         void FailNextOperationWith(Result result);
 
