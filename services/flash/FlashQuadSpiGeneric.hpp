@@ -12,7 +12,13 @@ namespace services
     public:
         static const uint8_t statusFlagWriteInProgress = 1;
 
-        FlashQuadSpiGeneric(hal::QuadSpi& spi, const FlashGeometryQuad& geometry);
+        enum class Protocol : uint8_t
+        {
+            quad,
+            extendedSpi
+        };
+
+        FlashQuadSpiGeneric(hal::QuadSpi& spi, const FlashGeometryQuad& geometry, Protocol protocol = Protocol::quad);
 
         void ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone) override;
 
@@ -24,9 +30,13 @@ namespace services
         void SendEraseSector(uint32_t sectorIndex);
         void SendEraseBulk();
         void HoldWhileWriteInProgress() override;
+        hal::QuadSpi::Lines CommandLines() const;
+        hal::QuadSpi::Lines ReadLines() const;
+        hal::QuadSpi::Lines ProgramLines() const;
 
     private:
         const FlashGeometryQuad& geometry;
+        Protocol protocol;
     };
 }
 

@@ -35,7 +35,15 @@ namespace
         return MakeSfdpHeader(0x80, 0x00, 0x00);
     }
 
-    // Base 64-byte BFPT: 16 MB, 4 KB sub-sector (0x20), 64 KB sector (0xD8), 256-byte page.
+    constexpr uint32_t threeOrFourByteAddresses = 1u << 17;
+    constexpr uint32_t fourByteAddresses = 2u << 17;
+
+    void SetDword(std::vector<uint8_t>& bfpt, std::size_t dword, uint32_t value)
+    {
+        for (std::size_t byte = 0; byte != 4; ++byte)
+            bfpt[(dword - 1) * 4 + byte] = static_cast<uint8_t>(value >> (8 * byte));
+    }
+
     std::vector<uint8_t> MakeBfpt()
     {
         std::vector<uint8_t> bfpt(64, 0x00);
@@ -44,15 +52,22 @@ namespace
         bfpt[5] = 0xFF;
         bfpt[6] = 0xFF;
         bfpt[7] = 0x07;
-        // DW4: erase type 1 (4 KB, cmd=0x20), erase type 2 (64 KB, cmd=0xD8)
-        bfpt[12] = 0x0C;
-        bfpt[13] = 0x20;
-        bfpt[14] = 0x10;
-        bfpt[15] = 0xD8;
+        bfpt[28] = 0x0C;
+        bfpt[29] = 0x20;
+        bfpt[30] = 0x10;
+        bfpt[31] = 0xD8;
         // DW11: page size exp=8 → 256 bytes
         bfpt[40] = 0x80;
         return bfpt;
     }
+
+    const std::vector<uint8_t> mt25ql512Header{ 0x53, 0x46, 0x44, 0x50, 0x06, 0x01, 0x01, 0xff, 0x00, 0x06, 0x01, 0x10, 0x30, 0x00, 0x00, 0xff };
+    const std::vector<uint8_t> mt25ql512Bfpt{
+        0xe5, 0x20, 0xfb, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x29, 0xeb, 0x27, 0x6b, 0x27, 0x3b, 0x27, 0xbb,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x27, 0xbb, 0xff, 0xff, 0x29, 0xeb, 0x0c, 0x20, 0x10, 0xd8,
+        0x0f, 0x52, 0x00, 0x00, 0x24, 0x4a, 0x99, 0x00, 0x8b, 0x8e, 0x03, 0xe1, 0xac, 0x01, 0x27, 0x38,
+        0x7a, 0x75, 0x7a, 0x75, 0xfb, 0xbd, 0xd5, 0x5c, 0x4a, 0x0f, 0x82, 0xff, 0x81, 0xbd, 0x3d, 0x36
+    };
 
     void ExpectSfdpReads(testing::StrictMock<hal::SpiMock>& spiMock,
         const std::vector<uint8_t>& header,
@@ -174,10 +189,9 @@ TEST_F(FlashGeometrySfdpBranchTest, ValidSignatureWithZeroBfptAddressFallsBackTo
 
 TEST_F(FlashGeometrySfdpBranchTest, ExtendedAddressingSetForFourByteOnlyMode)
 {
-    // addrMode = 0b10 = 2 in DW1 bits [2:0]
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[0] = 0x02; // DW1 addrMode = 2 → 4-byte only
+    SetDword(bfpt, 1, fourByteAddresses);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -193,15 +207,10 @@ TEST_F(FlashGeometrySfdpBranchTest, ExtendedAddressingSetForFourByteOnlyMode)
 
 TEST_F(FlashGeometrySfdpBranchTest, ExtendedAddressingSetForMode1WhenFlashLargerThan16MB)
 {
-    // addrMode = 1 (3-or-4 byte), density > 16MB → extendedAddressing
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[0] = 0x01; // DW1 addrMode = 1
-    // DW2: 32 MB = (0x0FFFFFFF + 1) bits / 8 = 32 MB
-    bfpt[4] = 0xFF;
-    bfpt[5] = 0xFF;
-    bfpt[6] = 0xFF;
-    bfpt[7] = 0x0F;
+    SetDword(bfpt, 1, threeOrFourByteAddresses);
+    SetDword(bfpt, 2, 0x0FFFFFFF);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -243,8 +252,8 @@ TEST_F(FlashGeometrySfdpBranchTest, OnlyOneEraseSizeGivesSectorEqualToSubSector)
     // Only erase type 1 defined (4 KB); no larger erase type → sizeSector = sizeSubSector
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[14] = 0x00; // erase type 2 size_exp = 0 → not supported
-    bfpt[15] = 0x00;
+    bfpt[30] = 0x00;
+    bfpt[31] = 0x00;
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -315,4 +324,101 @@ TEST_F(FlashGeometrySfdpBranchTest, ShortBfptTableLeavesQerAtZero)
     // No assertion on qer (not exposed by FlashGeometrySfdp), but this exercises the branch.
     // Density/erase types are still parsed from the short table; only QER (DW15) is skipped.
     EXPECT_EQ(4096u, geometry.NrOfSubSectors());
+}
+
+TEST_F(FlashGeometrySfdpBranchTest, ThreeOrFourByteAddressesOfASmallFlashStayThreeByte)
+{
+    testing::InSequence s;
+    auto bfpt = MakeBfpt();
+    SetDword(bfpt, 1, threeOrFourByteAddresses);
+
+    ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometrySfdp geometry{ spiMock, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+
+    EXPECT_FALSE(geometry.ExtendedAddressing());
+}
+
+TEST_F(FlashGeometrySfdpBranchTest, TheFirstThreeBitsOfDword1DoNotSelectTheAddressMode)
+{
+    testing::InSequence s;
+    auto bfpt = MakeBfpt();
+    SetDword(bfpt, 1, 0x07);
+    SetDword(bfpt, 2, 0x1FFFFFFF);
+
+    ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometrySfdp geometry{ spiMock, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+
+    EXPECT_FALSE(geometry.ExtendedAddressing());
+}
+
+TEST_F(FlashGeometrySfdpBranchTest, EraseTypesAreReadFromDword8And9)
+{
+    testing::InSequence s;
+    auto bfpt = MakeBfpt();
+    SetDword(bfpt, 4, 0xBB083B08);
+    SetDword(bfpt, 9, 0x0000520F);
+
+    ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometrySfdp geometry{ spiMock, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+
+    EXPECT_EQ(4096u, geometry.SizeSubSector());
+    EXPECT_EQ(65536u, geometry.SizeSector());
+    EXPECT_EQ(4096u, geometry.NrOfSubSectors());
+}
+
+TEST_F(FlashGeometrySfdpBranchTest, TableTooShortForTheEraseTypesKeepsTheDefaultEraseSizesAndStillUsesTheDensity)
+{
+    testing::InSequence s;
+    auto bfpt = MakeBfpt();
+    SetDword(bfpt, 8, 0xD810420A);
+
+    ExpectSfdpReads(spiMock, MakeSfdpHeader(0x80, 0x00, 0x00, 0x08), bfpt);
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometrySfdp geometry{ spiMock, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+
+    EXPECT_EQ(4096u, geometry.SizeSubSector());
+    EXPECT_EQ(65536u, geometry.SizeSector());
+    EXPECT_EQ(4096u, geometry.NrOfSubSectors());
+}
+
+TEST_F(FlashGeometrySfdpBranchTest, TheSfdpOfAnMt25ql512IsParsed)
+{
+    testing::InSequence s;
+    ExpectSfdpReads(spiMock, mt25ql512Header, mt25ql512Bfpt);
+    EXPECT_CALL(onInitialized, callback());
+
+    services::FlashGeometrySfdp geometry{ spiMock, [this]()
+        {
+            onInitialized.callback();
+        } };
+    ExecuteAllActions();
+
+    EXPECT_EQ(16384u, geometry.NrOfSubSectors());
+    EXPECT_EQ(4096u, geometry.SizeSubSector());
+    EXPECT_EQ(65536u, geometry.SizeSector());
+    EXPECT_EQ(256u, geometry.SizePage());
+    EXPECT_TRUE(geometry.ExtendedAddressing());
 }

@@ -16,6 +16,11 @@ namespace services
         virtual uint8_t PageProgramCommand() const = 0;
         virtual uint8_t ReadDataCommand() const = 0;
         virtual uint8_t ReadDummyCycles() const = 0;
+
+        virtual uint8_t ReadAddressLines() const
+        {
+            return 4;
+        }
     };
 }
 

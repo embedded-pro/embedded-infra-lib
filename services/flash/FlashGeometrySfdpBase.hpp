@@ -28,6 +28,7 @@ namespace services
         uint8_t EraseSectorCommandValue() const;
         uint8_t ReadDataCommandValue() const;
         uint8_t ReadDummyCyclesValue() const;
+        uint8_t ReadAddressLinesValue() const;
         uint8_t QerValue() const;
 
     private:
@@ -45,8 +46,8 @@ namespace services
         bool ParseSfdpHeader();
         void ParseBfpt();
         uint64_t ParseDensityAndAddressMode(uint32_t dword1, uint32_t dword2);
-        void ParseFastReadQuad(uint32_t dword3);
-        void ParseEraseTypes(uint32_t dword4, uint32_t dword5, uint64_t totalBytes);
+        void ParseFastReadQuad(uint32_t dword1, uint32_t dword3);
+        void ParseEraseTypes();
         void ParsePageSize();
         void ParseQer();
         uint32_t ReadBfptDword(uint8_t dwordIndex) const;
@@ -69,6 +70,7 @@ namespace services
         uint8_t eraseSectorCommand = 0xD8;
         uint8_t readDataCommand = 0xEB;
         uint8_t readDummyCycles = 10;
+        uint8_t readAddressLines = 4;
         uint8_t qer = 0;
     };
 
@@ -92,6 +94,7 @@ namespace services
         using FlashGeometrySfdpParser::OnBfptParsed;
         using FlashGeometrySfdpParser::PerformRead;
         using FlashGeometrySfdpParser::QerValue;
+        using FlashGeometrySfdpParser::ReadAddressLinesValue;
         using FlashGeometrySfdpParser::ReadDataCommandValue;
         using FlashGeometrySfdpParser::ReadDummyCyclesValue;
     };

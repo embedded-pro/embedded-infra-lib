@@ -3,6 +3,7 @@
 #include "infra/util/test_helper/MockCallback.hpp"
 #include "services/flash/FlashGeometryQuadSfdp.hpp"
 #include "gmock/gmock.h"
+#include <optional>
 
 namespace
 {
@@ -35,13 +36,27 @@ namespace
         bfpt[5] = 0xFF;
         bfpt[6] = 0xFF;
         bfpt[7] = 0x07; // DW2: 16 MB
-        bfpt[12] = 0x0C;
-        bfpt[13] = 0x20;
-        bfpt[14] = 0x10;
-        bfpt[15] = 0xD8;                                    // DW4: erase types
+        bfpt[28] = 0x0C;
+        bfpt[29] = 0x20;
+        bfpt[30] = 0x10;
+        bfpt[31] = 0xD8;
         bfpt[40] = 0x80;                                    // DW11: 256-byte page
         bfpt[58] = static_cast<uint8_t>((qer & 0x07) << 4); // DW15: QER
         return bfpt;
+    }
+
+    constexpr uint32_t fastRead144Supported = 1u << 21;
+    constexpr uint32_t fastRead114Supported = 1u << 22;
+
+    constexpr uint32_t FastReadField(uint8_t instruction, uint8_t modeClocks, uint8_t waitStates)
+    {
+        return static_cast<uint32_t>(instruction) << 8 | static_cast<uint32_t>(modeClocks) << 5 | waitStates;
+    }
+
+    void SetDword(std::vector<uint8_t>& bfpt, std::size_t dword, uint32_t value)
+    {
+        for (std::size_t byte = 0; byte != 4; ++byte)
+            bfpt[(dword - 1) * 4 + byte] = static_cast<uint8_t>(value >> (8 * byte));
     }
 
     hal::QuadSpi::Header SfdpHeader(uint32_t address)
@@ -257,35 +272,110 @@ TEST_F(FlashGeometryQuadSfdpTest, UnknownQerValueFiresOnInitializedWithoutExtraS
     ExecuteAllActions();
 }
 
-TEST_F(FlashGeometryQuadSfdpTest, FastReadQuadCommandAndDummyCyclesParsedFromDword3)
+class FlashGeometryQuadSfdpFastReadTest
+    : public FlashGeometryQuadSfdpTest
 {
-    // DW3 bit 0 = 1: fast read 1-4-4 supported.
-    // bits [31:24] = instruction (0xEB), bits [20:16] = wait states (10 = 0x0A)
-    // DW3 = (0xEB << 24) | (0x0A << 16) | 0x01 = 0xEB0A0001
-    // As bytes (little-endian): [0x01, 0x00, 0x0A, 0xEB]
-    static std::vector<uint8_t> bfptWithFastRead;
+public:
+    void Initialize(std::vector<uint8_t> bfpt)
+    {
+        sfdp = bfpt;
+
+        testing::InSequence s;
+        EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000000), hal::QuadSpi::Lines::SingleSpeed()))
+            .WillOnce(testing::Return(infra::MakeRange(sfdpHeader.data(), sfdpHeader.data() + sfdpHeader.size())));
+        EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000080), hal::QuadSpi::Lines::SingleSpeed()))
+            .WillOnce(testing::Return(infra::MakeRange(sfdp.data(), sfdp.data() + sfdp.size())));
+        EXPECT_CALL(onInitialized, callback());
+
+        geometry.emplace(spiStub, [this]()
+            {
+                onInitialized.callback();
+            });
+        ExecuteAllActions();
+    }
+
+    std::vector<uint8_t> sfdp;
+    std::optional<services::FlashGeometryQuadSfdp> geometry;
+};
+
+TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsParsedFromTheLowerHalfOfDword3)
+{
+    auto bfpt = MakeBfptWithQer(0);
+    SetDword(bfpt, 1, fastRead144Supported);
+    SetDword(bfpt, 3, FastReadField(0xEB, 2, 8) | FastReadField(0x6B, 1, 7) << 16);
+    Initialize(bfpt);
+
+    EXPECT_EQ(0xEB, geometry->ReadDataCommand());
+    EXPECT_EQ(10u, geometry->ReadDummyCycles());
+    EXPECT_EQ(4u, geometry->ReadAddressLines());
+}
+
+TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf114IsUsedWhenThe144IsNotSupported)
+{
+    auto bfpt = MakeBfptWithQer(0);
+    SetDword(bfpt, 1, fastRead114Supported);
+    SetDword(bfpt, 3, FastReadField(0x6B, 1, 7) << 16);
+    Initialize(bfpt);
+
+    EXPECT_EQ(0x6B, geometry->ReadDataCommand());
+    EXPECT_EQ(8u, geometry->ReadDummyCycles());
+    EXPECT_EQ(1u, geometry->ReadAddressLines());
+}
+
+TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsPreferredWhenBothAreSupported)
+{
+    auto bfpt = MakeBfptWithQer(0);
+    SetDword(bfpt, 1, fastRead144Supported | fastRead114Supported);
+    SetDword(bfpt, 3, FastReadField(0xEB, 1, 9) | FastReadField(0x6B, 1, 7) << 16);
+    Initialize(bfpt);
+
+    EXPECT_EQ(0xEB, geometry->ReadDataCommand());
+    EXPECT_EQ(10u, geometry->ReadDummyCycles());
+    EXPECT_EQ(4u, geometry->ReadAddressLines());
+}
+
+TEST_F(FlashGeometryQuadSfdpFastReadTest, WithoutAQuadFastReadTheDefaultsAreKept)
+{
+    auto bfpt = MakeBfptWithQer(0);
+    SetDword(bfpt, 3, FastReadField(0x3B, 0, 1) | FastReadField(0x6B, 0, 7) << 16);
+    Initialize(bfpt);
+
+    EXPECT_EQ(0xEB, geometry->ReadDataCommand());
+    EXPECT_EQ(10u, geometry->ReadDummyCycles());
+    EXPECT_EQ(4u, geometry->ReadAddressLines());
+}
+
+TEST_F(FlashGeometryQuadSfdpFastReadTest, TheSfdpOfAnMt25ql512IsParsed)
+{
+    static const std::vector<uint8_t> header{ 0x53, 0x46, 0x44, 0x50, 0x06, 0x01, 0x01, 0xff, 0x00, 0x06, 0x01, 0x10, 0x30, 0x00, 0x00, 0xff };
+    static const std::vector<uint8_t> bfpt{
+        0xe5, 0x20, 0xfb, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x29, 0xeb, 0x27, 0x6b, 0x27, 0x3b, 0x27, 0xbb,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x27, 0xbb, 0xff, 0xff, 0x29, 0xeb, 0x0c, 0x20, 0x10, 0xd8,
+        0x0f, 0x52, 0x00, 0x00, 0x24, 0x4a, 0x99, 0x00, 0x8b, 0x8e, 0x03, 0xe1, 0xac, 0x01, 0x27, 0x38,
+        0x7a, 0x75, 0x7a, 0x75, 0xfb, 0xbd, 0xd5, 0x5c, 0x4a, 0x0f, 0x82, 0xff, 0x81, 0xbd, 0x3d, 0x36
+    };
 
     testing::InSequence s;
     EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000000), hal::QuadSpi::Lines::SingleSpeed()))
-        .WillOnce(testing::Return(infra::MakeRange(sfdpHeader.data(), sfdpHeader.data() + sfdpHeader.size())));
-    EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000080), hal::QuadSpi::Lines::SingleSpeed()))
-        .WillOnce([](const hal::QuadSpi::Header&, hal::QuadSpi::Lines) -> infra::ConstByteRange
-            {
-                bfptWithFastRead = MakeBfptWithQer(0);
-                bfptWithFastRead[8] = 0x01;  // DW3 byte 0: bit 0 = 1 (fast read supported)
-                bfptWithFastRead[9] = 0x00;  // DW3 byte 1
-                bfptWithFastRead[10] = 0x0A; // DW3 byte 2: bits [20:16] = wait states = 10
-                bfptWithFastRead[11] = 0xEB; // DW3 byte 3: bits [31:24] = instruction = 0xEB
-                return infra::MakeRange(bfptWithFastRead.data(), bfptWithFastRead.data() + bfptWithFastRead.size());
-            });
+        .WillOnce(testing::Return(infra::MakeRange(header.data(), header.data() + header.size())));
+    EXPECT_CALL(spiStub, ReceiveDataMock(SfdpHeader(0x000030), hal::QuadSpi::Lines::SingleSpeed()))
+        .WillOnce(testing::Return(infra::MakeRange(bfpt.data(), bfpt.data() + bfpt.size())));
     EXPECT_CALL(onInitialized, callback());
 
-    services::FlashGeometryQuadSfdp geometry{ spiStub, [this]()
+    geometry.emplace(spiStub, [this]()
         {
             onInitialized.callback();
-        } };
+        });
     ExecuteAllActions();
 
-    EXPECT_EQ(0xEB, geometry.ReadDataCommand());
-    EXPECT_EQ(10u, geometry.ReadDummyCycles());
+    EXPECT_EQ(16384u, geometry->NrOfSubSectors());
+    EXPECT_EQ(4096u, geometry->SizeSubSector());
+    EXPECT_EQ(65536u, geometry->SizeSector());
+    EXPECT_EQ(256u, geometry->SizePage());
+    EXPECT_TRUE(geometry->ExtendedAddressing());
+    EXPECT_EQ(0x20, geometry->EraseSubSectorCommand());
+    EXPECT_EQ(0xD8, geometry->EraseSectorCommand());
+    EXPECT_EQ(0xEB, geometry->ReadDataCommand());
+    EXPECT_EQ(10u, geometry->ReadDummyCycles());
+    EXPECT_EQ(4u, geometry->ReadAddressLines());
 }

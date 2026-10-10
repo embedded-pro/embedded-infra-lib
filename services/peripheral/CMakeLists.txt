@@ -16,6 +16,8 @@ target_sources(services.peripheral PRIVATE
     GpioPinInverted.hpp
     I2cMultipleAccess.cpp
     I2cMultipleAccess.hpp
+    I2cScanner.cpp
+    I2cScanner.hpp
     LowPowerSerialCommunication.cpp
     LowPowerSerialCommunication.hpp
     LowPowerSpiMaster.cpp

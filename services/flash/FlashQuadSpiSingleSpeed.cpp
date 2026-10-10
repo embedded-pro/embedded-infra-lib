@@ -23,14 +23,14 @@ namespace services
 
     void FlashQuadSpiSingleSpeed::ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
-        const hal::QuadSpi::Header header{ std::make_optional(commandReadData), hal::QuadSpi::AddressToVector(address, 3), {}, 0 };
+        const hal::QuadSpi::Header header{ std::make_optional(AddressedCommand(commandReadData)), ConvertAddress(address), {}, 0 };
 
         spi.ReceiveData(header, buffer, hal::QuadSpi::Lines::SingleSpeed(), onDone);
     }
 
     void FlashQuadSpiSingleSpeed::PageProgram()
     {
-        hal::QuadSpi::Header pageProgramHeader{ std::make_optional(commandPageProgram), ConvertAddress(address), {}, 0 };
+        hal::QuadSpi::Header pageProgramHeader{ std::make_optional(AddressedCommand(commandPageProgram)), ConvertAddress(address), {}, 0 };
 
         infra::ConstByteRange currentBuffer = infra::Head(buffer, geometry.SizePage() - AddressOffsetInSector(address) % geometry.SizePage());
         buffer.pop_front(currentBuffer.size());
@@ -74,7 +74,7 @@ namespace services
 
     void FlashQuadSpiSingleSpeed::SendEraseSector(uint32_t sectorIndex)
     {
-        hal::QuadSpi::Header eraseSectorHeader{ std::make_optional(commandEraseSector), ConvertAddress(AddressOfSector(sectorIndex)), {}, 0 };
+        hal::QuadSpi::Header eraseSectorHeader{ std::make_optional(AddressedCommand(commandEraseSector)), ConvertAddress(AddressOfSector(sectorIndex)), {}, 0 };
         spi.SendData(eraseSectorHeader, {}, hal::QuadSpi::Lines::SingleSpeed(), [this]()
             {
                 sequencer.Continue();
@@ -83,7 +83,7 @@ namespace services
 
     void FlashQuadSpiSingleSpeed::SendEraseBlock(uint32_t sectorIndex)
     {
-        hal::QuadSpi::Header eraseBlockHeader{ std::make_optional(commandEraseBlock), ConvertAddress(AddressOfSector(sectorIndex)), {}, 0 };
+        hal::QuadSpi::Header eraseBlockHeader{ std::make_optional(AddressedCommand(commandEraseBlock)), ConvertAddress(AddressOfSector(sectorIndex)), {}, 0 };
         spi.SendData(eraseBlockHeader, {}, hal::QuadSpi::Lines::SingleSpeed(), [this]()
             {
                 sequencer.Continue();

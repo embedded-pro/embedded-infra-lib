@@ -32,6 +32,7 @@ namespace services
         uint8_t PageProgramCommand() const override;
         uint8_t ReadDataCommand() const override;
         uint8_t ReadDummyCycles() const override;
+        uint8_t ReadAddressLines() const override;
 
     private:
         struct QerReadSr2
