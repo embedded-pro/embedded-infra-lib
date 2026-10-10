@@ -8,17 +8,7 @@ namespace services
         constexpr uint8_t commandReadStatusRegister = 0x05;
     }
 
-    FlashQuadSpiGeneric::Protocol FlashQuadSpiGeneric::Protocol::Quad()
-    {
-        return { hal::QuadSpi::Lines::QuadSpeed(), hal::QuadSpi::Lines::QuadSpeed(), hal::QuadSpi::Lines::QuadSpeed() };
-    }
-
-    FlashQuadSpiGeneric::Protocol FlashQuadSpiGeneric::Protocol::ExtendedSpi()
-    {
-        return { hal::QuadSpi::Lines::SingleSpeed(), hal::QuadSpi::Lines::MixedSpeed(1, 4, 4), hal::QuadSpi::Lines::MixedSpeed(1, 1, 4) };
-    }
-
-    FlashQuadSpiGeneric::FlashQuadSpiGeneric(hal::QuadSpi& spi, const FlashGeometryQuad& geometry, const Protocol& protocol)
+    FlashQuadSpiGeneric::FlashQuadSpiGeneric(hal::QuadSpi& spi, const FlashGeometryQuad& geometry, Protocol protocol)
         : FlashQuadSpi(spi, geometry)
         , geometry(geometry)
         , protocol(protocol)
@@ -27,7 +17,7 @@ namespace services
     void FlashQuadSpiGeneric::ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
         const hal::QuadSpi::Header header{ std::make_optional(AddressedCommand(geometry.ReadDataCommand())), ConvertAddress(address), {}, geometry.ReadDummyCycles() };
-        spi.ReceiveData(header, buffer, protocol.read, onDone);
+        spi.ReceiveData(header, buffer, ReadLines(), onDone);
     }
 
     void FlashQuadSpiGeneric::PageProgram()
@@ -38,7 +28,7 @@ namespace services
         buffer.pop_front(currentBuffer.size());
         address += currentBuffer.size();
 
-        spi.SendData(pageProgramHeader, currentBuffer, protocol.program, [this]()
+        spi.SendData(pageProgramHeader, currentBuffer, ProgramLines(), [this]()
             {
                 sequencer.Continue();
             });
@@ -47,7 +37,7 @@ namespace services
     void FlashQuadSpiGeneric::WriteEnable()
     {
         static const hal::QuadSpi::Header writeEnableHeader{ std::make_optional(commandWriteEnable), {}, {}, 0 };
-        spi.SendData(writeEnableHeader, {}, protocol.command, [this]()
+        spi.SendData(writeEnableHeader, {}, CommandLines(), [this]()
             {
                 sequencer.Continue();
             });
@@ -77,7 +67,7 @@ namespace services
     void FlashQuadSpiGeneric::SendEraseSubSector(uint32_t sectorIndex)
     {
         const hal::QuadSpi::Header eraseHeader{ std::make_optional(AddressedCommand(geometry.EraseSubSectorCommand())), ConvertAddress(AddressOfSector(sectorIndex)), {}, 0 };
-        spi.SendData(eraseHeader, {}, protocol.command, [this]()
+        spi.SendData(eraseHeader, {}, CommandLines(), [this]()
             {
                 sequencer.Continue();
             });
@@ -86,7 +76,7 @@ namespace services
     void FlashQuadSpiGeneric::SendEraseSector(uint32_t sectorIndex)
     {
         const hal::QuadSpi::Header eraseHeader{ std::make_optional(AddressedCommand(geometry.EraseSectorCommand())), ConvertAddress(AddressOfSector(sectorIndex)), {}, 0 };
-        spi.SendData(eraseHeader, {}, protocol.command, [this]()
+        spi.SendData(eraseHeader, {}, CommandLines(), [this]()
             {
                 sequencer.Continue();
             });
@@ -95,7 +85,7 @@ namespace services
     void FlashQuadSpiGeneric::SendEraseBulk()
     {
         static const hal::QuadSpi::Header eraseBulkHeader{ std::make_optional(geometry.EraseBulkCommand()), {}, {}, 0 };
-        spi.SendData(eraseBulkHeader, {}, protocol.command, [this]()
+        spi.SendData(eraseBulkHeader, {}, CommandLines(), [this]()
             {
                 sequencer.Continue();
             });
@@ -104,9 +94,24 @@ namespace services
     void FlashQuadSpiGeneric::HoldWhileWriteInProgress()
     {
         static const hal::QuadSpi::Header pollHeader{ std::make_optional(commandReadStatusRegister), {}, {}, 0 };
-        spi.PollStatus(pollHeader, 1, 0, statusFlagWriteInProgress, protocol.command, [this]()
+        spi.PollStatus(pollHeader, 1, 0, statusFlagWriteInProgress, CommandLines(), [this]()
             {
                 sequencer.Continue();
             });
+    }
+
+    hal::QuadSpi::Lines FlashQuadSpiGeneric::CommandLines() const
+    {
+        return protocol == Protocol::quad ? hal::QuadSpi::Lines::QuadSpeed() : hal::QuadSpi::Lines::SingleSpeed();
+    }
+
+    hal::QuadSpi::Lines FlashQuadSpiGeneric::ReadLines() const
+    {
+        return protocol == Protocol::quad ? hal::QuadSpi::Lines::QuadSpeed() : hal::QuadSpi::Lines::MixedSpeed(1, geometry.ReadAddressLines(), 4);
+    }
+
+    hal::QuadSpi::Lines FlashQuadSpiGeneric::ProgramLines() const
+    {
+        return protocol == Protocol::quad ? hal::QuadSpi::Lines::QuadSpeed() : hal::QuadSpi::Lines::MixedSpeed(1, 1, 4);
     }
 }

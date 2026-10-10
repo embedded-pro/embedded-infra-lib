@@ -65,6 +65,25 @@ namespace
         }
     };
 
+    class QuadOutputFlashGeometryQuadStub : public FlashGeometryQuadStub
+    {
+    public:
+        uint8_t ReadDataCommand() const override
+        {
+            return 0x6B;
+        }
+
+        uint8_t ReadDummyCycles() const override
+        {
+            return 8;
+        }
+
+        uint8_t ReadAddressLines() const override
+        {
+            return 1;
+        }
+    };
+
     class LargeFlashGeometryQuadStub : public FlashGeometryQuadStub
     {
     public:
@@ -382,7 +401,7 @@ class FlashQuadSpiGenericExtendedSpiTest
 public:
     testing::StrictMock<hal::QuadSpiStub> spiStub;
     FlashGeometryQuadStub geometry;
-    services::FlashQuadSpiGeneric flash{ spiStub, geometry, services::FlashQuadSpiGeneric::Protocol::ExtendedSpi() };
+    services::FlashQuadSpiGeneric flash{ spiStub, geometry, services::FlashQuadSpiGeneric::Protocol::extendedSpi };
 
     testing::StrictMock<infra::MockCallback<void()>> finished;
 };
@@ -461,7 +480,7 @@ class FlashQuadSpiGenericExtendedSpiExtendedAddressingTest
 public:
     testing::StrictMock<hal::QuadSpiStub> spiStub;
     LargeFlashGeometryQuadStub geometry;
-    services::FlashQuadSpiGeneric flash{ spiStub, geometry, services::FlashQuadSpiGeneric::Protocol::ExtendedSpi() };
+    services::FlashQuadSpiGeneric flash{ spiStub, geometry, services::FlashQuadSpiGeneric::Protocol::extendedSpi };
 };
 
 TEST_F(FlashQuadSpiGenericExtendedSpiExtendedAddressingTest, ReadBufferUsesTheFourByteCommandAndAddressOnTheExtendedSpiLines)
@@ -474,6 +493,42 @@ TEST_F(FlashQuadSpiGenericExtendedSpiExtendedAddressingTest, ReadBufferUsesTheFo
 
     std::array<uint8_t, 2> buffer{};
     flash.ReadBuffer(buffer, 0x3FFF000, infra::emptyFunction);
+    ExecuteAllActions();
+
+    EXPECT_EQ(receiveData, buffer);
+}
+
+TEST_F(FlashQuadSpiGenericExtendedSpiTest, ReadBufferSendsTheAddressOnOneLineWhenTheFlashHasOnlyAQuadOutputRead)
+{
+    QuadOutputFlashGeometryQuadStub quadOutputGeometry;
+    services::FlashQuadSpiGeneric quadOutputFlash{ spiStub, quadOutputGeometry, services::FlashQuadSpiGeneric::Protocol::extendedSpi };
+
+    std::array<uint8_t, 2> receiveData = { 0x12, 0x34 };
+    EXPECT_CALL(spiStub, ReceiveDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x6B }), hal::QuadSpi::AddressToVector(0x1000, 3), {}, 8 },
+                             hal::QuadSpi::Lines::MixedSpeed(1, 1, 4)))
+        .WillOnce(testing::Return(infra::MakeByteRange(receiveData)));
+
+    std::array<uint8_t, 2> buffer{};
+    quadOutputFlash.ReadBuffer(buffer, 0x1000, infra::emptyFunction);
+    ExecuteAllActions();
+
+    EXPECT_EQ(receiveData, buffer);
+}
+
+TEST_F(FlashQuadSpiGenericTest, ReadBufferInQuadModeUsesFourLinesForAQuadOutputRead)
+{
+    QuadOutputFlashGeometryQuadStub quadOutputGeometry;
+    services::FlashQuadSpiGeneric quadOutputFlash{ spiStub, quadOutputGeometry };
+
+    std::array<uint8_t, 2> receiveData = { 0x12, 0x34 };
+    EXPECT_CALL(spiStub, ReceiveDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x6B }), hal::QuadSpi::AddressToVector(0x1000, 3), {}, 8 },
+                             hal::QuadSpi::Lines::QuadSpeed()))
+        .WillOnce(testing::Return(infra::MakeByteRange(receiveData)));
+
+    std::array<uint8_t, 2> buffer{};
+    quadOutputFlash.ReadBuffer(buffer, 0x1000, infra::emptyFunction);
     ExecuteAllActions();
 
     EXPECT_EQ(receiveData, buffer);

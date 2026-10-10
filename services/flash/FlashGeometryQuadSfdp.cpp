@@ -72,6 +72,11 @@ namespace services
         return ReadDummyCyclesValue();
     }
 
+    uint8_t FlashGeometryQuadSfdp::ReadAddressLines() const
+    {
+        return ReadAddressLinesValue();
+    }
+
     void FlashGeometryQuadSfdp::PerformRead(uint32_t address, infra::ByteRange buffer, infra::Function<void()> onDone)
     {
         sfdpAddressVector = hal::QuadSpi::AddressToVector(address, 3);
