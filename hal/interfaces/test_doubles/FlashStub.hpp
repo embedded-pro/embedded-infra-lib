@@ -2,7 +2,9 @@
 #define HAL_STUB_FLASH_STUB_HPP
 
 #include "hal/interfaces/Flash.hpp"
+#include <cstddef>
 #include <optional>
+#include <utility>
 
 namespace hal
 {
@@ -35,6 +37,9 @@ namespace hal
 
         infra::Function<void()> onEraseDone;
         bool delaySignalEraseDone = false;
+
+    private:
+        std::pair<std::size_t, std::size_t> Locate(T address) const;
     };
 }
 
