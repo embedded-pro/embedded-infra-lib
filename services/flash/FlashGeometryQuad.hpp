@@ -17,7 +17,7 @@ namespace services
         virtual uint8_t ReadDataCommand() const = 0;
         virtual uint8_t ReadDummyCycles() const = 0;
 
-        // The number of lines that carry the address of the read command: 4 for a quad I/O read (1-4-4), 1 for a quad output read (1-1-4)
+        // 4 for a quad I/O read (1-4-4), 1 for a quad output read (1-1-4)
         virtual uint8_t ReadAddressLines() const
         {
             return 4;

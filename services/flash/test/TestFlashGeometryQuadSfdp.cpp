@@ -330,10 +330,10 @@ TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsPreferredWhenBothAre
 TEST_F(FlashGeometryQuadSfdpFastReadTest, WithoutAQuadFastReadTheDefaultsAreKept)
 {
     auto bfpt = MakeBfptWithQer(0);
-    bfpt[8] = 0x01; // bytes that look like a fast read, but DW1 does not say that one is supported
-    bfpt[9] = 0x00;
-    bfpt[10] = 0x0A;
-    bfpt[11] = 0xEB;
+    bfpt[8] = 0x01; // bytes that look like fast reads, but DW1 does not say that one is supported
+    bfpt[9] = 0x3B;
+    bfpt[10] = 0x07;
+    bfpt[11] = 0x6B;
     Initialize(bfpt);
 
     EXPECT_EQ(0xEB, geometry->ReadDataCommand());
