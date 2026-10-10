@@ -13,7 +13,6 @@ namespace services
             uint8_t fourByteAddress;
         };
 
-        // The commands of a flash that has more than 16 MB come in a variant with a 4-byte address, so that the flash does not have to be put in a mode that outlives a reset of the processor
         constexpr std::array<CommandPair, 12> fourByteAddressCommands{ { { 0x03, 0x13 },
             { 0x0b, 0x0c },
             { 0x3b, 0x3c },

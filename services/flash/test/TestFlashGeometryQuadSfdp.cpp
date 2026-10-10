@@ -39,10 +39,24 @@ namespace
         bfpt[28] = 0x0C;
         bfpt[29] = 0x20;
         bfpt[30] = 0x10;
-        bfpt[31] = 0xD8;                                    // DW8: erase types
+        bfpt[31] = 0xD8;
         bfpt[40] = 0x80;                                    // DW11: 256-byte page
         bfpt[58] = static_cast<uint8_t>((qer & 0x07) << 4); // DW15: QER
         return bfpt;
+    }
+
+    constexpr uint32_t fastRead144Supported = 1u << 21;
+    constexpr uint32_t fastRead114Supported = 1u << 22;
+
+    constexpr uint32_t FastReadField(uint8_t instruction, uint8_t modeClocks, uint8_t waitStates)
+    {
+        return static_cast<uint32_t>(instruction) << 8 | static_cast<uint32_t>(modeClocks) << 5 | waitStates;
+    }
+
+    void SetDword(std::vector<uint8_t>& bfpt, std::size_t dword, uint32_t value)
+    {
+        for (std::size_t byte = 0; byte != 4; ++byte)
+            bfpt[(dword - 1) * 4 + byte] = static_cast<uint8_t>(value >> (8 * byte));
     }
 
     hal::QuadSpi::Header SfdpHeader(uint32_t address)
@@ -287,11 +301,8 @@ public:
 TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsParsedFromTheLowerHalfOfDword3)
 {
     auto bfpt = MakeBfptWithQer(0);
-    bfpt[2] = 0x20; // DW1 bit 21: (1-4-4) fast read supported
-    bfpt[8] = 0x48; // DW3 bits [7:0]: 2 mode clocks (bits 7:5) and 8 wait states (bits 4:0)
-    bfpt[9] = 0xEB; // DW3 bits [15:8]: instruction
-    bfpt[10] = 0x27;
-    bfpt[11] = 0x6B; // DW3 bits [31:16]: the (1-1-4) fast read, not to be taken
+    SetDword(bfpt, 1, fastRead144Supported);
+    SetDword(bfpt, 3, FastReadField(0xEB, 2, 8) | FastReadField(0x6B, 1, 7) << 16);
     Initialize(bfpt);
 
     EXPECT_EQ(0xEB, geometry->ReadDataCommand());
@@ -302,9 +313,8 @@ TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsParsedFromTheLowerHa
 TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf114IsUsedWhenThe144IsNotSupported)
 {
     auto bfpt = MakeBfptWithQer(0);
-    bfpt[2] = 0x40;  // DW1 bit 22: (1-1-4) fast read supported
-    bfpt[10] = 0x27; // DW3 bits [23:16]: 1 mode clock (bits 23:21) and 7 wait states (bits 20:16)
-    bfpt[11] = 0x6B; // DW3 bits [31:24]: instruction
+    SetDword(bfpt, 1, fastRead114Supported);
+    SetDword(bfpt, 3, FastReadField(0x6B, 1, 7) << 16);
     Initialize(bfpt);
 
     EXPECT_EQ(0x6B, geometry->ReadDataCommand());
@@ -315,11 +325,8 @@ TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf114IsUsedWhenThe144IsNotS
 TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsPreferredWhenBothAreSupported)
 {
     auto bfpt = MakeBfptWithQer(0);
-    bfpt[2] = 0x60;
-    bfpt[8] = 0x29;
-    bfpt[9] = 0xEB;
-    bfpt[10] = 0x27;
-    bfpt[11] = 0x6B;
+    SetDword(bfpt, 1, fastRead144Supported | fastRead114Supported);
+    SetDword(bfpt, 3, FastReadField(0xEB, 1, 9) | FastReadField(0x6B, 1, 7) << 16);
     Initialize(bfpt);
 
     EXPECT_EQ(0xEB, geometry->ReadDataCommand());
@@ -330,10 +337,7 @@ TEST_F(FlashGeometryQuadSfdpFastReadTest, TheFastReadOf144IsPreferredWhenBothAre
 TEST_F(FlashGeometryQuadSfdpFastReadTest, WithoutAQuadFastReadTheDefaultsAreKept)
 {
     auto bfpt = MakeBfptWithQer(0);
-    bfpt[8] = 0x01; // bytes that look like fast reads, but DW1 does not say that one is supported
-    bfpt[9] = 0x3B;
-    bfpt[10] = 0x07;
-    bfpt[11] = 0x6B;
+    SetDword(bfpt, 3, FastReadField(0x3B, 0, 1) | FastReadField(0x6B, 0, 7) << 16);
     Initialize(bfpt);
 
     EXPECT_EQ(0xEB, geometry->ReadDataCommand());

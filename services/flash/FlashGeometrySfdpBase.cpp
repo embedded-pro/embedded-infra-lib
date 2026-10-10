@@ -143,8 +143,11 @@ namespace services
 
     uint64_t FlashGeometrySfdpParser::ParseDensityAndAddressMode(uint32_t dword1, uint32_t dword2)
     {
-        // DW1 bits [18:17]: 0 = 3-byte addresses only, 1 = 3- or 4-byte addresses, 2 = 4-byte addresses only
-        const uint8_t addrMode = (dword1 >> 17) & 0x03;
+        static constexpr uint8_t threeOrFourByteAddresses = 1;
+        static constexpr uint8_t fourByteAddresses = 2;
+        static constexpr uint64_t threeByteAddressRange = 0x1000000;
+
+        const uint8_t addressBytes = (dword1 >> 17) & 0x03;
 
         uint64_t totalBytes = 0;
         if (dword2 & 0x80000000u)
@@ -156,7 +159,7 @@ namespace services
         else
             totalBytes = (static_cast<uint64_t>(dword2) + 1) / 8;
 
-        if (addrMode == 2 || (addrMode == 1 && totalBytes > 0x1000000))
+        if (addressBytes == fourByteAddresses || (addressBytes == threeOrFourByteAddresses && totalBytes > threeByteAddressRange))
             extendedAddressing = true;
 
         return totalBytes;
@@ -164,28 +167,30 @@ namespace services
 
     void FlashGeometrySfdpParser::ParseFastReadQuad(uint32_t dword1, uint32_t dword3)
     {
-        // DW1 bit 21 and 22 tell which quad fast reads exist; DW3 holds the (1-1-4) read in its upper half and the (1-4-4) read in its lower half,
-        // each as a number of wait states in bits [4:0], a number of mode clocks in bits [7:5] and an instruction in bits [15:8].
-        // There is no mode byte to send, so the mode clocks count as dummy cycles.
         static constexpr uint32_t fastRead144Supported = 1u << 21;
         static constexpr uint32_t fastRead114Supported = 1u << 22;
 
         const auto parse = [this](uint32_t field, uint8_t addressLines)
         {
+            const uint8_t waitStates = field & 0x1F;
+            const uint8_t modeClocks = (field >> 5) & 0x07;
+
             readDataCommand = (field >> 8) & 0xFF;
-            readDummyCycles = ((field >> 5) & 0x07) + (field & 0x1F);
+            readDummyCycles = modeClocks + waitStates;
             readAddressLines = addressLines;
         };
 
+        const uint32_t fastRead144 = dword3 & 0xFFFF;
+        const uint32_t fastRead114 = dword3 >> 16;
+
         if (dword1 & fastRead144Supported)
-            parse(dword3 & 0xFFFF, 4);
+            parse(fastRead144, 4);
         else if (dword1 & fastRead114Supported)
-            parse(dword3 >> 16, 1);
+            parse(fastRead114, 1);
     }
 
     void FlashGeometrySfdpParser::ParseEraseTypes()
     {
-        // The four erase types are in DW8 and DW9
         if (bfptTableLength < 9)
             return;
 

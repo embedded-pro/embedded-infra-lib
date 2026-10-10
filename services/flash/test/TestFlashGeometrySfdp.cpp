@@ -35,7 +35,15 @@ namespace
         return MakeSfdpHeader(0x80, 0x00, 0x00);
     }
 
-    // Base 64-byte BFPT: 16 MB, 3-byte addresses, 4 KB sub-sector (0x20), 64 KB sector (0xD8), 256-byte page.
+    constexpr uint32_t threeOrFourByteAddresses = 1u << 17;
+    constexpr uint32_t fourByteAddresses = 2u << 17;
+
+    void SetDword(std::vector<uint8_t>& bfpt, std::size_t dword, uint32_t value)
+    {
+        for (std::size_t byte = 0; byte != 4; ++byte)
+            bfpt[(dword - 1) * 4 + byte] = static_cast<uint8_t>(value >> (8 * byte));
+    }
+
     std::vector<uint8_t> MakeBfpt()
     {
         std::vector<uint8_t> bfpt(64, 0x00);
@@ -44,7 +52,6 @@ namespace
         bfpt[5] = 0xFF;
         bfpt[6] = 0xFF;
         bfpt[7] = 0x07;
-        // DW8: erase type 1 (4 KB, cmd=0x20), erase type 2 (64 KB, cmd=0xD8)
         bfpt[28] = 0x0C;
         bfpt[29] = 0x20;
         bfpt[30] = 0x10;
@@ -54,7 +61,6 @@ namespace
         return bfpt;
     }
 
-    // The SFDP of an MT25QL512 (64 MB), as read from a board: 3- or 4-byte addresses, erase types of 4 KB (0x20), 64 KB (0xD8) and 32 KB (0x52), 256-byte page
     const std::vector<uint8_t> mt25ql512Header{ 0x53, 0x46, 0x44, 0x50, 0x06, 0x01, 0x01, 0xff, 0x00, 0x06, 0x01, 0x10, 0x30, 0x00, 0x00, 0xff };
     const std::vector<uint8_t> mt25ql512Bfpt{
         0xe5, 0x20, 0xfb, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x29, 0xeb, 0x27, 0x6b, 0x27, 0x3b, 0x27, 0xbb,
@@ -183,10 +189,9 @@ TEST_F(FlashGeometrySfdpBranchTest, ValidSignatureWithZeroBfptAddressFallsBackTo
 
 TEST_F(FlashGeometrySfdpBranchTest, ExtendedAddressingSetForFourByteOnlyMode)
 {
-    // DW1 bits [18:17] = 0b10: 4-byte addresses only
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[2] = 0x04;
+    SetDword(bfpt, 1, fourByteAddresses);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -202,15 +207,10 @@ TEST_F(FlashGeometrySfdpBranchTest, ExtendedAddressingSetForFourByteOnlyMode)
 
 TEST_F(FlashGeometrySfdpBranchTest, ExtendedAddressingSetForMode1WhenFlashLargerThan16MB)
 {
-    // DW1 bits [18:17] = 0b01 (3- or 4-byte addresses), density > 16MB → extendedAddressing
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[2] = 0x02;
-    // DW2: 32 MB = (0x0FFFFFFF + 1) bits / 8 = 32 MB
-    bfpt[4] = 0xFF;
-    bfpt[5] = 0xFF;
-    bfpt[6] = 0xFF;
-    bfpt[7] = 0x0F;
+    SetDword(bfpt, 1, threeOrFourByteAddresses);
+    SetDword(bfpt, 2, 0x0FFFFFFF);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -252,7 +252,7 @@ TEST_F(FlashGeometrySfdpBranchTest, OnlyOneEraseSizeGivesSectorEqualToSubSector)
     // Only erase type 1 defined (4 KB); no larger erase type → sizeSector = sizeSubSector
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[30] = 0x00; // erase type 2 size_exp = 0 → not supported
+    bfpt[30] = 0x00;
     bfpt[31] = 0x00;
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
@@ -328,10 +328,9 @@ TEST_F(FlashGeometrySfdpBranchTest, ShortBfptTableLeavesQerAtZero)
 
 TEST_F(FlashGeometrySfdpBranchTest, ThreeOrFourByteAddressesOfASmallFlashStayThreeByte)
 {
-    // DW1 bits [18:17] = 0b01 and a density of 16 MB: 3 bytes reach all of it
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[2] = 0x02;
+    SetDword(bfpt, 1, threeOrFourByteAddresses);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -347,14 +346,10 @@ TEST_F(FlashGeometrySfdpBranchTest, ThreeOrFourByteAddressesOfASmallFlashStayThr
 
 TEST_F(FlashGeometrySfdpBranchTest, TheFirstThreeBitsOfDword1DoNotSelectTheAddressMode)
 {
-    // DW1 bits [2:0] hold the erase sizes and the write granularity
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[0] = 0x07;
-    bfpt[4] = 0xFF;
-    bfpt[5] = 0xFF;
-    bfpt[6] = 0xFF;
-    bfpt[7] = 0x1F;
+    SetDword(bfpt, 1, 0x07);
+    SetDword(bfpt, 2, 0x1FFFFFFF);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -370,16 +365,10 @@ TEST_F(FlashGeometrySfdpBranchTest, TheFirstThreeBitsOfDword1DoNotSelectTheAddre
 
 TEST_F(FlashGeometrySfdpBranchTest, EraseTypesAreReadFromDword8And9)
 {
-    // DW4 and DW5 describe other fast reads and must not be taken for erase types
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[12] = 0x08;
-    bfpt[13] = 0x3B;
-    bfpt[14] = 0x08;
-    bfpt[15] = 0xBB;
-    // DW9: erase type 3 (32 KB, cmd=0x52)
-    bfpt[32] = 0x0F;
-    bfpt[33] = 0x52;
+    SetDword(bfpt, 4, 0xBB083B08);
+    SetDword(bfpt, 9, 0x0000520F);
 
     ExpectSfdpReads(spiMock, MakeSfdpAndParamHeader(), bfpt);
     EXPECT_CALL(onInitialized, callback());
@@ -399,8 +388,7 @@ TEST_F(FlashGeometrySfdpBranchTest, TableTooShortForTheEraseTypesKeepsTheDefault
 {
     testing::InSequence s;
     auto bfpt = MakeBfpt();
-    bfpt[28] = 0x0A; // would be a 1 KB erase type if it were read
-    bfpt[29] = 0x42;
+    SetDword(bfpt, 8, 0xD810420A);
 
     ExpectSfdpReads(spiMock, MakeSfdpHeader(0x80, 0x00, 0x00, 0x08), bfpt);
     EXPECT_CALL(onInitialized, callback());

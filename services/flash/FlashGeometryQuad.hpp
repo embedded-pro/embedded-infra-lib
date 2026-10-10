@@ -17,7 +17,6 @@ namespace services
         virtual uint8_t ReadDataCommand() const = 0;
         virtual uint8_t ReadDummyCycles() const = 0;
 
-        // 4 for a quad I/O read (1-4-4), 1 for a quad output read (1-1-4)
         virtual uint8_t ReadAddressLines() const
         {
             return 4;
