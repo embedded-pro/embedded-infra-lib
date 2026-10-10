@@ -64,6 +64,20 @@ namespace
             return 10;
         }
     };
+
+    class LargeFlashGeometryQuadStub : public FlashGeometryQuadStub
+    {
+    public:
+        uint32_t NrOfSubSectors() const override
+        {
+            return 32768;
+        }
+
+        bool ExtendedAddressing() const override
+        {
+            return true;
+        }
+    };
 }
 
 class FlashQuadSpiGenericTest
@@ -261,4 +275,206 @@ TEST_F(FlashQuadSpiGenericTest, EraseMixedSubSectorAndSector)
     ExecuteAllActions();
     spiStub.onDone();
     ExecuteAllActions();
+}
+
+#define EXPECT_WRITE_ENABLE_ON(lines)                                                                \
+    EXPECT_CALL(spiStub, SendDataMock(                                                               \
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x06 }), {}, {}, 0 }, \
+                             infra::ConstByteRange{}, lines))
+
+#define EXPECT_POLL_WRITE_DONE_ON(lines)                                                             \
+    EXPECT_CALL(spiStub, PollStatusMock(                                                             \
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x05 }), {}, {}, 0 }, \
+                             1, 0, 1, lines))
+
+class FlashQuadSpiGenericExtendedAddressingTest
+    : public testing::Test
+    , public infra::ClockFixture
+{
+public:
+    testing::StrictMock<hal::QuadSpiStub> spiStub;
+    LargeFlashGeometryQuadStub geometry;
+    services::FlashQuadSpiGeneric flash{ spiStub, geometry };
+
+    testing::StrictMock<infra::MockCallback<void()>> finished;
+};
+
+TEST_F(FlashQuadSpiGenericExtendedAddressingTest, ReadBufferUsesTheFourByteCommandAndAddress)
+{
+    std::array<uint8_t, 4> receiveData = { 0xAA, 0xBB, 0xCC, 0xDD };
+    EXPECT_CALL(spiStub, ReceiveDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xEC }), hal::QuadSpi::AddressToVector(0x3FFF000, 4), {}, 10 },
+                             hal::QuadSpi::Lines::QuadSpeed()))
+        .WillOnce(testing::Return(infra::MakeByteRange(receiveData)));
+    EXPECT_CALL(finished, callback());
+
+    std::array<uint8_t, 4> buffer{};
+    flash.ReadBuffer(buffer, 0x3FFF000, [this]()
+        {
+            finished.callback();
+        });
+    ExecuteAllActions();
+
+    EXPECT_EQ(receiveData, buffer);
+}
+
+TEST_F(FlashQuadSpiGenericExtendedAddressingTest, WriteBufferUsesTheFourByteCommandAndAddress)
+{
+    const std::array<uint8_t, 4> sendData = { 1, 2, 3, 4 };
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::QuadSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x34 }), hal::QuadSpi::AddressToVector(0x3FFF000, 4), {}, 0 },
+                             infra::MakeByteRange(sendData), hal::QuadSpi::Lines::QuadSpeed()));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::QuadSpeed());
+
+    flash.WriteBuffer(sendData, 0x3FFF000, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiGenericExtendedAddressingTest, EraseSubSectorUsesTheFourByteCommandAndAddress)
+{
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::QuadSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x21 }), hal::QuadSpi::AddressToVector(32767 * 4096, 4), {}, 0 },
+                             infra::ConstByteRange{}, hal::QuadSpi::Lines::QuadSpeed()));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::QuadSpeed());
+
+    flash.EraseSector(32767, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiGenericExtendedAddressingTest, EraseSectorUsesTheFourByteCommandAndAddress)
+{
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::QuadSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xDC }), hal::QuadSpi::AddressToVector(16 * 4096, 4), {}, 0 },
+                             infra::ConstByteRange{}, hal::QuadSpi::Lines::QuadSpeed()));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::QuadSpeed());
+
+    flash.EraseSectors(16, 32, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiGenericExtendedAddressingTest, EraseAllKeepsTheBulkEraseCommand)
+{
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::QuadSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xC7 }), {}, {}, 0 },
+                             infra::ConstByteRange{}, hal::QuadSpi::Lines::QuadSpeed()));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::QuadSpeed());
+
+    flash.EraseAll(infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+class FlashQuadSpiGenericExtendedSpiTest
+    : public testing::Test
+    , public infra::ClockFixture
+{
+public:
+    testing::StrictMock<hal::QuadSpiStub> spiStub;
+    FlashGeometryQuadStub geometry;
+    services::FlashQuadSpiGeneric flash{ spiStub, geometry, services::FlashQuadSpiGeneric::Protocol::ExtendedSpi() };
+
+    testing::StrictMock<infra::MockCallback<void()>> finished;
+};
+
+TEST_F(FlashQuadSpiGenericExtendedSpiTest, ReadBufferSendsTheCommandOnOneLineAndTheAddressAndDataOnFour)
+{
+    std::array<uint8_t, 4> receiveData = { 0xAA, 0xBB, 0xCC, 0xDD };
+    EXPECT_CALL(spiStub, ReceiveDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xEB }), hal::QuadSpi::AddressToVector(0x1000, 3), {}, 10 },
+                             hal::QuadSpi::Lines::MixedSpeed(1, 4, 4)))
+        .WillOnce(testing::Return(infra::MakeByteRange(receiveData)));
+    EXPECT_CALL(finished, callback());
+
+    std::array<uint8_t, 4> buffer{};
+    flash.ReadBuffer(buffer, 0x1000, [this]()
+        {
+            finished.callback();
+        });
+    ExecuteAllActions();
+
+    EXPECT_EQ(receiveData, buffer);
+}
+
+TEST_F(FlashQuadSpiGenericExtendedSpiTest, WriteBufferSendsTheCommandAndTheAddressOnOneLineAndTheDataOnFour)
+{
+    const std::array<uint8_t, 4> sendData = { 1, 2, 3, 4 };
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::SingleSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x32 }), hal::QuadSpi::AddressToVector(0x5000, 3), {}, 0 },
+                             infra::MakeByteRange(sendData), hal::QuadSpi::Lines::MixedSpeed(1, 1, 4)));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::SingleSpeed());
+
+    flash.WriteBuffer(sendData, 0x5000, [this]()
+        {
+            finished.callback();
+        });
+    ExecuteAllActions();
+
+    EXPECT_CALL(finished, callback());
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiGenericExtendedSpiTest, EraseSubSectorSendsEverythingOnOneLine)
+{
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::SingleSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x20 }), hal::QuadSpi::AddressToVector(0, 3), {}, 0 },
+                             infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::SingleSpeed());
+
+    flash.EraseSector(0, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiGenericExtendedSpiTest, EraseAllSendsEverythingOnOneLine)
+{
+    EXPECT_WRITE_ENABLE_ON(hal::QuadSpi::Lines::SingleSpeed());
+    EXPECT_CALL(spiStub, SendDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xC7 }), {}, {}, 0 },
+                             infra::ConstByteRange{}, hal::QuadSpi::Lines::SingleSpeed()));
+    EXPECT_POLL_WRITE_DONE_ON(hal::QuadSpi::Lines::SingleSpeed());
+
+    flash.EraseAll(infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+class FlashQuadSpiGenericExtendedSpiExtendedAddressingTest
+    : public testing::Test
+    , public infra::ClockFixture
+{
+public:
+    testing::StrictMock<hal::QuadSpiStub> spiStub;
+    LargeFlashGeometryQuadStub geometry;
+    services::FlashQuadSpiGeneric flash{ spiStub, geometry, services::FlashQuadSpiGeneric::Protocol::ExtendedSpi() };
+};
+
+TEST_F(FlashQuadSpiGenericExtendedSpiExtendedAddressingTest, ReadBufferUsesTheFourByteCommandAndAddressOnTheExtendedSpiLines)
+{
+    std::array<uint8_t, 2> receiveData = { 0x12, 0x34 };
+    EXPECT_CALL(spiStub, ReceiveDataMock(
+                             hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xEC }), hal::QuadSpi::AddressToVector(0x3FFF000, 4), {}, 10 },
+                             hal::QuadSpi::Lines::MixedSpeed(1, 4, 4)))
+        .WillOnce(testing::Return(infra::MakeByteRange(receiveData)));
+
+    std::array<uint8_t, 2> buffer{};
+    flash.ReadBuffer(buffer, 0x3FFF000, infra::emptyFunction);
+    ExecuteAllActions();
+
+    EXPECT_EQ(receiveData, buffer);
 }

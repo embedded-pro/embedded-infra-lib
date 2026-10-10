@@ -22,6 +22,7 @@ namespace services
     protected:
         void WriteBufferSequence();
         infra::BoundedVector<uint8_t>::WithMaxSize<4> ConvertAddress(uint32_t address) const;
+        uint8_t AddressedCommand(uint8_t command) const;
         void ScheduleOnDone();
 
         virtual void PageProgram() = 0;
@@ -31,6 +32,7 @@ namespace services
 
     protected:
         hal::QuadSpi& spi;
+        const FlashGeometry& flashGeometry;
         infra::Sequencer sequencer;
         infra::AutoResetFunction<void()> onDone;
         infra::ConstByteRange buffer;

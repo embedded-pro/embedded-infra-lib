@@ -10,11 +10,12 @@ namespace
     {
     public:
         FlashGeometryStub(uint32_t nrOfSubSectors = 4096, uint32_t sizeSector = 65536,
-            uint32_t sizeSubSector = 4096, uint32_t sizePage = 256)
+            uint32_t sizeSubSector = 4096, uint32_t sizePage = 256, bool extendedAddressing = false)
             : nrOfSubSectors(nrOfSubSectors)
             , sizeSector(sizeSector)
             , sizeSubSector(sizeSubSector)
             , sizePage(sizePage)
+            , extendedAddressing(extendedAddressing)
         {}
 
         uint32_t NrOfSubSectors() const override
@@ -39,7 +40,7 @@ namespace
 
         bool ExtendedAddressing() const override
         {
-            return false;
+            return extendedAddressing;
         }
 
     private:
@@ -47,6 +48,7 @@ namespace
         uint32_t sizeSector;
         uint32_t sizeSubSector;
         uint32_t sizePage;
+        bool extendedAddressing;
     };
 }
 
@@ -307,5 +309,74 @@ TEST_F(FlashQuadSpiSingleSpeedTest, EraseAllErasesChip)
         {
             finished.callback();
         });
+    ExecuteAllActions();
+}
+
+class FlashQuadSpiSingleSpeedExtendedAddressingTest
+    : public testing::Test
+    , public infra::ClockFixture
+{
+public:
+    FlashQuadSpiSingleSpeedExtendedAddressingTest()
+        : flash(spiStub, geometry, onInitialized)
+    {
+        ForwardTime(std::chrono::milliseconds(100));
+        testing::Mock::VerifyAndClear(&spiStub);
+        testing::Mock::VerifyAndClear(&onInitialized);
+    }
+
+    testing::StrictMock<hal::QuadSpiStub> spiStub;
+    FlashGeometryStub geometry{ 16384, 65536, 4096, 256, true };
+    infra::VerifyingFunction<void()> onInitialized;
+    services::FlashQuadSpiSingleSpeed flash;
+};
+
+TEST_F(FlashQuadSpiSingleSpeedExtendedAddressingTest, ReadDataUsesTheFourByteCommandAndAddress)
+{
+    std::array<uint8_t, 4> receiveData = { 1, 2, 3, 4 };
+    EXPECT_CALL(spiStub, ReceiveDataMock(hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x13 }), hal::QuadSpi::AddressToVector(0x3FFF000, 4), {}, 0 }, hal::QuadSpi::Lines::SingleSpeed()))
+        .WillOnce(testing::Return(infra::MakeByteRange(receiveData)));
+
+    std::array<uint8_t, 4> buffer;
+    flash.ReadBuffer(buffer, 0x3FFF000, infra::emptyFunction);
+    ExecuteAllActions();
+
+    EXPECT_EQ(receiveData, buffer);
+}
+
+TEST_F(FlashQuadSpiSingleSpeedExtendedAddressingTest, WriteDataUsesTheFourByteCommandAndAddress)
+{
+    const std::array<uint8_t, 4> sendData = { 1, 2, 3, 4 };
+    EXPECT_ENABLE_WRITE();
+    EXPECT_CALL(spiStub, SendDataMock(hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x12 }), hal::QuadSpi::AddressToVector(0x3FFF000, 4), {}, 0 }, infra::MakeByteRange(sendData), hal::QuadSpi::Lines::SingleSpeed()));
+    EXPECT_POLL_WRITE_DONE();
+
+    flash.WriteBuffer(sendData, 0x3FFF000, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiSingleSpeedExtendedAddressingTest, EraseSectorUsesTheFourByteCommandAndAddress)
+{
+    EXPECT_ENABLE_WRITE();
+    EXPECT_CALL(spiStub, SendDataMock(hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0x21 }), hal::QuadSpi::AddressToVector(16383 * 4096, 4), {}, 0 }, infra::ConstByteRange(), hal::QuadSpi::Lines::SingleSpeed()));
+    EXPECT_POLL_WRITE_DONE();
+
+    flash.EraseSector(16383, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
+    ExecuteAllActions();
+}
+
+TEST_F(FlashQuadSpiSingleSpeedExtendedAddressingTest, EraseBlockUsesTheFourByteCommandAndAddress)
+{
+    EXPECT_ENABLE_WRITE();
+    EXPECT_CALL(spiStub, SendDataMock(hal::QuadSpi::Header{ std::make_optional(uint8_t{ 0xDC }), hal::QuadSpi::AddressToVector(16 * 4096, 4), {}, 0 }, infra::ConstByteRange(), hal::QuadSpi::Lines::SingleSpeed()));
+    EXPECT_POLL_WRITE_DONE();
+
+    flash.EraseSectors(16, 32, infra::emptyFunction);
+    ExecuteAllActions();
+    spiStub.onDone();
     ExecuteAllActions();
 }
