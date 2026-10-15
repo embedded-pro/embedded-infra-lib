@@ -6,6 +6,7 @@ target_link_libraries(services.ble_test PUBLIC
     gmock_main
     infra.timer_test_helper
     services.ble
+    services.ble_proto
     services.ble_test_doubles
     services.util_test_doubles
 )
