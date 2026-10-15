@@ -4,6 +4,8 @@
 
 The `services/ble` package provides the Generic Access Profile (GAP) and the Generic Attribute Profile (GATT). This chapter describes those interfaces: how they are split per role and per connection, and how their procedures report their outcome.
 
+The `.proto` files that describe the same messages for ECHO, C# and Java live in `services/ble/proto`, in the library `services.ble_proto`. `services.ble` does not link it, so firmware that uses the interfaces needs neither the ECHO plugins nor generated code. The library is only configured for host builds and when the tests are enabled.
+
 ## Scope and boundaries
 
 `services/ble` is not a Bluetooth stack. It is an abstraction over a vendor controller and host stack, and it exists to be implemented by downstream ports. Its one in-tree consumer is `services/ble/profile`, which builds on the GATT interfaces rather than on a controller. What it deliberately leaves to the layer below is recorded here, so that an absence can be told apart from a gap.
