@@ -44,6 +44,32 @@ namespace infra
         CRC_TYPE crc = InitValue;
     };
 
+    namespace detail
+    {
+        template<typename TYPE>
+        constexpr TYPE ReversedBits(TYPE value);
+    }
+
+    // The CRC of Crc without its table of 256 entries, for code that is bound by its size rather than by its speed
+    template<typename CRC_TYPE, CRC_TYPE Polynomial, CRC_TYPE InitValue = 0, CRC_TYPE FinalXor = 0, bool ReflectInput = false, bool ReflectOutput = false>
+    class CrcBitwise
+    {
+        static_assert(ReflectInput == ReflectOutput, "Currently, non-matching ReflectInput and ReflectOutput is not supported");
+
+    public:
+        void Update(uint8_t input);
+        void Update(ConstByteRange bytes);
+        CRC_TYPE Result() const;
+        void Reset();
+
+    private:
+        static constexpr uint8_t bitWidth = sizeof(CRC_TYPE) * CHAR_BIT;
+        static constexpr CRC_TYPE topBit = static_cast<CRC_TYPE>(CRC_TYPE(1) << (bitWidth - 1));
+        static constexpr CRC_TYPE reversedPolynomial = detail::ReversedBits(Polynomial);
+
+        CRC_TYPE crc = InitValue;
+    };
+
     using Crc8Maxim = Crc<uint8_t, 0x31, 0, 0, true, true>;
     using Crc8Sensirion = Crc<uint8_t, 0x31, 0xff, 0, false, false>;
     using Crc16Modbus = Crc<uint16_t, 0x8005, 0xffff, 0, true, true>;
@@ -51,6 +77,22 @@ namespace infra
     using Crc16CcittFalse = Crc<uint16_t, 0x1021, 0xffff>;
     using Crc32 = Crc<uint32_t, 0x04C11DB7, 0xffffffff, 0xffffffff, true, true>;
     using Crc64Ecma = Crc<uint64_t, 0x42F0E1EBA9EA3693, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, true, true>;
+
+    using Crc16CcittFalseBitwise = CrcBitwise<uint16_t, 0x1021, 0xffff>;
+
+    namespace detail
+    {
+        template<typename TYPE>
+        constexpr TYPE ReversedBits(TYPE value)
+        {
+            TYPE result = 0;
+
+            for (std::size_t bit = 0; bit < sizeof(TYPE) * CHAR_BIT; ++bit, value >>= 1)
+                result = static_cast<TYPE>((result << 1) | (value & 1));
+
+            return result;
+        }
+    }
 
     template<typename CRC_TYPE>
     constexpr CRC_TYPE PolyReverse(CRC_TYPE Polynomial)
@@ -162,6 +204,44 @@ namespace infra
     CRC_TYPE Crc<CRC_TYPE, Polynomial, InitValue, FinalXor, ReflectInput, ReflectOutput>::Table::operator[](int i) const
     {
         return table[i];
+    }
+
+    template<typename CRC_TYPE, CRC_TYPE Polynomial, CRC_TYPE InitValue, CRC_TYPE FinalXor, bool ReflectInput, bool ReflectOutput>
+    void CrcBitwise<CRC_TYPE, Polynomial, InitValue, FinalXor, ReflectInput, ReflectOutput>::Update(uint8_t input)
+    {
+        if constexpr (ReflectInput)
+        {
+            crc ^= input;
+
+            for (int bit = 0; bit < CHAR_BIT; ++bit)
+                crc = (crc & 1) != 0 ? static_cast<CRC_TYPE>((crc >> 1) ^ reversedPolynomial) : static_cast<CRC_TYPE>(crc >> 1);
+        }
+        else
+        {
+            crc ^= static_cast<CRC_TYPE>(CRC_TYPE(input) << (bitWidth - CHAR_BIT));
+
+            for (int bit = 0; bit < CHAR_BIT; ++bit)
+                crc = (crc & topBit) != 0 ? static_cast<CRC_TYPE>((crc << 1) ^ Polynomial) : static_cast<CRC_TYPE>(crc << 1);
+        }
+    }
+
+    template<typename CRC_TYPE, CRC_TYPE Polynomial, CRC_TYPE InitValue, CRC_TYPE FinalXor, bool ReflectInput, bool ReflectOutput>
+    void CrcBitwise<CRC_TYPE, Polynomial, InitValue, FinalXor, ReflectInput, ReflectOutput>::Update(ConstByteRange bytes)
+    {
+        for (auto byte : bytes)
+            Update(byte);
+    }
+
+    template<typename CRC_TYPE, CRC_TYPE Polynomial, CRC_TYPE InitValue, CRC_TYPE FinalXor, bool ReflectInput, bool ReflectOutput>
+    CRC_TYPE CrcBitwise<CRC_TYPE, Polynomial, InitValue, FinalXor, ReflectInput, ReflectOutput>::Result() const
+    {
+        return crc ^ FinalXor;
+    }
+
+    template<typename CRC_TYPE, CRC_TYPE Polynomial, CRC_TYPE InitValue, CRC_TYPE FinalXor, bool ReflectInput, bool ReflectOutput>
+    void CrcBitwise<CRC_TYPE, Polynomial, InitValue, FinalXor, ReflectInput, ReflectOutput>::Reset()
+    {
+        crc = InitValue;
     }
 }
 
