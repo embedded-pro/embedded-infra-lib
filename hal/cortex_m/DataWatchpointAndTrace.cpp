@@ -10,9 +10,24 @@ namespace
 
     constexpr uintptr_t dwtCyccnt = 0xE0001004u;
 
+    constexpr uintptr_t dwtLar = 0xE0001FB0u;
+    constexpr uint32_t larUnlockKey = 0xC5ACCE55u;
+
+    constexpr uintptr_t dwtLsr = 0xE0001FB4u;
+    constexpr uint32_t lsrLockImplemented = 1u << 0;
+    constexpr uint32_t lsrLocked = 1u << 1;
+
     volatile uint32_t& Reg32(uintptr_t address)
     {
         return *reinterpret_cast<volatile uint32_t*>(address);
+    }
+
+    void UnlockSoftwareAccess()
+    {
+        constexpr uint32_t lockedLock = lsrLockImplemented | lsrLocked;
+
+        if ((Reg32(dwtLsr) & lockedLock) == lockedLock)
+            Reg32(dwtLar) = larUnlockKey;
     }
 }
 
@@ -21,6 +36,7 @@ namespace hal::cortex
     DataWatchpointAndTrace::DataWatchpointAndTrace()
     {
         Reg32(coreDebugDemcr) |= demcrTrcena;
+        UnlockSoftwareAccess();
     }
 
     void DataWatchpointAndTrace::Start()
