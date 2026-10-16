@@ -227,14 +227,7 @@ namespace services
     void TableStateMachine<State, Event, Context>::Start(Args&&... args)
     {
         really_assert(!Started());
-        if (validatedInitial)
-        {
-            really_assert(*validatedInitial == StateId::template Of<Initial>());
-        }
-        else
-        {
-            really_assert(CheckConsistency<Initial>() == ConsistencyError::none);
-        }
+        really_assert(!validatedInitial || *validatedInitial == StateId::template Of<Initial>());
 
         dispatching = true;
         currentState.emplace(std::in_place_type<Initial>, std::forward<Args>(args)...);
