@@ -51,47 +51,66 @@ namespace infra
 
     namespace detail
     {
+        // The storage of a Function does not depend on its signature, so copying and destroying
+        // Functions of different signatures shares the same code
+        template<std::size_t ExtraSize>
+        struct FunctionStorage
+        {
+            // A hand-crafted Virtual Method Table is used so that the destruct and copyConstruct functions
+            // do not need to be implemented for trivial types (such as most lambdas), which saves space
+            struct Lifetime
+            {
+                void (*destruct)(FunctionStorage& storage);
+                void (*copyConstruct)(const FunctionStorage& from, FunctionStorage& to);
+            };
+
+            FunctionStorage();
+            template<class F>
+            FunctionStorage(F&& f, const Lifetime& table);
+            FunctionStorage(const FunctionStorage& other);
+            FunctionStorage& operator=(const FunctionStorage& other);
+            ~FunctionStorage();
+
+            bool Initialized() const;
+            void Clear();
+            void Swap(FunctionStorage& other) noexcept;
+
+            template<class F>
+            static void StaticDestruct(FunctionStorage& storage);
+            template<class F>
+            static void StaticCopyConstruct(const FunctionStorage& from, FunctionStorage& to);
+            static const Lifetime* Sentinel();
+
+            alignas(UTIL_FUNCTION_ALIGNMENT) unsigned char data[ExtraSize];
+            const Lifetime* lifetime;
+
+        private:
+            void CopyFrom(const FunctionStorage& other);
+            void MoveTo(FunctionStorage& other);
+        };
+
         template<class Signature, std::size_t ExtraSize>
         struct InvokerFunctions;
 
         template<std::size_t ExtraSize, class Result, class... Args>
         struct InvokerFunctions<Result(Args...), ExtraSize>
         {
-            using InvokerFunctionsType = InvokerFunctions<Result(Args...), ExtraSize>;
-            using FunctionType = Function<Result(Args...), ExtraSize>;
+            using StorageType = FunctionStorage<ExtraSize>;
 
-            InvokerFunctions();
-
-            // A hand-crafted Virtual Method Table is used so that the destruct and copyStruct functions
-            // do not need to be implemented for trivial types (such as most lambdas), which saves space
             struct VirtualMethodTable
             {
-                using Invoker = Result (*)(const InvokerFunctionsType& invokerFunctions, Args...);
-                using Destructor = void (*)(InvokerFunctionsType& invokerFunctions);
-                using CopyConstructor = void (*)(const InvokerFunctionsType& from, InvokerFunctionsType& to);
-
-                Invoker invoke;
-                Destructor destruct;
-                CopyConstructor copyConstruct;
+                typename StorageType::Lifetime lifetime;
+                Result (*invoke)(const StorageType& storage, Args... args);
             };
 
-            alignas(UTIL_FUNCTION_ALIGNMENT) unsigned char data[ExtraSize];
-
             template<class F>
-            static Result StaticInvoke(const InvokerFunctionsType& invokerFunctions, Args... args);
+            static Result StaticInvoke(const StorageType& storage, Args... args);
             template<class F>
-            static void StaticDestruct(InvokerFunctionsType& invokerFunctions);
-            template<class F>
-            static void StaticCopyConstruct(const InvokerFunctionsType& from, InvokerFunctionsType& to);
-            template<class F>
-            static const VirtualMethodTable* StaticVirtualMethodTable();
-            template<class F>
-            static void Construct(InvokerFunctionsType& invokerFunctions, F&& f);
-
-            const VirtualMethodTable* virtualMethodTable;
+            static const VirtualMethodTable& StaticVirtualMethodTable();
+            static const VirtualMethodTable& Table(const StorageType& storage);
         };
 
-        const InvokerFunctions<void(), INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::VirtualMethodTable* GetAbortOnExecuteSentinelTable();
+        extern const InvokerFunctions<void(), INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::VirtualMethodTable abortOnExecuteTable;
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>
@@ -104,14 +123,14 @@ namespace infra
     public:
         Function() = default;
         Function(std::nullptr_t);
-        Function(const Function& other);
+        Function(const Function& other) = default;
 
         template<class F>
         Function(F f);
 
-        ~Function();
+        ~Function() = default;
 
-        Function& operator=(const Function& other);
+        Function& operator=(const Function& other) = default;
         Function& operator=(std::nullptr_t);
 
         explicit operator bool() const;
@@ -122,25 +141,13 @@ namespace infra
         void Swap(Function& other) noexcept;
 
     private:
-        template<class F>
-        void Assign(F f);
+        using Invokers = detail::InvokerFunctions<Result(Args...), ExtraSize>;
+        using StorageType = typename Invokers::StorageType;
 
-        void Clear();
-        bool Initialized() const;
-
-        static const typename detail::InvokerFunctions<Result(Args...), ExtraSize>::VirtualMethodTable* ReinterpretAbortOnExecuteSentinelTable();
-
-    private:
-        using StorageType = detail::InvokerFunctions<Result(Args...), ExtraSize>;
-
-        static void CopyConstruct(const StorageType& from, StorageType& to);
-        static void Destruct(StorageType& storage);
-
-        StorageType invokerFunctions;
+        StorageType storage;
 
         template<class F, std::size_t ExtraSize2>
         friend class Function;
-        friend StorageType;
     };
 
     class Execute
@@ -236,65 +243,162 @@ namespace infra
 
     namespace detail
     {
-
-        template<std::size_t ExtraSize, class Result, class... Args>
-        InvokerFunctions<Result(Args...), ExtraSize>::InvokerFunctions()
-            : virtualMethodTable{ FunctionType::ReinterpretAbortOnExecuteSentinelTable() }
+        template<std::size_t ExtraSize>
+        FunctionStorage<ExtraSize>::FunctionStorage()
+            : lifetime(Sentinel())
         {}
 
-        template<std::size_t ExtraSize, class Result, class... Args>
+        template<std::size_t ExtraSize>
         template<class F>
-        Result InvokerFunctions<Result(Args...), ExtraSize>::StaticInvoke(const InvokerFunctionsType& invokerFunctions, Args... args)
+        FunctionStorage<ExtraSize>::FunctionStorage(F&& f, const Lifetime& table)
+            : lifetime(&table)
         {
-            return (*std::launder(const_cast<F*>(reinterpret_cast<const F*>(&invokerFunctions.data))))(std::forward<Args>(args)...);
+            using Stored = std::decay_t<F>;
+
+            static_assert(sizeof(Stored) <= ExtraSize, "Not enough static storage available for construction of derived type");
+            static_assert(std::alignment_of<Stored>::value <= sizeof(UTIL_FUNCTION_ALIGNMENT), "Alignment of U is larger than alignment of this function");
+
+            new (&data) Stored(std::forward<F>(f));
+            std::memset(reinterpret_cast<char*>(&data) + sizeof(Stored), 0, ExtraSize - sizeof(Stored));
         }
 
-        template<std::size_t ExtraSize, class Result, class... Args>
-        template<class F>
-        void InvokerFunctions<Result(Args...), ExtraSize>::StaticDestruct(InvokerFunctionsType& invokerFunctions)
+        template<std::size_t ExtraSize>
+        FunctionStorage<ExtraSize>::FunctionStorage(const FunctionStorage& other)
+            : lifetime(Sentinel())
         {
-            std::launder(reinterpret_cast<F*>(&invokerFunctions.data))->~F(); //NOSONAR
-            invokerFunctions.virtualMethodTable = FunctionType::ReinterpretAbortOnExecuteSentinelTable();
+            CopyFrom(other);
         }
 
-        template<std::size_t ExtraSize, class Result, class... Args>
+        template<std::size_t ExtraSize>
+        FunctionStorage<ExtraSize>& FunctionStorage<ExtraSize>::operator=(const FunctionStorage& other)
+        {
+            if (this != &other)
+            {
+                Clear();
+                CopyFrom(other);
+            }
+
+            return *this;
+        }
+
+        template<std::size_t ExtraSize>
+        FunctionStorage<ExtraSize>::~FunctionStorage()
+        {
+            Clear();
+        }
+
+        template<std::size_t ExtraSize>
+        bool FunctionStorage<ExtraSize>::Initialized() const
+        {
+            return lifetime != Sentinel();
+        }
+
+        template<std::size_t ExtraSize>
+        void FunctionStorage<ExtraSize>::Clear()
+        {
+            if (Initialized())
+            {
+                if (lifetime->destruct != nullptr)
+                    lifetime->destruct(*this);
+
+                lifetime = Sentinel();
+            }
+        }
+
+        template<std::size_t ExtraSize>
+        void FunctionStorage<ExtraSize>::Swap(FunctionStorage& other) noexcept
+        {
+            if (Initialized() && other.Initialized())
+            {
+                FunctionStorage temp(*this);
+                *this = other;
+                other = temp;
+            }
+            else if (Initialized())
+                MoveTo(other);
+            else if (other.Initialized())
+                other.MoveTo(*this);
+        }
+
+        template<std::size_t ExtraSize>
         template<class F>
-        void InvokerFunctions<Result(Args...), ExtraSize>::StaticCopyConstruct(const InvokerFunctionsType& from, InvokerFunctionsType& to)
+        void FunctionStorage<ExtraSize>::StaticDestruct(FunctionStorage& storage)
+        {
+            std::launder(reinterpret_cast<F*>(&storage.data))->~F(); //NOSONAR
+        }
+
+        template<std::size_t ExtraSize>
+        template<class F>
+        void FunctionStorage<ExtraSize>::StaticCopyConstruct(const FunctionStorage& from, FunctionStorage& to)
         {
             new (&to.data) F(*std::launder(reinterpret_cast<const F*>(&from.data)));
             std::memset(reinterpret_cast<char*>(&to.data) + sizeof(F), 0, ExtraSize - sizeof(F));
-            to.virtualMethodTable = StaticVirtualMethodTable<F>();
+            to.lifetime = from.lifetime;
+        }
+
+        template<std::size_t ExtraSize>
+        const typename FunctionStorage<ExtraSize>::Lifetime* FunctionStorage<ExtraSize>::Sentinel()
+        {
+            return reinterpret_cast<const Lifetime*>(&abortOnExecuteTable.lifetime);
+        }
+
+        template<std::size_t ExtraSize>
+        void FunctionStorage<ExtraSize>::CopyFrom(const FunctionStorage& other)
+        {
+            if (other.Initialized())
+            {
+                if (other.lifetime->copyConstruct != nullptr)
+                    other.lifetime->copyConstruct(other, *this);
+                else
+                    Copy(MakeByteRange(other), MakeByteRange(*this));
+            }
+        }
+
+        template<std::size_t ExtraSize>
+        void FunctionStorage<ExtraSize>::MoveTo(FunctionStorage& other)
+        {
+            other.CopyFrom(*this);
+            Clear();
         }
 
         template<std::size_t ExtraSize, class Result, class... Args>
         template<class F>
-        const typename InvokerFunctions<Result(Args...), ExtraSize>::VirtualMethodTable*
-        InvokerFunctions<Result(Args...), ExtraSize>::StaticVirtualMethodTable()
+        Result InvokerFunctions<Result(Args...), ExtraSize>::StaticInvoke(const StorageType& storage, Args... args)
+        {
+            return (*std::launder(const_cast<F*>(reinterpret_cast<const F*>(&storage.data))))(std::forward<Args>(args)...);
+        }
+
+        template<std::size_t ExtraSize, class Result, class... Args>
+        template<class F>
+        const typename InvokerFunctions<Result(Args...), ExtraSize>::VirtualMethodTable& InvokerFunctions<Result(Args...), ExtraSize>::StaticVirtualMethodTable()
         {
             if constexpr (std::is_trivially_copy_constructible_v<F> && std::is_trivially_destructible_v<F>)
             {
-                static const VirtualMethodTable table = { &StaticInvoke<F>, nullptr, nullptr };
-                return &table;
+                static const VirtualMethodTable table = { { nullptr, nullptr }, &StaticInvoke<F> };
+                return table;
             }
             else
             {
-                static const VirtualMethodTable table = { &StaticInvoke<F>, &StaticDestruct<F>, &StaticCopyConstruct<F> };
-                return &table;
+                static const VirtualMethodTable table = { { &StorageType::template StaticDestruct<F>, &StorageType::template StaticCopyConstruct<F> }, &StaticInvoke<F> };
+                return table;
             }
         }
 
         template<std::size_t ExtraSize, class Result, class... Args>
-        template<class F>
-        void InvokerFunctions<Result(Args...), ExtraSize>::Construct(InvokerFunctionsType& invokerFunctions, F&& f)
+        const typename InvokerFunctions<Result(Args...), ExtraSize>::VirtualMethodTable& InvokerFunctions<Result(Args...), ExtraSize>::Table(const StorageType& storage)
         {
-            static_assert(sizeof(F) <= ExtraSize, "Not enough static storage available for construction of derived type");
-            static_assert(std::alignment_of<F>::value <= sizeof(UTIL_FUNCTION_ALIGNMENT), "Alignment of U is larger than alignment of this function");
-
-            new (&invokerFunctions.data) F(std::forward<F>(f));
-            std::memset(reinterpret_cast<char*>(&invokerFunctions.data) + sizeof(F), 0, ExtraSize - sizeof(F));
-            invokerFunctions.virtualMethodTable = StaticVirtualMethodTable<F>();
+            return *reinterpret_cast<const VirtualMethodTable*>(storage.lifetime);
         }
 
+        template<class ResultType, class... Args>
+        struct TupleInvokeHelper
+        {
+            template<class Storage, class FunctionPointer, std::size_t... I>
+            static ResultType Invoke(const Storage& storage, FunctionPointer invoke, const std::tuple<Args...>& args, std::index_sequence<I...>)
+            {
+                return invoke(storage, std::get<I>(args)...);
+            }
+        };
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>
@@ -302,146 +406,40 @@ namespace infra
     {}
 
     template<std::size_t ExtraSize, class Result, class... Args>
-    Function<Result(Args...), ExtraSize>::Function(const Function& other)
-    {
-        if (other.Initialized())
-            CopyConstruct(other.invokerFunctions, invokerFunctions);
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
     template<class F>
     Function<Result(Args...), ExtraSize>::Function(F f)
-    {
-        Assign(std::forward<F>(f));
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    Function<Result(Args...), ExtraSize>::~Function()
-    {
-        Clear();
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    Function<Result(Args...), ExtraSize>& Function<Result(Args...), ExtraSize>::operator=(const Function& other)
-    {
-        if (this != &other)
-        {
-            Clear();
-
-            if (other)
-                CopyConstruct(other.invokerFunctions, invokerFunctions);
-        }
-
-        return *this;
-    }
+        : storage(std::move(f), Invokers::template StaticVirtualMethodTable<F>().lifetime)
+    {}
 
     template<std::size_t ExtraSize, class Result, class... Args>
     Function<Result(Args...), ExtraSize>& Function<Result(Args...), ExtraSize>::operator=(std::nullptr_t)
     {
-        Clear();
+        storage.Clear();
         return *this;
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    void Function<Result(Args...), ExtraSize>::CopyConstruct(const StorageType& from, StorageType& to)
-    {
-        if (from.virtualMethodTable->copyConstruct != nullptr)
-            from.virtualMethodTable->copyConstruct(from, to);
-        else
-            Copy(MakeByteRange(from), MakeByteRange(to));
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    void Function<Result(Args...), ExtraSize>::Destruct(StorageType& storage)
-    {
-        if (storage.virtualMethodTable->destruct != nullptr)
-            storage.virtualMethodTable->destruct(storage);
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    void Function<Result(Args...), ExtraSize>::Swap(Function& other) noexcept
-    {
-        using std::swap;
-
-        if (Initialized() && other.Initialized())
-        {
-            Function temp(std::move(*this));
-            *this = std::move(other);
-            other = std::move(temp);
-        }
-        else if (Initialized())
-        {
-            CopyConstruct(invokerFunctions, other.invokerFunctions);
-            Destruct(invokerFunctions);
-            invokerFunctions.virtualMethodTable = ReinterpretAbortOnExecuteSentinelTable();
-        }
-        else if (other.Initialized())
-        {
-            CopyConstruct(other.invokerFunctions, invokerFunctions);
-            Destruct(other.invokerFunctions);
-            other.invokerFunctions.virtualMethodTable = ReinterpretAbortOnExecuteSentinelTable();
-        }
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    template<class F>
-    void Function<Result(Args...), ExtraSize>::Assign(F f)
-    {
-        Clear();
-        StorageType::template Construct<F>(invokerFunctions, std::forward<F>(f));
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>
     Function<Result(Args...), ExtraSize>::operator bool() const
     {
-        return Initialized();
+        return storage.Initialized();
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>
     typename Function<Result(Args...), ExtraSize>::ResultType Function<Result(Args...), ExtraSize>::operator()(Args... args) const
     {
-        return invokerFunctions.virtualMethodTable->invoke(invokerFunctions, std::forward<Args>(args)...); //NOSONAR
-    }
-
-    namespace detail
-    {
-        template<class ResultType, class... Args>
-        struct TupleInvokeHelper
-        {
-            template<class InvokerFunctions, class FunctionPointer, std::size_t... I>
-            static ResultType Invoke(const InvokerFunctions& invokerFunctions, FunctionPointer invoke, const std::tuple<Args...>& args, std::index_sequence<I...>)
-            {
-                return invoke(invokerFunctions, std::get<I>(args)...);
-            }
-        };
+        return Invokers::Table(storage).invoke(storage, std::forward<Args>(args)...); //NOSONAR
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>
     typename Function<Result(Args...), ExtraSize>::ResultType Function<Result(Args...), ExtraSize>::Invoke(const std::tuple<Args...>& args) const
     {
-        return detail::TupleInvokeHelper<ResultType, Args...>::Invoke(invokerFunctions, invokerFunctions.virtualMethodTable->invoke, args, std::make_index_sequence<sizeof...(Args)>{});
+        return detail::TupleInvokeHelper<ResultType, Args...>::Invoke(storage, Invokers::Table(storage).invoke, args, std::make_index_sequence<sizeof...(Args)>{});
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>
-    void Function<Result(Args...), ExtraSize>::Clear()
+    void Function<Result(Args...), ExtraSize>::Swap(Function& other) noexcept
     {
-        if (Initialized())
-        {
-            Destruct(invokerFunctions);
-            invokerFunctions.virtualMethodTable = ReinterpretAbortOnExecuteSentinelTable();
-        }
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    bool Function<Result(Args...), ExtraSize>::Initialized() const
-    {
-        return invokerFunctions.virtualMethodTable != ReinterpretAbortOnExecuteSentinelTable();
-    }
-
-    template<std::size_t ExtraSize, class Result, class... Args>
-    const typename Function<Result(Args...), ExtraSize>::StorageType::VirtualMethodTable* Function<Result(Args...), ExtraSize>::ReinterpretAbortOnExecuteSentinelTable()
-    {
-        return reinterpret_cast<const typename StorageType::VirtualMethodTable*>(detail::GetAbortOnExecuteSentinelTable());
+        storage.Swap(other.storage);
     }
 
     template<std::size_t ExtraSize, class Result, class... Args>

@@ -3,6 +3,40 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+namespace
+{
+    class Counted
+    {
+    public:
+        explicit Counted(int& instances)
+            : instances(instances)
+        {
+            ++this->instances;
+        }
+
+        Counted(const Counted& other)
+            : instances(other.instances)
+        {
+            ++instances;
+        }
+
+        Counted& operator=(const Counted& other) = delete;
+
+        ~Counted()
+        {
+            --instances;
+        }
+
+        int operator()() const
+        {
+            return instances;
+        }
+
+    private:
+        int& instances;
+    };
+}
+
 TEST(FunctionTest, TestConstructedEmpty)
 {
     infra::Function<void()> f;
@@ -332,4 +366,71 @@ TEST(FunctionTest, TestMutable)
     EXPECT_EQ(1, f());
     EXPECT_EQ(2, f());
     EXPECT_EQ(3, f());
+}
+
+TEST(FunctionTest, TestCopyConstructNonTrivial)
+{
+    int instances = 0;
+
+    {
+        infra::Function<int()> f{ Counted(instances) };
+        infra::Function<int()> f2(f);
+        EXPECT_EQ(2, instances);
+        EXPECT_EQ(2, f2());
+    }
+
+    EXPECT_EQ(0, instances);
+}
+
+TEST(FunctionTest, TestCopyAssignNonTrivial)
+{
+    int instances = 0;
+    int otherInstances = 0;
+    infra::Function<int()> f{ Counted(instances) };
+    infra::Function<int()> f2{ Counted(otherInstances) };
+    f2 = f;
+    EXPECT_EQ(2, instances);
+    EXPECT_EQ(0, otherInstances);
+}
+
+TEST(FunctionTest, TestSelfAssignNonTrivial)
+{
+    int instances = 0;
+    infra::Function<int()> f{ Counted(instances) };
+    auto& self = f;
+    f = self;
+    EXPECT_EQ(1, instances);
+    EXPECT_EQ(1, f());
+}
+
+TEST(FunctionTest, TestAssignNullptrNonTrivial)
+{
+    int instances = 0;
+    infra::Function<int()> f{ Counted(instances) };
+    f = nullptr;
+    EXPECT_EQ(0, instances);
+}
+
+TEST(FunctionTest, TestSwapNonTrivialFilledFilled)
+{
+    int instances = 0;
+    int otherInstances = 0;
+    infra::Function<int()> f{ Counted(instances) };
+    infra::Function<int()> f2{ Counted(otherInstances) };
+    swap(f, f2);
+    EXPECT_EQ(1, instances);
+    EXPECT_EQ(1, otherInstances);
+    otherInstances = 5;
+    EXPECT_EQ(5, f());
+}
+
+TEST(FunctionTest, TestSwapNonTrivialFilledEmpty)
+{
+    int instances = 0;
+    infra::Function<int()> f{ Counted(instances) };
+    infra::Function<int()> f2;
+    swap(f, f2);
+    EXPECT_FALSE(static_cast<bool>(f));
+    EXPECT_EQ(1, instances);
+    EXPECT_EQ(1, f2());
 }
