@@ -69,7 +69,7 @@ namespace infra
                 const Lifetime* lifetime;
             };
 
-            FunctionStorage();
+            FunctionStorage() = default;
             template<class F>
             FunctionStorage(F&& f, const Table& table);
             FunctionStorage(const FunctionStorage& other);
@@ -89,8 +89,8 @@ namespace infra
             template<class F>
             static constexpr Lifetime lifetimeOf{ &StaticDestruct<F>, &StaticCopyConstruct<F> };
 
-            alignas(UTIL_FUNCTION_ALIGNMENT) unsigned char data[ExtraSize];
-            const Table* table;
+            alignas(UTIL_FUNCTION_ALIGNMENT) mutable unsigned char data[ExtraSize];
+            const Table* table{ Sentinel() };
 
         private:
             void CopyFrom(const FunctionStorage& other);
@@ -106,8 +106,8 @@ namespace infra
             using StorageType = FunctionStorage<ExtraSize>;
 
             struct VirtualMethodTable
+                : StorageType::Table
             {
-                typename StorageType::Table table;
                 Result (*invoke)(const StorageType& storage, Args... args);
             };
 
@@ -252,11 +252,6 @@ namespace infra
     namespace detail
     {
         template<std::size_t ExtraSize>
-        FunctionStorage<ExtraSize>::FunctionStorage()
-            : table(Sentinel())
-        {}
-
-        template<std::size_t ExtraSize>
         template<class F>
         FunctionStorage<ExtraSize>::FunctionStorage(F&& f, const Table& table)
             : table(&table)
@@ -264,7 +259,7 @@ namespace infra
             using Stored = std::decay_t<F>;
 
             static_assert(sizeof(Stored) <= ExtraSize, "Not enough static storage available for construction of derived type");
-            static_assert(std::alignment_of<Stored>::value <= sizeof(UTIL_FUNCTION_ALIGNMENT), "Alignment of U is larger than alignment of this function");
+            static_assert(std::alignment_of_v<Stored> <= sizeof(UTIL_FUNCTION_ALIGNMENT), "Alignment of U is larger than alignment of this function");
 
             new (&data) Stored(std::forward<F>(f));
             std::memset(reinterpret_cast<char*>(&data) + sizeof(Stored), 0, ExtraSize - sizeof(Stored));
@@ -272,7 +267,6 @@ namespace infra
 
         template<std::size_t ExtraSize>
         FunctionStorage<ExtraSize>::FunctionStorage(const FunctionStorage& other)
-            : table(Sentinel())
         {
             CopyFrom(other);
         }
@@ -347,7 +341,8 @@ namespace infra
         template<std::size_t ExtraSize>
         const typename FunctionStorage<ExtraSize>::Table* FunctionStorage<ExtraSize>::Sentinel()
         {
-            return reinterpret_cast<const Table*>(&abortOnExecuteTable.table);
+            const FunctionStorage<INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::Table& sentinel = abortOnExecuteTable;
+            return reinterpret_cast<const Table*>(&sentinel); //NOSONAR
         }
 
         template<std::size_t ExtraSize>
@@ -373,7 +368,7 @@ namespace infra
         template<class F>
         Result InvokerFunctions<Result(Args...), ExtraSize>::StaticInvoke(const StorageType& storage, Args... args)
         {
-            return (*std::launder(const_cast<F*>(reinterpret_cast<const F*>(&storage.data))))(std::forward<Args>(args)...);
+            return (*std::launder(reinterpret_cast<F*>(&storage.data)))(std::forward<Args>(args)...); //NOSONAR
         }
 
         template<std::size_t ExtraSize, class Result, class... Args>
@@ -395,7 +390,7 @@ namespace infra
         template<std::size_t ExtraSize, class Result, class... Args>
         const typename InvokerFunctions<Result(Args...), ExtraSize>::VirtualMethodTable& InvokerFunctions<Result(Args...), ExtraSize>::Table(const StorageType& storage)
         {
-            return *reinterpret_cast<const VirtualMethodTable*>(storage.table);
+            return *static_cast<const VirtualMethodTable*>(storage.table);
         }
 
         template<class ResultType, class... Args>
@@ -416,7 +411,7 @@ namespace infra
     template<std::size_t ExtraSize, class Result, class... Args>
     template<class F>
     Function<Result(Args...), ExtraSize>::Function(F f)
-        : storage(std::move(f), Invokers::template StaticVirtualMethodTable<F>().table)
+        : storage(std::move(f), Invokers::template StaticVirtualMethodTable<F>())
     {}
 
     template<std::size_t ExtraSize, class Result, class... Args>
