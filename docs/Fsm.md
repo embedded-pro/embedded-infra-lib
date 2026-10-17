@@ -160,7 +160,7 @@ Several rows for the same state and event are allowed when all but the last carr
 
 ## Consistency
 
-`services::Validated<Definition>()` refuses, at compile time, a table with any of the following errors; they are checked again, with `really_assert`, by `Start()` of a machine built from an unchecked table in the engine's own tests. The checks are:
+`services::Validated<Definition>()` refuses, at compile time, a table with any of the following errors; they are checked again, with `really_assert`, by `Start()` of `services::UncheckedTableStateMachine`, which builds a machine from an unchecked table for the engine's own tests, so that a machine built from a validated table links none of these checks. The checks are:
 
 | Error                 | Meaning                                                                                             |
 |-----------------------|-----------------------------------------------------------------------------------------------------|

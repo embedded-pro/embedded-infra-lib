@@ -26,6 +26,7 @@ namespace infra
         ~ClaimableResource();
 
         bool ClaimsPending() const;
+        bool IsClaimed() const;
 
     private:
         void ReEvaluateClaim();

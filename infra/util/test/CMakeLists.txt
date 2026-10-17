@@ -22,6 +22,8 @@ target_sources(infra.util_test PRIVATE
     TestBoundedVector.cpp
     TestCompareMembers.cpp
     TestCrc.cpp
+    TestCrcBitwise.cpp
+    TestCrcNibblewise.cpp
     TestCrcCcittCalculator.cpp
     TestCyclicBuffer.cpp
     TestEndian.cpp

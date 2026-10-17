@@ -16,6 +16,9 @@ namespace services
         {
         public:
             WithStorage(Context& context, typename Machine::Table table);
+
+            template<class Initial, class... Args>
+            void Start(Args&&... args);
         };
     };
 
@@ -26,6 +29,15 @@ namespace services
     UncheckedTableStateMachine<State, Event, Context>::WithStorage<QueueDepth>::WithStorage(Context& context, typename Machine::Table table)
         : Machine::template WithStorage<QueueDepth>(context, table)
     {}
+
+    template<class State, class Event, class Context>
+    template<std::size_t QueueDepth>
+    template<class Initial, class... Args>
+    void UncheckedTableStateMachine<State, Event, Context>::WithStorage<QueueDepth>::Start(Args&&... args)
+    {
+        really_assert(this->template CheckConsistency<Initial>() == ConsistencyError::none);
+        Machine::template Start<Initial>(std::forward<Args>(args)...);
+    }
 }
 
 #endif

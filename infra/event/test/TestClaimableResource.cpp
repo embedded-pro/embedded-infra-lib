@@ -47,6 +47,38 @@ TEST_F(TestClaimableResource, ClaimIsGranted)
     EXPECT_EQ(1, claimerA.claimsGranted);
 }
 
+TEST_F(TestClaimableResource, IsClaimedWhileAClaimIsGranted)
+{
+    EXPECT_FALSE(resource.IsClaimed());
+
+    claimerA.Claim([this]()
+        {
+            claimerA.GrantedClaim();
+        });
+    EXPECT_FALSE(resource.IsClaimed());
+
+    ExecuteAllActions();
+    EXPECT_TRUE(resource.IsClaimed());
+
+    claimerA.Release();
+    EXPECT_FALSE(resource.IsClaimed());
+}
+
+TEST_F(TestClaimableResource, IsNotClaimedOnceTheGrantedClaimerIsDestroyed)
+{
+    {
+        TestClaimer localClaimer(resource);
+        localClaimer.Claim([&localClaimer]()
+            {
+                localClaimer.GrantedClaim();
+            });
+        ExecuteAllActions();
+        EXPECT_TRUE(resource.IsClaimed());
+    }
+
+    EXPECT_FALSE(resource.IsClaimed());
+}
+
 TEST_F(TestClaimableResource, ClaimWhileAlreadyClaimedIsGrantedAfterRelease)
 {
     claimerA.Claim([this]()

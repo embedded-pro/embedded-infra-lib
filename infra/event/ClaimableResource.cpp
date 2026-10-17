@@ -15,6 +15,11 @@ namespace infra
         return !pendingClaims.empty();
     }
 
+    bool ClaimableResource::IsClaimed() const
+    {
+        return currentClaim != nullptr;
+    }
+
     void ClaimableResource::ReEvaluateClaim()
     {
         reEvaluateClaimScheduled = false;
