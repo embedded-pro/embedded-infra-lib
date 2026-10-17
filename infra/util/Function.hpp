@@ -56,17 +56,22 @@ namespace infra
         template<std::size_t ExtraSize>
         struct FunctionStorage
         {
-            // A hand-crafted Virtual Method Table is used so that the destruct and copyConstruct functions
-            // do not need to be implemented for trivial types (such as most lambdas), which saves space
             struct Lifetime
             {
                 void (*destruct)(FunctionStorage& storage);
                 void (*copyConstruct)(const FunctionStorage& from, FunctionStorage& to);
             };
 
+            // A hand-crafted Virtual Method Table is used so that the destruct and copyConstruct functions
+            // do not need to be implemented for trivial types (such as most lambdas), which saves space
+            struct Table
+            {
+                const Lifetime* lifetime;
+            };
+
             FunctionStorage();
             template<class F>
-            FunctionStorage(F&& f, const Lifetime& table);
+            FunctionStorage(F&& f, const Table& table);
             FunctionStorage(const FunctionStorage& other);
             FunctionStorage& operator=(const FunctionStorage& other);
             ~FunctionStorage();
@@ -79,10 +84,13 @@ namespace infra
             static void StaticDestruct(FunctionStorage& storage);
             template<class F>
             static void StaticCopyConstruct(const FunctionStorage& from, FunctionStorage& to);
-            static const Lifetime* Sentinel();
+            static const Table* Sentinel();
+
+            template<class F>
+            static constexpr Lifetime lifetimeOf{ &StaticDestruct<F>, &StaticCopyConstruct<F> };
 
             alignas(UTIL_FUNCTION_ALIGNMENT) unsigned char data[ExtraSize];
-            const Lifetime* lifetime;
+            const Table* table;
 
         private:
             void CopyFrom(const FunctionStorage& other);
@@ -99,7 +107,7 @@ namespace infra
 
             struct VirtualMethodTable
             {
-                typename StorageType::Lifetime lifetime;
+                typename StorageType::Table table;
                 Result (*invoke)(const StorageType& storage, Args... args);
             };
 
@@ -245,13 +253,13 @@ namespace infra
     {
         template<std::size_t ExtraSize>
         FunctionStorage<ExtraSize>::FunctionStorage()
-            : lifetime(Sentinel())
+            : table(Sentinel())
         {}
 
         template<std::size_t ExtraSize>
         template<class F>
-        FunctionStorage<ExtraSize>::FunctionStorage(F&& f, const Lifetime& table)
-            : lifetime(&table)
+        FunctionStorage<ExtraSize>::FunctionStorage(F&& f, const Table& table)
+            : table(&table)
         {
             using Stored = std::decay_t<F>;
 
@@ -264,7 +272,7 @@ namespace infra
 
         template<std::size_t ExtraSize>
         FunctionStorage<ExtraSize>::FunctionStorage(const FunctionStorage& other)
-            : lifetime(Sentinel())
+            : table(Sentinel())
         {
             CopyFrom(other);
         }
@@ -290,7 +298,7 @@ namespace infra
         template<std::size_t ExtraSize>
         bool FunctionStorage<ExtraSize>::Initialized() const
         {
-            return lifetime != Sentinel();
+            return table != Sentinel();
         }
 
         template<std::size_t ExtraSize>
@@ -298,10 +306,10 @@ namespace infra
         {
             if (Initialized())
             {
-                if (lifetime->destruct != nullptr)
-                    lifetime->destruct(*this);
+                if (table->lifetime != nullptr)
+                    table->lifetime->destruct(*this);
 
-                lifetime = Sentinel();
+                table = Sentinel();
             }
         }
 
@@ -333,13 +341,13 @@ namespace infra
         {
             new (&to.data) F(*std::launder(reinterpret_cast<const F*>(&from.data)));
             std::memset(reinterpret_cast<char*>(&to.data) + sizeof(F), 0, ExtraSize - sizeof(F));
-            to.lifetime = from.lifetime;
+            to.table = from.table;
         }
 
         template<std::size_t ExtraSize>
-        const typename FunctionStorage<ExtraSize>::Lifetime* FunctionStorage<ExtraSize>::Sentinel()
+        const typename FunctionStorage<ExtraSize>::Table* FunctionStorage<ExtraSize>::Sentinel()
         {
-            return reinterpret_cast<const Lifetime*>(&abortOnExecuteTable.lifetime);
+            return reinterpret_cast<const Table*>(&abortOnExecuteTable.table);
         }
 
         template<std::size_t ExtraSize>
@@ -347,8 +355,8 @@ namespace infra
         {
             if (other.Initialized())
             {
-                if (other.lifetime->copyConstruct != nullptr)
-                    other.lifetime->copyConstruct(other, *this);
+                if (other.table->lifetime != nullptr)
+                    other.table->lifetime->copyConstruct(other, *this);
                 else
                     Copy(MakeByteRange(other), MakeByteRange(*this));
             }
@@ -374,12 +382,12 @@ namespace infra
         {
             if constexpr (std::is_trivially_copy_constructible_v<F> && std::is_trivially_destructible_v<F>)
             {
-                static const VirtualMethodTable table = { { nullptr, nullptr }, &StaticInvoke<F> };
+                static const VirtualMethodTable table = { { nullptr }, &StaticInvoke<F> };
                 return table;
             }
             else
             {
-                static const VirtualMethodTable table = { { &StorageType::template StaticDestruct<F>, &StorageType::template StaticCopyConstruct<F> }, &StaticInvoke<F> };
+                static const VirtualMethodTable table = { { &StorageType::template lifetimeOf<F> }, &StaticInvoke<F> };
                 return table;
             }
         }
@@ -387,7 +395,7 @@ namespace infra
         template<std::size_t ExtraSize, class Result, class... Args>
         const typename InvokerFunctions<Result(Args...), ExtraSize>::VirtualMethodTable& InvokerFunctions<Result(Args...), ExtraSize>::Table(const StorageType& storage)
         {
-            return *reinterpret_cast<const VirtualMethodTable*>(storage.lifetime);
+            return *reinterpret_cast<const VirtualMethodTable*>(storage.table);
         }
 
         template<class ResultType, class... Args>
@@ -408,7 +416,7 @@ namespace infra
     template<std::size_t ExtraSize, class Result, class... Args>
     template<class F>
     Function<Result(Args...), ExtraSize>::Function(F f)
-        : storage(std::move(f), Invokers::template StaticVirtualMethodTable<F>().lifetime)
+        : storage(std::move(f), Invokers::template StaticVirtualMethodTable<F>().table)
     {}
 
     template<std::size_t ExtraSize, class Result, class... Args>

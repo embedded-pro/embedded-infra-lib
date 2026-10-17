@@ -12,7 +12,7 @@ namespace infra
             };
         }
 
-        const InvokerFunctions<void(), INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::VirtualMethodTable abortOnExecuteTable = { { nullptr, nullptr }, &InvokerFunctions<void(), INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::StaticInvoke<decltype(abortOnExecute)> };
+        const InvokerFunctions<void(), INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::VirtualMethodTable abortOnExecuteTable = { { nullptr }, &InvokerFunctions<void(), INFRA_DEFAULT_FUNCTION_EXTRA_SIZE>::StaticInvoke<decltype(abortOnExecute)> };
     }
 
     const infra::Function<void()> emptyFunction = []() {};
