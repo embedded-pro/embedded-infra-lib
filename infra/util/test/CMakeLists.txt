@@ -27,6 +27,7 @@ target_sources(infra.util_test PRIVATE
     TestEndian.cpp
     TestFixedPoint.cpp
     TestFunction.cpp
+    TestHotSwapFunction.cpp
     TestInterfaceConnector.cpp
     TestIntrusiveBinarySearchTree.cpp
     TestIntrusiveForwardList.cpp

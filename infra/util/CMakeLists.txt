@@ -42,6 +42,7 @@ target_sources(infra.util PRIVATE
     FixedPoint.hpp
     Function.cpp
     Function.hpp
+    HotSwapFunction.hpp
     IntegerNormalization.hpp
     InterfaceConnector.hpp
     IntrusiveBinarySearchTree.hpp
