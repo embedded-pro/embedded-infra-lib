@@ -16,28 +16,28 @@ namespace hal
     };
 
     class SynchronousSingleChannelPwm
-        : public SynchronousPwm
+        : public virtual SynchronousPwm
     {
     public:
         virtual void Start(DutyCycle globalDutyCycle) = 0;
     };
 
     class SynchronousTwoChannelsPwm
-        : public SynchronousPwm
+        : public virtual SynchronousPwm
     {
     public:
         virtual void Start(DutyCycle dutyCycle1, DutyCycle dutyCycle2) = 0;
     };
 
     class SynchronousThreeChannelsPwm
-        : public SynchronousPwm
+        : public virtual SynchronousPwm
     {
     public:
         virtual void Start(DutyCycle dutyCycle1, DutyCycle dutyCycle2, DutyCycle dutyCycle3) = 0;
     };
 
     class SynchronousFourChannelsPwm
-        : public SynchronousPwm
+        : public virtual SynchronousPwm
     {
     public:
         virtual void Start(DutyCycle dutyCycle1, DutyCycle dutyCycle2, DutyCycle dutyCycle3, DutyCycle dutyCycle4) = 0;
