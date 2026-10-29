@@ -1,4 +1,5 @@
 #include "drivers/eeprom/Eeprom24xx.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
 
@@ -19,16 +20,17 @@ namespace drivers
 
     void Eeprom24xx::WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
+        Start(onDone);
         source = buffer;
         erasing = false;
-        StartWrite(address, static_cast<uint32_t>(buffer.size()), onDone);
+        StartWrite(address, static_cast<uint32_t>(buffer.size()));
     }
 
     void Eeprom24xx::ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
         really_assert(address <= config.size && buffer.size() <= config.size - address);
 
-        this->onDone = onDone;
+        Start(onDone);
         this->address = address;
         destination = buffer;
         ReadNextBlock();
@@ -36,9 +38,10 @@ namespace drivers
 
     void Eeprom24xx::Erase(infra::Function<void()> onDone)
     {
+        Start(onDone);
         source = infra::ConstByteRange();
         erasing = true;
-        StartWrite(0, config.size, onDone);
+        StartWrite(0, config.size);
     }
 
     hal::I2cAddress Eeprom24xx::DeviceAddress(uint32_t address) const
@@ -46,11 +49,24 @@ namespace drivers
         return hal::I2cAddress(static_cast<uint16_t>(config.deviceAddress | (address / blockSize)));
     }
 
-    void Eeprom24xx::StartWrite(uint32_t address, uint32_t size, const infra::Function<void()>& onDone)
+    void Eeprom24xx::Start(const infra::Function<void()>& onDone)
+    {
+        really_assert(!busy);
+
+        busy = true;
+        this->onDone = onDone;
+    }
+
+    void Eeprom24xx::Finish()
+    {
+        busy = false;
+        onDone();
+    }
+
+    void Eeprom24xx::StartWrite(uint32_t address, uint32_t size)
     {
         really_assert(address <= config.size && size <= config.size - address);
 
-        this->onDone = onDone;
         this->address = address;
         remaining = size;
         WriteNextPage();
@@ -60,45 +76,77 @@ namespace drivers
     {
         if (remaining == 0)
         {
-            onDone();
+            infra::EventDispatcher::Instance().Schedule([this]()
+                {
+                    Finish();
+                });
             return;
         }
 
-        const auto chunk = std::min(remaining, config.pageSize - address % config.pageSize);
-        const auto device = DeviceAddress(address);
+        chunk = std::min(remaining, config.pageSize - address % config.pageSize);
 
         frame[0] = static_cast<uint8_t>(address);
         auto payload = infra::Head(infra::DiscardHead(infra::MakeRange(frame), 1), chunk);
         if (erasing)
             std::fill(payload.begin(), payload.end(), 0xff);
         else
-        {
             std::copy_n(source.begin(), chunk, payload.begin());
-            source = infra::DiscardHead(source, chunk);
-        }
 
-        address += chunk;
-        remaining -= chunk;
-
-        master.SendData(device, infra::Head(infra::MakeRange(frame), chunk + 1), hal::Action::stop, [this](hal::Result result, uint32_t)
+        expired = false;
+        writeDeadline.Start(config.writeTimeout, [this]()
             {
-                PageWritten(result);
+                expired = true;
+            });
+
+        SendPage();
+    }
+
+    void Eeprom24xx::SendPage()
+    {
+        master.SendData(DeviceAddress(address), infra::Head(infra::MakeRange(frame), chunk + 1), hal::Action::stop, [this](hal::Result result, uint32_t)
+            {
+                PageSent(result);
             });
     }
 
-    // The device ignores the bus until its internal write ends; a page it did not acknowledge started no write cycle
-    void Eeprom24xx::PageWritten(hal::Result result)
+    // A device still in the write cycle of the previous page acknowledges nothing, so the page is retried until the timeout
+    void Eeprom24xx::PageSent(hal::Result result)
     {
-        if (result != hal::Result::complete)
-        {
-            WriteNextPage();
-            return;
-        }
+        if (result == hal::Result::complete)
+            Poll();
+        else if (!expired)
+            SendPage();
+        else
+            PageDone();
+    }
 
-        writeCycle.Start(config.writeCycleTime, [this]()
+    // Only the word address: the device acknowledges it once its write cycle ends, and it starts no new write
+    void Eeprom24xx::Poll()
+    {
+        master.SendData(DeviceAddress(address), infra::Head(infra::MakeRange(frame), 1), hal::Action::stop, [this](hal::Result result, uint32_t)
             {
-                WriteNextPage();
+                Polled(result);
             });
+    }
+
+    void Eeprom24xx::Polled(hal::Result result)
+    {
+        if (result == hal::Result::complete || expired)
+            PageDone();
+        else
+            Poll();
+    }
+
+    void Eeprom24xx::PageDone()
+    {
+        writeDeadline.Cancel();
+
+        address += chunk;
+        remaining -= chunk;
+        if (!erasing)
+            source = infra::DiscardHead(source, chunk);
+
+        WriteNextPage();
     }
 
     infra::ByteRange Eeprom24xx::CurrentChunk() const
@@ -110,7 +158,10 @@ namespace drivers
     {
         if (destination.empty())
         {
-            onDone();
+            infra::EventDispatcher::Instance().Schedule([this]()
+                {
+                    Finish();
+                });
             return;
         }
 
@@ -138,13 +189,13 @@ namespace drivers
 
     void Eeprom24xx::ChunkReceived(hal::Result result)
     {
-        const auto chunk = CurrentChunk();
+        const auto received = CurrentChunk();
 
         if (result != hal::Result::complete)
-            std::fill(chunk.begin(), chunk.end(), 0xff);
+            std::fill(received.begin(), received.end(), 0xff);
 
-        address += static_cast<uint32_t>(chunk.size());
-        destination = infra::DiscardHead(destination, chunk.size());
+        address += static_cast<uint32_t>(received.size());
+        destination = infra::DiscardHead(destination, received.size());
         ReadNextBlock();
     }
 }
