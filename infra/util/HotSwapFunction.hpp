@@ -10,9 +10,6 @@
 //  This is safe on a single core only, because the invoker preempts the setter: whenever Set or Clear run, the
 //  invoker is not part way through a call. Set and Clear must therefore be called from a context the invoker
 //  preempts (the main thread or a lower-priority interrupt), and a callable may replace itself at most once per call.
-//  For the same reason operator() needs no hardware barrier: one core sees its own stores in program order, so a
-//  relaxed load and a compiler fence order the call after the index. Set keeps its release store; it is not on the
-//  interrupt's path.
 
 #include "infra/util/Function.hpp"
 #include <array>
