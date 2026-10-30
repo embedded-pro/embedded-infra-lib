@@ -11,10 +11,6 @@
 
 namespace drivers
 {
-    // 24xx01 to 24xx16: one word-address byte, and the address bits above it select a 256-byte block in the device
-    // address. A page the device does not acknowledge within the write timeout is skipped and a read it does not
-    // acknowledge returns erased bytes, so every operation completes and a caller that verifies its data detects a
-    // missing or failing device.
     class Eeprom24xx
         : public hal::Eeprom
     {
@@ -29,7 +25,6 @@ namespace drivers
             uint32_t size{ 512 };
             uint32_t pageSize{ 16 };
 
-            // Longer than the device's maximum write cycle, during which it acknowledges nothing
             infra::Duration writeTimeout{ std::chrono::milliseconds(10) };
         };
 

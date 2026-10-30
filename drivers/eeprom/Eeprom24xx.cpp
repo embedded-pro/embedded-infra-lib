@@ -109,7 +109,6 @@ namespace drivers
             });
     }
 
-    // A device still in the write cycle of the previous page acknowledges nothing, so the page is retried until the timeout
     void Eeprom24xx::PageSent(hal::Result result)
     {
         if (result == hal::Result::complete)
@@ -120,7 +119,6 @@ namespace drivers
             PageDone();
     }
 
-    // Only the word address: the device acknowledges it once its write cycle ends, and it starts no new write
     void Eeprom24xx::Poll()
     {
         master.SendData(DeviceAddress(address), infra::Head(infra::MakeRange(frame), 1), hal::Action::stop, [this](hal::Result result, uint32_t)
