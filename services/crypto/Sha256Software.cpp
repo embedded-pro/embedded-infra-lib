@@ -5,7 +5,6 @@ namespace services
 {
     namespace
     {
-        constexpr std::size_t blockSize = 64;
         constexpr std::size_t lengthSize = 8;
 
         constexpr std::array<uint32_t, 64> roundConstants{ {
@@ -105,31 +104,71 @@ namespace services
 
     Sha256::Digest Sha256Software::Calculate(infra::ConstByteRange input) const
     {
-        State state = initialState;
+        Sha256SoftwareIncremental sha256;
+        sha256.Update(input);
+        return sha256.Finish();
+    }
 
-        const auto completeBlocks = input.size() / blockSize;
-        for (std::size_t block = 0; block != completeBlocks; ++block)
-            Compress(state, input.begin() + block * blockSize);
+    Sha256SoftwareIncremental::Sha256SoftwareIncremental()
+    {
+        Restart();
+    }
 
-        const auto remainder = input.size() % blockSize;
-        std::array<uint8_t, 2 * blockSize> tail{};
-        std::copy(input.begin() + completeBlocks * blockSize, input.end(), tail.begin());
-        tail[remainder] = 0x80;
+    void Sha256SoftwareIncremental::Update(infra::ConstByteRange input)
+    {
+        messageSize += input.size();
 
-        const auto tailSize = remainder + 1 + lengthSize <= blockSize ? blockSize : 2 * blockSize;
-        WriteBigEndian(static_cast<uint64_t>(input.size()) * 8, tail.data() + tailSize - lengthSize, lengthSize);
+        while (!input.empty())
+        {
+            const auto taken = std::min(input.size(), blockSize - pendingSize);
+            std::copy(input.begin(), input.begin() + taken, pending.begin() + pendingSize);
+            pendingSize += taken;
+            input = infra::DiscardHead(input, taken);
 
-        for (std::size_t offset = 0; offset != tailSize; offset += blockSize)
-            Compress(state, tail.data() + offset);
+            if (pendingSize == blockSize)
+            {
+                Compress(state, pending.data());
+                pendingSize = 0;
+            }
+        }
+    }
 
-        Digest digest{};
+    Sha256::Digest Sha256SoftwareIncremental::Finish()
+    {
+        Pad();
+
+        Sha256::Digest digest{};
         for (std::size_t word = 0; word != state.size(); ++word)
             WriteBigEndian(state[word], digest.data() + word * sizeof(uint32_t), sizeof(uint32_t));
 
+        Restart();
         return digest;
     }
 
-    void Sha256Software::Compress(State& state, const uint8_t* block)
+    void Sha256SoftwareIncremental::Restart()
+    {
+        state = initialState;
+        pendingSize = 0;
+        messageSize = 0;
+    }
+
+    void Sha256SoftwareIncremental::Pad()
+    {
+        pending[pendingSize++] = 0x80;
+
+        if (pendingSize > blockSize - lengthSize)
+        {
+            std::fill(pending.begin() + pendingSize, pending.end(), 0);
+            Compress(state, pending.data());
+            pendingSize = 0;
+        }
+
+        std::fill(pending.begin() + pendingSize, pending.end() - lengthSize, 0);
+        WriteBigEndian(messageSize * 8, pending.data() + blockSize - lengthSize, lengthSize);
+        Compress(state, pending.data());
+    }
+
+    void Sha256SoftwareIncremental::Compress(State& state, const uint8_t* block)
     {
         std::array<uint32_t, 64> schedule{};
 

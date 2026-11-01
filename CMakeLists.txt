@@ -96,6 +96,7 @@ option(EMIL_BUILD_ECHO_COMPILERS "Build and install the Protobuf ECHO compilers"
 
 # Enable or disable optional features.
 option(EMIL_INCLUDE_ECHO "Include support for ECHO" On)
+option(EMIL_INCLUDE_UPGRADE "Include the firmware upgrade libraries (boot loader, upgrade pack, pack builder)" On)
 option(EMIL_INCLUDE_MBEDTLS "Include MbedTLS as part of EmIL" On)
 set(EMIL_EXTERNAL_MBEDTLS_TARGET "" CACHE STRING "Specify an external MbedTLS target")
 option(EMIL_INCLUDE_FREERTOS "Include FreeRTOS as part of EmIL" Off)
@@ -155,7 +156,7 @@ if (EMIL_INCLUDE_ECHO)
     endif()
 endif()
 add_subdirectory(services)
-if (EMIL_INCLUDE_ECHO)
+if (EMIL_INCLUDE_UPGRADE)
     add_subdirectory(upgrade)
 endif()
 

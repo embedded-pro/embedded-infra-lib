@@ -1,7 +1,6 @@
 #include "upgrade/boot_loader/VerifierEcDsa.hpp"
 #include "infra/util/ByteRange.hpp"
 #include "infra/util/MemoryRange.hpp"
-#include "mbedtls/sha256.h"
 #include "uECC.h"
 
 namespace application

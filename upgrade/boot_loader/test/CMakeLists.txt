@@ -16,6 +16,6 @@ target_sources(upgrade.boot_loader_test PRIVATE
     TestImageUpgraderSkip.cpp
     TestPackUpgrader.cpp
     TestSecondStageToRamLoader.cpp
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestVerifierEcDsa.cpp>
-    $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestVerifierHashOnly.cpp>
+    TestVerifierEcDsa.cpp
+    TestVerifierHashOnly.cpp
 )
