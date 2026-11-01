@@ -5,6 +5,7 @@ target_link_libraries(upgrade.boot_loader PUBLIC
     crypto.tiny_aes128
     hal.synchronous_interfaces
     infra.syntax
+    services.crypto
     services.synchronous_flash
     upgrade.pack
 )
@@ -30,6 +31,10 @@ target_sources(upgrade.boot_loader PRIVATE
     UpgradePackLoader.cpp
     UpgradePackLoader.hpp
     Verifier.hpp
+    VerifierEcDsa.cpp
+    VerifierEcDsa.hpp
+    VerifierHashOnly.cpp
+    VerifierHashOnly.hpp
 )
 
 if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
@@ -46,10 +51,6 @@ if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
     target_sources(upgrade.boot_loader PRIVATE
         DecryptorAesMbedTls.cpp
         DecryptorAesMbedTls.hpp
-        VerifierEcDsa.cpp
-        VerifierEcDsa.hpp
-        VerifierHashOnly.cpp
-        VerifierHashOnly.hpp
     )
 endif()
 
