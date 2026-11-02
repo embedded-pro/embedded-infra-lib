@@ -136,7 +136,10 @@ bootloader::BootSequence{ { packFlash, journal, installer, decryptor, verifier, 
 
 ## Keys
 
-The bootloader verifies packs with an ECDSA-P256 public key and decrypts their images with an AES-128 key. A product keeps them out of its sources: the bootloader links a `bootloader::KeySlot` (`KeySlot.hpp`), the public key and then the image key, 80 bytes, erased (`ErasedKeySlot()`) in a section of its own, and the build writes the keys into that section after the link.
+The bootloader verifies packs with an ECDSA-P256 public key and decrypts their images with an AES-128 key.
+A product keeps them out of its sources: the bootloader links a `bootloader::KeySlot` (`KeySlot.hpp`), the public key and then the image key, 80 bytes, erased (`ErasedKeySlot()`) in a section of its own.
+The keys are not a build input: once the build is done, `application.bootloader_image inject-keys` writes them into that section of the linked bootloader and into its Intel HEX files.
+The build is the same with any key set or none, and one build can take the development set or the release set.
 An erased slot holds no valid public key, and `VerifierEcDsa` refuses every signature under a key that is not on the curve, so a bootloader built without keys installs no pack and only starts the application already in the slot.
 
 A key set is the file the keys come from, 112 bytes:
@@ -153,17 +156,21 @@ It holds the private key that signs packs, so it is secret: a product keeps it o
 
 `application.bootloader_image` is a host tool for the files around an image:
 
-| Command                                                      | Writes                                                                                      |
-|--------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| `generate-keys --output <file>`                              | a new key set; never overwrites a file, and the file is readable by its owner only          |
-| `bootloader-keys --keys <key set> --output <file>`           | the key slot of a key set                                                                   |
-| `descriptor --image <binary> --output <file>`                | the image descriptor of an image, computed with `MakeImageDescriptor`                       |
-| `combine --output <file> <bootloader hex> <application hex>` | one Intel HEX file with the bootloader's records and then the application's, for a debugger |
+| Command                                                       | Writes                                                                                      |
+|---------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `generate-keys --output <file>`                               | a new key set; never overwrites a file, and the file is readable by its owner only          |
+| `bootloader-keys --keys <key set> --output <file>`            | the key slot of a key set                                                                   |
+| `descriptor --image <binary> --output <file>`                 | the image descriptor of an image, computed with `MakeImageDescriptor`                       |
+| `combine --output <file> <bootloader hex> <application hex>`  | one Intel HEX file with the bootloader's records and then the application's, for a debugger |
+| `inject-keys --keys <key set> --elf <file> [--hex <file>]...` | the key slot into the bootloader's ELF file, and at that address into every HEX file given  |
 
-`cmake/emil_bootloader_image.cmake` runs it as post-build steps, with `EMIL_OBJ_COPY_TOOL`:
+`inject-keys` finds the slot by section name (`.bootloader_keys`, or `--section`), checks that it is 80 bytes and writes it at the section's load address into each HEX file, such as the bootloader's own and a combined image.
+It changes no file unless every one of them takes the slot.
 
-- `emil_bootloader_key_slot(<target> KEYS <key set> [SECTION <section>])` writes the key slot into the linked bootloader (default section `.bootloader_keys`); a change to the key set relinks it.
+`cmake/emil_bootloader_image.cmake` runs the tool as post-build steps, with `EMIL_OBJ_COPY_TOOL`:
+
+- `emil_fetch_bootloader_image()` makes the tool a target of the build; a cross-compiling build builds it at `_native_bootloader_image/bin` in its build directory, where a later `inject-keys` finds it.
 - `emil_bootloader_image_descriptor(<target> [SECTION <section>])` writes the descriptor into the linked application (default section `.image_descriptor`). The descriptor covers the image as a debugger programs it: every section but the descriptor's, gaps erased, from the first section, which starts at the start of the slot.
 - `emil_bootloader_combined_hex(<name> OUTPUT <file> BOOTLOADER <target> APPLICATION <target>)` adds a target that joins the two `.hex` files `emil_generate_artifacts` writes.
 
-The first two must come before `emil_generate_artifacts`, so the `.bin` and `.hex` files carry what they wrote. A cross-compiling build has no host tools of its own; `emil_native_executables` (`cmake/emil_native_executables.cmake`) builds the tool with the host's compiler, in a directory of its own, and imports it, as it does for the ECHO compilers.
+The descriptor step must come before `emil_generate_artifacts`, so the `.bin` and `.hex` files carry the descriptor. A cross-compiling build has no host tools of its own; `emil_native_executables` (`cmake/emil_native_executables.cmake`) builds the tool with the host's compiler, in a directory of its own, and imports it, as it does for the ECHO compilers.

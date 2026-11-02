@@ -8,6 +8,8 @@ target_link_libraries(application.bootloader_image_lib PUBLIC
 target_sources(application.bootloader_image_lib PRIVATE
     Command.cpp
     Command.hpp
+    ElfSection.cpp
+    ElfSection.hpp
     Image.cpp
     Image.hpp
     KeySet.cpp

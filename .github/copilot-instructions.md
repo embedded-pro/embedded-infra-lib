@@ -287,7 +287,7 @@ std::array<uint8_t, 256> buffer;
   - `emil_build_for.cmake` — Cross-compilation helpers
   - `emil_clang_tools.cmake` — Linting and formatting
   - `emil_native_executables.cmake` — `emil_native_executables()`: builds EmIL host tools with the host compiler for a cross-compiling build and imports them
-  - `emil_bootloader_image.cmake` — Post-build steps for bootloader images: key slot, image descriptor, combined HEX
+  - `emil_bootloader_image.cmake` — Post-build steps for bootloader images: image descriptor, combined HEX
 
 ### Cross-Platform Considerations
 

@@ -1,5 +1,7 @@
 #include "application/bootloader_image/Command.hpp"
+#include "application/bootloader_image/ElfSection.hpp"
 #include "application/bootloader_image/Image.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -30,6 +32,10 @@ Commands:
       Write the 64-byte image descriptor (size and SHA-256) of an application image.
   combine --output <file> <bootloader hex> <application hex>
       Join the bootloader's and the application's Intel HEX files into one, the bootloader first.
+  inject-keys --keys <key set> --elf <bootloader elf> [--hex <file>]... [--section <name>]
+      Write the key slot into a linked bootloader: into its section (default .bootloader_keys) of the
+      ELF file, and at that section's address into every Intel HEX file given, such as the bootloader's
+      own and a combined one. No file changes unless all of them take the slot.
 
 Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-infra-lib.
 )";
@@ -43,6 +49,15 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
                 if (arguments[index] == name)
                     return arguments[index + 1];
             return std::nullopt;
+        }
+
+        std::vector<std::string> Options(const std::vector<std::string>& arguments, std::string_view name)
+        {
+            std::vector<std::string> values;
+            for (std::size_t index = 1; index + 1 < arguments.size(); ++index)
+                if (arguments[index] == name)
+                    values.push_back(arguments[++index]);
+            return values;
         }
 
         std::optional<std::vector<uint8_t>> ReadFile(std::string_view path)
@@ -197,6 +212,25 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
             return failure;
         }
 
+        std::optional<std::array<uint8_t, bootloaderKeySlotSize>> LoadKeySlot(std::string_view path, std::ostream& err)
+        {
+            const auto file = ReadFile(path);
+            if (!file)
+            {
+                err << "Cannot read the key set " << path << ".\n";
+                return std::nullopt;
+            }
+
+            const auto parsed = ParseKeySet(*file);
+            if (const auto* error = std::get_if<KeySetError>(&parsed))
+            {
+                ReportKeySetError(err, path, file->size(), *error);
+                return std::nullopt;
+            }
+
+            return BootloaderKeySlot(std::get<KeySet>(parsed));
+        }
+
         int BootloaderKeys(const std::vector<std::string>& arguments, std::ostream& out, std::ostream& err)
         {
             const auto keysPath = Option(arguments, "--keys");
@@ -212,18 +246,11 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
                 return failure;
             }
 
-            const auto file = ReadFile(*keysPath);
-            if (!file)
-            {
-                err << "Cannot read the key set " << *keysPath << ".\n";
+            const auto slot = LoadKeySlot(*keysPath, err);
+            if (!slot)
                 return failure;
-            }
 
-            const auto parsed = ParseKeySet(*file);
-            if (const auto* error = std::get_if<KeySetError>(&parsed))
-                return ReportKeySetError(err, *keysPath, file->size(), *error);
-
-            if (WriteSecret(*output, BootloaderKeySlot(std::get<KeySet>(parsed)), Create::replacing) != Written::ok)
+            if (WriteSecret(*output, *slot, Create::replacing) != Written::ok)
             {
                 err << "Cannot write " << *output << ".\n";
                 return failure;
@@ -315,6 +342,126 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
         }
     }
 
+    namespace
+    {
+        constexpr std::string_view keySlotSection{ ".bootloader_keys" };
+
+        void ReportElfError(std::ostream& err, std::string_view path, std::string_view section, ElfError error)
+        {
+            switch (error)
+            {
+                case ElfError::notElf:
+                    err << path << " is not a 32-bit little-endian ELF file.\n";
+                    break;
+                case ElfError::malformed:
+                    err << path << " is a damaged ELF file: its headers point outside the file.\n";
+                    break;
+                case ElfError::sectionNotFound:
+                    err << path << " has no section " << section << ": link the bootloader with its key slot there, or name the slot's section with --section.\n";
+                    break;
+                case ElfError::sectionNotLoaded:
+                    err << path << ": section " << section << " has no contents in flash to hold the key slot.\n";
+                    break;
+            }
+        }
+
+        std::optional<ElfSection> LocateKeySlot(std::span<const uint8_t> elf, std::string_view path, std::string_view section, std::ostream& err)
+        {
+            const auto found = FindElfSection(elf, section);
+            if (const auto* error = std::get_if<ElfError>(&found))
+            {
+                ReportElfError(err, path, section, *error);
+                return std::nullopt;
+            }
+
+            const auto& slot = std::get<ElfSection>(found);
+            if (slot.size != bootloaderKeySlotSize)
+            {
+                err << path << ": section " << section << " is " << slot.size << " bytes; a key slot is " << bootloaderKeySlotSize << ".\n";
+                return std::nullopt;
+            }
+            return slot;
+        }
+
+        using HexFile = std::pair<std::string, std::vector<std::string>>;
+
+        std::optional<std::vector<HexFile>> PatchedHexFiles(const std::vector<std::string>& paths, uint32_t address, std::span<const uint8_t> slot, std::ostream& err)
+        {
+            std::vector<HexFile> files;
+            for (const auto& path : paths)
+            {
+                auto lines = ReadLines(path);
+                if (!lines || !PatchHex(*lines, address, slot))
+                {
+                    err << path << " holds no Intel HEX data for all " << slot.size() << " bytes of the key slot at 0x" << std::hex << address << std::dec << "; no file was changed.\n";
+                    return std::nullopt;
+                }
+                files.emplace_back(path, std::move(*lines));
+            }
+            return files;
+        }
+
+        bool WriteLines(const std::string& path, const std::vector<std::string>& lines)
+        {
+            std::ofstream file{ std::filesystem::path{ path }, std::ios::binary | std::ios::trunc };
+            for (const auto& line : lines)
+                file << line << '\n';
+            file.close();
+            return !file.fail();
+        }
+
+        bool WriteAllFiles(std::string_view elfPath, std::span<const uint8_t> elf, const std::vector<HexFile>& hexFiles, std::ostream& err)
+        {
+            if (!WriteFile(elfPath, elf))
+            {
+                err << "Cannot write " << elfPath << ".\n";
+                return false;
+            }
+
+            for (const auto& [path, lines] : hexFiles)
+                if (!WriteLines(path, lines))
+                {
+                    err << "Cannot write " << path << ".\n";
+                    return false;
+                }
+            return true;
+        }
+
+        int InjectKeys(const std::vector<std::string>& arguments, std::ostream& out, std::ostream& err)
+        {
+            const auto keysPath = Option(arguments, "--keys");
+            const auto elfPath = Option(arguments, "--elf");
+            if (!keysPath)
+                return Missing(err, arguments[0], "--keys <key set>");
+            if (!elfPath)
+                return Missing(err, arguments[0], "--elf <bootloader elf>");
+            const auto section = Option(arguments, "--section").value_or(std::string{ keySlotSection });
+
+            const auto slot = LoadKeySlot(*keysPath, err);
+            if (!slot)
+                return failure;
+
+            auto elf = ReadFile(*elfPath);
+            if (!elf)
+            {
+                err << "Cannot read the ELF file " << *elfPath << ".\n";
+                return failure;
+            }
+
+            const auto location = LocateKeySlot(*elf, *elfPath, section, err);
+            if (!location)
+                return failure;
+
+            std::ranges::copy(*slot, elf->begin() + static_cast<std::ptrdiff_t>(location->fileOffset));
+            const auto hexFiles = PatchedHexFiles(Options(arguments, "--hex"), location->loadAddress, *slot, err);
+            if (!hexFiles || !WriteAllFiles(*elfPath, *elf, *hexFiles, err))
+                return failure;
+
+            out << *elfPath << ": key slot from " << *keysPath << " written into " << section << ", and into " << hexFiles->size() << " Intel HEX file(s).\n";
+            return success;
+        }
+    }
+
     int Run(const std::vector<std::string>& arguments, std::ostream& out, std::ostream& err, const RandomSource& random)
     {
         if (arguments.empty())
@@ -337,6 +484,8 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
             return Descriptor(arguments, out, err);
         if (command == "combine")
             return CombineImages(arguments, out, err);
+        if (command == "inject-keys")
+            return InjectKeys(arguments, out, err);
 
         err << "Unknown command '" << command << "'.\n\n"
             << usage;
