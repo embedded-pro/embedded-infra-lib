@@ -10,6 +10,7 @@ target_link_libraries(services.synchronous_flash_test PUBLIC
 
 target_sources(services.synchronous_flash_test PRIVATE
     TestSynchronousFlashQuadSpi.cpp
+    TestSynchronousFlashMemory.cpp
     TestSynchronousFlashRegion.cpp
     TestSynchronousFlashSpi.cpp
 )

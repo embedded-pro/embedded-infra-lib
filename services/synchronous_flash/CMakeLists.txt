@@ -7,6 +7,8 @@ target_link_libraries(services.synchronous_flash PUBLIC
 
 target_sources(services.synchronous_flash PRIVATE
     SynchronousFlashQuadSpi.cpp
+    SynchronousFlashMemory.cpp
+    SynchronousFlashMemory.hpp
     SynchronousFlashQuadSpi.hpp
     SynchronousFlashRegion.cpp
     SynchronousFlashRegion.hpp
