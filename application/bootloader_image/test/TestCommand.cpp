@@ -1,6 +1,10 @@
 #include "application/bootloader_image/Command.hpp"
+#include "application/bootloader_image/ElfSection.hpp"
 #include "application/bootloader_image/Image.hpp"
 #include "application/bootloader_image/KeySet.hpp"
+#include "application/bootloader_image/test/ElfFile.hpp"
+#include "application/bootloader_image/test/HexRecord.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <gmock/gmock.h>
@@ -60,6 +64,29 @@ namespace
             return { std::istreambuf_iterator<char>{ file }, std::istreambuf_iterator<char>{} };
         }
 
+        std::vector<uint8_t> GenerateKeySlot()
+        {
+            EXPECT_EQ(0, Run({ "generate-keys", "--output", Path("keys.bin") }));
+            const auto slot = BootloaderKeySlot(std::get<KeySet>(ParseKeySet(Read(Path("keys.bin")))));
+            return { slot.begin(), slot.end() };
+        }
+
+        static std::vector<uint8_t> Erased(std::size_t size)
+        {
+            return std::vector<uint8_t>(size, 0xff);
+        }
+
+        static std::string HexOf(uint32_t address, const std::vector<uint8_t>& bytes)
+        {
+            std::string text = HexRecord(0, 4, { static_cast<uint8_t>(address >> 24), static_cast<uint8_t>(address >> 16) }) + "\n";
+            for (std::size_t offset = 0; offset < bytes.size(); offset += 16)
+            {
+                const auto end = std::min(bytes.size(), offset + 16);
+                text += HexRecord(static_cast<uint16_t>(address + offset), 0, { bytes.begin() + offset, bytes.begin() + end }) + "\n";
+            }
+            return text + ":00000001FF\n";
+        }
+
         std::filesystem::path directory{ std::filesystem::temp_directory_path() / ("bootloader_image_" + std::string{ ::testing::UnitTest::GetInstance()->current_test_info()->name() }) };
         std::ostringstream out;
         std::ostringstream err;
@@ -80,6 +107,7 @@ TEST_F(TestCommand, help_lists_every_command)
     EXPECT_THAT(out.str(), HasSubstr("bootloader-keys"));
     EXPECT_THAT(out.str(), HasSubstr("descriptor"));
     EXPECT_THAT(out.str(), HasSubstr("combine"));
+    EXPECT_THAT(out.str(), HasSubstr("inject-keys"));
 }
 
 TEST_F(TestCommand, no_command_shows_the_usage_and_fails)
@@ -271,4 +299,114 @@ TEST_F(TestCommand, combine_refuses_to_write_over_an_input)
     EXPECT_EQ(1, Run({ "combine", "--output", Path("application.hex"), Path("bootloader.hex"), Path("application.hex") }));
 
     EXPECT_EQ(":00000001FF\n", ReadText(Path("application.hex")));
+}
+
+namespace
+{
+    const std::vector<uint8_t> code(64, 0x5a);
+
+    ElfFile Bootloader(std::size_t slotSize = 80, const char* slotName = ".bootloader_keys")
+    {
+        return ElfFile{ { { ".text", 0x00000000, 0x00000000, code }, { slotName, 0x00007fb0, 0x00007fb0, std::vector<uint8_t>(slotSize, 0xff) } } };
+    }
+}
+
+TEST_F(TestCommand, inject_keys_writes_the_key_slot_into_the_elf_and_every_hex_file)
+{
+    const auto slot = GenerateKeySlot();
+    Write(Path("boot.elf"), Bootloader().Bytes());
+    WriteText(Path("boot.hex"), HexOf(0, code) + HexOf(0x7fb0, Erased(80)));
+    WriteText(Path("combined.hex"), HexOf(0x7fb0, Erased(80)) + HexOf(0x8000, code));
+
+    EXPECT_EQ(0, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf"), "--hex", Path("boot.hex"), "--hex", Path("combined.hex") }));
+
+    const auto elf = Read(Path("boot.elf"));
+    const auto section = std::get<ElfSection>(FindElfSection(elf, ".bootloader_keys"));
+    EXPECT_EQ(slot, std::vector<uint8_t>(elf.begin() + section.fileOffset, elf.begin() + section.fileOffset + section.size));
+    EXPECT_EQ(HexOf(0, code) + HexOf(0x7fb0, slot), ReadText(Path("boot.hex")));
+    EXPECT_EQ(HexOf(0x7fb0, slot) + HexOf(0x8000, code), ReadText(Path("combined.hex")));
+}
+
+TEST_F(TestCommand, inject_keys_takes_another_section_name)
+{
+    const auto slot = GenerateKeySlot();
+    Write(Path("boot.elf"), Bootloader(80, ".keys").Bytes());
+
+    EXPECT_EQ(0, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf"), "--section", ".keys" }));
+
+    const auto elf = Read(Path("boot.elf"));
+    const auto section = std::get<ElfSection>(FindElfSection(elf, ".keys"));
+    EXPECT_EQ(slot, std::vector<uint8_t>(elf.begin() + section.fileOffset, elf.begin() + section.fileOffset + section.size));
+}
+
+TEST_F(TestCommand, inject_keys_refuses_a_section_that_is_not_a_key_slot_and_changes_nothing)
+{
+    GenerateKeySlot();
+    const auto original = Bootloader(64).Bytes();
+    Write(Path("boot.elf"), original);
+
+    EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf") }));
+
+    EXPECT_EQ(original, Read(Path("boot.elf")));
+    EXPECT_THAT(err.str(), HasSubstr("64 bytes"));
+}
+
+TEST_F(TestCommand, inject_keys_names_an_elf_without_the_section)
+{
+    GenerateKeySlot();
+    Write(Path("boot.elf"), Bootloader(80, ".other").Bytes());
+
+    EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf") }));
+    EXPECT_THAT(err.str(), HasSubstr(".bootloader_keys"));
+}
+
+TEST_F(TestCommand, inject_keys_changes_no_file_when_a_hex_file_lacks_the_slot)
+{
+    GenerateKeySlot();
+    const auto originalElf = Bootloader().Bytes();
+    const auto completeHex = HexOf(0x7fb0, Erased(80));
+    const auto partialHex = HexOf(0x7fb0, Erased(48));
+    Write(Path("boot.elf"), originalElf);
+    WriteText(Path("complete.hex"), completeHex);
+    WriteText(Path("partial.hex"), partialHex);
+
+    EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf"), "--hex", Path("complete.hex"), "--hex", Path("partial.hex") }));
+
+    EXPECT_EQ(originalElf, Read(Path("boot.elf")));
+    EXPECT_EQ(completeHex, ReadText(Path("complete.hex")));
+    EXPECT_EQ(partialHex, ReadText(Path("partial.hex")));
+    EXPECT_THAT(err.str(), HasSubstr("partial.hex"));
+}
+
+TEST_F(TestCommand, inject_keys_refuses_a_damaged_key_set)
+{
+    GenerateKeySlot();
+    auto keys = Read(Path("keys.bin"));
+    keys[20] ^= 0x01;
+    Write(Path("keys.bin"), keys);
+    const auto original = Bootloader().Bytes();
+    Write(Path("boot.elf"), original);
+
+    EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf") }));
+
+    EXPECT_EQ(original, Read(Path("boot.elf")));
+    EXPECT_THAT(err.str(), HasSubstr("damaged"));
+}
+
+TEST_F(TestCommand, inject_keys_names_a_file_that_is_not_an_elf)
+{
+    GenerateKeySlot();
+    Write(Path("boot.elf"), { 1, 2, 3 });
+
+    EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin"), "--elf", Path("boot.elf") }));
+    EXPECT_THAT(err.str(), HasSubstr("not a 32-bit"));
+}
+
+TEST_F(TestCommand, inject_keys_needs_a_key_set_and_an_elf)
+{
+    EXPECT_EQ(1, Run({ "inject-keys", "--elf", Path("boot.elf") }));
+    EXPECT_THAT(err.str(), HasSubstr("--keys"));
+
+    EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin") }));
+    EXPECT_THAT(err.str(), HasSubstr("--elf"));
 }

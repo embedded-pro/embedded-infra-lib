@@ -45,7 +45,7 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `crypto/`, `flash/`, `tracer/`, `util/`
 - **application/** — Standalone CLI tools and build-time executables
 - **upgrade/** — Firmware upgrade and bootloader support
-- **bootloader/** — Single-stage bootloader on `upgrade/boot_loader`: status journal, application header and image descriptor checks, checked installer, boot sequence, key slot; the `application/bootloader_image` host tool writes key sets, key slots, descriptors and combined HEX files (see `docs/Bootloader.md`)
+- **bootloader/** — Single-stage bootloader on `upgrade/boot_loader`: status journal, application header and image descriptor checks, checked installer, boot sequence, key slot; the `application/bootloader_image` host tool writes key sets, descriptors and combined HEX files, and injects the key slot into a built bootloader (see `docs/Bootloader.md`)
 - **lwip/** — LwIP TCP/IP stack wrappers
 - **osal/** — OS abstraction layer (FreeRTOS, ThreadX, std::thread)
 - **external/** — Third-party dependencies (args, crypto, protobuf, Segger RTT)
@@ -194,7 +194,7 @@ Prefer `{}` initialization over `()` for all variable and object initialization.
 - `emil_build_for.cmake` — Cross-compilation helpers
 - `emil_clang_tools.cmake` — Linting and formatting
 - `emil_native_executables.cmake` — `emil_native_executables()`: builds EmIL host tools with the host compiler for a cross-compiling build and imports them
-- `emil_bootloader_image.cmake` — Post-build steps for bootloader images: key slot, image descriptor, combined HEX (see `docs/Bootloader.md`)
+- `emil_bootloader_image.cmake` — Post-build steps for bootloader images: image descriptor, combined HEX (see `docs/Bootloader.md`)
 
 ## ECHO and Protobuf Conventions
 

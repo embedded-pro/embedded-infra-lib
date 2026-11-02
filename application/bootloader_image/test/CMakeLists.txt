@@ -8,7 +8,10 @@ target_link_libraries(application.bootloader_image_test PUBLIC
 )
 
 target_sources(application.bootloader_image_test PRIVATE
+    ElfFile.hpp
+    HexRecord.hpp
     TestCommand.cpp
+    TestElfSection.cpp
     TestImage.cpp
     TestKeySet.cpp
 )

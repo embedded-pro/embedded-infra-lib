@@ -1,10 +1,11 @@
 # Post-build steps for images of the bootloader package (docs/Bootloader.md), run with application.bootloader_image
-# and EMIL_OBJ_COPY_TOOL. A cross-compiling build gets the tool through emil_native_executables. Add them before
-# emil_generate_artifacts, so the .bin and .hex files it writes carry what they wrote into the linked image.
+# and EMIL_OBJ_COPY_TOOL. A cross-compiling build gets the tool through emil_native_executables, at
+# ${CMAKE_BINARY_DIR}/_native_bootloader_image/bin. Add the descriptor step before emil_generate_artifacts, so the .bin
+# and .hex files it writes carry the descriptor. Keys are not a build input: application.bootloader_image inject-keys
+# writes them into the finished bootloader and its HEX files.
 #
-# emil_bootloader_key_slot(<target> KEYS <key set> [SECTION <section>])
-#     Writes the key slot made from KEYS into SECTION (default .bootloader_keys) of the linked bootloader.
-#     A change to KEYS relinks the target.
+# emil_fetch_bootloader_image()
+#     Makes application.bootloader_image a target of this build, built natively when the build cross-compiles.
 #
 # emil_bootloader_image_descriptor(<target> [SECTION <section>])
 #     Writes the image descriptor into SECTION (default .image_descriptor) of the linked application: it covers the
@@ -28,29 +29,6 @@ function(emil_bootloader_require_object_copy function)
     if (NOT EMIL_OBJ_COPY_TOOL)
         message(FATAL_ERROR "${function} needs EMIL_OBJ_COPY_TOOL, which the toolchain file sets")
     endif()
-endfunction()
-
-function(emil_bootloader_key_slot target)
-    cmake_parse_arguments(PARSE_ARGV 1 KEY_SLOT "" "KEYS;SECTION" "")
-
-    if (NOT KEY_SLOT_KEYS)
-        message(FATAL_ERROR "emil_bootloader_key_slot: KEYS names no key set")
-    endif()
-    if (NOT KEY_SLOT_SECTION)
-        set(KEY_SLOT_SECTION .bootloader_keys)
-    endif()
-
-    emil_bootloader_require_object_copy(emil_bootloader_key_slot)
-    emil_fetch_bootloader_image()
-
-    set(key_slot "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>.key_slot.bin")
-    add_dependencies(${target} application.bootloader_image)
-    set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS "${KEY_SLOT_KEYS}")
-    add_custom_command(TARGET ${target} POST_BUILD
-        COMMAND application.bootloader_image bootloader-keys --keys "${KEY_SLOT_KEYS}" --output "${key_slot}"
-        COMMAND "${EMIL_OBJ_COPY_TOOL}" --update-section "${KEY_SLOT_SECTION}=${key_slot}" "$<TARGET_FILE:${target}>"
-        VERBATIM
-    )
 endfunction()
 
 function(emil_bootloader_image_descriptor target)

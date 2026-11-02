@@ -24,6 +24,8 @@ namespace application
     };
 
     std::variant<std::vector<std::string>, CombineError> Combine(const std::vector<std::string>& bootloader, const std::vector<std::string>& application);
+
+    bool PatchHex(std::vector<std::string>& lines, uint32_t address, std::span<const uint8_t> bytes);
 }
 
 #endif
