@@ -18,7 +18,7 @@ namespace bootloader
     {
     public:
         ApplicationInstaller(application::Decryptor& decryptor, application::Decryptor& checkDecryptor, hal::SynchronousFlash& slot,
-            const TargetLayout& layout, const TargetIdentity& identity, infra::ByteRange buffer);
+            const TargetLayout& layout, const TargetCheck& target, infra::ByteRange buffer);
 
         uint32_t Upgrade(hal::SynchronousFlash& packFlash, uint32_t imageAddress, uint32_t imageSize, uint32_t destinationAddress) override;
 
@@ -32,7 +32,7 @@ namespace bootloader
         application::Decryptor& checkDecryptor;
         hal::SynchronousFlash& slot;
         TargetLayout layout;
-        TargetIdentity identity;
+        const TargetCheck& target;
         infra::ByteRange buffer;
     };
 }

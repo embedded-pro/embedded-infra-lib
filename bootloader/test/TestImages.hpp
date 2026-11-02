@@ -10,28 +10,37 @@
 
 namespace bootloader
 {
-    inline constexpr TargetLayout tm4c1294Layout{ 0x20000000, 0x20040000, 0x00008000, 0x00048000 };
-    inline constexpr TargetIdentity tm4c1294Identity{ 1, DeviceFamily::tivaTm4c, 0x0a };
-    inline constexpr TargetIdentity stm32h563Identity{ 3, DeviceFamily::stm32, 0x484 };
+    struct TestTarget
+    {
+        uint16_t board;
+        uint16_t family;
+        uint32_t device;
+
+        bool operator==(const TestTarget& other) const = default;
+    };
+
+    inline constexpr TargetLayout testLayout{ 0x20000000, 0x20040000, 0x00008000, 0x00048000 };
+    inline constexpr TestTarget thisTarget{ 1, 1, 0x0a };
+    inline constexpr TestTarget otherTarget{ 3, 2, 0x484 };
 
     inline void Put32(std::vector<uint8_t>& bytes, std::size_t offset, uint32_t value)
     {
         std::memcpy(bytes.data() + offset, &value, sizeof(value));
     }
 
-    inline std::vector<uint8_t> Image(const TargetIdentity& identity, uint32_t stackPointer, uint32_t resetHandler, std::size_t size = 4096, uint8_t fill = 0x5a)
+    inline std::vector<uint8_t> Image(const TestTarget& target, uint32_t stackPointer, uint32_t resetHandler, std::size_t size = 4096, uint8_t fill = 0x5a)
     {
         std::vector<uint8_t> image(size, fill);
         Put32(image, 0, stackPointer);
         Put32(image, 4, resetHandler);
-        const auto header = MakeApplicationHeader(identity, 1, 7, 0);
+        const auto header = MakeApplicationHeader(target, 1, 7, 0);
         std::memcpy(image.data() + applicationHeaderOffset, &header, sizeof(header));
         return image;
     }
 
     inline std::vector<uint8_t> GoodImage(std::size_t size = 4096, uint8_t fill = 0x5a)
     {
-        return Image(tm4c1294Identity, 0x20040000, 0x00008441, size, fill);
+        return Image(thisTarget, 0x20040000, 0x00008441, size, fill);
     }
 
     inline std::vector<uint8_t> Slot(const std::vector<uint8_t>& image, std::size_t slotSize)

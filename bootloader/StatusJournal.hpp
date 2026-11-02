@@ -11,7 +11,7 @@ namespace bootloader
 {
     struct StatusJournalEntry
     {
-        static constexpr uint32_t validMarker = 0x314a4645;
+        static constexpr uint32_t validMarker = 0x314a4d45;
 
         uint32_t marker;
         uint8_t status;

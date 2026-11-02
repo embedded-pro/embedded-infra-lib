@@ -14,7 +14,7 @@ namespace bootloader
         if (InstallRequested())
             Install();
 
-        if (ApplicationIsStartable(dependencies.slotMemory, dependencies.layout, dependencies.identity))
+        if (ApplicationIsStartable(dependencies.slotMemory, dependencies.layout, dependencies.target))
             dependencies.starter.Start(dependencies.layout.slotBegin);
         else
             dependencies.starter.Halt();

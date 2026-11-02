@@ -13,12 +13,15 @@ namespace bootloader
 {
     class ApplicationStarter
     {
+    protected:
+        ApplicationStarter() = default;
+        ApplicationStarter(const ApplicationStarter& other) = delete;
+        ApplicationStarter& operator=(const ApplicationStarter& other) = delete;
+        ~ApplicationStarter() = default;
+
     public:
         virtual void Start(uint32_t slotBegin) = 0;
         virtual void Halt() = 0;
-
-    protected:
-        ~ApplicationStarter() = default;
     };
 
     class BootSequence
@@ -34,7 +37,7 @@ namespace bootloader
             const char* productName;
             infra::ConstByteRange slotMemory;
             TargetLayout layout;
-            TargetIdentity identity;
+            const TargetCheck& target;
             ApplicationStarter& starter;
         };
 

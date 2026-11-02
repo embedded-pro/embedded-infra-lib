@@ -71,10 +71,11 @@ namespace
         application::DecryptorAesTiny checkDecryptor{ infra::MakeRange(testAesKey) };
         application::VerifierEcDsa256 verifier{ infra::MakeRange(keys.publicKey) };
         std::array<uint8_t, imageStartCheckSize> buffer{};
-        ApplicationInstaller installer{ decryptor, checkDecryptor, slotFlash, layout, tm4c1294Identity, infra::MakeRange(buffer) };
+        ExactTargetCheck<TestTarget> target{ thisTarget };
+        ApplicationInstaller installer{ decryptor, checkDecryptor, slotFlash, layout, target, infra::MakeRange(buffer) };
         StrictMock<ApplicationStarterMock> starter;
-        BootSequence::Dependencies dependencies{ packFlash, journal, installer, decryptor, verifier, tm4c1294ProductName,
-            infra::MakeRange(slotFlash.memory), layout, tm4c1294Identity, starter };
+        BootSequence::Dependencies dependencies{ packFlash, journal, installer, decryptor, verifier, testProductName,
+            infra::MakeRange(slotFlash.memory), layout, target, starter };
     };
 }
 
@@ -149,7 +150,7 @@ TEST_F(TestBootSequence, a_pack_with_a_bad_signature_leaves_the_old_application)
 TEST_F(TestBootSequence, a_pack_for_another_product_leaves_the_old_application)
 {
     InstallOldApplication();
-    Stage(PackDescription{ newImage, "NUCLEO-H563ZI STM32H563ZI" }, UpgradePackStatus::readyToDeploy);
+    Stage(PackDescription{ newImage, "another board" }, UpgradePackStatus::readyToDeploy);
     ExpectStarted();
 
     Boot();
@@ -159,10 +160,10 @@ TEST_F(TestBootSequence, a_pack_for_another_product_leaves_the_old_application)
     EXPECT_EQ(application::upgradeErrorCodeUnknownProductName, journal.ErrorCode());
 }
 
-TEST_F(TestBootSequence, a_signed_pack_whose_image_is_for_another_microcontroller_is_never_written)
+TEST_F(TestBootSequence, a_signed_pack_whose_image_the_target_check_refuses_is_never_written)
 {
     InstallOldApplication();
-    Stage(PackDescription{ Image(stm32h563Identity, 0x20040000, 0x00008441, 6000) }, UpgradePackStatus::readyToDeploy);
+    Stage(PackDescription{ Image(otherTarget, 0x20040000, 0x00008441, 6000) }, UpgradePackStatus::readyToDeploy);
     ExpectStarted();
 
     Boot();
@@ -176,7 +177,7 @@ TEST_F(TestBootSequence, a_signed_pack_whose_image_is_for_another_microcontrolle
 TEST_F(TestBootSequence, a_signed_pack_whose_vectors_point_into_another_chips_flash_is_never_written)
 {
     InstallOldApplication();
-    Stage(PackDescription{ Image(tm4c1294Identity, 0x20040000, 0x08008441, 6000) }, UpgradePackStatus::readyToDeploy);
+    Stage(PackDescription{ Image(thisTarget, 0x20040000, 0x08008441, 6000) }, UpgradePackStatus::readyToDeploy);
     ExpectStarted();
 
     Boot();
@@ -188,7 +189,7 @@ TEST_F(TestBootSequence, a_signed_pack_whose_vectors_point_into_another_chips_fl
 TEST_F(TestBootSequence, an_image_for_another_destination_is_never_written)
 {
     InstallOldApplication();
-    Stage(PackDescription{ newImage, tm4c1294ProductName, 0x00000000 }, UpgradePackStatus::readyToDeploy);
+    Stage(PackDescription{ newImage, testProductName, 0x00000000 }, UpgradePackStatus::readyToDeploy);
     ExpectStarted();
 
     Boot();
@@ -224,7 +225,7 @@ TEST_F(TestBootSequence, an_image_filling_the_slot_up_to_its_descriptor_is_insta
 TEST_F(TestBootSequence, an_invalid_pack_is_not_tried_again)
 {
     InstallOldApplication();
-    Stage(PackDescription{ newImage, "NUCLEO-H563ZI STM32H563ZI" }, UpgradePackStatus::readyToDeploy);
+    Stage(PackDescription{ newImage, "another board" }, UpgradePackStatus::readyToDeploy);
     EXPECT_CALL(starter, Start(layout.slotBegin)).Times(2);
 
     Boot();

@@ -6,8 +6,8 @@
 
 namespace bootloader
 {
-    bool ImageStartFitsTarget(infra::ConstByteRange imageStart, const TargetLayout& layout, const TargetIdentity& identity);
-    bool ApplicationIsStartable(infra::ConstByteRange slot, const TargetLayout& layout, const TargetIdentity& identity);
+    bool ImageStartFitsTarget(infra::ConstByteRange imageStart, const TargetLayout& layout, const TargetCheck& target);
+    bool ApplicationIsStartable(infra::ConstByteRange slot, const TargetLayout& layout, const TargetCheck& target);
     ImageDescriptor MakeImageDescriptor(infra::ConstByteRange image);
 }
 

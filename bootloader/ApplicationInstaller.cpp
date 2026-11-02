@@ -14,12 +14,12 @@ namespace bootloader
     }
 
     ApplicationInstaller::ApplicationInstaller(application::Decryptor& decryptor, application::Decryptor& checkDecryptor, hal::SynchronousFlash& slot,
-        const TargetLayout& layout, const TargetIdentity& identity, infra::ByteRange buffer)
+        const TargetLayout& layout, const TargetCheck& target, infra::ByteRange buffer)
         : application::ImageUpgrader("app", decryptor)
         , checkDecryptor(checkDecryptor)
         , slot(slot)
         , layout(layout)
-        , identity(identity)
+        , target(target)
         , buffer(buffer)
     {
         really_assert(buffer.size() >= imageStartCheckSize);
@@ -60,7 +60,7 @@ namespace bootloader
         packFlash.ReadBuffer(start, imageAddress);
         checkDecryptor.DecryptPart(start);
 
-        return ImageStartFitsTarget(start, layout, identity);
+        return ImageStartFitsTarget(start, layout, target);
     }
 
     void ApplicationInstaller::EraseFor(uint32_t imageSize)

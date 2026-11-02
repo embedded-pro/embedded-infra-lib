@@ -24,7 +24,7 @@ flowchart TD
     Check -- no --> Invalid["Record invalid and the error code"]
     Invalid --> App
     Check -- yes --> Peek["Decrypt the image's first 2 KB"]
-    Peek --> Target{"Vectors and header<br/>fit this target?"}
+    Peek --> Target{"Vectors fit and<br/>TargetCheck accepts the header?"}
     Target -- no --> Invalid
     Target -- yes --> Started["Record deploy started"]
     Started --> Copy["Erase the image's sectors and the descriptor's,<br/>decrypt and write the image"]
@@ -45,7 +45,7 @@ flowchart TD
 
 | Offset | Size | Field                                       |
 |--------|------|---------------------------------------------|
-| 0      | 4    | marker `0x314a4645`                         |
+| 0      | 4    | marker `0x314a4d45` (`EMJ1`)                |
 | 4      | 1    | status, as `application::UpgradePackStatus` |
 | 5      | 3    | reserved, `0xff`                            |
 | 8      | 4    | error code                                  |
@@ -63,14 +63,42 @@ The application starts a download by erasing the journal (`Clear()`), records *d
 
 `ImageFormat.hpp` defines what an image carries:
 
-- `TargetIdentity`: a board kind, a `DeviceFamily` (TI Tiva, ST STM32) and the device identity the chip's identity register reports.
 - `TargetLayout`: the chip's RAM and the application slot.
-- `ApplicationHeader`: 64 bytes at offset `applicationHeaderOffset` (1 KB) from the start of the image, past the vector table of every supported Cortex-M: magic `0x48414645`, header version, the target identity and the firmware version. `MakeApplicationHeader` builds one at compile time, so the header comes from the same definitions as the code beside it.
-- `ImageDescriptor`: the last 64 bytes of the slot: magic `0x44494645`, the image size and the SHA-256 of that many bytes from the start of the slot.
+- `ApplicationHeader`: 64 bytes at offset `applicationHeaderOffset` (1 KB) from the start of the image, past the vector table of every supported Cortex-M.
 
-`ApplicationCheck.hpp` checks them:
+  | Offset | Size | Field                                         |
+  |--------|------|-----------------------------------------------|
+  | 0      | 4    | magic `0x48414d45` (`EMAH`)                   |
+  | 4      | 2    | header version, 1                             |
+  | 6      | 2    | reserved, `0xff`                              |
+  | 8      | 6    | firmware version: major, minor, patch         |
+  | 14     | 2    | reserved, `0xff`                              |
+  | 16     | 48   | target, defined by the product                |
 
-- `ImageStartFitsTarget` takes the start of an image: the initial stack pointer lies in RAM, the reset handler is a Thumb address in the slot, and the header names this board and chip. An STM32 image fails it on a Tiva board, and the other way round.
+- `ImageDescriptor`: the last 64 bytes of the slot: magic `0x44494d45` (`EMID`), the image size and the SHA-256 of that many bytes from the start of the slot.
+
+The library never interprets the target area: what an image was built for, a board, a chip family, a device identity or anything else, is the product's to define.
+The product describes it as a trivially copyable struct of at most 48 bytes; `MakeApplicationHeader(target, major, minor, patch)` builds the header at compile time with the struct at the start of the target area and the rest erased, so the header comes from the same definitions as the code beside it, and `TargetOf<Target>(header)` reads the struct back.
+
+The product decides whether an image is for this target through `bootloader::TargetCheck`, whose `Accepts(header)` it implements, for example from the chip's identity register read at that moment.
+`ExactTargetCheck<Target>` is the common case: it accepts a header whose target equals the one it was given.
+
+```cpp
+struct Target
+{
+    uint16_t board;
+    uint16_t family;
+    uint32_t device;
+
+    bool operator==(const Target& other) const = default;
+};
+
+const bootloader::ExactTargetCheck<Target> targetCheck{ Target{ boardKind, familyTag, ReadDeviceIdentity() } };
+```
+
+`ApplicationCheck.hpp` checks an image with it:
+
+- `ImageStartFitsTarget` takes the start of an image: the initial stack pointer lies in RAM, the reset handler is a Thumb address in the slot, the header's magic and version are valid, and the target check accepts the header. Images for chips whose flash or RAM lie elsewhere fail on the vectors alone.
 - `ApplicationIsStartable` takes the whole slot: the descriptor is valid, its SHA-256 matches the image, and the image start fits the target.
 - `MakeImageDescriptor` computes the descriptor of an image, for tools that program a slot directly.
 
@@ -89,7 +117,7 @@ The installer then erases the sectors the image spans and the descriptor's secto
 
 ## Wiring
 
-The product supplies the flash drivers, the keys, its identity and an `ApplicationStarter`, which jumps to the application or halts:
+The product supplies the flash drivers, the keys, its `TargetCheck` and an `ApplicationStarter`, which jumps to the application or halts:
 
 ```cpp
 bootloader::StatusJournal journal{ journalFlash };
@@ -98,9 +126,9 @@ application::DecryptorAesTiny checkDecryptor{ aesKey };
 const application::VerifierEcDsa256 verifier{ publicKey };
 std::array<uint8_t, bootloader::imageStartCheckSize> buffer{};
 
-bootloader::ApplicationInstaller installer{ decryptor, checkDecryptor, slotFlash, layout, identity, infra::MakeRange(buffer) };
+bootloader::ApplicationInstaller installer{ decryptor, checkDecryptor, slotFlash, layout, targetCheck, infra::MakeRange(buffer) };
 
-bootloader::BootSequence{ { packFlash, journal, installer, decryptor, verifier, "product name", slotMemory, layout, identity, starter } }.Run();
+bootloader::BootSequence{ { packFlash, journal, installer, decryptor, verifier, "product name", slotMemory, layout, targetCheck, starter } }.Run();
 ```
 
 `slotMemory` is the application slot as memory-mapped bytes, for the check at every reset; `slotFlash` is the same region as a `hal::SynchronousFlash`, with addresses relative to the slot's start.

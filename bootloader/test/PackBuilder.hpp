@@ -15,7 +15,7 @@
 namespace bootloader
 {
     inline constexpr std::array<uint8_t, 16> testAesKey{ 0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87, 0x98, 0xa9, 0xba, 0xcb, 0xdc, 0xed, 0xfe, 0x0f };
-    inline constexpr const char* tm4c1294ProductName = "EK-TM4C1294XL TM4C1294NCPDT";
+    inline constexpr const char* testProductName = "test board";
 
     struct TestKeyPair
     {
@@ -31,7 +31,7 @@ namespace bootloader
     struct PackDescription
     {
         std::vector<uint8_t> image;
-        std::string productName{ tm4c1294ProductName };
+        std::string productName{ testProductName };
         uint32_t destination{ 0x00008000 };
         std::array<uint8_t, 16> initialCounter{ 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf };
     };

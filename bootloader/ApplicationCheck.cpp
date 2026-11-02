@@ -26,22 +26,21 @@ namespace bootloader
                    resetAddress >= layout.slotBegin && resetAddress < layout.slotEnd - imageDescriptorSize;
         }
 
-        bool HeaderNamesTarget(infra::ConstByteRange imageStart, const TargetIdentity& identity)
+        bool HeaderNamesTarget(infra::ConstByteRange imageStart, const TargetCheck& target)
         {
             const auto header = Read<ApplicationHeader>(imageStart, applicationHeaderOffset);
 
-            return header.magic == ApplicationHeader::validMagic && header.headerVersion == ApplicationHeader::currentVersion &&
-                   TargetIdentity{ header.boardKind, static_cast<DeviceFamily>(header.deviceFamily), header.device } == identity;
+            return header.magic == ApplicationHeader::validMagic && header.headerVersion == ApplicationHeader::currentVersion && target.Accepts(header);
         }
     }
 
-    bool ImageStartFitsTarget(infra::ConstByteRange imageStart, const TargetLayout& layout, const TargetIdentity& identity)
+    bool ImageStartFitsTarget(infra::ConstByteRange imageStart, const TargetLayout& layout, const TargetCheck& target)
     {
         return imageStart.size() >= applicationHeaderOffset + sizeof(ApplicationHeader) && VectorsFitTarget(imageStart, layout) &&
-               HeaderNamesTarget(imageStart, identity);
+               HeaderNamesTarget(imageStart, target);
     }
 
-    bool ApplicationIsStartable(infra::ConstByteRange slot, const TargetLayout& layout, const TargetIdentity& identity)
+    bool ApplicationIsStartable(infra::ConstByteRange slot, const TargetLayout& layout, const TargetCheck& target)
     {
         if (slot.size() < imageDescriptorSize)
             return false;
@@ -51,7 +50,7 @@ namespace bootloader
             return false;
 
         const auto image = infra::Head(slot, descriptor.imageSize);
-        return services::Sha256Software{}.Calculate(image) == descriptor.sha256 && ImageStartFitsTarget(image, layout, identity);
+        return services::Sha256Software{}.Calculate(image) == descriptor.sha256 && ImageStartFitsTarget(image, layout, target);
     }
 
     ImageDescriptor MakeImageDescriptor(infra::ConstByteRange image)
