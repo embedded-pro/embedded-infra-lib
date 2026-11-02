@@ -117,7 +117,8 @@ The installer then erases the sectors the image spans and the descriptor's secto
 
 ## Wiring
 
-The product supplies the flash drivers, the keys (see [Keys](#keys)), its `TargetCheck` and an `ApplicationStarter`, which jumps to the application or halts. On a Cortex-M, `hal::cortex::JumpToApplication(slotBegin)` (`hal/cortex_m/JumpToApplication.hpp`) does the jump: it points VTOR at the application's vector table, loads the main stack pointer from its first entry and branches to the reset handler in the second.
+The product supplies the flash drivers, the keys (see [Keys](#keys)), its `TargetCheck` and an `ApplicationStarter`, which jumps to the application or halts.
+On a Cortex-M, `hal::cortex::JumpToApplication(slotBegin)` (`hal/cortex_m/JumpToApplication.hpp`) does the jump: it points VTOR at the application's vector table, loads the main stack pointer from its first entry and branches to the reset handler in the second.
 
 ```cpp
 bootloader::StatusJournal journal{ journalFlash };

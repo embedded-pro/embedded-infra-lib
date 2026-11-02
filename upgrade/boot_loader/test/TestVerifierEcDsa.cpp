@@ -112,7 +112,8 @@ TEST_F(VerifierEcDsaTest256, correct_hash_as_signature_is_valid)
 
 TEST(VerifierEcDsaTest256Erased, erased_public_key_is_invalid)
 {
-    const std::array<uint8_t, 64> erasedPublicKey = [] {
+    const std::array<uint8_t, 64> erasedPublicKey = []
+    {
         std::array<uint8_t, 64> key{};
         key.fill(0xff);
         return key;
