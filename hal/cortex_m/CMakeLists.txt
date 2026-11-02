@@ -16,6 +16,8 @@ target_sources(hal.cortex_m PRIVATE
     FaultTracer.cpp
     InterruptCortex.hpp
     InterruptCortex.cpp
+    JumpToApplication.hpp
+    JumpToApplication.cpp
     LowPowerStrategyCortex.hpp
     LowPowerStrategyCortex.cpp
     LowPowerStrategyWithModes.hpp
