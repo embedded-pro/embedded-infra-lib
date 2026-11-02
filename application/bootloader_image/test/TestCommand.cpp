@@ -2,6 +2,7 @@
 #include "application/bootloader_image/ElfSection.hpp"
 #include "application/bootloader_image/Image.hpp"
 #include "application/bootloader_image/KeySet.hpp"
+#include "application/bootloader_image/Pack.hpp"
 #include "application/bootloader_image/test/ElfFile.hpp"
 #include "application/bootloader_image/test/HexRecord.hpp"
 #include <algorithm>
@@ -108,6 +109,7 @@ TEST_F(TestCommand, help_lists_every_command)
     EXPECT_THAT(out.str(), HasSubstr("descriptor"));
     EXPECT_THAT(out.str(), HasSubstr("combine"));
     EXPECT_THAT(out.str(), HasSubstr("inject-keys"));
+    EXPECT_THAT(out.str(), HasSubstr("pack"));
 }
 
 TEST_F(TestCommand, no_command_shows_the_usage_and_fails)
@@ -409,4 +411,87 @@ TEST_F(TestCommand, inject_keys_needs_a_key_set_and_an_elf)
 
     EXPECT_EQ(1, Run({ "inject-keys", "--keys", Path("keys.bin") }));
     EXPECT_THAT(err.str(), HasSubstr("--elf"));
+}
+
+namespace
+{
+    std::string PackText(const std::vector<uint8_t>& pack, std::size_t offset, std::size_t size)
+    {
+        if (pack.size() < offset + size)
+            return {};
+        const auto* begin = reinterpret_cast<const char*>(pack.data() + offset);
+        return std::string{ begin, strnlen(begin, size) };
+    }
+
+    constexpr std::size_t productNameOffset = 16 + 64 + 8;
+    constexpr std::size_t productVersionOffset = productNameOffset + 64;
+    constexpr std::size_t componentNameOffset = productVersionOffset + 64;
+}
+
+TEST_F(TestCommand, pack_writes_a_pack_for_the_product_signed_with_the_key_set)
+{
+    ASSERT_EQ(0, Run({ "generate-keys", "--output", Path("keys.bin") }));
+    Write(Path("image.bin"), std::vector<uint8_t>(3000, 0x5a));
+
+    EXPECT_EQ(0, Run({ "pack", "--keys", Path("keys.bin"), "--image", Path("image.bin"), "--destination", "0x8000", "--product", "test board", "--product-version", "1.7.0", "--output", Path("pack.bin") }));
+
+    const auto pack = Read(Path("pack.bin"));
+    EXPECT_EQ("test board", PackText(pack, productNameOffset, 64));
+    EXPECT_EQ("1.7.0", PackText(pack, productVersionOffset, 64));
+    EXPECT_EQ("application", PackText(pack, componentNameOffset, 64));
+    EXPECT_GT(pack.size(), 3000u);
+}
+
+TEST_F(TestCommand, pack_takes_a_decimal_destination_and_a_component_name)
+{
+    ASSERT_EQ(0, Run({ "generate-keys", "--output", Path("keys.bin") }));
+    Write(Path("image.bin"), { 1, 2, 3, 4 });
+
+    EXPECT_EQ(0, Run({ "pack", "--keys", Path("keys.bin"), "--image", Path("image.bin"), "--destination", "32768", "--product", "p", "--component", "motor", "--output", Path("pack.bin") }));
+    EXPECT_EQ("motor", PackText(Read(Path("pack.bin")), componentNameOffset, 64));
+}
+
+TEST_F(TestCommand, pack_refuses_a_destination_that_is_not_an_address)
+{
+    ASSERT_EQ(0, Run({ "generate-keys", "--output", Path("keys.bin") }));
+    Write(Path("image.bin"), { 1, 2, 3, 4 });
+
+    EXPECT_EQ(1, Run({ "pack", "--keys", Path("keys.bin"), "--image", Path("image.bin"), "--destination", "slot", "--product", "p", "--output", Path("pack.bin") }));
+    EXPECT_THAT(err.str(), HasSubstr("slot"));
+    EXPECT_FALSE(std::filesystem::exists(Path("pack.bin")));
+}
+
+TEST_F(TestCommand, pack_refuses_a_name_that_does_not_fit_the_pack)
+{
+    ASSERT_EQ(0, Run({ "generate-keys", "--output", Path("keys.bin") }));
+    Write(Path("image.bin"), { 1, 2, 3, 4 });
+
+    EXPECT_EQ(1, Run({ "pack", "--keys", Path("keys.bin"), "--image", Path("image.bin"), "--destination", "0x8000", "--product", std::string(64, 'x'), "--output", Path("pack.bin") }));
+    EXPECT_THAT(err.str(), HasSubstr("63"));
+}
+
+TEST_F(TestCommand, pack_reports_a_missing_image_and_a_damaged_key_set)
+{
+    ASSERT_EQ(0, Run({ "generate-keys", "--output", Path("keys.bin") }));
+    EXPECT_EQ(1, Run({ "pack", "--keys", Path("keys.bin"), "--image", Path("missing.bin"), "--destination", "0x8000", "--product", "p", "--output", Path("pack.bin") }));
+    EXPECT_THAT(err.str(), HasSubstr("missing.bin"));
+
+    Write(Path("image.bin"), { 1, 2, 3, 4 });
+    Write(Path("keys.bin"), { 1, 2, 3 });
+    EXPECT_EQ(1, Run({ "pack", "--keys", Path("keys.bin"), "--image", Path("image.bin"), "--destination", "0x8000", "--product", "p", "--output", Path("pack.bin") }));
+    EXPECT_THAT(err.str(), HasSubstr("not a key set"));
+}
+
+TEST_F(TestCommand, pack_needs_its_options)
+{
+    EXPECT_EQ(1, Run({ "pack", "--image", "i", "--destination", "0", "--product", "p", "--output", "o" }));
+    EXPECT_THAT(err.str(), HasSubstr("--keys"));
+    EXPECT_EQ(1, Run({ "pack", "--keys", "k", "--destination", "0", "--product", "p", "--output", "o" }));
+    EXPECT_THAT(err.str(), HasSubstr("--image"));
+    EXPECT_EQ(1, Run({ "pack", "--keys", "k", "--image", "i", "--product", "p", "--output", "o" }));
+    EXPECT_THAT(err.str(), HasSubstr("--destination"));
+    EXPECT_EQ(1, Run({ "pack", "--keys", "k", "--image", "i", "--destination", "0", "--output", "o" }));
+    EXPECT_THAT(err.str(), HasSubstr("--product"));
+    EXPECT_EQ(1, Run({ "pack", "--keys", "k", "--image", "i", "--destination", "0", "--product", "p" }));
+    EXPECT_THAT(err.str(), HasSubstr("--output"));
 }

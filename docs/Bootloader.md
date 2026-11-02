@@ -156,16 +156,21 @@ It holds the private key that signs packs, so it is secret: a product keeps it o
 
 `application.bootloader_image` is a host tool for the files around an image:
 
-| Command                                                       | Writes                                                                                      |
-|---------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| `generate-keys --output <file>`                               | a new key set; never overwrites a file, and the file is readable by its owner only          |
-| `bootloader-keys --keys <key set> --output <file>`            | the key slot of a key set                                                                   |
-| `descriptor --image <binary> --output <file>`                 | the image descriptor of an image, computed with `MakeImageDescriptor`                       |
-| `combine --output <file> <bootloader hex> <application hex>`  | one Intel HEX file with the bootloader's records and then the application's, for a debugger |
-| `inject-keys --keys <key set> --elf <file> [--hex <file>]...` | the key slot into the bootloader's ELF file, and at that address into every HEX file given  |
+| Command                                                                           | Writes                                                                                           |
+|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| `generate-keys --output <file>`                                                   | a new key set; never overwrites a file, and the file is readable by its owner only               |
+| `bootloader-keys --keys <key set> --output <file>`                                | the key slot of a key set                                                                        |
+| `descriptor --image <binary> --output <file>`                                     | the image descriptor of an image, computed with `MakeImageDescriptor`                            |
+| `combine --output <file> <bootloader hex> <application hex>`                      | one Intel HEX file with the bootloader's records and then the application's, for a debugger      |
+| `inject-keys --keys <key set> --elf <file> [--hex <file>]...`                     | the key slot into the bootloader's ELF file, and at that address into every HEX file given       |
+| `pack --keys <key set> --image <binary> --destination <address> --product <name>` | an upgrade pack of one `app` image, encrypted with the image key and signed with the private key |
 
 `inject-keys` finds the slot by section name (`.bootloader_keys`, or `--section`), checks that it is 80 bytes and writes it at the section's load address into each HEX file, such as the bootloader's own and a combined image.
 It changes no file unless every one of them takes the slot.
+
+`pack` builds the pack `BootSequence` installs (`BuildPack` in `application/bootloader_image/Pack.hpp`): one `app` image, AES-128-CTR with a random initial counter, an ECDSA-P256 signature over the header and the image, and the product name the bootloader checks.
+The destination is the address the image is written to, the start of the application slot; `--product-version` and `--component` fill the header's other names.
+The bootloader package's own tests build their packs with the same function, so the format the tool writes is the one the boot sequence accepts.
 
 `cmake/emil_bootloader_image.cmake` runs the tool as post-build steps, with `EMIL_OBJ_COPY_TOOL`:
 

@@ -1,7 +1,9 @@
 #include "application/bootloader_image/Command.hpp"
 #include "application/bootloader_image/ElfSection.hpp"
 #include "application/bootloader_image/Image.hpp"
+#include "application/bootloader_image/Pack.hpp"
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -36,6 +38,10 @@ Commands:
       Write the key slot into a linked bootloader: into its section (default .bootloader_keys) of the
       ELF file, and at that section's address into every Intel HEX file given, such as the bootloader's
       own and a combined one. No file changes unless all of them take the slot.
+  pack --keys <key set> --image <binary> --destination <address> --product <name>
+       [--product-version <text>] [--component <name>] --output <file>
+      Write an upgrade pack: the image, to be installed at the destination (hex 0x... or decimal),
+      encrypted with the key set's image key and signed with its private key, for the named product.
 
 Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-infra-lib.
 )";
@@ -212,7 +218,7 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
             return failure;
         }
 
-        std::optional<std::array<uint8_t, bootloaderKeySlotSize>> LoadKeySlot(std::string_view path, std::ostream& err)
+        std::optional<KeySet> LoadKeySet(std::string_view path, std::ostream& err)
         {
             const auto file = ReadFile(path);
             if (!file)
@@ -228,7 +234,15 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
                 return std::nullopt;
             }
 
-            return BootloaderKeySlot(std::get<KeySet>(parsed));
+            return std::get<KeySet>(parsed);
+        }
+
+        std::optional<std::array<uint8_t, bootloaderKeySlotSize>> LoadKeySlot(std::string_view path, std::ostream& err)
+        {
+            const auto keys = LoadKeySet(path, err);
+            if (!keys)
+                return std::nullopt;
+            return BootloaderKeySlot(*keys);
         }
 
         int BootloaderKeys(const std::vector<std::string>& arguments, std::ostream& out, std::ostream& err)
@@ -462,6 +476,98 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
         }
     }
 
+    namespace
+    {
+        std::optional<uint32_t> Address(std::string_view text)
+        {
+            int base = 10;
+            if (text.starts_with("0x") || text.starts_with("0X"))
+            {
+                text.remove_prefix(2);
+                base = 16;
+            }
+
+            uint32_t value{};
+            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value, base);
+            if (text.empty() || error != std::errc{} || end != text.data() + text.size())
+                return std::nullopt;
+            return value;
+        }
+
+        std::optional<std::string> FirstMissing(const std::vector<std::string>& arguments, std::initializer_list<std::string_view> options)
+        {
+            for (const auto option : options)
+                if (!Option(arguments, option))
+                    return std::string{ option };
+            return std::nullopt;
+        }
+
+        int ReportPackError(std::ostream& err, PackError error)
+        {
+            if (error == PackError::nameTooLong)
+                err << "A product name, product version or component name holds at most 63 characters; no pack was written.\n";
+            else
+                err << "Signing failed; no pack was written.\n";
+            return failure;
+        }
+
+        std::optional<PackDescription> DescribePack(const std::vector<std::string>& arguments, std::ostream& err)
+        {
+            const auto destination = Address(*Option(arguments, "--destination"));
+            if (!destination)
+            {
+                err << *Option(arguments, "--destination") << " is not an address: give it in hex (0x8000) or decimal.\n";
+                return std::nullopt;
+            }
+
+            const auto imagePath = *Option(arguments, "--image");
+            auto image = ReadFile(imagePath);
+            if (!image)
+            {
+                err << "Cannot read the image " << imagePath << ".\n";
+                return std::nullopt;
+            }
+
+            return PackDescription{ *Option(arguments, "--product"), Option(arguments, "--product-version").value_or(""),
+                Option(arguments, "--component").value_or("application"), *destination, std::move(*image) };
+        }
+
+        int PackImage(const std::vector<std::string>& arguments, std::ostream& out, std::ostream& err, const RandomSource& random)
+        {
+            if (const auto missing = FirstMissing(arguments, { "--keys", "--image", "--destination", "--product", "--output" }))
+                return Missing(err, arguments[0], *missing);
+
+            const auto keys = LoadKeySet(*Option(arguments, "--keys"), err);
+            if (!keys)
+                return failure;
+
+            const auto description = DescribePack(arguments, err);
+            if (!description)
+                return failure;
+
+            InitialCounter counter{};
+            if (!random(counter))
+            {
+                err << "The random source failed; no pack was written.\n";
+                return failure;
+            }
+
+            const auto built = BuildPack(*description, *keys, counter);
+            if (const auto* error = std::get_if<PackError>(&built))
+                return ReportPackError(err, *error);
+
+            const auto output = *Option(arguments, "--output");
+            if (!WriteFile(output, std::get<std::vector<uint8_t>>(built)))
+            {
+                err << "Cannot write " << output << ".\n";
+                return failure;
+            }
+
+            out << output << ": pack for " << description->productName << " with " << description->image.size() << " bytes of image, signed with " << *Option(arguments, "--keys") << ".\n";
+            return success;
+        }
+    }
+
     int Run(const std::vector<std::string>& arguments, std::ostream& out, std::ostream& err, const RandomSource& random)
     {
         if (arguments.empty())
@@ -486,6 +592,8 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
             return CombineImages(arguments, out, err);
         if (command == "inject-keys")
             return InjectKeys(arguments, out, err);
+        if (command == "pack")
+            return PackImage(arguments, out, err, random);
 
         err << "Unknown command '" << command << "'.\n\n"
             << usage;

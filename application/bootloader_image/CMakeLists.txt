@@ -14,6 +14,8 @@ target_sources(application.bootloader_image_lib PRIVATE
     Image.hpp
     KeySet.cpp
     KeySet.hpp
+    Pack.cpp
+    Pack.hpp
 )
 
 add_executable(application.bootloader_image)

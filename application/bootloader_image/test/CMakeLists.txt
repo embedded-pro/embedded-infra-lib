@@ -14,4 +14,5 @@ target_sources(application.bootloader_image_test PRIVATE
     TestElfSection.cpp
     TestImage.cpp
     TestKeySet.cpp
+    TestPack.cpp
 )
