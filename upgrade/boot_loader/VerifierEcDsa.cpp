@@ -14,7 +14,7 @@ namespace application
         std::array<uint8_t, 32> messageHash = Hash(flash, data);
         auto storedSignature = GetSignatureStorage(signature);
 
-        if (storedSignature.empty())
+        if (storedSignature.empty() || uECC_valid_public_key(key.begin(), GetCurve()) != 1)
             return false;
 
         flash.ReadBuffer(storedSignature, signature.first);

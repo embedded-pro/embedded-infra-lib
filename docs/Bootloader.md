@@ -117,7 +117,8 @@ The installer then erases the sectors the image spans and the descriptor's secto
 
 ## Wiring
 
-The product supplies the flash drivers, the keys, its `TargetCheck` and an `ApplicationStarter`, which jumps to the application or halts. On a Cortex-M, `hal::cortex::JumpToApplication(slotBegin)` (`hal/cortex_m/JumpToApplication.hpp`) does the jump: it points VTOR at the application's vector table, loads the main stack pointer from its first entry and branches to the reset handler in the second.
+The product supplies the flash drivers, the keys (see [Keys](#keys)), its `TargetCheck` and an `ApplicationStarter`, which jumps to the application or halts.
+On a Cortex-M, `hal::cortex::JumpToApplication(slotBegin)` (`hal/cortex_m/JumpToApplication.hpp`) does the jump: it points VTOR at the application's vector table, loads the main stack pointer from its first entry and branches to the reset handler in the second.
 
 ```cpp
 bootloader::StatusJournal journal{ journalFlash };
@@ -132,3 +133,37 @@ bootloader::BootSequence{ { packFlash, journal, installer, decryptor, verifier, 
 ```
 
 `slotMemory` is the application slot as memory-mapped bytes, for the check at every reset; `slotFlash` is the same region as a `hal::SynchronousFlash`, with addresses relative to the slot's start.
+
+## Keys
+
+The bootloader verifies packs with an ECDSA-P256 public key and decrypts their images with an AES-128 key. A product keeps them out of its sources: the bootloader links a `bootloader::KeySlot` (`KeySlot.hpp`), the public key and then the image key, 80 bytes, erased (`ErasedKeySlot()`) in a section of its own, and the build writes the keys into that section after the link.
+An erased slot holds no valid public key, and `VerifierEcDsa` refuses every signature under a key that is not on the curve, so a bootloader built without keys installs no pack and only starts the application already in the slot.
+
+A key set is the file the keys come from, 112 bytes:
+
+| Offset | Size | Field                                       |
+|--------|------|---------------------------------------------|
+| 0      | 16   | AES-128 image key                           |
+| 16     | 64   | ECDSA-P256 public key, x then y, big-endian |
+| 80     | 32   | ECDSA-P256 private key, big-endian          |
+
+It holds the private key that signs packs, so it is secret: a product keeps it outside its repository, for example as a CI secret, and keeps a separate set for development and for release.
+
+## Image tool
+
+`application.bootloader_image` is a host tool for the files around an image:
+
+| Command                                                      | Writes                                                                                      |
+|--------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `generate-keys --output <file>`                              | a new key set; never overwrites a file, and the file is readable by its owner only          |
+| `bootloader-keys --keys <key set> --output <file>`           | the key slot of a key set                                                                   |
+| `descriptor --image <binary> --output <file>`                | the image descriptor of an image, computed with `MakeImageDescriptor`                       |
+| `combine --output <file> <bootloader hex> <application hex>` | one Intel HEX file with the bootloader's records and then the application's, for a debugger |
+
+`cmake/emil_bootloader_image.cmake` runs it as post-build steps, with `EMIL_OBJ_COPY_TOOL`:
+
+- `emil_bootloader_key_slot(<target> KEYS <key set> [SECTION <section>])` writes the key slot into the linked bootloader (default section `.bootloader_keys`); a change to the key set relinks it.
+- `emil_bootloader_image_descriptor(<target> [SECTION <section>])` writes the descriptor into the linked application (default section `.image_descriptor`). The descriptor covers the image as a debugger programs it: every section but the descriptor's, gaps erased, from the first section, which starts at the start of the slot.
+- `emil_bootloader_combined_hex(<name> OUTPUT <file> BOOTLOADER <target> APPLICATION <target>)` adds a target that joins the two `.hex` files `emil_generate_artifacts` writes.
+
+The first two must come before `emil_generate_artifacts`, so the `.bin` and `.hex` files carry what they wrote. A cross-compiling build has no host tools of its own; `emil_native_executables` (`cmake/emil_native_executables.cmake`) builds the tool with the host's compiler, in a directory of its own, and imports it, as it does for the ECHO compilers.

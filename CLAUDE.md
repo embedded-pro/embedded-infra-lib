@@ -45,7 +45,7 @@ For complex development tasks, use the specialized agents in `.claude/agents/`:
   - `crypto/`, `flash/`, `tracer/`, `util/`
 - **application/** — Standalone CLI tools and build-time executables
 - **upgrade/** — Firmware upgrade and bootloader support
-- **bootloader/** — Single-stage bootloader on `upgrade/boot_loader`: status journal, application header and image descriptor checks, checked installer, boot sequence (see `docs/Bootloader.md`)
+- **bootloader/** — Single-stage bootloader on `upgrade/boot_loader`: status journal, application header and image descriptor checks, checked installer, boot sequence, key slot; the `application/bootloader_image` host tool writes key sets, key slots, descriptors and combined HEX files (see `docs/Bootloader.md`)
 - **lwip/** — LwIP TCP/IP stack wrappers
 - **osal/** — OS abstraction layer (FreeRTOS, ThreadX, std::thread)
 - **external/** — Third-party dependencies (args, crypto, protobuf, Segger RTT)
@@ -193,6 +193,8 @@ Prefer `{}` initialization over `()` for all variable and object initialization.
 - `emil_coverage.cmake` — Coverage instrumentation
 - `emil_build_for.cmake` — Cross-compilation helpers
 - `emil_clang_tools.cmake` — Linting and formatting
+- `emil_native_executables.cmake` — `emil_native_executables()`: builds EmIL host tools with the host compiler for a cross-compiling build and imports them
+- `emil_bootloader_image.cmake` — Post-build steps for bootloader images: key slot, image descriptor, combined HEX (see `docs/Bootloader.md`)
 
 ## ECHO and Protobuf Conventions
 
@@ -217,5 +219,5 @@ Consult `docs/` before implementing in relevant areas:
 - `docs/NetworkConnections.md` — Connection/ConnectionObserver, SharedPtr lifetime
 - `docs/Echo.md` — ECHO RPC, protobuf encoding, service/method IDs
 - `docs/Sesame.md` — SESAME serial protocol stack layers
-- `docs/Bootloader.md` — Single-stage bootloader: status journal, application header and image descriptor, target checks before any erase, the boot sequence
+- `docs/Bootloader.md` — Single-stage bootloader: status journal, application header and image descriptor, target checks before any erase, the boot sequence, keys, the `bootloader_image` tool and its CMake post-build steps
 - `docs/Fsm.md` — Table-driven state machine: states and events as classes, consistency checks, declared allowed transitions enforced at compile time, the `fsm_validator` tool, completions, observers

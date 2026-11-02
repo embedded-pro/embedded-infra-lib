@@ -8,47 +8,14 @@ function(emil_fetch_echo_plugins)
     endif()
 
     if (EMIL_HOST_BUILD)
-        include(ExternalProject)
-
-        set(_native_binary_dir "${CMAKE_BINARY_DIR}/_native_echo_plugins")
-        get_filename_component(_emil_source_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../.." ABSOLUTE)
-
-        ExternalProject_Add(emil_native_echo_plugins
-            SOURCE_DIR "${_emil_source_dir}"
-            BINARY_DIR "${_native_binary_dir}"
-            CMAKE_GENERATOR "Ninja"
+        emil_native_executables(echo_plugins
+            TARGETS
+                application.protoc_echo_plugin
+                application.protoc_echo_plugin_csharp
+                application.protoc_echo_plugin_java
             CMAKE_ARGS
-                "-DCMAKE_BUILD_TYPE=Release"
                 "-DEMIL_BUILD_ECHO_COMPILERS=On"
-                "-DEMIL_BUILD_TESTS=Off"
-                "-DEMIL_BUILD_EXAMPLES=Off"
-                "-DEMIL_INCLUDE_LWIP=Off"
-                "-DEMIL_INCLUDE_MBEDTLS=Off"
-            BUILD_COMMAND
-                ${CMAKE_COMMAND} --build <BINARY_DIR>
-                --target
-                    application.protoc_echo_plugin
-                    application.protoc_echo_plugin_csharp
-                    application.protoc_echo_plugin_java
-            BUILD_BYPRODUCTS
-                "${_native_binary_dir}/application/protoc_echo_plugin/application.protoc_echo_plugin"
-                "${_native_binary_dir}/application/protoc_echo_plugin_csharp/application.protoc_echo_plugin_csharp"
-                "${_native_binary_dir}/application/protoc_echo_plugin_java/application.protoc_echo_plugin_java"
-            INSTALL_COMMAND ""
-            BUILD_ALWAYS OFF
         )
-
-        foreach(plugin IN ITEMS
-            protoc_echo_plugin
-            protoc_echo_plugin_csharp
-            protoc_echo_plugin_java
-        )
-            add_executable(application.${plugin} IMPORTED GLOBAL)
-            set_target_properties(application.${plugin} PROPERTIES
-                IMPORTED_LOCATION "${_native_binary_dir}/application/${plugin}/application.${plugin}"
-            )
-            add_dependencies(application.${plugin} emil_native_echo_plugins)
-        endforeach()
     else()
         find_package(emil REQUIRED GLOBAL)
     endif()
