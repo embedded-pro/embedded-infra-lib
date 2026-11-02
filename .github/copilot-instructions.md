@@ -51,7 +51,7 @@ embedded-infra-lib (EmIL) is a header-based C++20 library providing heap-less, S
   - `protoc_echo_plugin_csharp/`: Protobuf compiler ECHO plugin (C#)
   - `protoc_echo_plugin_java/`: Protobuf compiler ECHO plugin (Java)
 - **upgrade/**: Firmware upgrade and bootloader support
-- **bootloader/**: Single-stage bootloader on `upgrade/boot_loader` (status journal, image checks, checked installer, boot sequence)
+- **bootloader/**: Single-stage bootloader on `upgrade/boot_loader` (status journal, image checks, checked installer, boot sequence, key slot); `application/bootloader_image` is its host tool
 - **lwip/**: LwIP TCP/IP stack wrappers
 - **osal/**: OS abstraction layer (FreeRTOS, ThreadX, std::thread)
 - **external/**: Third-party dependencies (args, crypto, protobuf, Segger RTT)
@@ -286,6 +286,8 @@ std::array<uint8_t, 256> buffer;
   - `emil_coverage.cmake` — Coverage instrumentation
   - `emil_build_for.cmake` — Cross-compilation helpers
   - `emil_clang_tools.cmake` — Linting and formatting
+  - `emil_native_executables.cmake` — `emil_native_executables()`: builds EmIL host tools with the host compiler for a cross-compiling build and imports them
+  - `emil_bootloader_image.cmake` — Post-build steps for bootloader images: key slot, image descriptor, combined HEX
 
 ### Cross-Platform Considerations
 

@@ -18,6 +18,7 @@ target_sources(bootloader PRIVATE
     ImageFormat.hpp
     JournalPackStatus.cpp
     JournalPackStatus.hpp
+    KeySlot.hpp
     StatusJournal.cpp
     StatusJournal.hpp
 )
