@@ -66,14 +66,14 @@ The application starts a download by erasing the journal (`Clear()`), records *d
 - `TargetLayout`: the chip's RAM and the application slot.
 - `ApplicationHeader`: 64 bytes at offset `applicationHeaderOffset` (1 KB) from the start of the image, past the vector table of every supported Cortex-M.
 
-  | Offset | Size | Field                                         |
-  |--------|------|-----------------------------------------------|
-  | 0      | 4    | magic `0x48414d45` (`EMAH`)                   |
-  | 4      | 2    | header version, 1                             |
-  | 6      | 2    | reserved, `0xff`                              |
-  | 8      | 6    | firmware version: major, minor, patch         |
-  | 14     | 2    | reserved, `0xff`                              |
-  | 16     | 48   | target, defined by the product                |
+  | Offset | Size | Field                                 |
+  |--------|------|---------------------------------------|
+  | 0      | 4    | magic `0x48414d45` (`EMAH`)           |
+  | 4      | 2    | header version, 1                     |
+  | 6      | 2    | reserved, `0xff`                      |
+  | 8      | 6    | firmware version: major, minor, patch |
+  | 14     | 2    | reserved, `0xff`                      |
+  | 16     | 48   | target, defined by the product        |
 
 - `ImageDescriptor`: the last 64 bytes of the slot: magic `0x44494d45` (`EMID`), the image size and the SHA-256 of that many bytes from the start of the slot.
 
