@@ -51,6 +51,7 @@ embedded-infra-lib (EmIL) is a header-based C++20 library providing heap-less, S
   - `protoc_echo_plugin_csharp/`: Protobuf compiler ECHO plugin (C#)
   - `protoc_echo_plugin_java/`: Protobuf compiler ECHO plugin (Java)
 - **upgrade/**: Firmware upgrade and bootloader support
+- **bootloader/**: Single-stage bootloader on `upgrade/boot_loader` (status journal, image checks, checked installer, boot sequence)
 - **lwip/**: LwIP TCP/IP stack wrappers
 - **osal/**: OS abstraction layer (FreeRTOS, ThreadX, std::thread)
 - **external/**: Third-party dependencies (args, crypto, protobuf, Segger RTT)
