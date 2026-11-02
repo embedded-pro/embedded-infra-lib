@@ -141,11 +141,11 @@ An erased slot holds no valid public key, and `VerifierEcDsa` refuses every sign
 
 A key set is the file the keys come from, 112 bytes:
 
-| Offset | Size | Field                                               |
-|--------|------|-----------------------------------------------------|
-| 0      | 16   | AES-128 image key                                   |
-| 16     | 64   | ECDSA-P256 public key, x then y, big-endian         |
-| 80     | 32   | ECDSA-P256 private key, big-endian                  |
+| Offset | Size | Field                                       |
+|--------|------|---------------------------------------------|
+| 0      | 16   | AES-128 image key                           |
+| 16     | 64   | ECDSA-P256 public key, x then y, big-endian |
+| 80     | 32   | ECDSA-P256 private key, big-endian          |
 
 It holds the private key that signs packs, so it is secret: a product keeps it outside its repository, for example as a CI secret, and keeps a separate set for development and for release.
 
@@ -153,12 +153,12 @@ It holds the private key that signs packs, so it is secret: a product keeps it o
 
 `application.bootloader_image` is a host tool for the files around an image:
 
-| Command                                                       | Writes                                                                                           |
-|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| `generate-keys --output <file>`                               | a new key set; never overwrites a file, and the file is readable by its owner only               |
-| `bootloader-keys --keys <key set> --output <file>`            | the key slot of a key set                                                                        |
-| `descriptor --image <binary> --output <file>`                 | the image descriptor of an image, computed with `MakeImageDescriptor`                            |
-| `combine --output <file> <bootloader hex> <application hex>`  | one Intel HEX file with the bootloader's records and then the application's, for a debugger      |
+| Command                                                      | Writes                                                                                      |
+|--------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `generate-keys --output <file>`                              | a new key set; never overwrites a file, and the file is readable by its owner only          |
+| `bootloader-keys --keys <key set> --output <file>`           | the key slot of a key set                                                                   |
+| `descriptor --image <binary> --output <file>`                | the image descriptor of an image, computed with `MakeImageDescriptor`                       |
+| `combine --output <file> <bootloader hex> <application hex>` | one Intel HEX file with the bootloader's records and then the application's, for a debugger |
 
 `cmake/emil_bootloader_image.cmake` runs it as post-build steps, with `EMIL_OBJ_COPY_TOOL`:
 
