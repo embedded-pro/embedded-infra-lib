@@ -16,16 +16,16 @@ namespace hal::cortex
         *reinterpret_cast<volatile uint32_t*>(vtorAddress) = vectorTableAddress;
         asm volatile("dsb\n"
                      "isb\n"
-                     :
-                     :
-                     : "memory");
+            :
+            :
+            : "memory");
 
         // One asm block: once the stack pointer moves, nothing may be read back from the old stack
         asm volatile("msr msp, %0\n"
                      "bx %1\n"
-                     :
-                     : "r"(stackPointer), "r"(resetHandler)
-                     : "memory");
+            :
+            : "r"(stackPointer), "r"(resetHandler)
+            : "memory");
         __builtin_unreachable();
     }
 }
