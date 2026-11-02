@@ -11,6 +11,9 @@ embedded-infra-lib is a set of C++ libraries and headers that provide heap-less,
 | application                                             |
 |   echo_console, protoc_echo_plugin, ...                 |
 +---------------------------------------------------------+
+| bootloader                                              |
+|   journal, image checks, installer, boot sequence       |
++---------------------------------------------------------+
 | upgrade                                                 |
 |   bootloader, pack_builder, ...                         |
 +---------------------------------------------------------+

@@ -1,0 +1,56 @@
+#ifndef BOOTLOADER_BOOT_SEQUENCE_HPP
+#define BOOTLOADER_BOOT_SEQUENCE_HPP
+
+#include "bootloader/ApplicationInstaller.hpp"
+#include "bootloader/ImageFormat.hpp"
+#include "bootloader/StatusJournal.hpp"
+#include "hal/synchronous_interfaces/SynchronousFlash.hpp"
+#include "infra/util/ByteRange.hpp"
+#include "upgrade/boot_loader/Decryptor.hpp"
+#include "upgrade/boot_loader/Verifier.hpp"
+
+namespace bootloader
+{
+    class ApplicationStarter
+    {
+    protected:
+        ApplicationStarter() = default;
+        ApplicationStarter(const ApplicationStarter& other) = delete;
+        ApplicationStarter& operator=(const ApplicationStarter& other) = delete;
+        ~ApplicationStarter() = default;
+
+    public:
+        virtual void Start(uint32_t slotBegin) = 0;
+        virtual void Halt() = 0;
+    };
+
+    class BootSequence
+    {
+    public:
+        struct Dependencies
+        {
+            hal::SynchronousFlash& packFlash;
+            StatusJournal& journal;
+            ApplicationInstaller& installer;
+            application::Decryptor& decryptor;
+            const application::Verifier& verifier;
+            const char* productName;
+            infra::ConstByteRange slotMemory;
+            TargetLayout layout;
+            const TargetCheck& target;
+            ApplicationStarter& starter;
+        };
+
+        explicit BootSequence(const Dependencies& dependencies);
+
+        void Run();
+
+    private:
+        bool InstallRequested() const;
+        void Install();
+
+        Dependencies dependencies;
+    };
+}
+
+#endif
