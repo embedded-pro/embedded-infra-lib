@@ -48,7 +48,7 @@ namespace bootloader
         ApplicationHeader header{ ApplicationHeader::validMagic, ApplicationHeader::currentVersion, 0xffff, major, minor, patch, 0xffff, {} };
         header.target.fill(0xff);
         const auto bytes = std::bit_cast<std::array<uint8_t, sizeof(Target)>>(target);
-        std::copy(bytes.begin(), bytes.end(), header.target.begin());
+        std::ranges::copy(bytes, header.target.begin());
         return header;
     }
 

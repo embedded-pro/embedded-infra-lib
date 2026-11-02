@@ -14,7 +14,7 @@ namespace bootloader
         bool IsErased(const StatusJournalEntry& entry)
         {
             const auto bytes = infra::MakeByteRange(entry);
-            return std::all_of(bytes.begin(), bytes.end(), [](uint8_t byte)
+            return std::ranges::all_of(bytes, [](uint8_t byte)
                 {
                     return byte == 0xff;
                 });
@@ -55,7 +55,7 @@ namespace bootloader
             return;
 
         auto address = scan.firstErased;
-        if (!address)
+        if (!address.has_value())
         {
             Clear();
             address = 0;
