@@ -109,3 +109,18 @@ TEST_F(VerifierEcDsaTest256, correct_hash_as_signature_is_valid)
 
     EXPECT_EQ(true, verifier.IsValid(flash, { 4, 68 }, { 0, 4 }));
 }
+
+TEST(VerifierEcDsaTest256Erased, erased_public_key_is_invalid)
+{
+    const std::array<uint8_t, 64> erasedPublicKey = [] {
+        std::array<uint8_t, 64> key{};
+        key.fill(0xff);
+        return key;
+    }();
+    application::VerifierEcDsa256 verifier{ infra::MakeConstByteRange(erasedPublicKey) };
+
+    hal::SynchronousFlashStub flash(1, 128);
+    flash.sectors = { std::vector<uint8_t>(68, 0x01) };
+
+    EXPECT_EQ(false, verifier.IsValid(flash, { 4, 68 }, { 0, 4 }));
+}
