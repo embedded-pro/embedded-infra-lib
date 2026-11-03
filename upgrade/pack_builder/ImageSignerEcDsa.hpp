@@ -16,6 +16,8 @@ namespace application
     {
     public:
         ImageSignerEcDsa(hal::SynchronousRandomDataGenerator& randomDataGenerator, infra::ConstByteRange publicKey, infra::ConstByteRange privateKey);
+        ImageSignerEcDsa(const ImageSignerEcDsa& other) = delete;
+        ImageSignerEcDsa& operator=(const ImageSignerEcDsa& other) = delete;
         ~ImageSignerEcDsa();
 
         std::vector<uint8_t> ImageSignature(const std::vector<uint8_t>& image) override;

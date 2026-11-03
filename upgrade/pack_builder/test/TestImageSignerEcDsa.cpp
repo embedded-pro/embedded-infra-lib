@@ -1,6 +1,7 @@
 #include "hal/synchronous_interfaces/test_doubles/SynchronousFixedRandomDataGenerator.hpp"
 #include "upgrade/pack_builder/ImageSignerEcDsa.hpp"
 #include "gtest/gtest.h"
+#include <type_traits>
 
 class TestImageSignerEcDsa224
     : public testing::Test
@@ -105,6 +106,9 @@ TEST_F(TestImageSignerEcDsa256, should_sign_image)
                   0x5c, 0x3b, 0x79, 0x2d, 0xde, 0x78, 0xb1, 0xd5 }),
         signature);
 }
+
+static_assert(!std::is_copy_constructible_v<application::ImageSignerEcDsa256> && !std::is_copy_assignable_v<application::ImageSignerEcDsa256>,
+    "a copy would restore the random source twice");
 
 TEST(TestImageSignerEcDsaRandomSource, restores_the_random_source_it_replaced)
 {
