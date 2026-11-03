@@ -16,6 +16,7 @@ namespace application
     {
     public:
         ImageSignerEcDsa(hal::SynchronousRandomDataGenerator& randomDataGenerator, infra::ConstByteRange publicKey, infra::ConstByteRange privateKey);
+        ~ImageSignerEcDsa();
 
         std::vector<uint8_t> ImageSignature(const std::vector<uint8_t>& image) override;
         bool CheckSignature(const std::vector<uint8_t>& signature, const std::vector<uint8_t>& image) override;
@@ -30,6 +31,7 @@ namespace application
     private:
         infra::ConstByteRange publicKey;
         infra::ConstByteRange privateKey;
+        uECC_RNG_Function replacedRandomNumberGenerator;
         static hal::SynchronousRandomDataGenerator* randomDataGenerator;
         std::array<uint8_t, 32> hash;
         std::vector<uint8_t> signature;
