@@ -506,6 +506,8 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
         {
             if (error == PackError::nameTooLong)
                 err << "A product name, product version or component name holds at most 63 characters; no pack was written.\n";
+            else if (error == PackError::randomSourceFailed)
+                err << "The random source failed; no pack was written.\n";
             else
                 err << "Signing failed; no pack was written.\n";
             return failure;
@@ -545,14 +547,7 @@ Key sets, the key slot and the image descriptor: docs/Bootloader.md in embedded-
             if (!description)
                 return failure;
 
-            InitialCounter counter{};
-            if (!random(counter))
-            {
-                err << "The random source failed; no pack was written.\n";
-                return failure;
-            }
-
-            const auto built = BuildPack(*description, *keys, counter);
+            const auto built = BuildPack(*description, *keys, random);
             if (const auto* error = std::get_if<PackError>(&built))
                 return ReportPackError(err, *error);
 

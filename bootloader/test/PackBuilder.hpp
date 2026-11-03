@@ -3,8 +3,10 @@
 
 #include "application/bootloader_image/Pack.hpp"
 #include "uECC.h"
+#include <algorithm>
 #include <array>
 #include <gtest/gtest.h>
+#include <span>
 #include <string>
 #include <variant>
 #include <vector>
@@ -30,13 +32,18 @@ namespace bootloader
         std::vector<uint8_t> image;
         std::string productName{ testProductName };
         uint32_t destination{ 0x00008000 };
-        std::array<uint8_t, 16> initialCounter{ 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf };
     };
+
+    inline bool TestRandom(std::span<uint8_t> bytes)
+    {
+        std::ranges::fill(bytes, uint8_t{ 0xa5 });
+        return true;
+    }
 
     inline std::vector<uint8_t> BuildPack(const PackDescription& pack, const TestKeyPair& keys)
     {
         const application::KeySet keySet{ testAesKey, keys.publicKey, keys.privateKey };
-        const auto built = application::BuildPack({ pack.productName, "v1.7.0", "sync_foc_sensored", pack.destination, pack.image }, keySet, pack.initialCounter);
+        const auto built = application::BuildPack({ pack.productName, "v1.7.0", "sync_foc_sensored", pack.destination, pack.image }, keySet, TestRandom);
         EXPECT_TRUE(std::holds_alternative<std::vector<uint8_t>>(built));
         return std::holds_alternative<std::vector<uint8_t>>(built) ? std::get<std::vector<uint8_t>>(built) : std::vector<uint8_t>{};
     }

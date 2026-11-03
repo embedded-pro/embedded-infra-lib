@@ -168,9 +168,9 @@ It holds the private key that signs packs, so it is secret: a product keeps it o
 `inject-keys` finds the slot by section name (`.bootloader_keys`, or `--section`), checks that it is 80 bytes and writes it at the section's load address into each HEX file, such as the bootloader's own and a combined image.
 It changes no file unless every one of them takes the slot.
 
-`pack` builds the pack `BootSequence` installs (`BuildPack` in `application/bootloader_image/Pack.hpp`): one `app` image, AES-128-CTR with a random initial counter, an ECDSA-P256 signature over the header and the image, and the product name the bootloader checks.
+`pack` builds the pack `BootSequence` installs with the upgrade pack builder (`UpgradePackBuilder`, `ImageEncryptorAes` and `ImageSignerEcDsa256` in `upgrade/pack_builder`, wired by `BuildPack` in `application/bootloader_image/Pack.hpp`): one `app` image, AES-128-CTR with a random initial counter, an ECDSA-P256 signature over the header and the image, and the product name the bootloader checks.
 The destination is the address the image is written to, the start of the application slot; `--product-version` and `--component` fill the header's other names.
-The bootloader package's own tests build their packs with the same function, so the format the tool writes is the one the boot sequence accepts.
+A name longer than its 63-character field is refused rather than cut. The bootloader package's own tests build their packs with the same function, so the format the tool writes is the one the boot sequence accepts.
 
 `cmake/emil_bootloader_image.cmake` runs the tool as post-build steps, with `EMIL_OBJ_COPY_TOOL`:
 

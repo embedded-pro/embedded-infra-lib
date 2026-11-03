@@ -41,7 +41,7 @@ namespace
 
         std::vector<uint8_t> Pack(const PackDescription& description)
         {
-            const auto built = BuildPack(description, keys, counter);
+            const auto built = BuildPack(description, keys, random);
             EXPECT_TRUE(std::holds_alternative<std::vector<uint8_t>>(built));
             return std::holds_alternative<std::vector<uint8_t>>(built) ? std::get<std::vector<uint8_t>>(built) : std::vector<uint8_t>{};
         }
@@ -58,9 +58,11 @@ namespace
         std::vector<uint8_t> DecryptedImagePart(const std::vector<uint8_t>& pack) const
         {
             const auto contents = SignedContents(pack);
-            const auto imageStart = sizeof(UpgradePackHeaderEpilogue) + sizeof(ImageHeaderPrologue) + counter.size();
+            const auto counterStart = sizeof(UpgradePackHeaderEpilogue) + sizeof(ImageHeaderPrologue);
+            const auto imageStart = counterStart + counterSize;
             if (contents.size() < imageStart)
                 return {};
+            const std::vector<uint8_t> counter{ contents.begin() + static_cast<std::ptrdiff_t>(counterStart), contents.begin() + static_cast<std::ptrdiff_t>(imageStart) };
             std::vector<uint8_t> encrypted{ contents.begin() + static_cast<std::ptrdiff_t>(imageStart), contents.end() };
 
             DecryptorAesTiny decryptor{ infra::MakeRange(keys.aesKey) };
@@ -79,7 +81,7 @@ namespace
                 return true;
             } };
         KeySet keys{};
-        const InitialCounter counter{ 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf };
+        static constexpr std::size_t counterSize = 16;
         const std::vector<uint8_t> image{ 1, 2, 3, 4, 5, 6, 7 };
         const PackDescription description{ "test board", "1.7.0", "application", 0x00008000, image };
     };
@@ -91,7 +93,7 @@ TEST_F(TestPack, the_header_names_the_product_its_version_the_component_and_one_
 
     const auto prologue = ReadAt<UpgradePackHeaderPrologue>(pack, 0);
     EXPECT_EQ(upgradePackMagic, prologue.magic);
-    EXPECT_EQ(UpgradePackStatus::empty, prologue.status);
+    EXPECT_EQ(UpgradePackStatus::readyToDeploy, prologue.status);
     EXPECT_EQ(2, prologue.signatureMethod);
     EXPECT_EQ(64, prologue.signatureLength);
 
@@ -127,8 +129,7 @@ TEST_F(TestPack, the_image_is_one_app_image_that_decrypts_to_its_destination_siz
     const auto imageEpilogue = ReadAt<ImageHeaderEpilogue>(decrypted, 0);
     EXPECT_EQ(0x00008000u, imageEpilogue.destinationAddress);
     EXPECT_EQ(image.size(), imageEpilogue.imageSize);
-    EXPECT_EQ(image, std::vector<uint8_t>(decrypted.begin() + sizeof(ImageHeaderEpilogue), decrypted.begin() + sizeof(ImageHeaderEpilogue) + image.size()));
-    EXPECT_EQ(0u, (decrypted.size() - sizeof(ImageHeaderEpilogue)) % 4);
+    EXPECT_EQ(image, std::vector<uint8_t>(decrypted.begin() + sizeof(ImageHeaderEpilogue), decrypted.end()));
 }
 
 TEST_F(TestPack, a_name_that_does_not_fit_its_field_is_refused)
@@ -136,5 +137,15 @@ TEST_F(TestPack, a_name_that_does_not_fit_its_field_is_refused)
     auto tooLong = description;
     tooLong.productName = std::string(64, 'x');
 
-    EXPECT_EQ(PackError::nameTooLong, std::get<PackError>(BuildPack(tooLong, keys, counter)));
+    EXPECT_EQ(PackError::nameTooLong, std::get<PackError>(BuildPack(tooLong, keys, random)));
+}
+
+TEST_F(TestPack, a_failing_random_source_builds_no_pack)
+{
+    const RandomSource failing{ [](std::span<uint8_t>)
+        {
+            return false;
+        } };
+
+    EXPECT_EQ(PackError::randomSourceFailed, std::get<PackError>(BuildPack(description, keys, failing)));
 }

@@ -3,6 +3,7 @@ add_library(application.bootloader_image_lib ${EMIL_EXCLUDE_FROM_ALL} STATIC)
 target_link_libraries(application.bootloader_image_lib PUBLIC
     bootloader
     crypto.micro_ecc
+    upgrade.pack_builder
 )
 
 target_sources(application.bootloader_image_lib PRIVATE
