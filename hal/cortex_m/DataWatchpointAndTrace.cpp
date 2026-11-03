@@ -8,8 +8,6 @@ namespace
     constexpr uintptr_t dwtCtrl = 0xE0001000u;
     constexpr uint32_t dwtCyccntena = 1u << 0;
 
-    constexpr uintptr_t dwtCyccnt = 0xE0001004u;
-
     constexpr uintptr_t dwtLar = 0xE0001FB0u;
     constexpr uint32_t larUnlockKey = 0xC5ACCE55u;
 
@@ -41,17 +39,12 @@ namespace hal::cortex
 
     void DataWatchpointAndTrace::Start()
     {
-        Reg32(dwtCyccnt) = 0;
+        Reg32(cycleCount) = 0;
         Reg32(dwtCtrl) |= dwtCyccntena;
     }
 
     void DataWatchpointAndTrace::Stop()
     {
         Reg32(dwtCtrl) &= ~dwtCyccntena;
-    }
-
-    uint32_t DataWatchpointAndTrace::Cycles() const
-    {
-        return Reg32(dwtCyccnt);
     }
 }
