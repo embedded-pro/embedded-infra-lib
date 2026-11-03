@@ -34,6 +34,7 @@ namespace hal::cortex
     };
 
     int32_t ActiveInterrupt();
+    bool InterruptPending(int32_t irq);
 
     class InterruptTable;
 
@@ -55,6 +56,7 @@ namespace hal::cortex
         void ClearPending();
 
         bool Registered() const;
+        bool Pending() const;
         int32_t Irq() const;
         InterruptPriority Priority() const;
 
