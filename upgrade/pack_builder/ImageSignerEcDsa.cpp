@@ -14,6 +14,11 @@ namespace application
         uECC_set_rng(RandomNumberGenerator);
     }
 
+    ImageSignerEcDsa::~ImageSignerEcDsa()
+    {
+        uECC_set_rng(replacedRandomNumberGenerator);
+    }
+
     std::vector<uint8_t> ImageSignerEcDsa::ImageSignature(const std::vector<uint8_t>& image)
     {
         CalculateSha256(image);

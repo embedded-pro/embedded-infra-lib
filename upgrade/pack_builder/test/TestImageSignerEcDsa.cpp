@@ -1,6 +1,7 @@
 #include "hal/synchronous_interfaces/test_doubles/SynchronousFixedRandomDataGenerator.hpp"
 #include "upgrade/pack_builder/ImageSignerEcDsa.hpp"
 #include "gtest/gtest.h"
+#include <type_traits>
 
 class TestImageSignerEcDsa224
     : public testing::Test
@@ -104,4 +105,20 @@ TEST_F(TestImageSignerEcDsa256, should_sign_image)
                   0x32, 0x66, 0x12, 0x3a, 0xac, 0x6d, 0x7d, 0x0e,
                   0x5c, 0x3b, 0x79, 0x2d, 0xde, 0x78, 0xb1, 0xd5 }),
         signature);
+}
+
+static_assert(!std::is_copy_constructible_v<application::ImageSignerEcDsa256> && !std::is_copy_assignable_v<application::ImageSignerEcDsa256>,
+    "a copy would restore the random source twice");
+
+TEST(TestImageSignerEcDsaRandomSource, restores_the_random_source_it_replaced)
+{
+    const auto previous = uECC_get_rng();
+    {
+        hal::SynchronousFixedRandomDataGenerator randomDataGenerator{ std::vector<uint8_t>(64, 5) };
+        const std::array<uint8_t, 64> key{};
+        application::ImageSignerEcDsa256 signer{ randomDataGenerator, key, key };
+        EXPECT_NE(previous, uECC_get_rng());
+    }
+
+    EXPECT_EQ(previous, uECC_get_rng());
 }
