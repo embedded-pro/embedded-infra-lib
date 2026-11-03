@@ -48,5 +48,5 @@ TEST(ImageEncryptorAesKnownAnswerTest, refuses_a_key_that_is_not_128_bits)
     hal::SynchronousFixedRandomDataGenerator randomDataGenerator{ std::vector<uint8_t>(16, 0) };
     application::ImageEncryptorAes encryptor{ randomDataGenerator, key };
 
-    EXPECT_THROW(encryptor.Secure({ 1, 2, 3, 4 }), std::runtime_error);
+    EXPECT_THROW(encryptor.Secure({ 1, 2, 3, 4 }), application::WrongKeyLengthException);
 }

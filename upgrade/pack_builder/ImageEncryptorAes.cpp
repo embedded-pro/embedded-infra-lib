@@ -1,6 +1,5 @@
 #include "upgrade/pack_builder/ImageEncryptorAes.hpp"
 #include <array>
-#include <stdexcept>
 
 extern "C"
 {
@@ -21,6 +20,10 @@ namespace application
         }
     }
 
+    WrongKeyLengthException::WrongKeyLengthException()
+        : std::runtime_error("AES-128 needs a 16-byte key")
+    {}
+
     ImageEncryptorAes::ImageEncryptorAes(hal::SynchronousRandomDataGenerator& randomDataGenerator, infra::ConstByteRange key)
         : randomDataGenerator(randomDataGenerator)
         , key(key)
@@ -34,7 +37,7 @@ namespace application
     std::vector<uint8_t> ImageEncryptorAes::Secure(const std::vector<uint8_t>& data) const
     {
         if (key.size() != keyLength)
-            throw std::runtime_error("AES-128 needs a 16-byte key");
+            throw WrongKeyLengthException();
 
         Block counter{};
         randomDataGenerator.GenerateRandomData(infra::MakeRange(counter));

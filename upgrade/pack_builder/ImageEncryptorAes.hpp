@@ -5,10 +5,18 @@
 #include "infra/util/ByteRange.hpp"
 #include "upgrade/pack_builder/ImageSecurity.hpp"
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace application
 {
+    class WrongKeyLengthException
+        : public std::runtime_error
+    {
+    public:
+        WrongKeyLengthException();
+    };
+
     class ImageEncryptorAes
         : public ImageSecurity
     {
