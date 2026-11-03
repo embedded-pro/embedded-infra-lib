@@ -5,16 +5,25 @@
 #include "infra/util/ByteRange.hpp"
 #include "upgrade/pack_builder/ImageSecurity.hpp"
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace application
 {
+    class WrongKeyLengthException
+        : public std::runtime_error
+    {
+    public:
+        WrongKeyLengthException();
+    };
+
     class ImageEncryptorAes
         : public ImageSecurity
     {
     public:
         static const uint32_t encryptionAndMacMethod = 1;
         static const std::size_t blockLength = 16;
+        static const std::size_t keyLength = 16;
 
         ImageEncryptorAes(hal::SynchronousRandomDataGenerator& randomDataGenerator, infra::ConstByteRange key);
 
@@ -22,8 +31,6 @@ namespace application
         std::vector<uint8_t> Secure(const std::vector<uint8_t>& data) const override;
 
     private:
-        bool CheckDecryption(const std::vector<uint8_t>& original, const std::vector<uint8_t>& encrypted) const;
-
         hal::SynchronousRandomDataGenerator& randomDataGenerator;
         infra::ConstByteRange key;
     };

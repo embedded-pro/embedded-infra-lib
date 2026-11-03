@@ -1,6 +1,9 @@
+#include "infra/util/ByteRange.hpp"
 #include "upgrade/pack_builder/ImageAuthenticatorHmac.hpp"
 #include "gtest/gtest.h"
 #include <array>
+#include <string>
+#include <vector>
 
 class TestImageAuthenticatorHmac
     : public testing::Test
@@ -26,4 +29,27 @@ TEST_F(TestImageAuthenticatorHmac, Secure)
                   0x88, 0x85, 0x51, 0x13, 0x2a, 0x94, 0xf3, 0x30,
                   0x36, 0xc9, 0x2f, 0x54, 0x02, 0xbd, 0x37, 0xed }),
         authenticator.GenerateMac(std::vector<uint8_t>{ 1, 2, 3, 4 }));
+}
+
+TEST(TestImageAuthenticatorHmacKnownAnswer, matches_rfc_4231_test_case_2)
+{
+    const std::string keyText{ "Jefe" };
+    const std::vector<uint8_t> key{ keyText.begin(), keyText.end() };
+    const std::string data{ "what do ya want for nothing?" };
+    application::ImageAuthenticatorHmac authenticator{ infra::MakeRange(key) };
+
+    EXPECT_EQ((std::vector<uint8_t>{ 0x5b, 0xdc, 0xc1, 0x46, 0xbf, 0x60, 0x75, 0x4e, 0x6a, 0x04, 0x24, 0x26, 0x08, 0x95, 0x75, 0xc7,
+                  0x5a, 0x00, 0x3f, 0x08, 0x9d, 0x27, 0x39, 0x83, 0x9d, 0xec, 0x58, 0xb9, 0x64, 0xec, 0x38, 0x43 }),
+        authenticator.GenerateMac({ data.begin(), data.end() }));
+}
+
+TEST(TestImageAuthenticatorHmacKnownAnswer, hashes_a_key_longer_than_a_block_as_rfc_4231_test_case_6)
+{
+    const std::vector<uint8_t> key(131, 0xaa);
+    const std::string data{ "Test Using Larger Than Block-Size Key - Hash Key First" };
+    application::ImageAuthenticatorHmac authenticator{ infra::MakeRange(key) };
+
+    EXPECT_EQ((std::vector<uint8_t>{ 0x60, 0xe4, 0x31, 0x59, 0x1e, 0xe0, 0xb6, 0x7f, 0x0d, 0x8a, 0x26, 0xaa, 0xcb, 0xf5, 0xb7, 0x7f,
+                  0x8e, 0x0b, 0xc6, 0x21, 0x37, 0x28, 0xc5, 0x14, 0x05, 0x46, 0x04, 0x0f, 0x0e, 0xe3, 0x7f, 0x54 }),
+        authenticator.GenerateMac({ data.begin(), data.end() }));
 }

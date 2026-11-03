@@ -1,25 +1,60 @@
 #include "upgrade/pack_builder/ImageAuthenticatorHmac.hpp"
-#include "mbedtls/md.h"
-#include "mbedtls/sha256.h"
+#include "services/crypto/Sha256Software.hpp"
+#include <algorithm>
+#include <array>
 
 namespace application
 {
+    namespace
+    {
+        constexpr std::size_t blockSize = 64;
+        constexpr uint8_t innerPad = 0x36;
+        constexpr uint8_t outerPad = 0x5c;
+
+        using Block = std::array<uint8_t, blockSize>;
+
+        Block BlockSizedKey(infra::ConstByteRange key)
+        {
+            Block block{};
+            if (key.size() > blockSize)
+            {
+                const auto digest = services::Sha256Software{}.Calculate(key);
+                std::ranges::copy(digest, block.begin());
+            }
+            else
+                std::ranges::copy(key, block.begin());
+
+            return block;
+        }
+
+        Block Padded(Block key, uint8_t pad)
+        {
+            std::ranges::transform(key, key.begin(), [pad](uint8_t byte)
+                {
+                    return static_cast<uint8_t>(byte ^ pad);
+                });
+            return key;
+        }
+
+        services::Sha256::Digest Hash(const Block& pad, infra::ConstByteRange message)
+        {
+            services::Sha256SoftwareIncremental sha256;
+            sha256.Update(infra::MakeRange(pad));
+            sha256.Update(message);
+            return sha256.Finish();
+        }
+    }
+
     ImageAuthenticatorHmac::ImageAuthenticatorHmac(infra::ConstByteRange key)
         : key(key)
     {}
 
     std::vector<uint8_t> ImageAuthenticatorHmac::GenerateMac(const std::vector<uint8_t>& data) const
     {
-        std::vector<uint8_t> mac(32, 0);
+        const auto blockSizedKey = BlockSizedKey(key);
+        const auto inner = Hash(Padded(blockSizedKey, innerPad), infra::MakeRange(data));
+        const auto mac = Hash(Padded(blockSizedKey, outerPad), infra::MakeRange(inner));
 
-        mbedtls_md_context_t ctx;
-        mbedtls_md_init(&ctx);
-        mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
-        mbedtls_md_hmac_starts(&ctx, key.begin(), key.size());
-        mbedtls_md_hmac_update(&ctx, data.data(), data.size());
-        mbedtls_md_hmac_finish(&ctx, mac.data());
-        mbedtls_md_free(&ctx);
-
-        return mac;
+        return { mac.begin(), mac.end() };
     }
 }

@@ -6,6 +6,7 @@ target_link_libraries(upgrade.pack_builder PUBLIC
     crypto.tiny_aes128
     hal.interfaces
     infra.syntax
+    services.crypto
     upgrade.pack
 )
 
@@ -13,10 +14,18 @@ target_sources(upgrade.pack_builder PRIVATE
     BinaryObject.cpp
     BinaryObject.hpp
     Elf.hpp
+    ImageAuthenticatorHmac.cpp
+    ImageAuthenticatorHmac.hpp
+    ImageEncryptorAes.cpp
+    ImageEncryptorAes.hpp
     ImageEncryptorNone.cpp
     ImageEncryptorNone.hpp
     ImageSecurity.hpp
     ImageSigner.hpp
+    ImageSignerEcDsa.cpp
+    ImageSignerEcDsa.hpp
+    ImageSignerHashOnly.cpp
+    ImageSignerHashOnly.hpp
     Input.cpp
     Input.hpp
     InputBinary.cpp
@@ -38,29 +47,6 @@ target_sources(upgrade.pack_builder PRIVATE
     UpgradePackInputFactory.cpp
     UpgradePackInputFactory.hpp
 )
-
-if (EMIL_INCLUDE_MBEDTLS OR NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
-    if (NOT EMIL_EXTERNAL_MBEDTLS_TARGET STREQUAL "")
-        target_link_libraries(upgrade.pack_builder PUBLIC
-            ${EMIL_EXTERNAL_MBEDTLS_TARGET}
-        )
-    else()
-        target_link_libraries(upgrade.pack_builder PUBLIC
-            mbedcrypto
-        )
-    endif()
-
-    target_sources(upgrade.pack_builder PRIVATE
-        ImageAuthenticatorHmac.cpp
-        ImageAuthenticatorHmac.hpp
-        ImageEncryptorAes.cpp
-        ImageEncryptorAes.hpp
-        ImageSignerEcDsa.cpp
-        ImageSignerEcDsa.hpp
-        ImageSignerHashOnly.cpp
-        ImageSignerHashOnly.hpp
-    )
-endif()
 
 add_subdirectory(test)
 add_subdirectory(test_helper)
