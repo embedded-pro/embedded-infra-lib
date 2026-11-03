@@ -1,5 +1,5 @@
 #include "upgrade/pack_builder/ImageSignerHashOnly.hpp"
-#include "mbedtls/sha256.h"
+#include "services/crypto/Sha256Software.hpp"
 
 namespace application
 {
@@ -27,11 +27,6 @@ namespace application
 
     void ImageSignerHashOnly::CalculateSha256(const std::vector<uint8_t>& image)
     {
-        mbedtls_sha256_context ctx;
-        mbedtls_sha256_init(&ctx);
-        mbedtls_sha256_starts(&ctx, 0);
-        mbedtls_sha256_update(&ctx, image.data(), image.size());
-        mbedtls_sha256_finish(&ctx, hash.data());
-        mbedtls_sha256_free(&ctx);
+        hash = services::Sha256Software{}.Calculate(infra::MakeRange(image));
     }
 }
