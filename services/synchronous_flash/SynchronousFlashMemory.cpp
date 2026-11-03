@@ -14,9 +14,10 @@ namespace services
     void SynchronousFlashMemory::WriteBuffer(infra::ConstByteRange buffer, uint32_t address)
     {
         really_assert(address <= memory.size() && buffer.size() <= memory.size() - address);
-        std::transform(buffer.begin(), buffer.end(), memory.begin() + address, memory.begin() + address, [](uint8_t written, uint8_t held)
+        const auto held = infra::DiscardHead(memory, address);
+        std::ranges::transform(buffer, held, held.begin(), [](uint8_t written, uint8_t current)
             {
-                return static_cast<uint8_t>(held & written);
+                return static_cast<uint8_t>(current & written);
             });
     }
 
