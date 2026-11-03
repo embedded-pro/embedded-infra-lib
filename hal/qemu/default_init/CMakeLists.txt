@@ -27,7 +27,6 @@ target_link_libraries(hal.qemu.default_init PUBLIC
     infra.event
     infra.timer)
 
-# An image links with qemu_virt.ld unless it names its own script in its EMIL_QEMU_LINKER_SCRIPT property
 target_link_options(hal.qemu.default_init INTERFACE
     -T "$<IF:$<BOOL:$<TARGET_PROPERTY:EMIL_QEMU_LINKER_SCRIPT>>,$<TARGET_PROPERTY:EMIL_QEMU_LINKER_SCRIPT>,${CMAKE_CURRENT_SOURCE_DIR}/../linker/qemu_virt.ld>"
     --specs=nosys.specs)
