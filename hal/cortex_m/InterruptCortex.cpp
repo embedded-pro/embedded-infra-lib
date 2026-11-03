@@ -15,15 +15,11 @@ namespace
 {
     constexpr uintptr_t nvicIser0 = 0xE000E100u;
     constexpr uintptr_t nvicIcer0 = 0xE000E180u;
-    constexpr uintptr_t nvicIspr0 = 0xE000E200u;
     constexpr uintptr_t nvicIcpr0 = 0xE000E280u;
     constexpr uintptr_t nvicIpr0 = 0xE000E400u;
 
-    constexpr uintptr_t scbIcsr = 0xE000ED04u;
-    constexpr uint32_t scbIcsrVectactiveMsk = 0x1FFu;
+    using hal::cortex::detail::scbIcsr;
     constexpr uint32_t scbIcsrPendstclr = 1u << 25;
-    constexpr uint32_t scbIcsrPendstset = 1u << 26;
-    constexpr uint32_t scbIcsrPendSvSet = 1u << 28;
     constexpr uint32_t scbIcsrPendSvClr = 1u << 27;
     constexpr uintptr_t scbShpr3PendSv = 0xE000ED22u;
     constexpr uintptr_t scbShpr3SysTick = 0xE000ED23u;
@@ -140,22 +136,6 @@ namespace
 
 namespace hal::cortex
 {
-    int32_t ActiveInterrupt()
-    {
-        return static_cast<int32_t>(Reg32(scbIcsr) & scbIcsrVectactiveMsk) - static_cast<int32_t>(exceptionOffset);
-    }
-
-    bool InterruptPending(int32_t irq)
-    {
-        if (irq >= firstExternalIrq)
-            return (IrqBitBand(nvicIspr0, irq) & IrqBit(irq)) != 0;
-        if (irq == sysTickIrq)
-            return (Reg32(scbIcsr) & scbIcsrPendstset) != 0;
-        if (irq == pendSvIrq)
-            return (Reg32(scbIcsr) & scbIcsrPendSvSet) != 0;
-        return false;
-    }
-
     InterruptHandler::InterruptHandler() = default;
 
     InterruptHandler::InterruptHandler(InterruptHandler&& other) noexcept

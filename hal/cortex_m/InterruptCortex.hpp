@@ -33,8 +33,38 @@ namespace hal::cortex
         lowest = 7,
     };
 
-    int32_t ActiveInterrupt();
-    bool InterruptPending(int32_t irq);
+    namespace detail
+    {
+        constexpr uintptr_t nvicIspr0 = 0xE000E200u;
+        constexpr uintptr_t scbIcsr = 0xE000ED04u;
+        constexpr uint32_t scbIcsrVectactiveMsk = 0x1FFu;
+        constexpr uint32_t scbIcsrPendstset = 1u << 26;
+        constexpr uint32_t scbIcsrPendSvSet = 1u << 28;
+
+        inline uint32_t ReadRegister(uintptr_t address)
+        {
+            return *reinterpret_cast<volatile uint32_t*>(address);
+        }
+    }
+
+    inline int32_t ActiveInterrupt()
+    {
+        return static_cast<int32_t>(detail::ReadRegister(detail::scbIcsr) & detail::scbIcsrVectactiveMsk) - static_cast<int32_t>(exceptionOffset);
+    }
+
+    inline bool InterruptPending(int32_t irq)
+    {
+        if (irq >= firstExternalIrq)
+        {
+            const auto index = static_cast<uint32_t>(irq);
+            return (detail::ReadRegister(detail::nvicIspr0 + (index / 32u) * 4u) & (1u << (index % 32u))) != 0;
+        }
+        if (irq == sysTickIrq)
+            return (detail::ReadRegister(detail::scbIcsr) & detail::scbIcsrPendstset) != 0;
+        if (irq == pendSvIrq)
+            return (detail::ReadRegister(detail::scbIcsr) & detail::scbIcsrPendSvSet) != 0;
+        return false;
+    }
 
     class InterruptTable;
 
