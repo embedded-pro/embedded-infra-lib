@@ -9,7 +9,6 @@ namespace application
     ImageSignerEcDsa::ImageSignerEcDsa(hal::SynchronousRandomDataGenerator& randomDataGenerator, infra::ConstByteRange publicKey, infra::ConstByteRange privateKey)
         : publicKey(publicKey)
         , privateKey(privateKey)
-        , replacedRandomNumberGenerator(uECC_get_rng())
     {
         ImageSignerEcDsa::randomDataGenerator = &randomDataGenerator;
         uECC_set_rng(RandomNumberGenerator);
