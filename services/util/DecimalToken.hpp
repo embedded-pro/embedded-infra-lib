@@ -3,6 +3,7 @@
 
 #include "infra/stream/StringInputStream.hpp"
 #include "infra/util/BoundedString.hpp"
+#include "infra/util/ReallyAssert.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -32,11 +33,18 @@ namespace services
         else
             stream >> value;
 
-        if (stream.ErrorPolicy().Failed() || value < static_cast<Parsed>(min) || value > static_cast<Parsed>(max))
+        really_assert(!stream.ErrorPolicy().Failed());
+
+        if (value < static_cast<Parsed>(min) || value > static_cast<Parsed>(max))
             return std::nullopt;
 
         return static_cast<T>(value);
     }
+
+    extern template std::optional<uint8_t> ParseDecimal<uint8_t>(infra::BoundedConstString token, uint8_t min, uint8_t max);
+    extern template std::optional<uint32_t> ParseDecimal<uint32_t>(infra::BoundedConstString token, uint32_t min, uint32_t max);
+    extern template std::optional<int32_t> ParseDecimal<int32_t>(infra::BoundedConstString token, int32_t min, int32_t max);
+    extern template std::optional<float> ParseDecimal<float>(infra::BoundedConstString token, float min, float max);
 }
 
 #endif

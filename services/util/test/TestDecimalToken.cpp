@@ -64,3 +64,19 @@ TEST(DecimalTokenTest, the_largest_nine_digit_integer_is_parsed)
 {
     EXPECT_EQ(999999999u, services::ParseDecimal<uint32_t>("999999999", 0, 0xFFFFFFFF));
 }
+
+TEST(DecimalTokenTest, each_type_rejects_a_bad_token_and_values_outside_both_bounds)
+{
+    EXPECT_FALSE(services::ParseDecimal<uint8_t>("abc", 1, 99).has_value());
+    EXPECT_FALSE(services::ParseDecimal<uint8_t>("0", 1, 99).has_value());
+    EXPECT_EQ(50, services::ParseDecimal<uint8_t>("50", 1, 99));
+
+    EXPECT_FALSE(services::ParseDecimal<uint32_t>("5", 10, 100).has_value());
+    EXPECT_FALSE(services::ParseDecimal<uint32_t>("200", 10, 100).has_value());
+
+    EXPECT_FALSE(services::ParseDecimal<int32_t>("1.5", -10, 10).has_value());
+    EXPECT_FALSE(services::ParseDecimal<int32_t>("-20", -10, 10).has_value());
+    EXPECT_FALSE(services::ParseDecimal<int32_t>("20", -10, 10).has_value());
+
+    EXPECT_FALSE(services::ParseDecimal("-30", 1.0f, 20.0f).has_value());
+}

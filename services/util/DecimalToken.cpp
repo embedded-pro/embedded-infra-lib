@@ -35,4 +35,9 @@ namespace services
         const auto fractionDigits = fractionEnd - integerEnd - 1;
         return fractionEnd == token.size() && fractionDigits != 0 && fractionDigits <= maxFractionDigits;
     }
+
+    template std::optional<uint8_t> ParseDecimal<uint8_t>(infra::BoundedConstString token, uint8_t min, uint8_t max);
+    template std::optional<uint32_t> ParseDecimal<uint32_t>(infra::BoundedConstString token, uint32_t min, uint32_t max);
+    template std::optional<int32_t> ParseDecimal<int32_t>(infra::BoundedConstString token, int32_t min, int32_t max);
+    template std::optional<float> ParseDecimal<float>(infra::BoundedConstString token, float min, float max);
 }
