@@ -25,10 +25,7 @@ namespace services
         , pauseTicks{ pauseTicks }
     {}
 
-    bool LedPattern::operator==(const LedPattern& other) const
-    {
-        return kind == other.kind && flashes == other.flashes && onTicks == other.onTicks && offTicks == other.offTicks && pauseTicks == other.pauseTicks;
-    }
+    bool LedPattern::operator==(const LedPattern& other) const = default;
 
     uint32_t LedPattern::PeriodTicks() const
     {
