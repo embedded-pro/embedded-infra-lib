@@ -27,6 +27,7 @@ target_sources(services.util_test PRIVATE
     TestNvmImage.cpp
     TestRegisterBusAccess.cpp
     TestRegisterStepRunner.cpp
+    TestSerialCommunicationMirror.cpp
     TestTerminal.cpp
     TestTerminalWithStorage.cpp
     TestTimeWithLocalization.cpp

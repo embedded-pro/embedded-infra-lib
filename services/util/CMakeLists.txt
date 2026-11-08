@@ -45,6 +45,8 @@ target_sources(services.util PRIVATE
     NvmEepromRegion.hpp
     NvmImage.hpp
     NvmRegion.hpp
+    SerialCommunicationMirror.cpp
+    SerialCommunicationMirror.hpp
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp

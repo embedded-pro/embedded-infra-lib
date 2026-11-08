@@ -50,6 +50,7 @@ target_sources(infra.util_test PRIVATE
     TestWithSharedAccess.cpp
     TestStaticStorage.cpp
     TestTokenizer.cpp
+    TestTripleBuffer.cpp
     TestUnit.cpp
 )
 

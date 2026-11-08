@@ -74,6 +74,7 @@ target_sources(infra.util PRIVATE
     StaticStorage.hpp
     Tokenizer.cpp
     Tokenizer.hpp
+    TripleBuffer.hpp
     Unit.hpp
     VariadicTemplates.hpp
     VariantDetail.hpp
