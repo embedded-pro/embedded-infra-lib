@@ -16,6 +16,7 @@ target_sources(services.peripheral_test PRIVATE
     TestI2cMultipleAccess.cpp
     TestI2cScanner.cpp
     TestInverseLogicPin.cpp
+    TestLedPattern.cpp
     TestLowPowerSerialCommunication.cpp
     TestLowPowerSpiMaster.cpp
     TestRepeatingButton.cpp
