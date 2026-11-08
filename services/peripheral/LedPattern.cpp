@@ -2,6 +2,34 @@
 
 namespace services
 {
+    LedPattern LedPattern::Off()
+    {
+        return LedPattern{ Kind::off, 0, 0, 0, 0 };
+    }
+
+    LedPattern LedPattern::Steady()
+    {
+        return LedPattern{ Kind::steady, 0, 0, 0, 0 };
+    }
+
+    LedPattern LedPattern::Flashes(uint8_t count, uint16_t onTicks, uint16_t offTicks, uint16_t pauseTicks)
+    {
+        return LedPattern{ Kind::flashes, count, onTicks, offTicks, pauseTicks };
+    }
+
+    LedPattern::LedPattern(Kind kind, uint8_t flashes, uint16_t onTicks, uint16_t offTicks, uint16_t pauseTicks)
+        : kind{ kind }
+        , flashes{ flashes }
+        , onTicks{ onTicks }
+        , offTicks{ offTicks }
+        , pauseTicks{ pauseTicks }
+    {}
+
+    bool LedPattern::operator==(const LedPattern& other) const
+    {
+        return kind == other.kind && flashes == other.flashes && onTicks == other.onTicks && offTicks == other.offTicks && pauseTicks == other.pauseTicks;
+    }
+
     uint32_t LedPattern::PeriodTicks() const
     {
         if (kind != Kind::flashes)

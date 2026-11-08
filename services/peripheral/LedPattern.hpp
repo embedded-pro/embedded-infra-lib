@@ -9,25 +9,14 @@ namespace services
     class LedPattern
     {
     public:
-        static constexpr LedPattern Off()
-        {
-            return LedPattern{ Kind::off, 0, 0, 0, 0 };
-        }
-
-        static constexpr LedPattern Steady()
-        {
-            return LedPattern{ Kind::steady, 0, 0, 0, 0 };
-        }
-
-        static constexpr LedPattern Flashes(uint8_t count, uint16_t onTicks, uint16_t offTicks, uint16_t pauseTicks)
-        {
-            return LedPattern{ Kind::flashes, count, onTicks, offTicks, pauseTicks };
-        }
+        static LedPattern Off();
+        static LedPattern Steady();
+        static LedPattern Flashes(uint8_t count, uint16_t onTicks, uint16_t offTicks, uint16_t pauseTicks);
 
         bool LevelAt(uint32_t tick) const;
         uint32_t PeriodTicks() const;
 
-        bool operator==(const LedPattern&) const = default;
+        bool operator==(const LedPattern& other) const;
 
     private:
         enum class Kind : uint8_t
@@ -37,13 +26,7 @@ namespace services
             flashes
         };
 
-        constexpr LedPattern(Kind kind, uint8_t flashes, uint16_t onTicks, uint16_t offTicks, uint16_t pauseTicks)
-            : kind{ kind }
-            , flashes{ flashes }
-            , onTicks{ onTicks }
-            , offTicks{ offTicks }
-            , pauseTicks{ pauseTicks }
-        {}
+        LedPattern(Kind kind, uint8_t flashes, uint16_t onTicks, uint16_t offTicks, uint16_t pauseTicks);
 
         Kind kind;
         uint8_t flashes;

@@ -70,6 +70,9 @@ TEST(LedPatternTest, patterns_compare_by_value)
     EXPECT_EQ(services::LedPattern::Flashes(2, 1, 1, 3), services::LedPattern::Flashes(2, 1, 1, 3));
     EXPECT_FALSE(services::LedPattern::Flashes(2, 1, 1, 3) == services::LedPattern::Flashes(3, 1, 1, 3));
     EXPECT_FALSE(services::LedPattern::Off() == services::LedPattern::Steady());
+    EXPECT_FALSE(services::LedPattern::Flashes(2, 1, 1, 3) == services::LedPattern::Flashes(2, 2, 1, 3));
+    EXPECT_FALSE(services::LedPattern::Flashes(2, 1, 1, 3) == services::LedPattern::Flashes(2, 1, 2, 3));
+    EXPECT_FALSE(services::LedPattern::Flashes(2, 1, 1, 3) == services::LedPattern::Flashes(2, 1, 1, 4));
 }
 
 TEST_F(LedPatternPlayerTest, the_led_follows_the_pattern_one_tick_per_update)
