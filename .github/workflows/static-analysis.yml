@@ -44,7 +44,7 @@ jobs:
       - name: Convert results
         run: |
           command -v xsltproc > /dev/null || { apt-get update && apt-get install -y --no-install-recommends xsltproc; }
-          { echo '<testExecutions version="1">'; xsltproc .github/formatters/gtest-to-generic-execution.xslt testresults/*.xml; echo '</testExecutions>'; } > execution.xml
+          { echo '<testExecutions version="1">'; xsltproc .github/formatters/gtest-to-generic-execution.xslt "${{ github.workspace }}"/testresults/*.xml; echo '</testExecutions>'; } > execution.xml
           cp build/coverage/compile_commands.json compile_commands.json
       - uses: sonarsource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
         env:
