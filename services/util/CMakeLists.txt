@@ -41,6 +41,8 @@ target_sources(services.util PRIVATE
     ConfigurationStore.hpp
     CyclicStore.cpp
     CyclicStore.hpp
+    SerialCommunicationMirror.cpp
+    SerialCommunicationMirror.hpp
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp
