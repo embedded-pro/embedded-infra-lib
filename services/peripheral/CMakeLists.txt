@@ -18,6 +18,8 @@ target_sources(services.peripheral PRIVATE
     I2cMultipleAccess.hpp
     I2cScanner.cpp
     I2cScanner.hpp
+    LedPattern.cpp
+    LedPattern.hpp
     LowPowerSerialCommunication.cpp
     LowPowerSerialCommunication.hpp
     LowPowerSpiMaster.cpp
