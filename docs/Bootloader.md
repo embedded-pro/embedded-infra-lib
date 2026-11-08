@@ -115,6 +115,16 @@ const bootloader::ExactTargetCheck<Target> targetCheck{ Target{ boardKind, famil
 The values lie outside 0–999, which `UpgradePackHeader.hpp` reserves for the reference boot loaders. AES-128-CTR decrypts any part of the stream on its own, so the target check uses a second decryptor and costs nothing in the copy that follows.
 The installer then erases the sectors the image spans and the descriptor's sector, decrypts and writes the image, and writes the descriptor from a SHA-256 of what it reads back from the slot.
 
+## Staging a pack from the application
+
+The application, not the bootloader, writes the pack into the staging flash, usually while it keeps running. `upgrade/staging` holds the asynchronous pieces for that, on `hal::Flash` and the event dispatcher:
+
+- `PackStagingWriter` erases the staging flash and checks that every sector reads back blank, then takes the pack in appends of at most eight bytes, programs it a page at a time and reads each page back before reporting it written. `Flush` programs a final partial page.
+- `StagedPackReader` computes the CRC-32 of the staged bytes and reads the pack header back: the prologue, the epilogue after the signature and the first image's prologue, each only when it lies within the staged length.
+- `CheckStagedPackHeader` refuses a pack the bootloader would refuse or could not install: wrong magic or header version, another product, more than one image, another target, an image larger than the target slot or not ending the pack. It returns the pack's `major.minor.patch` product version, so an application can report what it staged.
+
+Both classes take a `proceed` predicate that is consulted after every flash step. When it returns false the operation ends without calling back, which lets an application abandon staging (for example on an emergency stop) without waiting for the flash. Neither needs a page buffer larger than 256 bytes or any heap.
+
 ## Wiring
 
 The product supplies the flash drivers, the keys (see [Keys](#keys)), its `TargetCheck` and an `ApplicationStarter`, which jumps to the application or halts.
