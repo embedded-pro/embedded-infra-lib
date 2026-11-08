@@ -41,13 +41,10 @@ jobs:
       - name: Collect coverage
         run: |
           gcovr --sonarqube=coverage.xml --exclude-lines-by-pattern '.*assert\(.*\);|.*really_assert\(.*\);|.*std::abort\(\);' --exclude-unreachable-branches --exclude-throw-branches -j "$(nproc)" --exclude=.*/generated/.* --exclude=.*/examples/.* --exclude=.*/external/.* --exclude=.*/lwip/.* --exclude=.*/tracing/.*
-      - uses: philips-software/sonarqube-issue-conversion@9e9958764ba5fd1d302b039779dc902bedfa4d01 # v1.2.0
-        with:
-          input: ${{ github.workspace }}/testresults/*.xml
-          output: execution.xml
-          transformation: gtest-to-generic-execution
       - name: Convert results
         run: |
+          command -v xsltproc > /dev/null || { apt-get update && apt-get install -y --no-install-recommends xsltproc; }
+          { echo '<testExecutions version="1">'; xsltproc .github/formatters/gtest-to-generic-execution.xslt testresults/*.xml; echo '</testExecutions>'; } > execution.xml
           cp build/coverage/compile_commands.json compile_commands.json
       - uses: sonarsource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
         env:
