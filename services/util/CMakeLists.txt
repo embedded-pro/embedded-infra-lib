@@ -41,6 +41,10 @@ target_sources(services.util PRIVATE
     ConfigurationStore.hpp
     CyclicStore.cpp
     CyclicStore.hpp
+    NvmEepromRegion.cpp
+    NvmEepromRegion.hpp
+    NvmImage.hpp
+    NvmRegion.hpp
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp

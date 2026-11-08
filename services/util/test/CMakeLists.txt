@@ -23,6 +23,8 @@ target_sources(services.util_test PRIVATE
     $<$<BOOL:${EMIL_INCLUDE_MBEDTLS}>:TestConfigurationStore.cpp>
     TestCyclicStore.cpp
     TestEventDispatcherWatchdog.cpp
+    TestNvmEepromRegion.cpp
+    TestNvmImage.cpp
     TestRegisterBusAccess.cpp
     TestRegisterStepRunner.cpp
     TestTerminal.cpp

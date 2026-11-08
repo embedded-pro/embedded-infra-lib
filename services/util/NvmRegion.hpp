@@ -1,0 +1,21 @@
+#ifndef SERVICES_NVM_REGION_HPP
+#define SERVICES_NVM_REGION_HPP
+
+#include "infra/util/ByteRange.hpp"
+#include "infra/util/Function.hpp"
+
+namespace services
+{
+    class NvmRegion
+    {
+    protected:
+        ~NvmRegion() = default;
+
+    public:
+        virtual void Write(infra::ConstByteRange data, infra::Function<void()> onDone) = 0;
+        virtual void Read(infra::ByteRange data, infra::Function<void()> onDone) = 0;
+        virtual void Erase(infra::Function<void()> onDone) = 0;
+    };
+}
+
+#endif
