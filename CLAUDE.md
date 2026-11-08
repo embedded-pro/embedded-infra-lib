@@ -192,6 +192,7 @@ Prefer `{}` initialization over `()` for all variable and object initialization.
 - `emil_test_helpers.cmake` — `emil_add_test()` function for test targets
 - `emil_coverage.cmake` — Coverage instrumentation
 - `emil_build_for.cmake` — Cross-compilation helpers
+- `emil_compiler_warnings.cmake` — `emil_enable_warnings()`: `-Wall -Wextra` for the calling directory, without the GCC/Clang false positives on EmIL and GoogleTest code
 - `emil_clang_tools.cmake` — Linting and formatting
 - `emil_native_executables.cmake` — `emil_native_executables()`: builds EmIL host tools with the host compiler for a cross-compiling build and imports them
 - `emil_bootloader_image.cmake` — Post-build steps for bootloader images: image descriptor, combined HEX (see `docs/Bootloader.md`)
