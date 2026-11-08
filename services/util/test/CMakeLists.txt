@@ -26,6 +26,7 @@ target_sources(services.util_test PRIVATE
     TestEventDispatcherWatchdog.cpp
     TestRegisterBusAccess.cpp
     TestRegisterStepRunner.cpp
+    TestSerialCommunicationMirror.cpp
     TestTerminal.cpp
     TestTerminalWithStorage.cpp
     TestTimeWithLocalization.cpp

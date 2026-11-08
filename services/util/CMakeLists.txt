@@ -43,6 +43,8 @@ target_sources(services.util PRIVATE
     CyclicStore.hpp
     DecimalToken.cpp
     DecimalToken.hpp
+    SerialCommunicationMirror.cpp
+    SerialCommunicationMirror.hpp
     Stoppable.hpp
     Terminal.cpp
     Terminal.hpp
