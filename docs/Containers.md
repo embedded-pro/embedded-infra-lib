@@ -96,6 +96,12 @@ Like the `Bounded` containers, the infra package contains counterparts of contai
 | `infra::IntrusivePriorityQueue<T, Compare>` | `std::priority_queue<T, Compare>` |
 | `infra::IntrusiveSet<T, Compare>` | `std::set<T, Compare>` |
 
+## Triple Buffer
+
+`infra::TripleBuffer<T>` hands the latest value of `T` from one writer to one reader when the two run in different contexts on one core, typically an interrupt handler writing and the event loop reading. `Publish()` copies a value into a slot the reader does not hold, and `Acquire()` returns a reference to the most recently published value. The reader can keep that reference until its next `Acquire()`: the writer never writes into the slot the reader holds, so a value is never torn and neither side ever waits.
+
+There is no queue: values the reader does not acquire are overwritten. Ordering between the two contexts relies on signal fences, which is enough on a single core but not between cores.
+
 ## std::array
 
 One standard container of note is `std::array<T, Size>`. This container does not use the heap and has a fixed size. It is a drop-in replacement of the C array, with a C++ interface. When a container of a fixed-size is needed, `std::array` should be used.
