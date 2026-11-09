@@ -6,7 +6,7 @@ namespace hal
     AdcMultiChannelNull::AdcMultiChannelNull(infra::MemoryRange<uint16_t> samples, uint16_t neutralCode)
         : samples{ samples }
     {
-        std::fill(samples.begin(), samples.end(), neutralCode);
+        std::ranges::fill(samples, neutralCode);
     }
 
     void AdcMultiChannelNull::Measure(const infra::Function<void(Samples)>& onDone)
