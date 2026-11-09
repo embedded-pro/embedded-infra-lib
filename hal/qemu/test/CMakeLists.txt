@@ -4,6 +4,7 @@ emil_build_for(hal.qemu.test
     BOOL EMIL_BUILD_QEMU)
 
 target_sources(hal.qemu.test PRIVATE
+    TestCmsdkTimer.cpp
     TestDataWatchpointAndTrace.cpp
     TestFaultTracer.cpp
     TestInterruptCortex.cpp
@@ -22,6 +23,7 @@ target_link_libraries(hal.qemu.test PRIVATE
     hal.qemu.sync
     hal.qemu.async
     hal.qemu.cortex
+    hal.qemu.cmsdk_cortex
     infra.event
     infra.timer
     infra.event_test_helper
