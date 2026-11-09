@@ -66,3 +66,17 @@ buffer.Push(std::vector<uint8_t>{ 2, 4 });
 
 EXPECT_EQ((std::vector<uint8_t>{ 9, 2 }), buffer.ContiguousRange());
 ```
+
+#### infra::ExecutionTimeStatistics
+
+`infra::ExecutionTimeStatistics` collects run-time statistics of a periodic task, typically an interrupt handler that measures its own duration in cycles or timer ticks. `Record()` and `RecordReentry()` are cheap enough to call from that handler; `Read()` returns a `Snapshot` with the sample count, the last, minimum, maximum and exponentially averaged durations (each new sample moves the average a sixteenth of the way), and the number of overruns (duration above the budget), deadline misses (duration above the period) and re-entries. Every counter saturates instead of wrapping. A budget or period of zero disables that threshold. `Configure()` sets the thresholds and clears the run; `Reset()` clears the run and keeps the thresholds.
+
+```cpp
+infra::ExecutionTimeStatistics statistics;
+statistics.Configure(4500, 6000);
+statistics.Record(4600);
+
+auto snapshot = statistics.Read();
+EXPECT_EQ(1, snapshot.overruns);
+EXPECT_EQ(0, snapshot.deadlineMisses);
+```

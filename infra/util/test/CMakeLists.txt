@@ -27,6 +27,7 @@ target_sources(infra.util_test PRIVATE
     TestCrcCcittCalculator.cpp
     TestCyclicBuffer.cpp
     TestEndian.cpp
+    TestExecutionTimeStatistics.cpp
     TestFixedPoint.cpp
     TestFunction.cpp
     TestHotSwapFunction.cpp
