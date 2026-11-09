@@ -32,7 +32,7 @@ jobs:
           key: ${{ github.job }}-ubuntu-latest
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
-      - uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67 # v6
+      - uses: ./.github/actions/setup-ninja
       - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host"
@@ -123,7 +123,7 @@ jobs:
       - if: ${{ runner.os == 'Windows' }}
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
       - if: ${{ runner.os == 'Windows' }}
-        uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67 # v6
+        uses: ./.github/actions/setup-ninja
       - uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d # v1.2.24
         with:
           variant: ${{ matrix.cache-variant }}
@@ -161,7 +161,7 @@ jobs:
           key: ${{ github.job }}-ubuntu-latest
           max-size: 2G
           save: ${{ github.ref == 'refs/heads/main' }}
-      - uses: seanmiddleditch/gha-setup-ninja@3b1f8f94a2f8254bd26914c4ab9474d4f0015f67 # v6
+      - uses: ./.github/actions/setup-ninja
       - uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: "host-no-mbedtls"
