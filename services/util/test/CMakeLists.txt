@@ -24,6 +24,8 @@ target_sources(services.util_test PRIVATE
     TestCyclicStore.cpp
     TestDecimalToken.cpp
     TestEventDispatcherWatchdog.cpp
+    TestNvmEepromRegion.cpp
+    TestNvmImage.cpp
     TestRegisterBusAccess.cpp
     TestRegisterStepRunner.cpp
     TestSerialCommunicationMirror.cpp
