@@ -1,6 +1,7 @@
 add_subdirectory(interfaces)
 add_subdirectory(synchronous_interfaces)
 add_subdirectory(generic)
+add_subdirectory(null)
 add_subdirectory(windows)
 add_subdirectory(unix)
 add_subdirectory(cortex_m)
