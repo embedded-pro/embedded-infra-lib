@@ -39,6 +39,8 @@ target_sources(infra.util PRIVATE
     CyclicBuffer.hpp
     Endian.hpp
     EnumCast.hpp
+    ExecutionTimeStatistics.cpp
+    ExecutionTimeStatistics.hpp
     FixedPoint.hpp
     Function.cpp
     Function.hpp
