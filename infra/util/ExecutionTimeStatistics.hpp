@@ -7,10 +7,7 @@ namespace infra
 {
     namespace detail
     {
-        constexpr uint32_t SaturatingIncrement(uint32_t counter)
-        {
-            return counter == UINT32_MAX ? counter : counter + 1;
-        }
+        uint32_t SaturatingIncrement(uint32_t counter);
     }
 
     class ExecutionTimeStatistics
@@ -31,30 +28,8 @@ namespace infra
 
         void Configure(uint32_t budget, uint32_t period);
 
-        void Record(uint32_t duration)
-        {
-            last = duration;
-            samples = detail::SaturatingIncrement(samples);
-
-            if (duration < minimum)
-                minimum = duration;
-            if (duration > maximum)
-                maximum = duration;
-
-            scaledAverage = samples == 1
-                                ? duration << averagingShift
-                                : scaledAverage + duration - (scaledAverage >> averagingShift);
-
-            if (duration > budgetThreshold)
-                overruns = detail::SaturatingIncrement(overruns);
-            if (duration > periodThreshold)
-                deadlineMisses = detail::SaturatingIncrement(deadlineMisses);
-        }
-
-        void RecordReentry()
-        {
-            reentries = detail::SaturatingIncrement(reentries);
-        }
+        void Record(uint32_t duration);
+        void RecordReentry();
 
         void Reset();
 
