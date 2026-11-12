@@ -73,7 +73,6 @@ add_compile_options($<$<COMPILE_LANGUAGE:C>:-ffunction-sections$<SEMICOLON>-fdat
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-ffunction-sections$<SEMICOLON>-fdata-sections$<SEMICOLON>-mthumb>)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-use-cxa-atexit$<SEMICOLON>-fno-threadsafe-statics$<SEMICOLON>-fno-rtti$<SEMICOLON>-fno-exceptions>)
 
-# newlib's assert() stores each enclosing function's __PRETTY_FUNCTION__ in flash; EmIL's __assert_func ignores it
 option(EMIL_ASSERT_FUNCTION_NAMES "Keep function names in assert() failure messages" Off)
 if (NOT EMIL_ASSERT_FUNCTION_NAMES)
     add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:__ASSERT_FUNC=nullptr>)
