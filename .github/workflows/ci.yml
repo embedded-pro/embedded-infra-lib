@@ -53,7 +53,7 @@ jobs:
   host_build_test_container:
     name: Host Build & Test (amp-devcontainer-cpp)
     runs-on: ubuntu-latest
-    container: gabrielfrasantos/embedded-devcontainer:latest@sha256:259aa0e8fb47d3f216dc244202045bad6046af8408ff0eb60af4b53d9d144849 # 5.1.4
+    container: gabrielfrasantos/embedded-devcontainer-cpp:v7.5.1@sha256:58615703161844d1b53db6342f9c962fac0a29f46bb0d457dd1a459811a97644
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,18 +78,11 @@ jobs:
   host_build_test_clang_msvc:
     name: Host Build & Test (clang-msvc)
     runs-on: ubuntu-latest
-    container: gabrielfrasantos/embedded-devcontainer:latest@sha256:259aa0e8fb47d3f216dc244202045bad6046af8408ff0eb60af4b53d9d144849 # 5.1.4
+    container: gabrielfrasantos/embedded-devcontainer-cpp:v7.5.1@sha256:58615703161844d1b53db6342f9c962fac0a29f46bb0d457dd1a459811a97644
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: cache-winsdk
-        with:
-          path: /winsdk
-          key: cache-winsdk-10.0.26100-14.43.17.13
-      - if: ${{ steps.cache-winsdk.outputs.cache-hit != 'true' }}
-        run: xwin --accept-license --sdk-version "10.0.26100" --crt-version "14.43.17.13" splat --preserve-ms-arch-notation --include-debug-libs && mv .xwin-cache/splat/ /winsdk
       - uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d # v1.2.24
         with:
           key: ${{ github.job }}-clang-msvc
