@@ -8,9 +8,10 @@ namespace hal
     template<class T>
     class BackupRam
     {
-    public:
-        virtual ~BackupRam() = default;
+    protected:
+        ~BackupRam() = default;
 
+    public:
         virtual infra::MemoryRange<T> Get() const = 0;
     };
 }

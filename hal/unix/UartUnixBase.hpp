@@ -28,7 +28,9 @@ namespace hal
         using Config = detail::UartUnixBaseConfig;
 
         explicit UartUnixBase(const std::string& portName, const Config& config = {});
-        virtual ~UartUnixBase();
+
+    protected:
+        ~UartUnixBase();
 
     private:
         void Open(const std::string& portName, uint32_t baudrate, bool flowControl);

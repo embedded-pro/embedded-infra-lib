@@ -35,10 +35,11 @@ namespace infra
     class FormatterBase
     {
     public:
-        virtual ~FormatterBase() = default;
         virtual void Format(TextOutputStream& stream, FormatSpec& spec) = 0;
 
     protected:
+        ~FormatterBase() = default;
+
         void RawFormat(TextOutputStream& stream, const BoundedConstString& text, const FormatSpec& spec) const;
         void SignedInteger(TextOutputStream& stream, int64_t value, FormatSpec& spec) const;
         void UnsignedInteger(TextOutputStream& stream, uint64_t value, FormatSpec& spec) const;

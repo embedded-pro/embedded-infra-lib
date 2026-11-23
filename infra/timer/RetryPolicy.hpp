@@ -8,12 +8,13 @@ namespace infra
 {
     class RetryPolicy
     {
-    public:
+    protected:
         RetryPolicy() = default;
-        virtual ~RetryPolicy() = default;
+        ~RetryPolicy() = default;
         RetryPolicy(const RetryPolicy&) = delete;
         RetryPolicy& operator=(const RetryPolicy&) = delete;
 
+    public:
         virtual infra::Duration RetryDelay(bool intermittentFailure) = 0;
         virtual void Reset() = 0;
     };

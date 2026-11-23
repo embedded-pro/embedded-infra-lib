@@ -14,7 +14,7 @@ namespace services
         Multicast() = default;
         Multicast(const Multicast& other) = delete;
         Multicast& operator=(const Multicast& other) = delete;
-        virtual ~Multicast() = default;
+        ~Multicast() = default;
 
     public:
         virtual void JoinMulticastGroup(infra::SharedPtr<DatagramExchange> datagramExchange, IPv4Address multicastAddress) = 0;

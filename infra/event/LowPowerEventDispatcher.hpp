@@ -21,7 +21,7 @@ namespace infra
     {
     protected:
         LowPowerStrategy() = default;
-        virtual ~LowPowerStrategy() = default;
+        ~LowPowerStrategy() = default;
         LowPowerStrategy(const LowPowerStrategy& other) = delete;
         LowPowerStrategy& operator=(const LowPowerStrategy& other) = delete;
 

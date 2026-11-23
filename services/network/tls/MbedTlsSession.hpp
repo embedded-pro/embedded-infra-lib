@@ -20,7 +20,7 @@ namespace services
     public:
         explicit MbedTlsSession(Sha256::Digest identifier);
         explicit MbedTlsSession(network::MbedTlsPersistedSession&);
-        virtual ~MbedTlsSession();
+        ~MbedTlsSession();
 
         static int Serialize(MbedTlsSession& in, network::MbedTlsPersistedSession& out);
 
@@ -83,12 +83,13 @@ namespace services
 
     class MbedTlsSessionStorage
     {
-    public:
+    protected:
         MbedTlsSessionStorage() = default;
         MbedTlsSessionStorage(const MbedTlsSessionStorage& other) = delete;
         MbedTlsSessionStorage& operator=(const MbedTlsSessionStorage& other) = delete;
-        virtual ~MbedTlsSessionStorage() = default;
+        ~MbedTlsSessionStorage() = default;
 
+    public:
         virtual MbedTlsSession* NewSession(infra::BoundedConstString hostname) = 0;
         virtual MbedTlsSession* NewSession(IPAddress address) = 0;
         virtual MbedTlsSession* GetSession(infra::BoundedConstString hostname) = 0;

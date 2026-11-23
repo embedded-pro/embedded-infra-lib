@@ -10,11 +10,13 @@ namespace services
     public:
         class TracingTextOutputStream;
 
+    protected:
         Tracer() = default;
         Tracer(const Tracer& other) = delete;
         Tracer& operator=(const Tracer& other) = delete;
-        virtual ~Tracer() = default;
+        ~Tracer() = default;
 
+    public:
         virtual infra::TextOutputStream Continue() = 0;
 
 #if defined(EMIL_ENABLE_TRACING)
