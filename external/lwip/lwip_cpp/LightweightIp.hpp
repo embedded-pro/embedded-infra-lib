@@ -29,7 +29,7 @@ namespace services
 
         LightweightIp(AllocatorListenerLwIp& listenerAllocator, infra::BoundedList<ConnectorLwIp>& connectors, AllocatorConnectionLwIp& connectionAllocator,
             hal::SynchronousRandomDataGenerator& randomDataGenerator, infra::CreatorBase<services::Stoppable, void(LightweightIp& lightweightIp)>& connectedCreator);
-        ~LightweightIp() override;
+        ~LightweightIp();
 
         // Implementation of ConnectionStatus
         bool PendingSend() const override;

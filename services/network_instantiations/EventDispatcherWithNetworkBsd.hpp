@@ -16,7 +16,7 @@ namespace services
     {
     public:
         EventDispatcherWithNetwork();
-        ~EventDispatcherWithNetwork() override;
+        ~EventDispatcherWithNetwork();
 
         void RegisterConnection(const infra::SharedPtr<ConnectionBsd>& connection);
         void RegisterListener(ListenerBsd& listener);

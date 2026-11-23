@@ -69,7 +69,7 @@ namespace hal
 
         UartWindows(const std::string& portName, Config config = {});
         UartWindows(const std::string& name, DeviceName, Config config = {});
-        virtual ~UartWindows();
+        ~UartWindows();
 
         void ReceiveData(infra::Function<void(infra::ConstByteRange data)> dataReceived) override;
         void SendData(infra::MemoryRange<const uint8_t> data, infra::Function<void()> actionOnCompletion = infra::emptyFunction) override;

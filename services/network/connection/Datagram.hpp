@@ -37,7 +37,7 @@ namespace services
         DatagramFactory() = default;
         DatagramFactory(const DatagramFactory& other) = delete;
         DatagramFactory& operator=(const DatagramFactory& other) = delete;
-        virtual ~DatagramFactory() = default;
+        ~DatagramFactory() = default;
 
     public:
         virtual infra::SharedPtr<DatagramExchange> Listen(DatagramExchangeObserver& observer, uint16_t port, IPVersions versions = IPVersions::both) = 0;

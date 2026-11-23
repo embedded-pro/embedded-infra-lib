@@ -31,7 +31,6 @@ namespace main_
     {
     public:
         explicit UpgradePackBuilderFacade(const application::UpgradePackBuilder::HeaderInfo& headerInfo);
-        virtual ~UpgradePackBuilderFacade() = default;
 
         void Build(const application::SupportedTargets& supportedTargets, const TargetAndFiles& requestedTargets, const std::string& outputFilename,
             const BuildOptions& buildOptions, infra::JsonObject& configuration, const DefaultKey224Material& keys);

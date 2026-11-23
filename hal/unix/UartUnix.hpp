@@ -21,7 +21,7 @@ namespace hal
         using Config = UartUnixBase::Config;
 
         explicit UartUnix(const std::string& portName, const Config& config = {});
-        ~UartUnix() override;
+        ~UartUnix();
 
         // Implementation of hal::SerialCommunication
         void SendData(infra::ConstByteRange data, infra::Function<void()> actionOnCompletion) override;

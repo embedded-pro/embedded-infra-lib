@@ -37,7 +37,6 @@ namespace hal
         using Config = detail::SynchronousUartGenericConfig;
 
         SynchronousUartGeneric(const std::string& portname, const Config& config = {});
-        virtual ~SynchronousUartGeneric() = default;
 
         void SendData(infra::ConstByteRange data) override;
         bool ReceiveData(infra::ByteRange data) override;

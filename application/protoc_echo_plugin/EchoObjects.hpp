@@ -295,12 +295,13 @@ namespace application
 
     class EchoFieldVisitor
     {
-    public:
+    protected:
         EchoFieldVisitor() = default;
         EchoFieldVisitor(const EchoFieldVisitor& other) = delete;
         EchoFieldVisitor& operator=(const EchoFieldVisitor& other) = delete;
-        virtual ~EchoFieldVisitor() = default;
+        ~EchoFieldVisitor() = default;
 
+    public:
         virtual void VisitInt64(const EchoFieldInt64& field) = 0;
         virtual void VisitUint64(const EchoFieldUint64& field) = 0;
         virtual void VisitInt32(const EchoFieldInt32& field) = 0;

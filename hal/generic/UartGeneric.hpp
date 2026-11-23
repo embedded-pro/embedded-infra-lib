@@ -37,7 +37,6 @@ namespace hal
         using Config = detail::UartGenericConfig;
 
         UartGeneric(const std::string& portname, const Config& config = {});
-        virtual ~UartGeneric() = default;
 
         void SendData(infra::ConstByteRange data, infra::Function<void()> actionOnCompletion) override;
         void ReceiveData(infra::Function<void(infra::ConstByteRange data)> dataReceived) override;

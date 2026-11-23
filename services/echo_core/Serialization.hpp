@@ -13,12 +13,13 @@ namespace services
 
     class MethodDeserializer
     {
-    public:
+    protected:
         MethodDeserializer() = default;
         MethodDeserializer(const MethodDeserializer& other) = delete;
         MethodDeserializer& operator=(const MethodDeserializer& other) = delete;
-        virtual ~MethodDeserializer() = default;
+        ~MethodDeserializer() = default;
 
+    public:
         virtual void MethodContents(infra::SharedPtr<infra::StreamReaderWithRewinding>&& reader) = 0;
         virtual void ExecuteMethod() = 0;
         virtual bool Failed() const = 0;
@@ -26,12 +27,13 @@ namespace services
 
     class MethodSerializer
     {
-    public:
+    protected:
         MethodSerializer() = default;
         MethodSerializer(const MethodSerializer& other) = delete;
         MethodSerializer& operator=(const MethodSerializer& other) = delete;
-        virtual ~MethodSerializer() = default;
+        ~MethodSerializer() = default;
 
+    public:
         virtual bool Serialize(infra::SharedPtr<infra::StreamWriter>&& writer) = 0;
     };
 
@@ -94,11 +96,13 @@ namespace services
 
         class OnHeap;
 
+    protected:
         MethodSerializerFactory() = default;
         MethodSerializerFactory(const MethodSerializerFactory& other) = delete;
         MethodSerializerFactory& operator=(const MethodSerializerFactory& other) = delete;
-        virtual ~MethodSerializerFactory() = default;
+        ~MethodSerializerFactory() = default;
 
+    public:
         virtual infra::SharedPtr<infra::ByteRange> SerializerMemory(uint32_t size) = 0;
         virtual infra::SharedPtr<infra::ByteRange> DeserializerMemory(uint32_t size) = 0;
 

@@ -7,12 +7,13 @@ namespace services
 {
     class Aes128Ctr
     {
-    public:
+    protected:
         Aes128Ctr() = default;
         Aes128Ctr(const Aes128Ctr& other) = delete;
         Aes128Ctr& operator=(const Aes128Ctr& other) = delete;
-        virtual ~Aes128Ctr() = default;
+        ~Aes128Ctr() = default;
 
+    public:
         virtual void SetKey(const std::array<uint8_t, 16>& key) = 0;
         virtual void Encrypt(std::array<uint8_t, 16>& counter, infra::ConstByteRange input, infra::ByteRange output) = 0;
     };
