@@ -54,7 +54,7 @@ Shall is used instead of must, because it is easier to describe what code should
 | **Namespace name** | lower_case | Namespace names should be short and only consist of one word. |
 | **Template parameter** | MixedCase | Both type and value parameters follow this definition. |
 | **Macro names** | UPPER_CASE | |
-| **Header include guards** | NAMESPACE_UPPER_CASE_HPP | Header include guards are macro names, and are therefore written in UPPER_CASE. In addition to that, to ensure uniqueness the namespace is prepended, e.g. INFRA_FUNCTION_HPP. |
+| **Header include guards** | NAMESPACE_UPPER_CASE_HPP | Existing headers only; new headers use `#pragma once` (Rule 56). Guards are macro names, written in UPPER_CASE with the namespace prepended, e.g. INFRA_FUNCTION_HPP. |
 | **File names** | MixedCase.cpp/.hpp | The extension .hpp is chosen in favour of .h. |
 | **Directory names** | lower_case | |
 
@@ -441,7 +441,7 @@ int32_t *x;     // <-- incorrect
 (Derived*)x;    // <-- if the type of x was const Base*, const is unexpectedly cast away.
 ```
 
-**Rule 56.** The `#pragma once` declaration shall not be used, since this declaration is not part of the C++ standard.
+**Rule 56.** A new header shall use `#pragma once`. An existing header keeps its include guard, so that merges from upstream amp-embedded-infra-lib stay clean.
 
 **Rule 57.** Global data shall not be declared `static`. Instead, prefer a static private class member; place data in an unnamed namespace if a static private class member is not a proper solution.
 
@@ -507,8 +507,7 @@ TEST(MyTest, SecondTest)
 **infra_cheat/CheatSheet.hpp**
 
 ```cpp
-#ifndef INFRA_CHEAT_SHEET_HPP
-#define INFRA_CHEAT_SHEET_HPP
+#pragma once
 
 #include "infra_event/Timer.hpp"
 #include "infra_util/Compare.hpp"
@@ -560,8 +559,6 @@ namespace infra
     }
 
 }
-
-#endif
 ```
 
 **infra_cheat/CheatSheet.cpp**

@@ -139,5 +139,5 @@ Presets: `host`, `host-single-Debug`, `host-single-MinSizeRel`, `host-no-mbedtls
 
 ## Exceptions *(repo)*
 
-- Include guards: existing headers keep theirs (`NAMESPACE_FILENAME_HPP`, `docs/CodingStandard.md`); new headers
-  use `#pragma once`. Converting would conflict with every merge from upstream amp-embedded-infra-lib.
+- Include guards: existing headers keep theirs (`NAMESPACE_FILENAME_HPP`); new headers use `#pragma once`
+  (`docs/CodingStandard.md` Rule 56). Converting would conflict with every merge from upstream amp-embedded-infra-lib.
