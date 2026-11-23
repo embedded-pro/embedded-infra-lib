@@ -44,19 +44,19 @@ Shall is used instead of must, because it is easier to describe what code should
 
 **Rule 1.** The following table defines the letter case of identifiers:
 
-| Identifier | Letter Case | Notes |
-|---|---|---|
-| **Variable name** | camelCase | In C++, there is no separate notion of constants, since they are just variables with the `const` and `static` qualifiers. Therefore, they follow the same definition. |
-| **Function name** | MixedCase | |
-| **Class name** | MixedCase | |
-| **Enum name** | MixedCase | |
-| **Enum members** | camelCase | Enum members function like variables in the sense that they contain values. Therefore, they follow the Variable name definition. |
-| **Namespace name** | lower_case | Namespace names should be short and only consist of one word. |
-| **Template parameter** | MixedCase | Both type and value parameters follow this definition. |
-| **Macro names** | UPPER_CASE | |
+| Identifier                | Letter Case              | Notes                                                                                                                                                                 |
+|---------------------------|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Variable name**         | camelCase                | In C++, there is no separate notion of constants, since they are just variables with the `const` and `static` qualifiers. Therefore, they follow the same definition. |
+| **Function name**         | MixedCase                |                                                                                                                                                                       |
+| **Class name**            | MixedCase                |                                                                                                                                                                       |
+| **Enum name**             | MixedCase                |                                                                                                                                                                       |
+| **Enum members**          | camelCase                | Enum members function like variables in the sense that they contain values. Therefore, they follow the Variable name definition.                                      |
+| **Namespace name**        | lower_case               | Namespace names should be short and only consist of one word.                                                                                                         |
+| **Template parameter**    | MixedCase                | Both type and value parameters follow this definition.                                                                                                                |
+| **Macro names**           | UPPER_CASE               |                                                                                                                                                                       |
 | **Header include guards** | NAMESPACE_UPPER_CASE_HPP | Existing headers only; new headers use `#pragma once` (Rule 56). Guards are macro names, written in UPPER_CASE with the namespace prepended, e.g. INFRA_FUNCTION_HPP. |
-| **File names** | MixedCase.cpp/.hpp | The extension .hpp is chosen in favour of .h. |
-| **Directory names** | lower_case | |
+| **File names**            | MixedCase.cpp/.hpp       | The extension .hpp is chosen in favour of .h.                                                                                                                         |
+| **Directory names**       | lower_case               |                                                                                                                                                                       |
 
 **Rationale 1.** Both class names and namespace names define scope. We chose lower_case for namespace in order to visualize the higher importance of class names: In `util::ByteRange`, `util` is less important than `ByteRange`.
 
