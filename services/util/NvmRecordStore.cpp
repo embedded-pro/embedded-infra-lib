@@ -56,7 +56,9 @@ namespace services
         , client(client)
         , config(config)
     {
+        really_assert(buffers.size() % 2 == 0);
         really_assert(image.size() > headerSize);
+        really_assert(image.size() - headerSize <= 0xffff);
         claimer.Claim([this]()
             {
                 ReadCopy(0);
@@ -158,11 +160,11 @@ namespace services
         {
             claimer.Release();
             saving = false;
+            dirty = false;
             ScheduleSave();
         }
         else
         {
-            std::ranges::fill(image, erasedByte);
             const auto length = client.Capture(infra::DiscardHead(image, headerSize));
             really_assert(length <= image.size() - headerSize);
             WriteCopy(length);
@@ -177,11 +179,12 @@ namespace services
         WriteUint16(image, lengthOffset, static_cast<uint16_t>(length));
         WriteUint16(image, crcOffset, Crc(image, length));
 
-        regions[nextCopy]->Write(image, [this]()
+        written = headerSize + length;
+        regions[nextCopy]->Write(infra::Head(image, written), [this]()
             {
-                regions[nextCopy]->Read(readBack, [this]()
+                regions[nextCopy]->Read(infra::Head(readBack, written), [this]()
                     {
-                        Saved(std::ranges::equal(image, readBack));
+                        Saved(std::ranges::equal(infra::Head(image, written), infra::Head(readBack, written)));
                     });
             });
     }

@@ -16,14 +16,15 @@ Each copy is a header followed by the payload.
 | CRC      | 2 bytes | CRC-16/CCITT-FALSE over the first 6 header bytes and the payload |
 | Payload  | Length  | Written by the client                                            |
 
-All fields are little-endian. A copy is valid when the magic matches, the length fits the region, and
-the CRC matches. Sequence numbers wrap; the newer of two valid copies is the one ahead by less than
+All fields are little-endian. A copy is valid when the magic matches, the payload fits the buffer, and the
+CRC matches. Sequence numbers wrap; the newer of two valid copies is the one ahead by less than
 half the range.
 
 ## Restore
 
 The constructor claims access, reads both copies and releases access. When a valid copy exists, the
-store gives the payload of the newest one to `Client::Restored`.
+store gives the payload of the newest one to `Client::Restored`. The payload range is valid during
+that call only, so the client copies what it keeps.
 
 | `RestoreResult` | Meaning                                   |
 |-----------------|-------------------------------------------|
@@ -41,7 +42,8 @@ changes thus makes one write. When the delay expires:
 2. The store claims access. Once granted, it checks `Busy()` again, because another user can hold
    the claim for a long time.
 3. `Client::Capture` writes the payload and returns its size.
-4. The store writes the copy that is not the newest valid one, then reads it back and compares.
+4. The store writes the header and payload to the copy that is not the newest valid one. It then
+   reads them back and compares.
 5. The store releases access and records the result.
 
 | `SaveResult` | Meaning                                  |
@@ -66,5 +68,7 @@ services::NvmEepromRegion tuningSecond{ eeprom, 128, 128 };
 services::NvmRecordStore::WithRegionSize<128> tuning{ tuningFirst, tuningSecond, eepromAccess, tuningClient };
 ```
 
-`WithRegionSize<N>` holds two buffers of N bytes: one to write and one to read back. A payload larger
-than N minus the header size stops the program with an assertion.
+`WithRegionSize<N>` holds two buffers of N bytes: one to write and one to read back. N is at most
+65543. A payload larger than N minus the header size stops the program with an assertion.
+
+The store must outlive each read and write it starts.

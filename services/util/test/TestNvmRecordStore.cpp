@@ -62,7 +62,14 @@ namespace
         std::array<uint8_t, 2 * storeSize> storage{};
         bool overlapped{ false };
         bool dropWrites{ false };
+        bool hold{ false };
         uint32_t writes{ 0 };
+
+        void Complete()
+        {
+            hold = false;
+            Schedule();
+        }
 
     private:
         void Begin()
@@ -74,6 +81,12 @@ namespace
         void Finish(const infra::Function<void()>& onDone)
         {
             pending = onDone;
+            if (!hold)
+                Schedule();
+        }
+
+        void Schedule()
+        {
             infra::EventDispatcher::Instance().Schedule([this]()
                 {
                     busy = false;
@@ -432,4 +445,78 @@ TEST_F(NvmRecordStoreTest, a_store_without_shared_access_saves_and_restores)
     store.reset();
     store.emplace(firstRegion, secondRegion, firstClient);
     ExecuteAllActions();
+}
+
+TEST_F(NvmRecordStoreTest, a_payload_that_fills_the_region_is_restored)
+{
+    Start();
+    Save({ 1, 2, 3, 4, 5, 6, 7, 8 });
+
+    EXPECT_CALL(firstClient, Restored(PayloadIs(std::vector<uint8_t>{ 1, 2, 3, 4, 5, 6, 7, 8 })));
+    Start();
+}
+
+TEST_F(NvmRecordStoreTest, a_save_waits_for_the_restore)
+{
+    eeprom.hold = true;
+    first.emplace(eeprom, access, 0, firstClient);
+    ExecuteAllActions();
+    first->store.ScheduleSave();
+
+    ForwardTime(2s);
+    EXPECT_EQ(SaveResult::pending, first->store.LastSave());
+
+    eeprom.Complete();
+    ExecuteAllActions();
+    EXPECT_EQ(RestoreResult::defaults, first->store.Restore());
+
+    EXPECT_CALL(firstClient, Busy()).Times(2).WillRepeatedly(testing::Return(false));
+    EXPECT_CALL(firstClient, Capture(testing::_)).WillOnce(Writes({ 1 }));
+    ForwardTime(2s);
+    EXPECT_EQ(SaveResult::saved, first->store.LastSave());
+}
+
+TEST_F(NvmRecordStoreTest, a_save_after_the_sequence_wraps_is_restored)
+{
+    PutCopy(eeprom, 0, 0xfffe, { 1 });
+    PutCopy(eeprom, regionSize, 0xffff, { 2 });
+    EXPECT_CALL(firstClient, Restored(PayloadIs(std::vector<uint8_t>{ 2 })));
+    Start();
+
+    Save({ 3 });
+    EXPECT_EQ(0, eeprom.storage[2]);
+    EXPECT_EQ(0, eeprom.storage[3]);
+
+    EXPECT_CALL(firstClient, Restored(PayloadIs(std::vector<uint8_t>{ 3 })));
+    Start();
+}
+
+TEST_F(NvmRecordStoreTest, a_save_after_restoring_the_second_copy_writes_the_first_copy)
+{
+    PutCopy(eeprom, regionSize, 4, { 2 });
+    EXPECT_CALL(firstClient, Restored(PayloadIs(std::vector<uint8_t>{ 2 })));
+    Start();
+
+    Save({ 3 });
+
+    EXPECT_EQ(5, eeprom.storage[2]);
+    EXPECT_EQ(3, eeprom.storage[8]);
+}
+
+TEST_F(NvmRecordStoreTest, a_busy_client_after_access_is_granted_does_not_save_twice)
+{
+    Start();
+    first->store.ScheduleSave();
+    second->store.ScheduleSave();
+    EXPECT_CALL(firstClient, Busy()).Times(2).WillRepeatedly(testing::Return(false));
+    EXPECT_CALL(secondClient, Busy()).WillOnce(testing::Return(false)).WillOnce(testing::Return(true));
+    EXPECT_CALL(firstClient, Capture(testing::_)).WillOnce(Writes({ 1 }));
+    ForwardTime(2s);
+
+    EXPECT_CALL(secondClient, Busy()).Times(2).WillRepeatedly(testing::Return(false));
+    EXPECT_CALL(secondClient, Capture(testing::_)).WillOnce(Writes({ 2 }));
+    ForwardTime(2s);
+    EXPECT_EQ(SaveResult::saved, second->store.LastSave());
+
+    ForwardTime(10s);
 }

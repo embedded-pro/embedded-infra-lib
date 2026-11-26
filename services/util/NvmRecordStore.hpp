@@ -96,6 +96,7 @@ namespace services
         uint16_t sequence{ 0 };
         uint16_t writing{ 0 };
         std::size_t reading{ 0 };
+        std::size_t written{ 0 };
         std::size_t nextCopy{ 0 };
         bool saving{ false };
         bool dirty{ false };
