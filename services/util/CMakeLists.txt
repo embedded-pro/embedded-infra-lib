@@ -46,6 +46,8 @@ target_sources(services.util PRIVATE
     NvmEepromRegion.cpp
     NvmEepromRegion.hpp
     NvmImage.hpp
+    NvmRecordStore.cpp
+    NvmRecordStore.hpp
     NvmRegion.hpp
     SerialCommunicationMirror.cpp
     SerialCommunicationMirror.hpp

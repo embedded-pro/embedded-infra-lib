@@ -136,7 +136,8 @@ Scope: host tools that people install and run, GUI or console.
 - CMake modules in `cmake/`: `emil_test_helpers`, `emil_coverage`, `emil_build_for`, `emil_compiler_warnings`
   (`emil_enable_warnings()`), `emil_clang_tools`, `emil_native_executables`, `emil_bootloader_image`.
 - Read the matching document in `docs/` before you change that area: `CodingStandard.md`, `ExecutionModel.md`,
-  `Containers.md`, `MemoryRange.md`, `NetworkConnections.md`, `Echo.md`, `Sesame.md`, `Bootloader.md`, `Fsm.md`.
+  `Containers.md`, `MemoryRange.md`, `NetworkConnections.md`, `Echo.md`, `Sesame.md`, `Bootloader.md`, `Fsm.md`,
+  `NvmRecordStore.md`.
 - Commits follow Conventional Commits; release-please writes `CHANGELOG.md`.
 
 ## Build *(repo)*
