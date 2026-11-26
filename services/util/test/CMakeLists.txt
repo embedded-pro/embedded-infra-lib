@@ -26,6 +26,7 @@ target_sources(services.util_test PRIVATE
     TestEventDispatcherWatchdog.cpp
     TestNvmEepromRegion.cpp
     TestNvmImage.cpp
+    TestNvmRecordStore.cpp
     TestRegisterBusAccess.cpp
     TestRegisterStepRunner.cpp
     TestSerialCommunicationMirror.cpp
