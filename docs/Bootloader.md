@@ -43,18 +43,22 @@ flowchart TD
 
 `bootloader::StatusJournal` keeps the `application::UpgradePackStatus` and error code of the staged pack in a flash region of its own, instead of in the pack's status byte, which the pack loader clears bit by bit and which flash with ECC-protected program units cannot do.
 
-| Offset | Size | Field                                       |
-|--------|------|---------------------------------------------|
-| 0      | 4    | marker `0x314a4d45` (`EMJ1`)                |
-| 4      | 1    | status, as `application::UpgradePackStatus` |
-| 5      | 3    | reserved, `0xff`                            |
-| 8      | 4    | error code                                  |
-| 12     | 4    | check, `~(marker ^ status ^ errorCode)`     |
+The journal splits its flash into two regions, the first half of its sectors and the second half, so it needs at least two sectors.
 
-- Each 16-byte entry goes into the next erased unit; the current status is the last valid entry, and an erased journal reads *empty*.
+| Offset | Size | Field                                                                   |
+|--------|------|-------------------------------------------------------------------------|
+| 0      | 4    | marker `0x314a4d45` (`EMJ1`)                                            |
+| 4      | 1    | status, as `application::UpgradePackStatus`                             |
+| 5      | 3    | generation, little-endian; `0xffffff` after an erase, one less per move |
+| 8      | 4    | error code                                                              |
+| 12     | 4    | check, `~(marker ^ (status \| generation << 8) ^ errorCode)`            |
+
+- Each 16-byte entry goes into the next erased unit of the current region.
+- The current region is the one whose valid entries have the lower generation; the current status is its last valid entry.
+- An erased journal reads *empty*.
 - An entry a reset cut short fails its check and is skipped, so no unit is programmed twice; *Constraints & Limitations* gives the conditions.
 - A status and error code equal to the current ones are not written again.
-- A full journal is erased and restarted with the status being recorded.
+- When the current region is full, the entry moves to the other region with the next lower generation, and only then is the full region erased.
 
 The application starts a download by erasing the journal (`Clear()`), records *downloaded* once the pack passed its checks and *ready to deploy* when the user applies it.
 `JournalPackLoader` and `JournalPackUpgrader` replace the status operations of `application::UpgradePackLoader` and `application::PackUpgrader` with the journal.
@@ -62,29 +66,31 @@ The application starts a download by erasing the journal (`Clear()`), records *d
 ### Journal layout
 
 Entries only append; an earlier entry is never changed.
-The scan reads from offset 0 and stops at the first erased entry.
+The scan of a region reads from its start and stops at the first erased entry.
 
 ```text
-offset   0          16         32         48         64
-         +----------+----------+----------+----------+----------+
-         | EMJ1     | EMJ1     | EMJ1 ??  | EMJ1     | ffff...  |
-         | download | ready    | torn     | started  | erased   |
-         | check ok | check ok | check ✗  | check ok |          |
-         +----------+----------+----------+----------+----------+
-                                  skipped    current    next write
+region 0 (generation ffffff, old)            region 1 (generation fffffe, current)
++----------+----------+----------+---------+  +----------+----------+----------+---------+
+| download | ready    | torn     | started |  | deployed | ffff...  | ffff...  | ffff... |
+| check ok | check ok | check ✗  | check ok|  | check ok | erased   | erased   | erased  |
++----------+----------+----------+---------+  +----------+----------+----------+---------+
+  erased next, or left over after a reset        current    next write
 ```
 
 ### Record and scan
 
 ```mermaid
 flowchart TD
-    Record["Record(status, errorCode)"] --> Scan["Scan from offset 0:<br/>keep the last valid entry,<br/>stop at the first erased entry"]
-    Scan --> Same{"Same status and<br/>error code as the last valid entry?"}
+    Record["Record(status, errorCode)"] --> Scan["Scan both regions:<br/>current = lower generation,<br/>status = its last valid entry"]
+    Scan --> Same{"Same status and<br/>error code as the current entry?"}
     Same -- yes --> Done["Write nothing"]
-    Same -- no --> Free{"Erased entry found?"}
-    Free -- yes --> Write["Write the entry there"]
-    Free -- no --> Erase["Erase the whole journal"]
-    Erase --> First["Write the entry at offset 0"]
+    Same -- no --> Free{"Erased entry in<br/>the current region?"}
+    Free -- yes --> Write["Write the entry there,<br/>same generation"]
+    Free -- no --> Blank{"Other region<br/>erased?"}
+    Blank -- no --> EraseOther["Erase the other region"]
+    Blank -- yes --> Move["Write the entry at the start<br/>of the other region,<br/>generation minus one"]
+    EraseOther --> Move
+    Move --> EraseOld["Erase the full region"]
 ```
 
 ### Power loss
@@ -122,34 +128,43 @@ sequenceDiagram
     B->>J: record "deployed"
 ```
 
-A reset between the erase and the write of a rollover leaves an erased journal, which reads *empty*.
-If the lost record was *deploy started*, the bootloader does not install the pack and starts the old application.
-The device stays usable, but the update is lost.
+A move to the other region writes the new entry before it erases the full region.
+A reset at any step leaves one region with a valid current status.
 
 ```mermaid
 sequenceDiagram
     participant B as Bootloader
-    participant J as Journal flash
-    B->>J: record "deploy started"
-    J-->>B: no erased entry left
-    B->>J: erase the whole journal
-    Note over J: reset: journal is erased
-    B->>J: scan at boot
-    J-->>B: "empty"
-    B->>B: skip the installation, start the old application
+    participant R0 as Region 0 (full)
+    participant R1 as Region 1
+    B->>R1: erase, if not erased
+    Note over R0,R1: reset: old status kept
+    B->>R1: write "deploy started", generation g - 1
+    Note over R0,R1: reset: new status, lower generation
+    B->>R0: erase
+    Note over R0,R1: reset: region 0 partly erased
+    B->>R0: scan at boot
+    R0-->>B: entries with generation g or higher
+    B->>R1: scan at boot
+    R1-->>B: "deploy started", generation g - 1
+    B->>B: region 1 is current
 ```
+
+An erase can only set bits, so a partly erased entry has the same or a higher generation, never a lower one.
+Entries left over in the old region therefore never hide the current status.
+The next move erases the leftovers before it writes into that region.
 
 ### Constraints & Limitations
 
+- The journal flash must have at least two sectors.
 - The programming unit of the journal flash must be 16 bytes or a divisor of 16.
   A larger unit holds two entries, so the second write programs the unit twice.
   The journal does not check this.
 - On flash with ECC, a read of a torn unit can cause an uncorrectable-error fault instead of returning data.
   The flash driver must report such a unit as data, or every scan faults.
-- A rollover is not atomic: a reset between the erase and the write loses the status.
-- A reset during an erase can leave bits partly erased.
-  The XOR check detects a change in one field only.
-  An equal change in a data field and in the check gives a valid entry with a wrong value.
+- The generation has 24 bits, one per move between regions, which is more than the erase endurance of flash.
+  When it is used up, the journal erases both regions and records the status at the start, which a reset can interrupt.
+- An interrupted `Clear()` can leave partly erased entries.
+  The XOR check detects a change in one field only, so such an entry can read as valid with a wrong value.
 - An error takes two records: *invalid* with error code 0, then *invalid* with the code.
   A reset between them loses the error code.
 

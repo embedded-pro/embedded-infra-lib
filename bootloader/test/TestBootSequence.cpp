@@ -64,7 +64,7 @@ namespace
         std::vector<uint8_t> oldImage{ GoodImage(4096, 0x11) };
         std::vector<uint8_t> newImage{ GoodImage(6000, 0x22) };
         FlashFake packFlash{ 32, sectorSize };
-        FlashFake journalFlash{ 1, 256 };
+        FlashFake journalFlash{ 2, 256 };
         FlashFake slotFlash{ slotSectors, sectorSize };
         StatusJournal journal{ journalFlash };
         application::DecryptorAesTiny decryptor{ infra::MakeRange(testAesKey) };
