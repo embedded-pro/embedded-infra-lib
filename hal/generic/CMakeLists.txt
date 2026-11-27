@@ -39,3 +39,5 @@ if (EMIL_BUILD_UNIX OR EMIL_BUILD_DARWIN)
         hal.unix
     )
 endif()
+
+add_subdirectory(test)
