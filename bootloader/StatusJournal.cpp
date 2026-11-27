@@ -71,7 +71,7 @@ namespace bootloader
         if (scan.latest && scan.latest->status == static_cast<uint8_t>(status) && scan.latest->errorCode == errorCode)
             return;
 
-        if (scan.firstErased)
+        if (scan.firstErased.has_value())
         {
             const auto entry = MakeStatusJournalEntry(status, errorCode, scan.generation);
             flash.WriteBuffer(infra::MakeByteRange(entry), *scan.firstErased);
@@ -142,15 +142,15 @@ namespace bootloader
             const auto entry = ReadEntry(address);
             if (IsErased(entry))
             {
-                if (!scan.firstErased)
+                if (!scan.firstErased.has_value())
                     scan.firstErased = address;
                 continue;
             }
 
             scan.erased = false;
-            if (scan.firstErased)
+            if (scan.firstErased.has_value())
                 scan.tailErased = false;
-            if (!scan.firstErased && IsValid(entry) && IsAtLeastAsNew(entry, scan.latest))
+            if (!scan.firstErased.has_value() && IsValid(entry) && IsAtLeastAsNew(entry, scan.latest))
                 scan.latest = entry;
         }
 
