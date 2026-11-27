@@ -16,7 +16,7 @@ namespace hal
     {
         {
             // Under the lock, the trigger thread cannot test quit and miss the notify before it waits
-            std::lock_guard<std::recursive_mutex> lock(mutex);
+            std::scoped_lock lock{ mutex };
             quit = true;
             condition.notify_one();
         }
