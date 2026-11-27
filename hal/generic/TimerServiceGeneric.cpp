@@ -14,8 +14,13 @@ namespace hal
 
     TimerServiceGeneric::~TimerServiceGeneric()
     {
-        quit = true;
-        condition.notify_one();
+        {
+            // Under the lock, the trigger thread cannot test quit and miss the notify before it waits
+            std::scoped_lock lock{ mutex };
+            quit = true;
+            condition.notify_one();
+        }
+
         triggerThread.join();
     }
 
