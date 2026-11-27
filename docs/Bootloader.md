@@ -54,6 +54,7 @@ The journal splits its flash into two regions, the first half of its sectors and
 | 12     | 4    | check, `~(marker ^ (status \| generation << 8) ^ errorCode)`            |
 
 - Each 16-byte entry goes into the next erased unit of the current region.
+- A region with data after its first erased unit is not written; the next record moves to the other region.
 - The current region is the one whose valid entries have the lower generation; the current status is its last valid entry.
 - An erased journal reads *empty*.
 - An entry a reset cut short fails its check and is skipped, so no unit is programmed twice; *Constraints & Limitations* gives the conditions.
@@ -74,7 +75,7 @@ region 0 (generation ffffff, old)            region 1 (generation fffffe, curren
 | download | ready    | torn     | started |  | deployed | ffff...  | ffff...  | ffff... |
 | check ok | check ok | check ✗  | check ok|  | check ok | erased   | erased   | erased  |
 +----------+----------+----------+---------+  +----------+----------+----------+---------+
-  erased next, or left over after a reset        current    next write
+  old region: erased at the move                current    next write
 ```
 
 ### Record and scan
@@ -84,7 +85,7 @@ flowchart TD
     Record["Record(status, errorCode)"] --> Scan["Scan both regions:<br/>current = lower generation,<br/>status = its last valid entry"]
     Scan --> Same{"Same status and<br/>error code as the current entry?"}
     Same -- yes --> Done["Write nothing"]
-    Same -- no --> Free{"Erased entry in<br/>the current region?"}
+    Same -- no --> Free{"Erased entry in the current<br/>region, and only erased<br/>units after it?"}
     Free -- yes --> Write["Write the entry there,<br/>same generation"]
     Free -- no --> Blank{"Other region<br/>erased?"}
     Blank -- no --> EraseOther["Erase the other region"]
@@ -153,6 +154,23 @@ An erase can only set bits, so a partly erased entry has the same or a higher ge
 Entries left over in the old region therefore never hide the current status.
 The next move erases the leftovers before it writes into that region.
 
+`Clear()` first records *empty*, a single write that a reset cannot half-do.
+It then erases the other region, and the current region last.
+A reset at any step reads *empty*, and an older status never comes back.
+
+```mermaid
+sequenceDiagram
+    participant A as Application
+    participant C as Current region
+    participant O as Other region
+    A->>C: record "empty"
+    Note over C,O: reset: "empty" is the current status
+    A->>O: erase
+    Note over C,O: reset: "empty" is the current status
+    A->>C: erase
+    Note over C,O: reset: no valid entry left, "empty"
+```
+
 ### Constraints & Limitations
 
 - The journal flash must have at least two sectors.
@@ -163,8 +181,9 @@ The next move erases the leftovers before it writes into that region.
   The flash driver must report such a unit as data, or every scan faults.
 - The generation has 24 bits, one per move between regions, which is more than the erase endurance of flash.
   When it is used up, the journal erases both regions and records the status at the start, which a reset can interrupt.
-- An interrupted `Clear()` can leave partly erased entries.
-  The XOR check detects a change in one field only, so such an entry can read as valid with a wrong value.
+- The XOR check detects a change in one field only.
+  A torn write, or a reset during the erase of the first unit of the current region, can change a data field and the check equally.
+  Such an entry reads as valid with a wrong value.
 - An error takes two records: *invalid* with error code 0, then *invalid* with the code.
   A reset between them loses the error code.
 

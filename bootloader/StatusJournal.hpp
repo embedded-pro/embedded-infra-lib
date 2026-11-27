@@ -44,6 +44,7 @@ namespace bootloader
             std::optional<StatusJournalEntry> latest;
             std::optional<uint32_t> firstErased;
             bool erased = true;
+            bool tailErased = true;
         };
 
         struct Scan
@@ -62,6 +63,7 @@ namespace bootloader
         uint32_t BeginOfRegion(uint32_t region) const;
         uint32_t EndOfRegion(uint32_t region) const;
         void EraseRegion(uint32_t region);
+        void EraseCurrentLast(uint32_t current);
 
         hal::SynchronousFlash& flash;
     };

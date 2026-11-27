@@ -10,14 +10,38 @@ namespace
     constexpr uint32_t regionSize = 4 * bootloader::FlashFake::programmingUnit;
     constexpr uint32_t newest = bootloader::StatusJournalEntry::firstGeneration;
 
-    class FlashFakeWithResetOnErase
+    class FlashFakeLosingPower
         : public bootloader::FlashFake
     {
     public:
-        using bootloader::FlashFake::FlashFake;
+        FlashFakeLosingPower(uint32_t numberOfSectors, uint32_t sizeOfEachSector, uint32_t erasuresBeforePowerLoss)
+            : bootloader::FlashFake(numberOfSectors, sizeOfEachSector)
+            , erasuresLeft(erasuresBeforePowerLoss)
+        {}
+
+        void WriteBuffer(infra::ConstByteRange buffer, uint32_t address) override
+        {
+            if (powered)
+                bootloader::FlashFake::WriteBuffer(buffer, address);
+        }
 
         void EraseSectors(uint32_t beginIndex, uint32_t endIndex) override
-        {}
+        {
+            for (auto sector = beginIndex; sector != endIndex && powered; ++sector)
+            {
+                if (erasuresLeft != 0)
+                {
+                    bootloader::FlashFake::EraseSectors(sector, sector + 1);
+                    --erasuresLeft;
+                }
+
+                powered = erasuresLeft != 0;
+            }
+        }
+
+    private:
+        uint32_t erasuresLeft;
+        bool powered = true;
     };
 
     class TestStatusJournal
@@ -153,14 +177,73 @@ TEST_F(TestStatusJournal, a_region_is_used_again_after_the_other_region_is_full)
 
 TEST_F(TestStatusJournal, a_reset_before_the_full_region_is_erased_keeps_the_new_status)
 {
-    FlashFakeWithResetOnErase resetting{ 2, regionSize };
-    bootloader::StatusJournal interrupted{ resetting };
-    for (auto i = 0; i != 4; ++i)
-        interrupted.Record(i % 2 == 0 ? UpgradePackStatus::downloaded : UpgradePackStatus::invalid, 0);
+    FlashFakeLosingPower losing{ 2, regionSize, 0 };
+    FillFirstRegion(losing, UpgradePackStatus::readyToDeploy, newest);
 
-    interrupted.Record(UpgradePackStatus::deployStarted, 0);
+    bootloader::StatusJournal{ losing }.Record(UpgradePackStatus::deployStarted, 0);
 
-    EXPECT_EQ(UpgradePackStatus::deployStarted, bootloader::StatusJournal{ resetting }.Status());
+    EXPECT_EQ(UpgradePackStatus::deployStarted, bootloader::StatusJournal{ losing }.Status());
+}
+
+TEST_F(TestStatusJournal, a_reset_after_the_other_region_is_erased_keeps_the_old_status)
+{
+    FlashFakeLosingPower losing{ 2, regionSize, 1 };
+    FillFirstRegion(losing, UpgradePackStatus::readyToDeploy, newest);
+    losing.Load({ 0x00 }, regionSize);
+
+    bootloader::StatusJournal{ losing }.Record(UpgradePackStatus::deployStarted, 0);
+
+    EXPECT_EQ(UpgradePackStatus::readyToDeploy, bootloader::StatusJournal{ losing }.Status());
+}
+
+TEST_F(TestStatusJournal, a_reset_while_the_full_region_is_erased_keeps_the_new_status)
+{
+    FlashFakeLosingPower losing{ 4, regionSize / 2, 1 };
+    for (uint32_t address = 0; address != regionSize; address += bootloader::FlashFake::programmingUnit)
+        LoadEntry(losing, UpgradePackStatus::readyToDeploy, newest, address);
+
+    bootloader::StatusJournal{ losing }.Record(UpgradePackStatus::deployStarted, 0);
+
+    EXPECT_EQ(UpgradePackStatus::deployStarted, bootloader::StatusJournal{ losing }.Status());
+}
+
+TEST_F(TestStatusJournal, a_torn_entry_in_the_other_region_keeps_the_old_status_until_the_next_move)
+{
+    FillFirstRegion(flash, UpgradePackStatus::readyToDeploy, newest);
+    flash.Load({ 0x45, 0x4d, 0x4a, 0x31, 0xf8 }, regionSize);
+
+    EXPECT_EQ(UpgradePackStatus::readyToDeploy, journal.Status());
+
+    journal.Record(UpgradePackStatus::deployStarted, 0);
+
+    EXPECT_EQ(UpgradePackStatus::deployStarted, journal.Status());
+}
+
+TEST_F(TestStatusJournal, a_reset_during_clear_never_brings_back_an_older_status)
+{
+    for (uint32_t erasures = 0; erasures != 3; ++erasures)
+    {
+        FlashFakeLosingPower losing{ 2, regionSize, erasures };
+        FillFirstRegion(losing, UpgradePackStatus::deployed, newest);
+        LoadEntry(losing, UpgradePackStatus::readyToDeploy, newest - 1, regionSize);
+
+        bootloader::StatusJournal{ losing }.Clear();
+
+        EXPECT_EQ(UpgradePackStatus::empty, bootloader::StatusJournal{ losing }.Status()) << "power lost after " << erasures << " erasures";
+    }
+}
+
+TEST_F(TestStatusJournal, a_region_with_stale_entries_after_its_erased_start_is_not_written)
+{
+    LoadEntry(flash, UpgradePackStatus::readyToDeploy, newest - 5, 2 * bootloader::FlashFake::programmingUnit);
+
+    EXPECT_EQ(UpgradePackStatus::empty, journal.Status());
+
+    journal.Record(UpgradePackStatus::downloaded, 0);
+    journal.Record(UpgradePackStatus::invalid, 7);
+
+    EXPECT_EQ(UpgradePackStatus::invalid, journal.Status());
+    EXPECT_EQ(7u, journal.ErrorCode());
 }
 
 TEST_F(TestStatusJournal, the_region_with_the_lower_generation_is_current)

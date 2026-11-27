@@ -23,7 +23,8 @@ namespace bootloader
                 });
         }
 
-        bool IsNewer(const StatusJournalEntry& entry, const std::optional<StatusJournalEntry>& latest)
+        // The generation counts down, so a partial erase, which only sets bits, never makes an entry look newer
+        bool IsAtLeastAsNew(const StatusJournalEntry& entry, const std::optional<StatusJournalEntry>& latest)
         {
             return !latest || GenerationOf(entry) <= GenerationOf(*latest);
         }
@@ -81,14 +82,24 @@ namespace bootloader
 
     void StatusJournal::Clear()
     {
-        flash.EraseAll();
+        const auto scan = Read();
+        if (scan.latest && scan.latest->status != static_cast<uint8_t>(application::UpgradePackStatus::empty))
+            Record(application::UpgradePackStatus::empty, 0);
+
+        EraseCurrentLast(Read().current);
+    }
+
+    void StatusJournal::EraseCurrentLast(uint32_t current)
+    {
+        EraseRegion(1 - current);
+        EraseRegion(current);
     }
 
     void StatusJournal::Rollover(const Scan& scan, application::UpgradePackStatus status, uint32_t errorCode)
     {
         if (scan.generation == 0)
         {
-            Clear();
+            EraseCurrentLast(scan.current);
             const auto entry = MakeStatusJournalEntry(status, errorCode, StatusJournalEntry::firstGeneration);
             flash.WriteBuffer(infra::MakeByteRange(entry), 0);
             return;
@@ -113,7 +124,8 @@ namespace bootloader
 
         const auto& current = regions[scan.current];
         scan.latest = current.latest;
-        scan.firstErased = current.firstErased;
+        if (current.tailErased)
+            scan.firstErased = current.firstErased;
         scan.otherErased = regions[1 - scan.current].erased;
         if (current.latest)
             scan.generation = GenerationOf(*current.latest);
@@ -136,7 +148,9 @@ namespace bootloader
             }
 
             scan.erased = false;
-            if (!scan.firstErased && IsValid(entry) && IsNewer(entry, scan.latest))
+            if (scan.firstErased)
+                scan.tailErased = false;
+            if (!scan.firstErased && IsValid(entry) && IsAtLeastAsNew(entry, scan.latest))
                 scan.latest = entry;
         }
 
