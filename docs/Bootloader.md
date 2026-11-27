@@ -52,12 +52,106 @@ flowchart TD
 | 12     | 4    | check, `~(marker ^ status ^ errorCode)`     |
 
 - Each 16-byte entry goes into the next erased unit; the current status is the last valid entry, and an erased journal reads *empty*.
-- An entry a reset cut short fails its check and is skipped, so no unit is ever programmed twice.
+- An entry a reset cut short fails its check and is skipped, so no unit is programmed twice; *Constraints & Limitations* gives the conditions.
 - A status and error code equal to the current ones are not written again.
 - A full journal is erased and restarted with the status being recorded.
 
 The application starts a download by erasing the journal (`Clear()`), records *downloaded* once the pack passed its checks and *ready to deploy* when the user applies it.
 `JournalPackLoader` and `JournalPackUpgrader` replace the status operations of `application::UpgradePackLoader` and `application::PackUpgrader` with the journal.
+
+### Journal layout
+
+Entries only append; an earlier entry is never changed.
+The scan reads from offset 0 and stops at the first erased entry.
+
+```text
+offset   0          16         32         48         64
+         +----------+----------+----------+----------+----------+
+         | EMJ1     | EMJ1     | EMJ1 ??  | EMJ1     | ffff...  |
+         | download | ready    | torn     | started  | erased   |
+         | check ok | check ok | check ✗  | check ok |          |
+         +----------+----------+----------+----------+----------+
+                                  skipped    current    next write
+```
+
+### Record and scan
+
+```mermaid
+flowchart TD
+    Record["Record(status, errorCode)"] --> Scan["Scan from offset 0:<br/>keep the last valid entry,<br/>stop at the first erased entry"]
+    Scan --> Same{"Same status and<br/>error code as the last valid entry?"}
+    Same -- yes --> Done["Write nothing"]
+    Same -- no --> Free{"Erased entry found?"}
+    Free -- yes --> Write["Write the entry there"]
+    Free -- no --> Erase["Erase the whole journal"]
+    Erase --> First["Write the entry at offset 0"]
+```
+
+### Power loss
+
+A reset while an entry is written leaves a torn entry.
+The next scan skips it, and the next record goes into the erased entry after it.
+
+```mermaid
+sequenceDiagram
+    participant B as Bootloader
+    participant J as Journal flash
+    B->>J: write "deploy started" at offset 48
+    Note over J: reset: entry is torn
+    B->>J: scan at boot
+    J-->>B: last valid entry is "ready to deploy"
+    B->>B: install again from the staged pack
+    B->>J: write "deploy started" at offset 64
+```
+
+A reset during the copy leaves the journal at *deploy started*.
+The copy only reads the staging flash, so the next boot does the installation again.
+
+```mermaid
+sequenceDiagram
+    participant B as Bootloader
+    participant J as Journal flash
+    participant S as Application slot
+    B->>J: record "deploy started"
+    B->>S: erase and write the image
+    Note over S: reset: slot is incomplete
+    B->>J: scan at boot
+    J-->>B: "deploy started"
+    B->>S: erase and write the image again
+    B->>S: write the image descriptor
+    B->>J: record "deployed"
+```
+
+A reset between the erase and the write of a rollover leaves an erased journal, which reads *empty*.
+If the lost record was *deploy started*, the bootloader does not install the pack and starts the old application.
+The device stays usable, but the update is lost.
+
+```mermaid
+sequenceDiagram
+    participant B as Bootloader
+    participant J as Journal flash
+    B->>J: record "deploy started"
+    J-->>B: no erased entry left
+    B->>J: erase the whole journal
+    Note over J: reset: journal is erased
+    B->>J: scan at boot
+    J-->>B: "empty"
+    B->>B: skip the installation, start the old application
+```
+
+### Constraints & Limitations
+
+- The programming unit of the journal flash must be 16 bytes or a divisor of 16.
+  A larger unit holds two entries, so the second write programs the unit twice.
+  The journal does not check this.
+- On flash with ECC, a read of a torn unit can cause an uncorrectable-error fault instead of returning data.
+  The flash driver must report such a unit as data, or every scan faults.
+- A rollover is not atomic: a reset between the erase and the write loses the status.
+- A reset during an erase can leave bits partly erased.
+  The XOR check detects a change in one field only.
+  An equal change in a data field and in the check gives a valid entry with a wrong value.
+- An error takes two records: *invalid* with error code 0, then *invalid* with the code.
+  A reset between them loses the error code.
 
 ## Application header and image descriptor
 
