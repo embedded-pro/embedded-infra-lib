@@ -43,21 +43,149 @@ flowchart TD
 
 `bootloader::StatusJournal` keeps the `application::UpgradePackStatus` and error code of the staged pack in a flash region of its own, instead of in the pack's status byte, which the pack loader clears bit by bit and which flash with ECC-protected program units cannot do.
 
-| Offset | Size | Field                                       |
-|--------|------|---------------------------------------------|
-| 0      | 4    | marker `0x314a4d45` (`EMJ1`)                |
-| 4      | 1    | status, as `application::UpgradePackStatus` |
-| 5      | 3    | reserved, `0xff`                            |
-| 8      | 4    | error code                                  |
-| 12     | 4    | check, `~(marker ^ status ^ errorCode)`     |
+The journal splits its flash into two regions, the first half of its sectors and the second half, so it needs at least two sectors.
 
-- Each 16-byte entry goes into the next erased unit; the current status is the last valid entry, and an erased journal reads *empty*.
-- An entry a reset cut short fails its check and is skipped, so no unit is ever programmed twice.
+| Offset | Size | Field                                                                   |
+|--------|------|-------------------------------------------------------------------------|
+| 0      | 4    | marker `0x314a4d45` (`EMJ1`)                                            |
+| 4      | 1    | status, as `application::UpgradePackStatus`                             |
+| 5      | 3    | generation, little-endian; `0xffffff` after an erase, one less per move |
+| 8      | 4    | error code                                                              |
+| 12     | 4    | check, `~(marker ^ (status \| generation << 8) ^ errorCode)`            |
+
+- Each 16-byte entry goes into the next erased unit of the current region.
+- A region with data after its first erased unit is not written; the next record moves to the other region.
+- The current region is the one whose valid entries have the lower generation; the current status is its last valid entry.
+- An erased journal reads *empty*.
+- An entry a reset cut short fails its check and is skipped, so no unit is programmed twice; *Constraints & Limitations* gives the conditions.
 - A status and error code equal to the current ones are not written again.
-- A full journal is erased and restarted with the status being recorded.
+- When the current region is full, the entry moves to the other region with the next lower generation, and only then is the full region erased.
 
 The application starts a download by erasing the journal (`Clear()`), records *downloaded* once the pack passed its checks and *ready to deploy* when the user applies it.
 `JournalPackLoader` and `JournalPackUpgrader` replace the status operations of `application::UpgradePackLoader` and `application::PackUpgrader` with the journal.
+
+### Journal layout
+
+Entries only append; an earlier entry is never changed.
+The scan of a region reads from its start and stops at the first erased entry.
+
+```text
+region 0 (generation ffffff, old)            region 1 (generation fffffe, current)
++----------+----------+----------+---------+  +----------+----------+----------+---------+
+| download | ready    | torn     | started |  | deployed | ffff...  | ffff...  | ffff... |
+| check ok | check ok | check ✗  | check ok|  | check ok | erased   | erased   | erased  |
++----------+----------+----------+---------+  +----------+----------+----------+---------+
+  old region: erased at the move                current    next write
+```
+
+### Record and scan
+
+```mermaid
+flowchart TD
+    Record["Record(status, errorCode)"] --> Scan["Scan both regions:<br/>current = lower generation,<br/>status = its last valid entry"]
+    Scan --> Same{"Same status and<br/>error code as the current entry?"}
+    Same -- yes --> Done["Write nothing"]
+    Same -- no --> Free{"Erased entry in the current<br/>region, and only erased<br/>units after it?"}
+    Free -- yes --> Write["Write the entry there,<br/>same generation"]
+    Free -- no --> Blank{"Other region<br/>erased?"}
+    Blank -- no --> EraseOther["Erase the other region"]
+    Blank -- yes --> Move["Write the entry at the start<br/>of the other region,<br/>generation minus one"]
+    EraseOther --> Move
+    Move --> EraseOld["Erase the full region"]
+```
+
+### Power loss
+
+A reset while an entry is written leaves a torn entry.
+The next scan skips it, and the next record goes into the erased entry after it.
+
+```mermaid
+sequenceDiagram
+    participant B as Bootloader
+    participant J as Journal flash
+    B->>J: write "deploy started" at offset 48
+    Note over J: reset: entry is torn
+    B->>J: scan at boot
+    J-->>B: last valid entry is "ready to deploy"
+    B->>B: install again from the staged pack
+    B->>J: write "deploy started" at offset 64
+```
+
+A reset during the copy leaves the journal at *deploy started*.
+The copy only reads the staging flash, so the next boot does the installation again.
+
+```mermaid
+sequenceDiagram
+    participant B as Bootloader
+    participant J as Journal flash
+    participant S as Application slot
+    B->>J: record "deploy started"
+    B->>S: erase and write the image
+    Note over S: reset: slot is incomplete
+    B->>J: scan at boot
+    J-->>B: "deploy started"
+    B->>S: erase and write the image again
+    B->>S: write the image descriptor
+    B->>J: record "deployed"
+```
+
+A move to the other region writes the new entry before it erases the full region.
+A reset at any step leaves one region with a valid current status.
+
+```mermaid
+sequenceDiagram
+    participant B as Bootloader
+    participant R0 as Region 0 (full)
+    participant R1 as Region 1
+    B->>R1: erase, if not erased
+    Note over R0,R1: reset: old status kept
+    B->>R1: write "deploy started", generation g - 1
+    Note over R0,R1: reset: new status, lower generation
+    B->>R0: erase
+    Note over R0,R1: reset: region 0 partly erased
+    B->>R0: scan at boot
+    R0-->>B: entries with generation g or higher
+    B->>R1: scan at boot
+    R1-->>B: "deploy started", generation g - 1
+    B->>B: region 1 is current
+```
+
+An erase can only set bits, so a partly erased entry has the same or a higher generation, never a lower one.
+Entries left over in the old region therefore never hide the current status.
+The next move erases the leftovers before it writes into that region.
+
+`Clear()` first records *empty*, a single write that a reset cannot half-do.
+It then erases the other region, and the current region last.
+A reset at any step reads *empty*, and an older status never comes back.
+
+```mermaid
+sequenceDiagram
+    participant A as Application
+    participant C as Current region
+    participant O as Other region
+    A->>C: record "empty"
+    Note over C,O: reset: "empty" is the current status
+    A->>O: erase
+    Note over C,O: reset: "empty" is the current status
+    A->>C: erase
+    Note over C,O: reset: no valid entry left, "empty"
+```
+
+### Constraints & Limitations
+
+- The journal flash must have at least two sectors.
+- The programming unit of the journal flash must be 16 bytes or a divisor of 16.
+  A larger unit holds two entries, so the second write programs the unit twice.
+  The journal does not check this.
+- On flash with ECC, a read of a torn unit can cause an uncorrectable-error fault instead of returning data.
+  The flash driver must report such a unit as data, or every scan faults.
+- The generation has 24 bits, one per move between regions, which is more than the erase endurance of flash.
+  When it is used up, the journal erases both regions and records the status at the start, which a reset can interrupt.
+- The XOR check detects a change in one field only.
+  A torn write, or a reset during the erase of the first unit of the current region, can change a data field and the check equally.
+  Such an entry reads as valid with a wrong value.
+- An error takes two records: *invalid* with error code 0, then *invalid* with the code.
+  A reset between them loses the error code.
 
 ## Application header and image descriptor
 
