@@ -112,8 +112,10 @@ namespace hal
 
         {
             std::unique_lock<std::mutex> lock(mutex);
-            if (!onReceivedData)
-                receivedDataSet.wait(lock);
+            receivedDataSet.wait(lock, [this]()
+                {
+                    return onReceivedData || !running;
+                });
         }
 
         while (running)
