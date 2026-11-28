@@ -3,6 +3,7 @@
 
 #include "infra/timer/TimerService.hpp"
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -22,9 +23,21 @@ namespace hal
         infra::Duration Resolution() const override;
 
     private:
+        struct Lifetime
+        {
+            explicit Lifetime(TimerServiceGeneric* service)
+                : service(service)
+            {}
+
+            std::recursive_mutex mutex;
+            TimerServiceGeneric* service;
+        };
+
         void WaitForTrigger();
+        void Trigger();
 
     private:
+        std::shared_ptr<Lifetime> lifetime;
         std::condition_variable_any condition;
         std::recursive_mutex mutex;
         infra::TimePoint nextTrigger;

@@ -390,8 +390,10 @@ namespace application
                         condition.notify_all();
                     });
 
-                while (!processDone && !stoppedEventDispatcher)
-                    condition.wait(lock);
+                condition.wait(lock, [this]()
+                    {
+                        return processDone || stoppedEventDispatcher;
+                    });
             }
         }
 
@@ -682,6 +684,7 @@ namespace application
 
         std::unique_lock<std::mutex> lock(mutex);
         stoppedEventDispatcher = true;
+        condition.notify_all();
     }
 
     void Console::ListInterfaces()

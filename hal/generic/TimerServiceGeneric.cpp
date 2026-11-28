@@ -5,6 +5,7 @@ namespace hal
 {
     TimerServiceGeneric::TimerServiceGeneric(uint32_t id)
         : infra::TimerService(id)
+        , lifetime(std::make_shared<Lifetime>(this))
         , nextTrigger(NextTrigger())
         , triggerThread([this]()
               {
@@ -14,6 +15,11 @@ namespace hal
 
     TimerServiceGeneric::~TimerServiceGeneric()
     {
+        {
+            std::scoped_lock lock{ lifetime->mutex };
+            lifetime->service = nullptr;
+        }
+
         {
             // Under the lock, the trigger thread cannot test quit and miss the notify before it waits
             std::scoped_lock lock{ mutex };
@@ -41,6 +47,13 @@ namespace hal
         return std::chrono::duration<long long, std::chrono::system_clock::period>(1);
     }
 
+    void TimerServiceGeneric::Trigger()
+    {
+        std::unique_lock<std::recursive_mutex> eventLock(mutex);
+        Progressed(Now());
+        NextTriggerChanged();
+    }
+
     void TimerServiceGeneric::WaitForTrigger()
     {
         std::unique_lock<std::recursive_mutex> lock(mutex);
@@ -52,15 +65,16 @@ namespace hal
             else
                 condition.wait(lock);
 
-            if (nextTrigger != infra::TimePoint::max() && nextTrigger <= Now())
+            if (!quit && nextTrigger != infra::TimePoint::max() && nextTrigger <= Now())
             {
                 nextTrigger = infra::TimePoint::max();
 
-                infra::EventDispatcher::Instance().Schedule([this]()
+                // A scheduled action can outlive the service: it reaches the service only through the lifetime token
+                infra::EventDispatcher::Instance().Schedule([token = lifetime]()
                     {
-                        std::unique_lock<std::recursive_mutex> eventLock(mutex);
-                        Progressed(Now());
-                        NextTriggerChanged();
+                        std::scoped_lock tokenLock{ token->mutex };
+                        if (token->service != nullptr)
+                            token->service->Trigger();
                     });
             }
         }
